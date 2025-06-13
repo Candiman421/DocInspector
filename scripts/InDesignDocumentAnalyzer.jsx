@@ -6,6 +6,7 @@
 
 // Global configuration for analysis depth, safety, and new features
 var ANALYSIS_CONFIG = {
+    version: "2.1",
     maxRecursionDepth: 10,
     enableDeepScan: true,
     skipEmptyProperties: true,
@@ -34,7 +35,9 @@ var ANALYSIS_CONFIG = {
         'parent.parent.parent', // Deep nesting issues
         'selection.item', // Selection-dependent
         'activeWindow.panels', // UI-dependent
-        'preferences.dictionary' // Often causes crashes
+        'preferences.dictionary', // Often causes crashes
+        'preferences.workspace', // Version-dependent
+        'links.parent.parent' // Complex relationships
     ]
 };
 
@@ -81,7 +84,7 @@ function safeGetProperty(obj, prop, defaultValue) {
     } catch (e) {
         // Log error for debugging but don't break
         if (ANALYSIS_CONFIG.logErrors) {
-            logError("safeGetProperty failed for prop '" + prop + "': " + e.message);
+            logError("safeGetProperty failed for prop '" + prop + "': " + e.message, 'propertyAccess', 'medium');
         }
         return defaultValue !== undefined ? defaultValue : null;
     }
@@ -130,7 +133,7 @@ function safeGetNestedProperty(obj, path, defaultValue) {
         return current;
     } catch (e) {
         if (ANALYSIS_CONFIG.logErrors) {
-            logError("safeGetNestedProperty failed for path '" + path + "': " + e.message);
+            logError("safeGetNestedProperty failed for path '" + path + "': " + e.message, 'nestedAccess', 'medium');
         }
         return defaultValue !== undefined ? defaultValue : null;
     }
@@ -153,8 +156,8 @@ function logError(message, category, severity) {
         ANALYSIS_CONFIG.errors.push(errorEntry);
         
         // Limit error log size to prevent memory issues
-        if (ANALYSIS_CONFIG.errors.length > 100) {
-            ANALYSIS_CONFIG.errors.splice(0, 50); // Remove oldest 50 entries
+        if (ANALYSIS_CONFIG.errors.length > 200) {
+            ANALYSIS_CONFIG.errors.splice(0, 100); // Remove oldest 100 entries
         }
     } catch (e) {
         // Can't even log the error - just continue
@@ -203,8 +206,12 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
                 name: collectionName,
                 length: length,
                 accessible: true,
-                sampleTypes: []
+                sampleTypes: [],
+                processingTime: 0,
+                errorCount: 0
             };
+            
+            var discoveryStartTime = new Date().getTime();
             
             // Sample first few items to determine types
             for (var sampleIndex = 0; sampleIndex < Math.min(3, length); sampleIndex++) {
@@ -217,15 +224,28 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
                         }
                     }
                 } catch (e) {
-                    // Skip problematic samples
+                    discoveryInfo.errorCount++;
                 }
             }
             
+            discoveryInfo.processingTime = new Date().getTime() - discoveryStartTime;
             ANALYSIS_CONFIG.discoveredCollections.push(discoveryInfo);
         }
         
-        // Process collection items
+        // Process collection items with timeout protection
+        var processingStartTime = new Date().getTime();
         for (var i = 0; i < Math.min(length, maxItems); i++) {
+            // Timeout protection for very large collections
+            if (new Date().getTime() - processingStartTime > ANALYSIS_CONFIG.timeoutThreshold) {
+                results.push({
+                    notice: "Collection processing timed out at item " + i,
+                    timeoutProtection: true,
+                    itemsProcessed: i,
+                    totalItems: length
+                });
+                break;
+            }
+            
             try {
                 var item = collection[i];
                 if (item) {
@@ -235,14 +255,14 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
                     }
                 }
             } catch (itemError) {
-                // Log error but continue processing
                 if (ANALYSIS_CONFIG.logErrors) {
-                    logError("Item processing failed at index " + i + ": " + itemError.message, 'collection', 'low');
+                    logError("Collection item processing failed at index " + i + ": " + itemError.message, 'collectionItem', 'low');
                 }
                 results.push({
                     error: "Failed to process item " + i + ": " + itemError.message,
                     index: i,
-                    recoverable: true
+                    recoverable: true,
+                    collectionName: collectionName || 'unknown'
                 });
             }
         }
@@ -252,7 +272,8 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
             results.push({
                 notice: "Collection truncated: showing first " + maxItems + " of " + length + " items",
                 totalItems: length,
-                shownItems: maxItems
+                shownItems: maxItems,
+                truncationReason: "Performance optimization"
             });
         }
         
@@ -260,11 +281,85 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
         results.push({
             error: "Collection iteration failed: " + e.message,
             collectionName: collectionName || 'unknown',
-            recoverable: false
+            recoverable: false,
+            errorType: 'collection_failure'
         });
+        
+        if (ANALYSIS_CONFIG.logErrors) {
+            logError("Collection iteration failed for " + (collectionName || 'unknown') + ": " + e.message, 'collection', 'high');
+        }
     }
     
     return results;
+}
+
+// Enhanced safe section analyzer with timeout protection and retry logic
+function safeAnalyzeSection(sectionName, analyzeFunction) {
+    var startTime = new Date().getTime();
+    var sectionConfig = {
+        name: sectionName,
+        timeout: ANALYSIS_CONFIG.timeoutThreshold,
+        retryCount: 0,
+        maxRetries: 2
+    };
+    
+    function attemptAnalysis() {
+        try {
+            var result = analyzeFunction();
+            var duration = new Date().getTime() - startTime;
+            
+            if (duration > sectionConfig.timeout) {
+                if (sectionConfig.retryCount < sectionConfig.maxRetries) {
+                    sectionConfig.retryCount++;
+                    sectionConfig.timeout *= 1.5; // Increase timeout for retry
+                    logError("Section " + sectionName + " timed out, retrying with extended timeout", 'timeout', 'medium');
+                    return attemptAnalysis();
+                } else {
+                    logError("Section " + sectionName + " timed out after " + duration + "ms with " + sectionConfig.retryCount + " retries", 'timeout', 'high');
+                    return {
+                        error: "Section analysis timed out after " + duration + "ms",
+                        partialData: result,
+                        timeout: true,
+                        retryCount: sectionConfig.retryCount,
+                        sectionName: sectionName
+                    };
+                }
+            }
+            
+            return result;
+            
+        } catch (error) {
+            if (sectionConfig.retryCount < sectionConfig.maxRetries && 
+                error.message.indexOf('timeout') === -1) {
+                sectionConfig.retryCount++;
+                logError("Section " + sectionName + " failed, retrying: " + error.message, 'sectionRetry', 'medium');
+                return attemptAnalysis();
+            } else {
+                logError("Section " + sectionName + " analysis failed: " + error.message, 'sectionFailure', 'high');
+                return {
+                    error: "Section analysis failed: " + error.message,
+                    sectionName: sectionName,
+                    line: error.line || "unknown",
+                    recoverable: true,
+                    retryCount: sectionConfig.retryCount,
+                    errorType: categorizeError(error)
+                };
+            }
+        }
+    }
+    
+    return attemptAnalysis();
+}
+
+// Enhanced error categorization
+function categorizeError(error) {
+    var message = error.message || '';
+    if (message.indexOf('timeout') !== -1) return 'timeout';
+    if (message.indexOf('access') !== -1) return 'access_denied';
+    if (message.indexOf('property') !== -1) return 'property_error';
+    if (message.indexOf('Object does not support') !== -1) return 'unsupported_property';
+    if (message.indexOf('permission') !== -1) return 'permission_error';
+    return 'unknown';
 }
 
 // Main enhanced document report creation with comprehensive features
@@ -336,36 +431,6 @@ function createDocumentReport(doc) {
     report.errors = ANALYSIS_CONFIG.errors;
     
     return report;
-}
-
-// Enhanced safe section analyzer with timeout protection and progress tracking
-function safeAnalyzeSection(sectionName, analyzeFunction) {
-    var startTime = new Date().getTime();
-    
-    try {
-        var result = analyzeFunction();
-        var duration = new Date().getTime() - startTime;
-        
-        if (duration > ANALYSIS_CONFIG.timeoutThreshold) {
-            logError("Section analysis timed out after " + duration + "ms", sectionName, 'high');
-            return {
-                error: "Section analysis timed out after " + duration + "ms",
-                partialData: result,
-                timeout: true
-            };
-        }
-        
-        return result;
-        
-    } catch (error) {
-        logError("Section analysis failed: " + error.message, sectionName, 'high');
-        return {
-            error: "Section analysis failed: " + error.message,
-            sectionName: sectionName,
-            line: error.line || "unknown",
-            recoverable: true
-        };
-    }
 }
 
 // Enhanced comprehensive text content analysis with full text capture
@@ -634,7 +699,72 @@ function getComprehensiveTextContent(doc) {
     return textAnalysis;
 }
 
-// Auto-discovery of collections and properties
+// Enhanced text frame styles analysis
+function getTextFrameStyles(textFrame) {
+    var styles = {
+        paragraphStyles: [],
+        characterStyles: [],
+        objectStyles: []
+    };
+    
+    try {
+        // Get paragraph styles
+        if (textFrame.paragraphs) {
+            for (var i = 0; i < Math.min(textFrame.paragraphs.length, 10); i++) {
+                try {
+                    var paragraph = textFrame.paragraphs[i];
+                    var styleName = safeGetProperty(paragraph.appliedParagraphStyle, 'name');
+                    if (styleName && styles.paragraphStyles.indexOf(styleName) === -1) {
+                        styles.paragraphStyles.push({
+                            name: styleName,
+                            path: "doc.textFrames[n].paragraphs[" + i + "].appliedParagraphStyle"
+                        });
+                    }
+                } catch (e) {
+                    // Skip problematic paragraph
+                }
+            }
+        }
+        
+        // Get character styles (sample)
+        if (textFrame.characters && textFrame.characters.length > 0) {
+            for (var i = 0; i < Math.min(textFrame.characters.length, 50); i += 10) {
+                try {
+                    var character = textFrame.characters[i];
+                    var styleName = safeGetProperty(character.appliedCharacterStyle, 'name');
+                    if (styleName && styles.characterStyles.indexOf(styleName) === -1) {
+                        styles.characterStyles.push({
+                            name: styleName,
+                            path: "doc.textFrames[n].characters[" + i + "].appliedCharacterStyle"
+                        });
+                    }
+                } catch (e) {
+                    // Skip problematic character
+                }
+            }
+        }
+        
+        // Get object style
+        try {
+            var objectStyleName = safeGetProperty(textFrame.appliedObjectStyle, 'name');
+            if (objectStyleName) {
+                styles.objectStyles.push({
+                    name: objectStyleName,
+                    path: "doc.textFrames[n].appliedObjectStyle"
+                });
+            }
+        } catch (e) {
+            // Object style not available
+        }
+        
+    } catch (e) {
+        logError("Text frame styles analysis failed: " + e.message, 'styles', 'medium');
+    }
+    
+    return styles;
+}
+
+// Enhanced auto-discovery of collections and properties
 function getAutoDiscoveredCollections(doc) {
     if (!ANALYSIS_CONFIG.enableAutoDiscovery) {
         return { disabled: "Auto-discovery disabled in configuration" };
@@ -678,7 +808,9 @@ function getAutoDiscoveredCollections(doc) {
                 length: collection.length,
                 accessible: collection.accessible,
                 recommendedAccess: "doc." + collection.name + "[index]",
-                alternativeAccess: ["doc." + collection.name + ".item(index)", "doc." + collection.name + ".itemByRange(start, end)"]
+                alternativeAccess: ["doc." + collection.name + ".item(index)", "doc." + collection.name + ".itemByRange(start, end)"],
+                processingTime: collection.processingTime,
+                errorCount: collection.errorCount
             };
         }
     } catch (e) {
@@ -694,213 +826,7 @@ function getAutoDiscoveredCollections(doc) {
     return discoveryResults;
 }
 
-// Generate access patterns from discovered properties
-function generateAccessPatterns(propertyMap) {
-    var patterns = [];
-    
-    for (var propName in propertyMap) {
-        var prop = propertyMap[propName];
-        
-        patterns.push({
-            property: propName,
-            pattern: "Safe iteration pattern",
-            code: [
-                "// Safe iteration for " + propName,
-                "if (doc." + propName + " && doc." + propName + ".length > 0) {",
-                "    for (var i = 0; i < doc." + propName + ".length; i++) {",
-                "        try {",
-                "            var item = doc." + propName + "[i];",
-                "            if (item) {",
-                "                // Process item safely",
-                "                // Example: var itemProperty = item.someProperty;",
-                "            }",
-                "        } catch (e) {",
-                "            // Handle individual item errors",
-                "            // Continue processing other items",
-                "        }",
-                "    }",
-                "}"
-            ],
-            safetyLevel: "high",
-            recommended: true
-        });
-    }
-    
-    return patterns;
-}
-
-// Generate recommendations based on discovery results
-function generateDiscoveryRecommendations(discoveryResults) {
-    var recommendations = [];
-    
-    if (discoveryResults.summary.inaccessibleCollections > 0) {
-        recommendations.push({
-            priority: "high",
-            category: "accessibility",
-            title: "Inaccessible Collections Found",
-            description: discoveryResults.summary.inaccessibleCollections + " collections could not be accessed safely",
-            action: "Use try-catch blocks and alternative access methods for robust error handling"
-        });
-    }
-    
-    if (discoveryResults.summary.totalCollectionsFound > 20) {
-        recommendations.push({
-            priority: "medium",
-            category: "performance",
-            title: "Large Number of Collections",
-            description: "Document has " + discoveryResults.summary.totalCollectionsFound + " collections",
-            action: "Consider processing in batches or filtering to essential collections only"
-        });
-    }
-    
-    var largeCollections = 0;
-    for (var propName in discoveryResults.propertyMap) {
-        var prop = discoveryResults.propertyMap[propName];
-        if (prop.length > 100) {
-            largeCollections++;
-        }
-    }
-    
-    if (largeCollections > 0) {
-        recommendations.push({
-            priority: "medium",
-            category: "performance",
-            title: "Large Collections Detected",
-            description: largeCollections + " collections have more than 100 items",
-            action: "Use pagination or sampling when processing large collections"
-        });
-    }
-    
-    return recommendations;
-}
-
-// Calculate comprehensive text statistics
-function calculateTextStatistics(textAnalysis) {
-    var stats = {
-        totalUniqueWords: 0,
-        averageWordsPerFrame: 0,
-        averageCharactersPerFrame: 0,
-        longestTextFrame: null,
-        shortestTextFrame: null,
-        mostComplexFrame: null,
-        textDistribution: {
-            emptyFrames: 0,
-            smallFrames: 0,  // < 100 characters
-            mediumFrames: 0, // 100-1000 characters
-            largeFrames: 0   // > 1000 characters
-        },
-        styleUsage: {},
-        languageDetection: {
-            hasNonAscii: false,
-            possibleLanguages: []
-        }
-    };
-    
-    try {
-        var allWords = {};
-        var frameLengths = [];
-        var maxLength = 0;
-        var minLength = Infinity;
-        var maxComplexity = 0;
-        
-        // Analyze each text frame
-        for (var i = 0; i < textAnalysis.textFrameDetails.length; i++) {
-            var frame = textAnalysis.textFrameDetails[i];
-            if (frame.error) continue;
-            
-            var charCount = frame.textContent.characterCount;
-            var wordCount = frame.textContent.wordCount;
-            
-            frameLengths.push(charCount);
-            
-            // Track longest and shortest frames
-            if (charCount > maxLength) {
-                maxLength = charCount;
-                stats.longestTextFrame = {
-                    index: frame.index,
-                    characterCount: charCount,
-                    wordCount: wordCount,
-                    preview: frame.textContent.preview
-                };
-            }
-            
-            if (charCount < minLength && charCount > 0) {
-                minLength = charCount;
-                stats.shortestTextFrame = {
-                    index: frame.index,
-                    characterCount: charCount,
-                    wordCount: wordCount,
-                    preview: frame.textContent.preview
-                };
-            }
-            
-            // Track complexity (number of paragraphs + styles)
-            var complexity = frame.textContent.paragraphCount + 
-                           frame.appliedStyles.paragraphStyles.length + 
-                           frame.appliedStyles.characterStyles.length;
-            
-            if (complexity > maxComplexity) {
-                maxComplexity = complexity;
-                stats.mostComplexFrame = {
-                    index: frame.index,
-                    complexity: complexity,
-                    paragraphCount: frame.textContent.paragraphCount,
-                    stylesUsed: frame.appliedStyles.paragraphStyles.length + frame.appliedStyles.characterStyles.length
-                };
-            }
-            
-            // Categorize frame size
-            if (charCount === 0) {
-                stats.textDistribution.emptyFrames++;
-            } else if (charCount < 100) {
-                stats.textDistribution.smallFrames++;
-            } else if (charCount < 1000) {
-                stats.textDistribution.mediumFrames++;
-            } else {
-                stats.textDistribution.largeFrames++;
-            }
-            
-            // Check for non-ASCII characters
-            if (frame.textContent.hasSpecialCharacters) {
-                stats.languageDetection.hasNonAscii = true;
-            }
-            
-            // Track unique words (simplified approach)
-            if (frame.textContent.fullText) {
-                var words = frame.textContent.fullText.toLowerCase().split(/\s+/);
-                for (var w = 0; w < words.length; w++) {
-                    var word = words[w].replace(/[^\w]/g, '');
-                    if (word.length > 2) {
-                        allWords[word] = true;
-                    }
-                }
-            }
-            
-            // Track style usage
-            for (var s = 0; s < frame.appliedStyles.paragraphStyles.length; s++) {
-                var styleName = frame.appliedStyles.paragraphStyles[s].name;
-                stats.styleUsage[styleName] = (stats.styleUsage[styleName] || 0) + 1;
-            }
-        }
-        
-        // Calculate averages
-        if (textAnalysis.summary.totalTextFrames > 0) {
-            stats.averageWordsPerFrame = Math.round(textAnalysis.summary.totalWords / textAnalysis.summary.totalTextFrames * 10) / 10;
-            stats.averageCharactersPerFrame = Math.round(textAnalysis.summary.totalCharacters / textAnalysis.summary.totalTextFrames * 10) / 10;
-        }
-        
-        // Count unique words
-        stats.totalUniqueWords = Object.keys(allWords).length;
-        
-    } catch (e) {
-        logError("Text statistics calculation failed: " + e.message, 'textStatistics', 'medium');
-        stats.error = "Statistics calculation failed: " + e.message;
-    }
-    
-    return stats;
-}
-
-// Enhanced broken property tracking with more comprehensive detection
+// Enhanced broken property tracking with comprehensive detection
 function trackBrokenProperties(doc) {
     if (!ANALYSIS_CONFIG.enablePropertyTracking) {
         return { disabled: "Property tracking disabled in configuration" };
@@ -956,23 +882,6 @@ function trackBrokenProperties(doc) {
             { prop: 'parentStory', expected: 'object', nullable: true },
             { prop: 'bounds', expected: 'object', critical: true },
             { prop: 'itemLayer', expected: 'object', nullable: true }
-        ],
-        image: [
-            { prop: 'itemLink', expected: 'object', nullable: true, critical: true },
-            { prop: 'actualPpi', expected: 'object', nullable: true },
-            { prop: 'bounds', expected: 'object', critical: true },
-            { prop: 'parent', expected: 'object', nullable: true }
-        ],
-        style: [
-            { prop: 'name', expected: 'string', critical: true },
-            { prop: 'id', expected: 'number', critical: true },
-            { prop: 'basedOn', expected: 'object', nullable: true }
-        ],
-        link: [
-            { prop: 'name', expected: 'string', critical: true },
-            { prop: 'filePath', expected: 'string', critical: true },
-            { prop: 'status', expected: 'object', critical: true },
-            { prop: 'size', expected: 'number', nullable: true }
         ]
     };
     
@@ -993,18 +902,6 @@ function trackBrokenProperties(doc) {
             });
         }
     }
-    
-    // Test content-level properties
-    testContentProperties(doc, brokenTracking, testSuites);
-    
-    // Test style properties
-    testStyleProperties(doc, brokenTracking, testSuites);
-    
-    // Test link properties
-    testLinkProperties(doc, brokenTracking, testSuites);
-    
-    // Test collection-level access patterns
-    testCollectionProperties(doc, brokenTracking);
     
     // Analyze reliability patterns
     brokenTracking.propertyReliability = analyzePropertyReliability(brokenTracking);
@@ -1070,14 +967,12 @@ function testPropertyAccess(obj, propName, propPath, expectedType, nullable) {
     var startTime = new Date().getTime();
     
     try {
-        // Test with timeout protection
         var value = obj[propName];
         result.testTime = new Date().getTime() - startTime;
         
         // Check for timeout
         if (result.testTime > 1000) { // 1 second timeout for property access
             result.timeout = true;
-            brokenTracking.summary.timeoutProperties++;
         }
         
         result.value = value;
@@ -1112,163 +1007,705 @@ function testPropertyAccess(obj, propName, propPath, expectedType, nullable) {
     return result;
 }
 
-// Test collection-level properties and access patterns
-function testCollectionProperties(doc, brokenTracking) {
-    var collectionTests = [
-        { name: 'pages', path: 'doc.pages' },
-        { name: 'stories', path: 'doc.stories' },
-        { name: 'textFrames', path: 'doc.textFrames' },
-        { name: 'images', path: 'doc.images' },
-        { name: 'layers', path: 'doc.layers' },
-        { name: 'styles', path: 'doc.paragraphStyles' },
-        { name: 'colors', path: 'doc.colors' },
-        { name: 'fonts', path: 'doc.fonts' },
-        { name: 'links', path: 'doc.links' }
+// Standard document analysis functions with enhanced error handling
+function getDocumentInfo(doc) {
+    return {
+        name: safeGetProperty(doc, 'name'),
+        id: safeGetProperty(doc, 'id'),
+        filePath: safeGetProperty(doc, 'filePath') ? safeGetProperty(doc, 'filePath').toString() : null,
+        saved: safeGetProperty(doc, 'saved', false),
+        modified: safeGetProperty(doc, 'modified', false),
+        readonly: safeGetProperty(doc, 'readonly', false),
+        visible: safeGetProperty(doc, 'visible', true),
+        selection: safeGetProperty(doc, 'selection') ? safeGetLength(doc.selection) : 0,
+        activeLayer: safeGetProperty(doc.activeLayer, 'name'),
+        zeroPoint: safeGetProperty(doc, 'zeroPoint'),
+        documentOffset: safeGetProperty(doc, 'documentOffset'),
+        rulers: {
+            horizontalMeasurementUnits: safeGetProperty(doc, 'viewPreferences.horizontalMeasurementUnits'),
+            verticalMeasurementUnits: safeGetProperty(doc, 'viewPreferences.verticalMeasurementUnits')
+        }
+    };
+}
+
+function getDocumentPreferences(doc) {
+    var prefs = {};
+    try {
+        var prefCategories = ['documentPreferences', 'marginPreferences', 'bleedPreferences', 'slugPreferences'];
+        
+        for (var i = 0; i < prefCategories.length; i++) {
+            var category = prefCategories[i];
+            var categoryPrefs = safeGetProperty(doc, category);
+            if (categoryPrefs) {
+                prefs[category] = extractObjectProperties(categoryPrefs, category);
+            }
+        }
+    } catch (e) {
+        logError("Document preferences extraction failed: " + e.message, 'preferences', 'medium');
+        prefs.error = e.message;
+    }
+    
+    return prefs;
+}
+
+function getPagesInfo(doc) {
+    return safeIterateCollection(doc.pages, function(page, index) {
+        return {
+            index: index,
+            id: safeGetProperty(page, 'id'),
+            name: safeGetProperty(page, 'name'),
+            bounds: safeGetProperty(page, 'bounds'),
+            side: safeGetProperty(page, 'side'),
+            documentOffset: safeGetProperty(page, 'documentOffset'),
+            appliedMaster: safeGetProperty(page.appliedMaster, 'name'),
+            marginPreferences: extractObjectProperties(safeGetProperty(page, 'marginPreferences'), 'marginPreferences'),
+            pageItems: safeGetLength(page.pageItems)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "pages");
+}
+
+function getSpreadsInfo(doc) {
+    return safeIterateCollection(doc.spreads, function(spread, index) {
+        return {
+            index: index,
+            id: safeGetProperty(spread, 'id'),
+            name: safeGetProperty(spread, 'name'),
+            pages: safeGetLength(spread.pages),
+            pageItems: safeGetLength(spread.pageItems),
+            bounds: safeGetProperty(spread, 'bounds'),
+            bleedOffset: safeGetProperty(spread, 'bleedOffset'),
+            slugOffset: safeGetProperty(spread, 'slugOffset')
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "spreads");
+}
+
+function getMasterSpreadsInfo(doc) {
+    return safeIterateCollection(doc.masterSpreads, function(master, index) {
+        return {
+            index: index,
+            id: safeGetProperty(master, 'id'),
+            name: safeGetProperty(master, 'name'),
+            basedOn: safeGetProperty(master.basedOn, 'name'),
+            pages: safeGetLength(master.pages),
+            pageItems: safeGetLength(master.pageItems)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "masterSpreads");
+}
+
+function getLayersInfo(doc) {
+    return safeIterateCollection(doc.layers, function(layer, index) {
+        return {
+            index: index,
+            id: safeGetProperty(layer, 'id'),
+            name: safeGetProperty(layer, 'name'),
+            visible: safeGetProperty(layer, 'visible', true),
+            locked: safeGetProperty(layer, 'locked', false),
+            color: safeGetProperty(layer, 'layerColor'),
+            pageItems: safeGetLength(layer.pageItems)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "layers");
+}
+
+function getStoriesInfo(doc) {
+    return safeIterateCollection(doc.stories, function(story, index) {
+        return {
+            index: index,
+            id: safeGetProperty(story, 'id'),
+            length: safeGetProperty(story, 'length', 0),
+            textFrames: safeGetLength(story.textFrames),
+            overflows: safeGetProperty(story, 'overflows', false),
+            characters: safeGetLength(story.characters),
+            words: safeGetLength(story.words),
+            paragraphs: safeGetLength(story.paragraphs),
+            textContainerCount: safeGetLength(story.textContainers)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "stories");
+}
+
+function getPageItemsInfo(doc) {
+    var pageItemsInfo = {
+        totalCount: safeGetLength(doc.pageItems),
+        byType: {},
+        sample: []
+    };
+    
+    // Sample page items for detailed analysis
+    pageItemsInfo.sample = safeIterateCollection(doc.pageItems, function(item, index) {
+        var itemType = safeGetProperty(item, 'constructor') ? item.constructor.name : 'unknown';
+        
+        // Count by type
+        if (!pageItemsInfo.byType[itemType]) {
+            pageItemsInfo.byType[itemType] = 0;
+        }
+        pageItemsInfo.byType[itemType]++;
+        
+        return {
+            index: index,
+            id: safeGetProperty(item, 'id'),
+            type: itemType,
+            bounds: safeGetProperty(item, 'bounds'),
+            layer: safeGetProperty(item.itemLayer, 'name'),
+            parent: safeGetProperty(item.parent, 'constructor') ? item.parent.constructor.name : 'unknown',
+            visible: safeGetProperty(item, 'visible', true),
+            locked: safeGetProperty(item, 'locked', false)
+        };
+    }, Math.min(ANALYSIS_CONFIG.maxCollectionSample, 100), "pageItems");
+    
+    return pageItemsInfo;
+}
+
+function getComprehensiveImagesInfo(doc) {
+    var imagesInfo = {
+        direct: [],
+        nested: [],
+        summary: {
+            totalImages: 0,
+            linkedImages: 0,
+            embeddedImages: 0,
+            missingImages: 0,
+            modifiedImages: 0
+        }
+    };
+    
+    // Direct images
+    imagesInfo.direct = safeIterateCollection(doc.images, function(image, index) {
+        var imageInfo = {
+            index: index,
+            id: safeGetProperty(image, 'id'),
+            itemLink: safeGetProperty(image, 'itemLink') ? {
+                name: safeGetProperty(image.itemLink, 'name'),
+                status: safeGetProperty(image.itemLink, 'status') ? image.itemLink.status.toString() : 'unknown',
+                filePath: safeGetProperty(image.itemLink, 'filePath')
+            } : null,
+            bounds: safeGetProperty(image, 'bounds'),
+            actualPpi: safeGetProperty(image, 'actualPpi'),
+            effectivePpi: safeGetProperty(image, 'effectivePpi'),
+            parent: safeGetProperty(image.parent, 'constructor') ? image.parent.constructor.name : 'unknown'
+        };
+        
+        // Update summary
+        imagesInfo.summary.totalImages++;
+        if (imageInfo.itemLink) {
+            imagesInfo.summary.linkedImages++;
+            var status = imageInfo.itemLink.status;
+            if (status.indexOf('Missing') !== -1) imagesInfo.summary.missingImages++;
+            if (status.indexOf('Modified') !== -1) imagesInfo.summary.modifiedImages++;
+        } else {
+            imagesInfo.summary.embeddedImages++;
+        }
+        
+        return imageInfo;
+    }, ANALYSIS_CONFIG.maxCollectionSample, "images");
+    
+    // Find nested images in graphics and groups
+    imagesInfo.nested = findNestedImages(doc);
+    
+    return imagesInfo;
+}
+
+function getComprehensiveGraphicsInfo(doc) {
+    return safeIterateCollection(doc.graphics, function(graphic, index) {
+        return {
+            index: index,
+            id: safeGetProperty(graphic, 'id'),
+            bounds: safeGetProperty(graphic, 'bounds'),
+            images: safeGetLength(graphic.images),
+            parent: safeGetProperty(graphic.parent, 'constructor') ? graphic.parent.constructor.name : 'unknown',
+            itemLink: safeGetProperty(graphic, 'itemLink') ? {
+                name: safeGetProperty(graphic.itemLink, 'name'),
+                status: safeGetProperty(graphic.itemLink, 'status') ? graphic.itemLink.status.toString() : 'unknown'
+            } : null
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "graphics");
+}
+
+function getTextFramesInfo(doc) {
+    return safeIterateCollection(doc.textFrames, function(textFrame, index) {
+        return {
+            index: index,
+            id: safeGetProperty(textFrame, 'id'),
+            bounds: safeGetProperty(textFrame, 'bounds'),
+            overflows: safeGetProperty(textFrame, 'overflows', false),
+            parentStory: safeGetProperty(textFrame.parentStory, 'id'),
+            layer: safeGetProperty(textFrame.itemLayer, 'name'),
+            contents: safeGetProperty(textFrame, 'contents') ? 
+                     (textFrame.contents.length > 100 ? textFrame.contents.substring(0, 100) + "..." : textFrame.contents) 
+                     : null,
+            characters: safeGetLength(textFrame.characters),
+            words: safeGetLength(textFrame.words),
+            paragraphs: safeGetLength(textFrame.paragraphs),
+            lines: safeGetLength(textFrame.lines)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames");
+}
+
+function getStylesInfo(doc) {
+    return {
+        paragraphStyles: getStylesCollection(doc.paragraphStyles, "paragraphStyles"),
+        characterStyles: getStylesCollection(doc.characterStyles, "characterStyles"),
+        objectStyles: getStylesCollection(doc.objectStyles, "objectStyles"),
+        cellStyles: getStylesCollection(doc.cellStyles, "cellStyles"),
+        tableStyles: getStylesCollection(doc.tableStyles, "tableStyles")
+    };
+}
+
+function getStylesCollection(collection, name) {
+    return safeIterateCollection(collection, function(style, index) {
+        return {
+            index: index,
+            id: safeGetProperty(style, 'id'),
+            name: safeGetProperty(style, 'name'),
+            basedOn: safeGetProperty(style.basedOn, 'name'),
+            appliedTo: safeGetProperty(style, 'appliedTo') ? safeGetLength(style.appliedTo) : 0
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, name);
+}
+
+function getColorsInfo(doc) {
+    return safeIterateCollection(doc.colors, function(color, index) {
+        return {
+            index: index,
+            id: safeGetProperty(color, 'id'),
+            name: safeGetProperty(color, 'name'),
+            model: safeGetProperty(color, 'model') ? color.model.toString() : 'unknown',
+            space: safeGetProperty(color, 'space') ? color.space.toString() : 'unknown',
+            colorValue: safeGetProperty(color, 'colorValue')
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "colors");
+}
+
+function getFontsInfo(doc) {
+    return safeIterateCollection(doc.fonts, function(font, index) {
+        return {
+            index: index,
+            id: safeGetProperty(font, 'id'),
+            name: safeGetProperty(font, 'name'),
+            fontFamily: safeGetProperty(font, 'fontFamily'),
+            fontStyleName: safeGetProperty(font, 'fontStyleName'),
+            postScriptName: safeGetProperty(font, 'postScriptName'),
+            status: safeGetProperty(font, 'status') ? font.status.toString() : 'unknown'
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "fonts");
+}
+
+function getLinksInfo(doc) {
+    return safeIterateCollection(doc.links, function(link, index) {
+        return {
+            index: index,
+            id: safeGetProperty(link, 'id'),
+            name: safeGetProperty(link, 'name'),
+            filePath: safeGetProperty(link, 'filePath'),
+            status: safeGetProperty(link, 'status') ? link.status.toString() : 'unknown',
+            size: safeGetProperty(link, 'size'),
+            date: safeGetProperty(link, 'date'),
+            linkType: safeGetProperty(link, 'linkType') ? link.linkType.toString() : 'unknown'
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "links");
+}
+
+function getPreferencesInfo(doc) {
+    var preferences = {};
+    
+    var prefCategories = [
+        'viewPreferences', 'pasteboardPreferences', 'guidePreferences',
+        'gridPreferences', 'textPreferences', 'textWrapPreferences'
     ];
     
-    for (var i = 0; i < collectionTests.length; i++) {
-        var test = collectionTests[i];
-        
+    for (var i = 0; i < prefCategories.length; i++) {
+        var category = prefCategories[i];
         try {
-            var collection = doc[test.name];
-            var collectionResult = {
-                collection: test.name,
-                path: test.path,
-                accessible: true,
-                length: safeGetLength(collection),
-                indexAccessible: false,
-                itemAccessible: false,
-                lengthAccessible: false
-            };
-            
-            // Test length access
-            try {
-                var length = collection.length;
-                collectionResult.lengthAccessible = true;
-            } catch (e) {
-                collectionResult.lengthError = e.message;
+            var categoryPrefs = safeGetProperty(doc, category);
+            if (categoryPrefs) {
+                preferences[category] = extractObjectProperties(categoryPrefs, category);
             }
-            
-            // Test index access (if collection has items)
-            if (collectionResult.length > 0) {
-                try {
-                    var firstItem = collection[0];
-                    collectionResult.indexAccessible = true;
-                } catch (e) {
-                    collectionResult.indexError = e.message;
-                }
-                
-                // Test item() method access
-                try {
-                    var itemMethod = collection.item(0);
-                    collectionResult.itemAccessible = true;
-                } catch (e) {
-                    collectionResult.itemError = e.message;
-                }
-            }
-            
-            brokenTracking.brokenByCategory.collectionLevel.push(collectionResult);
-            
         } catch (e) {
-            brokenTracking.brokenByCategory.collectionLevel.push({
-                collection: test.name,
-                path: test.path,
-                accessible: false,
-                error: e.message
-            });
+            preferences[category] = { error: "Failed to extract: " + e.message };
         }
     }
+    
+    return preferences;
 }
 
-// Keep all existing functions but enhance them with better error handling and discovery features
-// [Previous functions like getDocumentInfo, getPagesInfo, etc. remain the same but with enhanced error handling]
-
-// Enhanced main analysis function
-function analyzeDocument() {
-    if (!app.documents.length) {
-        alert("Please open a document first.");
-        return null;
-    }
-    
-    var doc = app.activeDocument;
-    var startTime = new Date().getTime();
+function getMetadataInfo(doc) {
+    var metadata = {};
     
     try {
-        // Check if document is saved
-        if (!doc.saved && (!doc.filePath || doc.filePath.toString() === "")) {
-            var shouldSave = confirm("Document must be saved before analysis. Save now?");
-            if (shouldSave) {
-                var saveFile = File.saveDialog("Save document for analysis", "*.indd");
-                if (saveFile) {
-                    doc.save(saveFile);
-                } else {
-                    alert("Analysis cancelled - document must be saved.");
-                    return null;
-                }
+        var metadataPreference = safeGetProperty(doc, 'metadataPreferences');
+        if (metadataPreference) {
+            metadata = {
+                author: safeGetProperty(metadataPreference, 'author'),
+                description: safeGetProperty(metadataPreference, 'description'),
+                documentTitle: safeGetProperty(metadataPreference, 'documentTitle'),
+                keywords: safeGetProperty(metadataPreference, 'keywords'),
+                subject: safeGetProperty(metadataPreference, 'subject'),
+                creator: safeGetProperty(metadataPreference, 'creator'),
+                format: safeGetProperty(metadataPreference, 'format'),
+                creationDate: safeGetProperty(metadataPreference, 'creationDate'),
+                modificationDate: safeGetProperty(metadataPreference, 'modificationDate')
+            };
+        }
+    } catch (e) {
+        metadata.error = "Failed to extract metadata: " + e.message;
+    }
+    
+    return metadata;
+}
+
+function getObjectHierarchy(doc) {
+    var hierarchy = {
+        spreads: [],
+        pages: [],
+        masterSpreads: [],
+        layers: []
+    };
+    
+    try {
+        // Build a simplified hierarchy map
+        hierarchy.spreads = safeIterateCollection(doc.spreads, function(spread, index) {
+            return {
+                index: index,
+                name: safeGetProperty(spread, 'name'),
+                pages: safeGetLength(spread.pages),
+                pageItems: safeGetLength(spread.pageItems)
+            };
+        }, 10, "spreads");
+        
+        hierarchy.pages = safeIterateCollection(doc.pages, function(page, index) {
+            return {
+                index: index,
+                name: safeGetProperty(page, 'name'),
+                parent: safeGetProperty(page.parent, 'name'),
+                pageItems: safeGetLength(page.pageItems)
+            };
+        }, 20, "pages");
+        
+    } catch (e) {
+        hierarchy.error = "Failed to build hierarchy: " + e.message;
+    }
+    
+    return hierarchy;
+}
+
+function generateCommonPathsReference(doc) {
+    return {
+        document: [
+            { path: "doc.name", description: "Document name" },
+            { path: "doc.saved", description: "Document saved status" },
+            { path: "doc.filePath", description: "Document file path" }
+        ],
+        pages: [
+            { path: "doc.pages.length", description: "Number of pages" },
+            { path: "doc.pages[n].name", description: "Page name" },
+            { path: "doc.pages[n].bounds", description: "Page bounds" }
+        ],
+        text: [
+            { path: "doc.textFrames[n].contents", description: "Text frame contents" },
+            { path: "doc.stories[n].length", description: "Story character count" },
+            { path: "doc.textFrames[n].overflows", description: "Text overflow status" }
+        ],
+        images: [
+            { path: "doc.images[n].itemLink.name", description: "Linked image name" },
+            { path: "doc.images[n].itemLink.status", description: "Link status" },
+            { path: "doc.images[n].actualPpi", description: "Image resolution" }
+        ]
+    };
+}
+
+// Helper functions
+function extractObjectProperties(obj, objName) {
+    var extracted = {};
+    if (!obj) return extracted;
+    
+    var commonProps = ['top', 'left', 'bottom', 'right', 'width', 'height', 
+                      'x', 'y', 'name', 'value', 'enabled', 'visible'];
+    
+    for (var i = 0; i < commonProps.length; i++) {
+        var prop = commonProps[i];
+        var value = safeGetProperty(obj, prop);
+        if (value !== null && value !== undefined) {
+            extracted[prop] = value;
+        }
+    }
+    
+    return extracted;
+}
+
+function generateAccessPatterns(propertyMap) {
+    var patterns = [];
+    
+    for (var propName in propertyMap) {
+        var prop = propertyMap[propName];
+        
+        patterns.push({
+            property: propName,
+            pattern: "Safe iteration pattern",
+            code: [
+                "// Safe iteration for " + propName,
+                "if (doc." + propName + " && doc." + propName + ".length > 0) {",
+                "    for (var i = 0; i < doc." + propName + ".length; i++) {",
+                "        try {",
+                "            var item = doc." + propName + "[i];",
+                "            if (item) {",
+                "                // Process item safely",
+                "            }",
+                "        } catch (e) {",
+                "            // Handle individual item errors",
+                "        }",
+                "    }",
+                "}"
+            ],
+            safetyLevel: "high",
+            recommended: true
+        });
+    }
+    
+    return patterns;
+}
+
+function generateDiscoveryRecommendations(discoveryResults) {
+    var recommendations = [];
+    
+    if (discoveryResults.summary.inaccessibleCollections > 0) {
+        recommendations.push({
+            priority: "high",
+            category: "accessibility",
+            title: "Inaccessible Collections Found",
+            description: discoveryResults.summary.inaccessibleCollections + " collections could not be accessed safely",
+            action: "Use try-catch blocks and alternative access methods"
+        });
+    }
+    
+    if (discoveryResults.summary.totalCollectionsFound > 20) {
+        recommendations.push({
+            priority: "medium",
+            category: "performance",
+            title: "Large Number of Collections",
+            description: "Document has " + discoveryResults.summary.totalCollectionsFound + " collections",
+            action: "Consider processing in batches or filtering to essential collections"
+        });
+    }
+    
+    return recommendations;
+}
+
+function analyzePropertyReliability(brokenTracking) {
+    var reliability = {};
+    
+    // Analyze patterns in broken properties
+    for (var category in brokenTracking.brokenByCategory) {
+        var categoryItems = brokenTracking.brokenByCategory[category];
+        reliability[category] = {
+            totalTested: categoryItems.length,
+            accessible: 0,
+            broken: 0,
+            reliability: 0
+        };
+        
+        for (var i = 0; i < categoryItems.length; i++) {
+            if (categoryItems[i].accessible) {
+                reliability[category].accessible++;
             } else {
-                alert("Analysis cancelled - document must be saved.");
-                return null;
+                reliability[category].broken++;
             }
         }
         
-        var report = createDocumentReport(doc);
-        
-        if (!report) {
-            alert("Failed to create document report. Check document and try again.");
-            return null;
+        if (reliability[category].totalTested > 0) {
+            reliability[category].reliability = 
+                Math.round((reliability[category].accessible / reliability[category].totalTested) * 100);
         }
-        
-        // Save comprehensive report
-        var docName = doc.name.replace(/\.[^\.]+$/, "");
-        var docPath = doc.filePath;
-        var reportFile = File(docPath + "/" + docName + "_analysis.json");
-        var jsonString = JSON.stringify(report, null, 2);
-        
-        reportFile.open("w");
-        reportFile.write(jsonString);
-        reportFile.close();
-        
-        var duration = (new Date().getTime() - startTime) / 1000;
-        
-        // Create summary of key findings
-        var summary = "Enhanced Document Analysis Complete! (" + duration + "s)\n\n";
-        summary += "✓ Collections discovered: " + (report.discoveryStats.collectionsDiscovered || 0) + "\n";
-        summary += "✓ Text items processed: " + (report.discoveryStats.textItemsProcessed || 0) + "\n";
-        summary += "✓ Properties checked: " + (report.brokenProperties.summary ? report.brokenProperties.summary.totalPropertiesChecked : 0) + "\n";
-        summary += "✓ Broken properties found: " + (report.discoveryStats.brokenPropertiesFound || 0) + "\n";
-        summary += "✓ Errors handled: " + (report.discoveryStats.errorsEncountered || 0) + "\n\n";
-        summary += "Report saved as: " + reportFile.name + "\n\n";
-        summary += "Next: Run the Comparison Utility to track changes!";
-        
-        alert(summary);
-        return report;
-        
-    } catch (error) {
-        var errorMsg = "Analysis failed: " + error.message;
-        if (error.line) errorMsg += "\nLine: " + error.line;
-        
-        // Save error report for debugging
-        try {
-            var errorFile = File(doc.filePath + "/" + doc.name.replace(/\.[^\.]+$/, "") + "_error.txt");
-            errorFile.open("w");
-            errorFile.write("Analysis Error Report\n");
-            errorFile.write("Generated: " + new Date().toString() + "\n\n");
-            errorFile.write("Error: " + error.message + "\n");
-            errorFile.write("Line: " + (error.line || "unknown") + "\n");
-            errorFile.write("Stack: " + (error.stack || "not available") + "\n");
-            errorFile.close();
-            
-            errorMsg += "\n\nError details saved to: " + errorFile.name;
-        } catch (e) {
-            // Couldn't save error file
-        }
-        
-        alert(errorMsg);
-        return null;
     }
+    
+    return reliability;
 }
 
-// Simplified comparison function for use by the utility
+function generatePropertyRecommendations(brokenTracking) {
+    var recommendations = [];
+    
+    if (brokenTracking.summary.brokenProperties > brokenTracking.summary.totalPropertiesChecked * 0.2) {
+        recommendations.push({
+            priority: "high",
+            category: "reliability",
+            title: "High Property Failure Rate",
+            description: "More than 20% of properties are inaccessible",
+            action: "Review document structure and InDesign version compatibility"
+        });
+    }
+    
+    return recommendations;
+}
+
+function calculateTextStatistics(textAnalysis) {
+    var stats = {
+        totalUniqueWords: 0,
+        averageWordsPerFrame: 0,
+        averageCharactersPerFrame: 0,
+        longestTextFrame: null,
+        shortestTextFrame: null,
+        textDistribution: {
+            emptyFrames: 0,
+            smallFrames: 0,
+            mediumFrames: 0,
+            largeFrames: 0
+        }
+    };
+    
+    try {
+        var maxLength = 0;
+        var minLength = Infinity;
+        
+        for (var i = 0; i < textAnalysis.textFrameDetails.length; i++) {
+            var frame = textAnalysis.textFrameDetails[i];
+            if (frame.error) continue;
+            
+            var charCount = frame.textContent.characterCount;
+            
+            if (charCount > maxLength) {
+                maxLength = charCount;
+                stats.longestTextFrame = {
+                    index: frame.index,
+                    characterCount: charCount,
+                    preview: frame.textContent.preview
+                };
+            }
+            
+            if (charCount < minLength && charCount > 0) {
+                minLength = charCount;
+                stats.shortestTextFrame = {
+                    index: frame.index,
+                    characterCount: charCount,
+                    preview: frame.textContent.preview
+                };
+            }
+            
+            // Categorize frame size
+            if (charCount === 0) {
+                stats.textDistribution.emptyFrames++;
+            } else if (charCount < 100) {
+                stats.textDistribution.smallFrames++;
+            } else if (charCount < 1000) {
+                stats.textDistribution.mediumFramems++;
+            } else {
+                stats.textDistribution.largeFrames++;
+            }
+        }
+        
+        // Calculate averages
+        if (textAnalysis.summary.totalTextFrames > 0) {
+            stats.averageWordsPerFrame = Math.round(textAnalysis.summary.totalWords / textAnalysis.summary.totalTextFrames * 10) / 10;
+            stats.averageCharactersPerFrame = Math.round(textAnalysis.summary.totalCharacters / textAnalysis.summary.totalTextFrames * 10) / 10;
+        }
+        
+    } catch (e) {
+        logError("Text statistics calculation failed: " + e.message, 'textStatistics', 'medium');
+        stats.error = "Statistics calculation failed: " + e.message;
+    }
+    
+    return stats;
+}
+
+function generateTextAccessPaths(doc) {
+    return [
+        { path: "doc.textFrames[n].contents", description: "Direct text content access" },
+        { path: "doc.stories[n].contents", description: "Full story text content" },
+        { path: "doc.textFrames[n].paragraphs[n].contents", description: "Individual paragraph content" },
+        { path: "doc.textFrames[n].overflows", description: "Text overflow detection" }
+    ];
+}
+
+function extractTextSamples(doc) {
+    var samples = [];
+    
+    try {
+        for (var i = 0; i < Math.min(doc.textFrames.length, 5); i++) {
+            var textFrame = doc.textFrames[i];
+            var content = safeGetProperty(textFrame, 'contents');
+            if (content && content.length > 10) {
+                samples.push({
+                    frameIndex: i,
+                    sample: content.substring(0, 100),
+                    fullLength: content.length
+                });
+            }
+        }
+    } catch (e) {
+        samples.push({ error: "Failed to extract text samples: " + e.message });
+    }
+    
+    return samples;
+}
+
+function analyzeTableText(doc) {
+    var tableText = [];
+    
+    try {
+        if (doc.tables && doc.tables.length > 0) {
+            for (var i = 0; i < Math.min(doc.tables.length, 5); i++) {
+                var table = doc.tables[i];
+                tableText.push({
+                    index: i,
+                    rows: safeGetLength(table.rows),
+                    columns: safeGetLength(table.columns),
+                    cells: safeGetLength(table.cells)
+                });
+            }
+        }
+    } catch (e) {
+        tableText.push({ error: "Table analysis failed: " + e.message });
+    }
+    
+    return tableText;
+}
+
+function findTextInGroups(doc) {
+    var textInGroups = [];
+    
+    try {
+        if (doc.groups && doc.groups.length > 0) {
+            for (var i = 0; i < Math.min(doc.groups.length, 10); i++) {
+                var group = doc.groups[i];
+                var textFrames = safeGetLength(group.textFrames);
+                if (textFrames > 0) {
+                    textInGroups.push({
+                        groupIndex: i,
+                        textFrames: textFrames,
+                        path: "doc.groups[" + i + "].textFrames"
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        textInGroups.push({ error: "Group text analysis failed: " + e.message });
+    }
+    
+    return textInGroups;
+}
+
+function findNestedImages(doc) {
+    var nestedImages = [];
+    
+    try {
+        // Look for images in graphics
+        if (doc.graphics && doc.graphics.length > 0) {
+            for (var i = 0; i < Math.min(doc.graphics.length, 20); i++) {
+                var graphic = doc.graphics[i];
+                var imageCount = safeGetLength(graphic.images);
+                if (imageCount > 0) {
+                    nestedImages.push({
+                        graphicIndex: i,
+                        imageCount: imageCount,
+                        path: "doc.graphics[" + i + "].images"
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        nestedImages.push({ error: "Nested image search failed: " + e.message });
+    }
+    
+    return nestedImages;
+}
+
+// Enhanced comparison function for use by the utility
 function compareDocumentReports(report1, report2) {
     var differences = {
         timestamp: new Date().toISOString(),
@@ -1324,7 +1761,6 @@ function compareDocumentReports(report1, report2) {
     return differences;
 }
 
-// Calculate discovery information between reports
 function calculateDiscoveryInfo(report1, report2) {
     var info = {
         totalCollections: 0,
@@ -1401,7 +1837,6 @@ function calculateDiscoveryInfo(report1, report2) {
     return info;
 }
 
-// Enhanced section comparison with better change detection
 function compareSection(section1, section2, sectionName) {
     var changes = [];
     
@@ -1512,7 +1947,6 @@ function compareSection(section1, section2, sectionName) {
     return changes;
 }
 
-// Enhanced change object creation with comprehensive access path generation
 function createSafeChangeObject(changeData, analysisPath) {
     var safeChange = {
         type: safeGetProperty(changeData, 'type', 'unknown_change'),
@@ -1549,15 +1983,13 @@ function createSafeChangeObject(changeData, analysisPath) {
         safeChange.safetyNotes = [
             "Error generating safety notes: " + e.message,
             "Use comprehensive try-catch pattern",
-            "Test access carefully with your specific documents",
-            "Consider using safeGetProperty() helper function"
+            "Test access carefully with your specific documents"
         ];
     }
     
     return safeChange;
 }
 
-// Enhanced access path generation with more comprehensive patterns
 function generateAccessPath(analysisPath) {
     var accessInfo = {
         primary: "",
@@ -1575,87 +2007,62 @@ function generateAccessPath(analysisPath) {
             return accessInfo;
         }
         
-        // Enhanced path cleaning and validation
         var cleanPath = analysisPath.replace(/^\/+|\/+$/g, '').replace(/\s+/g, '');
-        
-        // Default safe pattern
         var docPath = "doc." + cleanPath;
         accessInfo.primary = docPath;
         accessInfo.collectionMethod = "Direct property access";
         
-        // Enhanced pattern matching with better error handling
-        try {
-            // Text content patterns
-            if (cleanPath.indexOf('textContent') !== -1) {
-                if (cleanPath.indexOf('textFrameDetails[') !== -1) {
-                    var frameMatch = safeRegexMatch(cleanPath, /textFrameDetails\[(\d+)\]\.textContent\.(\w+)/);
-                    if (frameMatch && frameMatch.length >= 3) {
-                        var frameIndex = frameMatch[1];
-                        var textProperty = frameMatch[2];
-                        accessInfo.primary = "doc.textFrames[" + frameIndex + "].contents";
-                        accessInfo.alternatives = [
-                            "doc.textFrames.item(" + frameIndex + ").contents",
-                            "doc.stories[n].textFrames[m].contents // if threaded"
-                        ];
-                        accessInfo.collectionMethod = "Length: doc.textFrames.length";
-                        accessInfo.safetyLevel = "high";
-                    }
-                } else {
-                    accessInfo.primary = "doc.textFrames[n].contents";
+        // Enhanced pattern matching with comprehensive coverage
+        if (cleanPath.indexOf('textContent') !== -1) {
+            if (cleanPath.indexOf('textFrameDetails[') !== -1) {
+                var frameMatch = safeRegexMatch(cleanPath, /textFrameDetails\[(\d+)\]\.textContent\.(\w+)/);
+                if (frameMatch && frameMatch.length >= 3) {
+                    var frameIndex = frameMatch[1];
+                    accessInfo.primary = "doc.textFrames[" + frameIndex + "].contents";
                     accessInfo.alternatives = [
-                        "doc.stories[n].contents",
-                        "doc.textFrames.item(n).contents"
+                        "doc.textFrames.item(" + frameIndex + ").contents",
+                        "doc.stories[n].textFrames[m].contents // if threaded"
                     ];
+                    accessInfo.collectionMethod = "Length: doc.textFrames.length";
                     accessInfo.safetyLevel = "high";
                 }
-            }
-            // Auto-discovered collections patterns
-            else if (cleanPath.indexOf('autoDiscoveredCollections') !== -1) {
-                var discoveryMatch = safeRegexMatch(cleanPath, /autoDiscoveredCollections\.discoveredCollections\[(\d+)\]\.(\w+)/);
-                if (discoveryMatch && discoveryMatch.length >= 3) {
-                    var collectionIndex = discoveryMatch[1];
-                    var property = discoveryMatch[2];
-                    accessInfo.primary = "// Auto-discovered collection - check report for actual path";
-                    accessInfo.alternatives = [
-                        "// Collection discovered during analysis",
-                        "// Use report.autoDiscoveredCollections for details"
-                    ];
-                    accessInfo.safetyLevel = "medium";
-                }
-            }
-            // Broken properties patterns
-            else if (cleanPath.indexOf('brokenProperties') !== -1) {
-                accessInfo.primary = "// Property may be inaccessible - use try-catch";
+            } else {
+                accessInfo.primary = "doc.textFrames[n].contents";
                 accessInfo.alternatives = [
-                    "try { var value = " + docPath + "; } catch (e) { /* handle error */ }",
-                    "// Check brokenProperties report for alternatives"
+                    "doc.stories[n].contents",
+                    "doc.textFrames.item(n).contents"
                 ];
-                accessInfo.safetyLevel = "low";
+                accessInfo.safetyLevel = "high";
             }
-            // Existing patterns (pages, stories, etc.) - keep all existing logic
-            else if (cleanPath.indexOf('pages[') !== -1) {
-                var pageMatch = safeRegexMatch(cleanPath, /pages\[(\d+)\](.*)/);
-                if (pageMatch && pageMatch.length >= 2) {
-                    var pageIndex = pageMatch[1];
-                    var remainder = pageMatch[2] || "";
-                    accessInfo.primary = "doc.pages[" + pageIndex + "]" + remainder;
-                    accessInfo.alternatives = [
-                        "doc.pages.item(" + pageIndex + ")" + remainder,
-                        "doc.pages.itemByRange(" + pageIndex + ", " + pageIndex + ")[0]" + remainder
-                    ];
-                    accessInfo.collectionMethod = "Length: doc.pages.length";
-                    accessInfo.safetyLevel = "high";
-                }
-            }
-            // [Keep all existing pattern matching logic from previous version]
-            // ... (All previous patterns remain the same)
-            
-        } catch (regexError) {
-            logError("Advanced path parsing failed: " + regexError.message, 'accessPath', 'medium');
-            accessInfo.primary = docPath;
-            accessInfo.errorMessage = "Advanced path parsing failed, using basic access";
+        } else if (cleanPath.indexOf('autoDiscoveredCollections') !== -1) {
+            accessInfo.primary = "// Auto-discovered collection - check report for actual path";
+            accessInfo.alternatives = [
+                "// Collection discovered during analysis",
+                "// Use report.autoDiscoveredCollections for details"
+            ];
+            accessInfo.safetyLevel = "medium";
+        } else if (cleanPath.indexOf('brokenProperties') !== -1) {
+            accessInfo.primary = "// Property may be inaccessible - use try-catch";
+            accessInfo.alternatives = [
+                "try { var value = " + docPath + "; } catch (e) { /* handle error */ }",
+                "// Check brokenProperties report for alternatives"
+            ];
             accessInfo.safetyLevel = "low";
+        } else if (cleanPath.indexOf('pages[') !== -1) {
+            var pageMatch = safeRegexMatch(cleanPath, /pages\[(\d+)\](.*)/);
+            if (pageMatch && pageMatch.length >= 2) {
+                var pageIndex = pageMatch[1];
+                var remainder = pageMatch[2] || "";
+                accessInfo.primary = "doc.pages[" + pageIndex + "]" + remainder;
+                accessInfo.alternatives = [
+                    "doc.pages.item(" + pageIndex + ")" + remainder,
+                    "doc.pages.itemByRange(" + pageIndex + ", " + pageIndex + ")[0]" + remainder
+                ];
+                accessInfo.collectionMethod = "Length: doc.pages.length";
+                accessInfo.safetyLevel = "high";
+            }
         }
+        // Add more patterns as needed...
         
     } catch (e) {
         logError("generateAccessPath failed completely: " + e.message, 'accessPath', 'high');
@@ -1667,7 +2074,6 @@ function generateAccessPath(analysisPath) {
     return accessInfo;
 }
 
-// Enhanced safety notes with more comprehensive guidance
 function getSafetyNotes(analysisPath) {
     var notes = [];
     
@@ -1679,14 +2085,13 @@ function getSafetyNotes(analysisPath) {
         
         var pathLower = analysisPath.toLowerCase();
         
-        // Enhanced safety rules with more comprehensive coverage
+        // Enhanced safety rules with comprehensive coverage
         var safetyRules = [
             { 
                 pattern: 'textcontent', 
                 notes: [
                     'Text content may be very large - consider using substring() for previews',
                     'May contain special characters, line breaks, and formatting codes',
-                    'Example: var preview = textFrame.contents ? textFrame.contents.substring(0, 100) : "";',
                     'Always check if contents property exists before accessing'
                 ] 
             },
@@ -1695,8 +2100,7 @@ function getSafetyNotes(analysisPath) {
                 notes: [
                     'Auto-discovered properties may not exist in all document types',
                     'Use comprehensive try-catch blocks for auto-discovered collections',
-                    'Verify collection length before accessing items',
-                    'Example: if (collection && collection.length > 0) { /* safe to use */ }'
+                    'Verify collection length before accessing items'
                 ] 
             },
             { 
@@ -1704,50 +2108,12 @@ function getSafetyNotes(analysisPath) {
                 notes: [
                     'These properties are known to be problematic or inaccessible',
                     'Always use try-catch when accessing broken properties',
-                    'Consider alternative access methods or properties',
-                    'Test thoroughly with your specific InDesign version and document types'
+                    'Consider alternative access methods or properties'
                 ] 
-            },
-            { 
-                pattern: 'bounds', 
-                notes: [
-                    'Bounds may be undefined for some objects or during certain operations',
-                    'Check object validity before accessing bounds',
-                    'Example: if (obj && obj.bounds) { var bounds = obj.bounds; }',
-                    'Bounds values are in document coordinate system'
-                ] 
-            },
-            { 
-                pattern: 'parent', 
-                notes: [
-                    'Parent objects may be null, especially for top-level objects',
-                    'Parent relationships can be complex in nested object hierarchies',
-                    'Example: if (obj.parent && obj.parent.constructor) { var parentType = obj.parent.constructor.name; }',
-                    'Always verify parent exists before accessing parent properties'
-                ] 
-            },
-            { 
-                pattern: 'contents', 
-                notes: [
-                    'Contents may be null for empty text frames or unavailable objects',
-                    'Text contents can be extremely large - use caution with full text access',
-                    'May include hidden characters and formatting',
-                    'Example: var text = textFrame.contents; if (text && text.length > 0) { /* process */ }'
-                ] 
-            },
-            { 
-                pattern: 'itemlink', 
-                notes: [
-                    'itemLink is null for embedded images and some graphics',
-                    'Link status should be checked before accessing link properties',
-                    'Example: if (image.itemLink && image.itemLink.status) { var status = image.itemLink.status.toString(); }',
-                    'Links may be broken, missing, or out of date'
-                ] 
-            },
-            // [Keep all existing safety rules and add new ones]
+            }
         ];
         
-        // Apply enhanced safety rules
+        // Apply safety rules
         for (var i = 0; i < safetyRules.length; i++) {
             var rule = safetyRules[i];
             if (pathLower.indexOf(rule.pattern) !== -1) {
@@ -1760,18 +2126,13 @@ function getSafetyNotes(analysisPath) {
             }
         }
         
-        // Enhanced universal safety patterns
+        // Universal safety patterns
         if (pathLower.indexOf('[') !== -1) {
             notes.push("Array/collection access - always check length first");
             notes.push("Use try-catch for individual item access");
-            notes.push("Example: if (collection.length > index) { var item = collection[index]; }");
         }
         
-        // Add version-specific notes
-        notes.push("Test with your specific InDesign version - behavior may vary");
-        notes.push("Consider using the provided safeGetProperty() helper functions");
-        
-        // Ensure we always have at least basic safety guidance
+        // Ensure we always have basic safety guidance
         if (notes.length === 0) {
             notes.push("Use comprehensive try-catch blocks for property access");
             notes.push("Always validate objects and properties before use");
@@ -1782,16 +2143,13 @@ function getSafetyNotes(analysisPath) {
         logError("getSafetyNotes failed: " + e.message, 'safetyNotes', 'medium');
         notes = [
             "Error generating safety notes: " + e.message,
-            "Use comprehensive try-catch pattern for all property access",
-            "Validate all objects and collections before use",
-            "Test property access with your specific documents and InDesign version"
+            "Use comprehensive try-catch pattern for all property access"
         ];
     }
     
     return notes;
 }
 
-// Safe regex matching helper
 function safeRegexMatch(str, regex) {
     try {
         if (!str || typeof str !== 'string') {
@@ -1804,12 +2162,241 @@ function safeRegexMatch(str, regex) {
     }
 }
 
-// [Keep all existing helper functions but add enhanced error handling]
-// Note: Including all the existing functions like getDocumentInfo, getPagesInfo, etc.
-// with the same enhanced error handling patterns shown above
+// Enhanced main analysis function
+function analyzeDocument() {
+    if (!app.documents.length) {
+        alert("Please open a document first.");
+        return null;
+    }
+    
+    var doc = app.activeDocument;
+    var startTime = new Date().getTime();
+    
+    try {
+        // Check if document is saved
+        if (!doc.saved && (!doc.filePath || doc.filePath.toString() === "")) {
+            var shouldSave = confirm("Document must be saved before analysis. Save now?");
+            if (shouldSave) {
+                var saveFile = File.saveDialog("Save document for analysis", "*.indd");
+                if (saveFile) {
+                    doc.save(saveFile);
+                } else {
+                    alert("Analysis cancelled - document must be saved.");
+                    return null;
+                }
+            } else {
+                alert("Analysis cancelled - document must be saved.");
+                return null;
+            }
+        }
+        
+        var report = createDocumentReport(doc);
+        
+        if (!report) {
+            alert("Failed to create document report. Check document and try again.");
+            return null;
+        }
+        
+        // Save comprehensive report
+        var docName = doc.name.replace(/\.[^\.]+$/, "");
+        var docPath = doc.filePath;
+        var reportFile = File(docPath + "/" + docName + "_analysis.json");
+        var jsonString = JSON.stringify(report, null, 2);
+        
+        reportFile.open("w");
+        reportFile.write(jsonString);
+        reportFile.close();
+        
+        var duration = (new Date().getTime() - startTime) / 1000;
+        
+        // Create summary of key findings
+        var summary = "Enhanced Document Analysis Complete! (" + duration + "s)\n\n";
+        summary += "✓ Collections discovered: " + (report.discoveryStats.collectionsDiscovered || 0) + "\n";
+        summary += "✓ Text items processed: " + (report.discoveryStats.textItemsProcessed || 0) + "\n";
+        summary += "✓ Properties checked: " + (report.brokenProperties.summary ? report.brokenProperties.summary.totalPropertiesChecked : 0) + "\n";
+        summary += "✓ Broken properties found: " + (report.discoveryStats.brokenPropertiesFound || 0) + "\n";
+        summary += "✓ Errors handled: " + (report.discoveryStats.errorsEncountered || 0) + "\n\n";
+        summary += "Report saved as: " + reportFile.name + "\n\n";
+        summary += "Next: Run the Comparison Utility to track changes!";
+        
+        alert(summary);
+        return report;
+        
+    } catch (error) {
+        var errorMsg = "Analysis failed: " + error.message;
+        if (error.line) errorMsg += "\nLine: " + error.line;
+        
+        // Save error report for debugging
+        try {
+            var errorFile = File(doc.filePath + "/" + doc.name.replace(/\.[^\.]+$/, "") + "_error.txt");
+            errorFile.open("w");
+            errorFile.write("Analysis Error Report\n");
+            errorFile.write("Generated: " + new Date().toString() + "\n\n");
+            errorFile.write("Error: " + error.message + "\n");
+            errorFile.write("Line: " + (error.line || "unknown") + "\n");
+            errorFile.write("Stack: " + (error.stack || "not available") + "\n");
+            errorFile.close();
+            
+            errorMsg += "\n\nError details saved to: " + errorFile.name;
+        } catch (e) {
+            // Couldn't save error file
+        }
+        
+        alert(errorMsg);
+        return null;
+    }
+}
+
+// Additional utility functions for enhanced functionality
+function testContentProperties(doc, brokenTracking, testSuites) {
+    // Test text frame properties if available
+    if (doc.textFrames && doc.textFrames.length > 0) {
+        try {
+            brokenTracking.testResults.textFrame = runPropertyTests(doc.textFrames[0], testSuites.textFrame, 'doc.textFrames[0]', brokenTracking);
+        } catch (e) {
+            brokenTracking.brokenByCategory.contentLevel.push({
+                property: "textFrames[0]",
+                path: "doc.textFrames[0]",
+                error: "Failed to access first text frame: " + e.message,
+                accessible: false,
+                critical: true
+            });
+        }
+    }
+    
+    // Test image properties if available
+    if (doc.images && doc.images.length > 0) {
+        try {
+            var testSuite = [
+                { prop: 'itemLink', expected: 'object', nullable: true, critical: true },
+                { prop: 'actualPpi', expected: 'object', nullable: true },
+                { prop: 'bounds', expected: 'object', critical: true },
+                { prop: 'parent', expected: 'object', nullable: true }
+            ];
+            brokenTracking.testResults.image = runPropertyTests(doc.images[0], testSuite, 'doc.images[0]', brokenTracking);
+        } catch (e) {
+            brokenTracking.brokenByCategory.contentLevel.push({
+                property: "images[0]",
+                path: "doc.images[0]",
+                error: "Failed to access first image: " + e.message,
+                accessible: false,
+                critical: true
+            });
+        }
+    }
+}
+
+function testStyleProperties(doc, brokenTracking, testSuites) {
+    // Test paragraph styles if available
+    if (doc.paragraphStyles && doc.paragraphStyles.length > 0) {
+        try {
+            brokenTracking.testResults.style = runPropertyTests(doc.paragraphStyles[0], testSuites.style, 'doc.paragraphStyles[0]', brokenTracking);
+        } catch (e) {
+            brokenTracking.brokenByCategory.styleLevel.push({
+                property: "paragraphStyles[0]",
+                path: "doc.paragraphStyles[0]",
+                error: "Failed to access first paragraph style: " + e.message,
+                accessible: false,
+                critical: true
+            });
+        }
+    }
+}
+
+function testLinkProperties(doc, brokenTracking, testSuites) {
+    // Test links if available
+    if (doc.links && doc.links.length > 0) {
+        try {
+            brokenTracking.testResults.link = runPropertyTests(doc.links[0], testSuites.link, 'doc.links[0]', brokenTracking);
+        } catch (e) {
+            brokenTracking.brokenByCategory.linkLevel.push({
+                property: "links[0]",
+                path: "doc.links[0]",
+                error: "Failed to access first link: " + e.message,
+                accessible: false,
+                critical: true
+            });
+        }
+    }
+}
+
+function testCollectionProperties(doc, brokenTracking) {
+    var collectionTests = [
+        { name: 'pages', path: 'doc.pages' },
+        { name: 'stories', path: 'doc.stories' },
+        { name: 'textFrames', path: 'doc.textFrames' },
+        { name: 'images', path: 'doc.images' },
+        { name: 'layers', path: 'doc.layers' },
+        { name: 'paragraphStyles', path: 'doc.paragraphStyles' },
+        { name: 'colors', path: 'doc.colors' },
+        { name: 'fonts', path: 'doc.fonts' },
+        { name: 'links', path: 'doc.links' }
+    ];
+    
+    for (var i = 0; i < collectionTests.length; i++) {
+        var test = collectionTests[i];
+        
+        try {
+            var collection = doc[test.name];
+            var collectionResult = {
+                collection: test.name,
+                path: test.path,
+                accessible: true,
+                length: safeGetLength(collection),
+                indexAccessible: false,
+                itemAccessible: false,
+                lengthAccessible: false
+            };
+            
+            // Test length access
+            try {
+                var length = collection.length;
+                collectionResult.lengthAccessible = true;
+            } catch (e) {
+                collectionResult.lengthError = e.message;
+            }
+            
+            // Test index access (if collection has items)
+            if (collectionResult.length > 0) {
+                try {
+                    var firstItem = collection[0];
+                    collectionResult.indexAccessible = true;
+                } catch (e) {
+                    collectionResult.indexError = e.message;
+                }
+                
+                // Test item() method access
+                try {
+                    var itemMethod = collection.item(0);
+                    collectionResult.itemAccessible = true;
+                } catch (e) {
+                    collectionResult.itemError = e.message;
+                }
+            }
+            
+            brokenTracking.brokenByCategory.collectionLevel.push(collectionResult);
+            
+        } catch (e) {
+            brokenTracking.brokenByCategory.collectionLevel.push({
+                collection: test.name,
+                path: test.path,
+                accessible: false,
+                error: e.message
+            });
+        }
+    }
+}
+
+// Helper function to check if a string contains the repeat method
+function repeatString(char, count) {
+    var result = "";
+    for (var i = 0; i < count; i++) {
+        result += char;
+    }
+    return result;
+}
 
 // Expose key functions for utility script
-// These functions are needed by the comparison utility
 this.safeGetProperty = safeGetProperty;
 this.safeGetNestedProperty = safeGetNestedProperty;
 this.createDocumentReport = createDocumentReport;
@@ -1835,7 +2422,9 @@ try {
 } catch (error) {
     // Even the alert failed - try a different approach
     try {
-        app.dialogs.add({name: "Enhanced Analyzer", canCancel: false}).show();
+        var dialog = app.dialogs.add({name: "Enhanced Analyzer Loaded"});
+        dialog.show();
+        dialog.destroy();
     } catch (e) {
         // Script loaded but can't show completion message
     }
