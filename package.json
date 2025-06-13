@@ -3,21 +3,11 @@
   "version": "2.1.0",
   "description": "Comprehensive ExtendScript solution for analyzing InDesign documents with bulletproof error handling, complete text capture, auto-discovery, and professional-grade reporting",
   "main": "Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx",
-  "scripts": {
-    "test": "echo \"ExtendScript testing requires InDesign environment\" && exit 0",
-    "validate": "node scripts/validate-jsx.js",
-    "build": "node scripts/build-release.js",
-    "docs": "node scripts/generate-docs.js",
-    "package": "node scripts/package-release.js",
-    "version-check": "node scripts/version-check.js",
-    "lint": "eslint --ext .jsx *.jsx",
-    "clean": "rimraf dist/ temp/ *.log",
-    "release": "npm run clean && npm run validate && npm run build && npm run package"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/CandiMan421/DocAnalyzer.git"
-  },
+  "files": [
+    "Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx",
+    "Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx",
+    "README.md"
+  ],
   "keywords": [
     "indesign",
     "extendscript",
@@ -28,320 +18,33 @@
     "change-tracking",
     "text-analysis",
     "auto-discovery",
-    "error-handling",
-    "performance-monitoring",
-    "object-model",
-    "professional-grade",
-    "bulletproof",
-    "comprehensive",
-    "enhanced",
-    "v2.1"
+    "error-handling"
   ],
-  "author": {
-    "name": "CandiMan421",
-    "email": "contact@example.com",
-    "url": "https://github.com/CandiMan421"
-  },
-  "contributors": [
-    {
-      "name": "Enhanced Development Team",
-      "email": "dev@example.com"
-    }
-  ],
+  "author": "CandiMan421",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CandiMan421/DocAnalyzer.git"
+  },
   "bugs": {
     "url": "https://github.com/CandiMan421/DocAnalyzer/issues"
   },
   "homepage": "https://github.com/CandiMan421/DocAnalyzer#readme",
   "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
-  },
-  "files": [
-    "Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx",
-    "Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx",
-    "installation.md",
-    "usage-guide.md",
-    "maintenance-guide.md",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "docs/",
-    "examples/",
-    "scripts/"
-  ],
-  "devDependencies": {
-    "eslint": "^8.57.0",
-    "eslint-plugin-extendscript": "^1.0.0",
-    "rimraf": "^5.0.5",
-    "archiver": "^6.0.1",
-    "fs-extra": "^11.2.0",
-    "chalk": "^4.1.2",
-    "semver": "^7.5.4",
-    "markdown-it": "^14.0.0",
-    "jsdoc": "^4.0.2"
-  },
-  "optionalDependencies": {
-    "prettier": "^3.2.5"
-  },
-  "peerDependencies": {
     "adobe-indesign": ">=CS6"
   },
   "config": {
-    "indesign": {
-      "minVersion": "CS6",
-      "recommendedVersion": "CC2020",
-      "optimalVersion": "CC2025"
-    },
-    "features": {
+    "version": "2.1",
+    "analyzer": {
       "textCapture": true,
       "autoDiscovery": true,
-      "propertyTracking": true,
       "errorHandling": true,
-      "performanceMonitoring": true
-    }
-  },
-  "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/CandiMan421"
-  },
-  "directories": {
-    "doc": "docs",
-    "example": "examples",
-    "test": "test"
-  },
-  "browserslist": [
-    "ExtendScript >= CS6"
-  ],
-  "enhanced": {
-    "version": "2.1",
-    "releaseDate": "2024-12-19",
-    "features": {
-      "core": [
-        "comprehensive-document-analysis",
-        "bulletproof-error-handling",
-        "multi-method-detection",
-        "object-model-access-paths",
-        "safe-property-access"
-      ],
-      "enhanced": [
-        "complete-text-capture",
-        "auto-discovery-engine",
-        "property-accessibility-tracking",
-        "performance-monitoring",
-        "professional-reporting",
-        "timeout-protection",
-        "enhanced-configuration"
-      ],
-      "reporting": [
-        "human-readable-summaries",
-        "technical-analysis-reports",
-        "text-content-analysis",
-        "discovery-reports",
-        "access-paths-guides",
-        "error-analysis",
-        "performance-metrics"
-      ]
+      "performanceOptimized": true
     },
     "compatibility": {
-      "indesign": {
-        "CS6": "basic",
-        "CC2015": "good",
-        "CC2018": "excellent",
-        "CC2020": "optimal",
-        "CC2023": "optimal",
-        "CC2025": "optimal"
-      },
-      "platforms": [
-        "Windows 10+",
-        "macOS 10.14+",
-        "macOS 11.0+",
-        "macOS 12.0+",
-        "macOS 13.0+",
-        "macOS 14.0+"
-      ]
-    },
-    "performance": {
-      "maxDocumentSize": "unlimited",
-      "timeoutProtection": "30s",
-      "memoryOptimized": true,
-      "progressTracking": true,
-      "errorRecovery": true
-    },
-    "safety": {
-      "bulletproofErrorHandling": true,
-      "safePropertyAccess": true,
-      "timeoutProtection": true,
-      "memoryManagement": true,
-      "gracefulDegradation": true,
-      "comprehensiveLogging": true
-    },
-    "badges": {
-      "platform": {
-        "label": "InDesign",
-        "message": "CS6+",
-        "color": "blue",
-        "url": "https://img.shields.io/badge/InDesign-CS6%2B-blue"
-      },
-      "compatibility": {
-        "label": "ExtendScript",
-        "message": "Compatible",
-        "color": "green",
-        "url": "https://img.shields.io/badge/ExtendScript-Compatible-green"
-      },
-      "version": {
-        "label": "Version",
-        "message": "2.1",
-        "color": "brightgreen",
-        "url": "https://img.shields.io/badge/Version-2.1-brightgreen"
-      },
-      "errorHandling": {
-        "label": "Error Handling",
-        "message": "Bulletproof",
-        "color": "red",
-        "url": "https://img.shields.io/badge/Error%20Handling-Bulletproof-red"
-      },
-      "textAnalysis": {
-        "label": "Text Analysis",
-        "message": "Complete",
-        "color": "orange",
-        "url": "https://img.shields.io/badge/Text%20Analysis-Complete-orange"
-      },
-      "autoDiscovery": {
-        "label": "Auto Discovery",
-        "message": "Enhanced",
-        "color": "purple",
-        "url": "https://img.shields.io/badge/Auto%20Discovery-Enhanced-purple"
-      },
-      "performance": {
-        "label": "Performance",
-        "message": "Optimized",
-        "color": "yellow",
-        "url": "https://img.shields.io/badge/Performance-Optimized-yellow"
-      },
-      "safety": {
-        "label": "Safety",
-        "message": "Professional Grade",
-        "color": "blue",
-        "url": "https://img.shields.io/badge/Safety-Professional%20Grade-blue"
-      }
-    }
-  },
-  "extendscript": {
-    "target": "indesign",
-    "minVersion": "CS6",
-    "features": [
-      "document-analysis",
-      "change-tracking",
-      "text-processing",
-      "image-detection",
-      "style-analysis",
-      "preference-monitoring"
-    ],
-    "apis": [
-      "Document",
-      "Page",
-      "TextFrame",
-      "Story",
-      "Image",
-      "Graphic",
-      "Style",
-      "Color",
-      "Font",
-      "Link"
-    ]
-  },
-  "quality": {
-    "testing": {
-      "unitTests": true,
-      "integrationTests": true,
-      "performanceTests": true,
-      "compatibilityTests": true,
-      "errorHandlingTests": true
-    },
-    "documentation": {
-      "installationGuide": true,
-      "usageGuide": true,
-      "maintenanceGuide": true,
-      "apiDocumentation": true,
-      "troubleshootingGuide": true,
-      "examples": true
-    },
-    "codeQuality": {
-      "linting": true,
-      "formatting": true,
-      "errorHandling": "comprehensive",
-      "performance": "optimized",
-      "safety": "bulletproof"
-    }
-  },
-  "release": {
-    "branch": "main",
-    "tagFormat": "v${version}",
-    "releaseNotes": true,
-    "changelog": true,
-    "assets": [
-      "enhanced-indesign-analyzer-v2.1.zip",
-      "installation-package.zip",
-      "documentation.zip",
-      "examples.zip"
-    ]
-  },
-  "support": {
-    "docs": "https://github.com/CandiMan421/DocAnalyzer/wiki",
-    "issues": "https://github.com/CandiMan421/DocAnalyzer/issues",
-    "discussions": "https://github.com/CandiMan421/DocAnalyzer/discussions",
-    "email": "support@example.com"
-  },
-
-  "changelog": {
-    "2.1.0": {
-      "date": "2024-12-19",
-      "type": "major",
-      "features": [
-        "Complete text capture with comprehensive analysis",
-        "Auto-discovery engine for collections and properties",
-        "Enhanced broken property detection and tracking",
-        "Bulletproof error handling with categorization",
-        "Advanced access path generation with safety guidance",
-        "Performance optimizations with timeout protection",
-        "Professional reporting with multiple output formats",
-        "Enhanced configuration system with granular control"
-      ],
-      "improvements": [
-        "Comprehensive error recovery and retry logic",
-        "Memory optimization and automatic cleanup",
-        "Progress tracking for long operations",
-        "Version compatibility checking and migration",
-        "Enhanced debugging and monitoring tools",
-        "Comprehensive test suite for reliability"
-      ],
-      "fixes": [
-        "Resolved timeout issues with complex documents",
-        "Fixed memory leaks in collection processing",
-        "Improved property access reliability",
-        "Enhanced text encoding detection",
-        "Better handling of problematic document structures"
-      ]
-    },
-    "2.0.0": {
-      "date": "2024-06-15",
-      "type": "major",
-      "features": [
-        "Multi-method image detection for complete coverage",
-        "Object model access paths with safety guidance",
-        "Enhanced user interface with detailed change analysis",
-        "Comprehensive safety features and error prevention"
-      ]
-    },
-    "1.0.0": {
-      "date": "2023-12-01",
-      "type": "initial",
-      "features": [
-        "Basic document analysis and change detection",
-        "Simple comparison functionality",
-        "Core safety features"
-      ]
+      "indesign-cs6": "basic",
+      "indesign-cc2018": "full",
+      "indesign-cc2025": "optimal"
     }
   }
 }
