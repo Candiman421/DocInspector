@@ -1,50 +1,35 @@
 {
-  "name": "enhanced-indesign-document-analyzer",
+  "name": "doc-inspector",
   "version": "2.1.0",
-  "description": "Comprehensive ExtendScript solution for analyzing InDesign documents with bulletproof error handling, complete text capture, auto-discovery, and professional-grade reporting",
-  "main": "Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx",
-  "files": [
-    "Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx",
-    "Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx",
-    "README.md"
-  ],
-  "keywords": [
-    "indesign",
-    "extendscript",
-    "document-analysis",
-    "adobe",
-    "automation",
-    "scripting",
-    "change-tracking",
-    "text-analysis",
-    "auto-discovery",
-    "error-handling"
-  ],
-  "author": "CandiMan421",
-  "license": "MIT",
+  "description": "Document content analysis utility",
+  "main": "InDesignDocumentAnalyzer.jsx",
+  "scripts": {
+    "test": "echo \"Testing requires specialized environment\" && exit 0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/CandiMan421/DocAnalyzer.git"
   },
-  "bugs": {
-    "url": "https://github.com/CandiMan421/DocAnalyzer/issues"
+  "keywords": [
+    "utility",
+    "tool", 
+    "content",
+    "analysis",
+    "helper"
+  ],
+  "author": {
+    "name": "CandiMan421"
   },
-  "homepage": "https://github.com/CandiMan421/DocAnalyzer#readme",
+  "license": "MIT",
+  "private": true,
   "engines": {
-    "adobe-indesign": ">=CS6"
+    "node": ">=14.0.0"
   },
   "config": {
-    "version": "2.1",
-    "analyzer": {
-      "textCapture": true,
-      "autoDiscovery": true,
+    "features": {
+      "contentAnalysis": true,
       "errorHandling": true,
-      "performanceOptimized": true
-    },
-    "compatibility": {
-      "indesign-cs6": "basic",
-      "indesign-cc2018": "full",
-      "indesign-cc2025": "optimal"
+      "performanceMonitoring": true
     }
   }
 }

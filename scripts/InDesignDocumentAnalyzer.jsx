@@ -1583,7 +1583,7 @@ function calculateTextStatistics(textAnalysis) {
             } else if (charCount < 100) {
                 stats.textDistribution.smallFrames++;
             } else if (charCount < 1000) {
-                stats.textDistribution.mediumFramems++;
+                stats.textDistribution.mediumFrames++;
             } else {
                 stats.textDistribution.largeFrames++;
             }
@@ -2387,7 +2387,85 @@ function testCollectionProperties(doc, brokenTracking) {
     }
 }
 
-// Helper function to check if a string contains the repeat method
+// Missing helper functions that are called by the main analysis
+function generateTextAccessPaths(doc) {
+    return [
+        { path: "doc.textFrames[n].contents", description: "Direct text content access" },
+        { path: "doc.stories[n].contents", description: "Full story text content" },
+        { path: "doc.textFrames[n].paragraphs[n].contents", description: "Individual paragraph content" },
+        { path: "doc.textFrames[n].overflows", description: "Text overflow detection" }
+    ];
+}
+
+function extractTextSamples(doc) {
+    var samples = [];
+    
+    try {
+        for (var i = 0; i < Math.min(doc.textFrames.length, 5); i++) {
+            var textFrame = doc.textFrames[i];
+            var content = safeGetProperty(textFrame, 'contents');
+            if (content && content.length > 10) {
+                samples.push({
+                    frameIndex: i,
+                    sample: content.substring(0, 100),
+                    fullLength: content.length
+                });
+            }
+        }
+    } catch (e) {
+        samples.push({ error: "Failed to extract text samples: " + e.message });
+    }
+    
+    return samples;
+}
+
+function analyzeTableText(doc) {
+    var tableText = [];
+    
+    try {
+        if (doc.tables && doc.tables.length > 0) {
+            for (var i = 0; i < Math.min(doc.tables.length, 5); i++) {
+                var table = doc.tables[i];
+                tableText.push({
+                    index: i,
+                    rows: safeGetLength(table.rows),
+                    columns: safeGetLength(table.columns),
+                    cells: safeGetLength(table.cells)
+                });
+            }
+        }
+    } catch (e) {
+        tableText.push({ error: "Table analysis failed: " + e.message });
+    }
+    
+    return tableText;
+}
+
+function findTextInGroups(doc) {
+    var textInGroups = [];
+    
+    try {
+        if (doc.groups && doc.groups.length > 0) {
+            for (var i = 0; i < Math.min(doc.groups.length, 10); i++) {
+                var group = doc.groups[i];
+                var textFrames = safeGetLength(group.textFrames);
+                if (textFrames > 0) {
+                    textInGroups.push({
+                        groupIndex: i,
+                        textFrames: textFrames,
+                        path: "doc.groups[" + i + "].textFrames"
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        textInGroups.push({ error: "Group text analysis failed: " + e.message });
+    }
+    
+    return textInGroups;
+}
+
+// Helper function for string repetition
 function repeatString(char, count) {
     var result = "";
     for (var i = 0; i < count; i++) {

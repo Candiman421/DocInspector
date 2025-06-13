@@ -27,6 +27,17 @@ When you run the comparison utility, you'll see the enhanced main menu with:
 - **🔄 Reset Baseline** - Create new baseline with current document state
 - **❓ Help & Documentation** - Comprehensive help system
 
+## ⚠️ **Important: Script Load Order**
+
+**ALWAYS run scripts in this order:**
+1. **First**: Run `InDesignDocumentAnalyzer.jsx` (loads core functions)
+2. **Second**: Run `InDesignComparisonUtility.jsx` (provides interface)
+
+**If you see version/compatibility errors:**
+- Close InDesign completely
+- Restart InDesign  
+- Run main analyzer first, then utility
+
 ## 🎯 Enhanced Quick Compare Workflow
 
 ### First Run: Enhanced Baseline Creation

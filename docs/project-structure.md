@@ -1,6 +1,65 @@
-# Enhanced InDesign Document Analyzer v2.1 - Complete Project Structure
+# Enhanced InDesign Document Analyzer v2.1 - Current & Future Project Structure
 
-## 📁 Project File Organization
+## 📁 Current Actual Project Structure
+
+```
+docinspector/
+├── 📄 .gitignore                                          # Git ignore patterns
+├── 📄 package.json                                        # Project configuration and metadata
+├── 📄 README.md                                          # Main project documentation
+│
+├── 📂 docs/                                              # Documentation files
+│   ├── 📄 installation.md                               # Installation guide
+│   ├── 📄 maintenance-guide.md                          # Maintenance guide  
+│   ├── 📄 project-structure.md                          # This file
+│   └── 📄 usage-guide.md                               # Usage guide
+│
+├── 📂 scripts/                                          # Script files folder
+│   ├── 📄 InDesignDocumentAnalyzer.jsx                 # Main analyzer script
+│   └── 📄 InDesignComparisonUtility.jsx               # Comparison utility script
+```
+
+## 📋 Current File Descriptions & Status
+
+### 🔧 Core Scripts (Current)
+- **InDesignDocumentAnalyzer.jsx**: Contains all analysis functions, safety systems, and enhanced features
+- **InDesignComparisonUtility.jsx**: User interface, workflow management, and report generation
+- **Dependency**: Utility requires Main Analyzer to be loaded first
+
+### 📚 Documentation Suite (Current)
+- **README.md**: Project overview with feature list
+- **installation.md**: Installation instructions
+- **usage-guide.md**: Usage instructions and examples
+- **maintenance-guide.md**: Development and extension guidance
+- **project-structure.md**: This file - project organization
+- **All guides**: Present and functional
+
+### ⚙️ Configuration & Metadata (Current)
+- **package.json**: Project metadata and configuration
+- **.gitignore**: Git ignore patterns for development
+
+### 🔄 Current File Relationships & Consistency
+
+#### Version Consistency (Current Status)
+All files reference **v2.1** consistently:
+- ✅ package.json: `"version": "2.1.0"`
+- ✅ Main script: `version: "2.1"`
+- ✅ Utility script: `requiredAnalyzerVersion: "2.1"`
+- ✅ Documentation: All guides reference v2.1 features
+
+#### Feature Consistency (Current Status)
+Enhanced features documented across all files:
+- ✅ **Text Capture**: Comprehensive text analysis
+- ✅ **Auto-Discovery**: Collection and property discovery
+- ✅ **Error Handling**: Bulletproof error recovery
+- ✅ **Performance**: Timeout protection and optimization
+- ✅ **Reporting**: Professional multi-format reports
+
+---
+
+## 🎯 Future Target Project Structure (Planned)
+
+### Enhanced File Organization (Target)
 
 ```
 enhanced-indesign-document-analyzer/
@@ -11,8 +70,8 @@ enhanced-indesign-document-analyzer/
 ├── 📄 .gitignore                                          # Git ignore patterns
 │
 ├── 📂 src/                                                 # Source files
-│   ├── 📄 Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx
-│   └── 📄 Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx
+│   ├── 📄 InDesignDocumentAnalyzer.jsx
+│   └── 📄 InDesignComparisonUtility.jsx
 │
 ├── 📂 docs/                                               # Documentation
 │   ├── 📄 installation.md                                 # Enhanced installation guide
@@ -51,117 +110,60 @@ enhanced-indesign-document-analyzer/
     └── 📄 examples.zip                                  # Examples package
 ```
 
-## 📋 File Descriptions & Dependencies
+## 🚀 Migration Path from Current to Target
 
-### 🔧 Core Scripts
-- **Main Analyzer**: Contains all analysis functions, safety systems, and enhanced features
-- **Comparison Utility**: User interface, workflow management, and report generation
-- **Dependency**: Utility requires Main Analyzer to be loaded first
+### Phase 1: Core Organization
+1. **Rename scripts** to match v2.1 naming convention
+2. **Add missing core files**: LICENSE, CHANGELOG.md
+3. **Create src/ folder** and move scripts there
+4. **Expand docs/** with additional guides
 
-### 📚 Documentation Suite
-- **README.md**: Project overview with comprehensive feature list
-- **installation.md**: Step-by-step installation with troubleshooting
-- **usage-guide.md**: Complete usage instructions with examples
-- **maintenance-guide.md**: Development and extension guidance
-- **All guides**: Cross-referenced and version-consistent
+### Phase 2: Development Infrastructure
+1. **Add scripts/ folder** with build and validation tools
+2. **Create examples/ folder** with templates and samples
+3. **Add test/ folder** with testing framework
+4. **Set up automated builds**
 
-### ⚙️ Configuration & Metadata
-- **package.json**: Complete project metadata with enhanced features
-- **Enhanced section**: Custom metadata for v2.1 features
-- **Compatibility matrix**: InDesign version support details
-- **Scripts section**: Build, test, and deployment automation
+### Phase 3: Distribution
+1. **Create dist/ folder** for release packages
+2. **Set up packaging scripts**
+3. **Automated release generation**
+4. **Documentation generation**
 
-### 🧪 Testing & Quality Assurance
-- **Test suites**: Unit, integration, performance, and compatibility tests
-- **Validation scripts**: ExtendScript syntax and functionality validation
-- **Example documents**: Various document types for comprehensive testing
-- **Report samples**: Expected output examples for verification
+## 📊 Current vs Target Comparison
 
-## 🔄 File Relationships & Consistency
+| Component | Current Status | Target Status | Priority |
+|-----------|---------------|---------------|----------|
+| Core Scripts | ✅ Present | 🎯 Enhanced naming | Medium |
+| Basic Docs | ✅ Complete | 🎯 Expanded | Low |
+| Package Config | ✅ Present | 🎯 Enhanced | Low |
+| Build Tools | ❌ Missing | 🎯 Full suite | High |
+| Examples | ❌ Missing | 🎯 Comprehensive | Medium |
+| Tests | ❌ Missing | 🎯 Full coverage | High |
+| Distribution | ❌ Missing | 🎯 Automated | Medium |
 
-### Version Consistency
-All files reference **v2.1** consistently:
-- ✅ package.json: `"version": "2.1.0"`
-- ✅ Main script: `version: "2.1"`
-- ✅ Utility script: `requiredAnalyzerVersion: "2.1"`
-- ✅ Documentation: All guides reference v2.1 features
+## 🔄 Current Maintenance & Updates
 
-### Feature Consistency
-Enhanced features documented across all files:
-- ✅ **Text Capture**: Comprehensive text analysis
-- ✅ **Auto-Discovery**: Collection and property discovery
-- ✅ **Error Handling**: Bulletproof error recovery
-- ✅ **Performance**: Timeout protection and optimization
-- ✅ **Reporting**: Professional multi-format reports
+### Current Working State
+- **All core functionality**: Present and working
+- **Documentation**: Complete and accurate
+- **Scripts**: Version 2.1 with all enhanced features
+- **Package management**: Basic but functional
 
-### Cross-References
-Documentation files reference each other:
-- Installation → Usage Guide → Maintenance Guide
-- All guides reference troubleshooting and examples
-- API documentation linked from all user guides
-- Configuration options documented with examples
+### Current Workflow
+1. **Direct script editing** in current locations
+2. **Manual documentation updates**
+3. **Version control** via git
+4. **Manual distribution** of script files
 
-## 🚀 Build & Distribution Process
-
-### Development Workflow
-1. **Development**: Edit source files in `src/`
-2. **Validation**: Run `npm run validate` to check syntax
-3. **Testing**: Execute test suites for functionality verification
-4. **Documentation**: Update guides as needed
-5. **Building**: Run `npm run build` to prepare distribution
-6. **Packaging**: Run `npm run package` to create release archives
-
-### Release Packages
-- **Complete Package**: All files including documentation and examples
-- **Scripts Only**: Just the .jsx files for quick installation
-- **Documentation**: Complete documentation suite
-- **Examples**: Sample documents and report outputs
-
-### Quality Gates
-- ✅ ExtendScript syntax validation
-- ✅ Version consistency checking
-- ✅ Documentation completeness verification
-- ✅ Cross-reference validation
-- ✅ Feature matrix consistency
-- ✅ Performance benchmarking
-
-## 📊 Maintenance & Updates
-
-### Version Management
-- **Semantic Versioning**: Major.Minor.Patch format
-- **Changelog**: Detailed change tracking
-- **Migration Guides**: Upgrade instructions between versions
-- **Backward Compatibility**: Clear compatibility matrices
-
-### Documentation Maintenance
-- **Automated Generation**: Scripts generate API docs from source
-- **Consistency Checking**: Automated cross-reference validation
-- **Example Updates**: Keep examples current with features
-- **Performance Metrics**: Regular benchmarking and optimization
-
-### Community & Support
-- **Issue Tracking**: GitHub issues with templates
-- **Discussions**: Community support and feature requests
-- **Contributions**: Clear guidelines for contributors
-- **Documentation**: Comprehensive support resources
-
-## 🎯 Enhanced v2.1 Features Integration
-
-### Comprehensive Coverage
-Every enhanced feature is documented across:
-- ✅ **Source Code**: Implemented with full functionality
-- ✅ **Documentation**: Explained with examples and guidance
-- ✅ **Package Metadata**: Listed in features and capabilities
-- ✅ **Tests**: Validated through comprehensive test suites
-- ✅ **Examples**: Demonstrated in practical use cases
-
-### Professional Standards
-- **Error Handling**: Bulletproof with comprehensive recovery
-- **Performance**: Optimized with monitoring and protection
-- **Safety**: Professional-grade with extensive validation
-- **Usability**: User-friendly with progressive enhancement
-- **Maintainability**: Well-structured with clear extension points
+### Immediate Needs (Current Priority)
+- [ ] **Testing framework** for reliability
+- [ ] **Build automation** for consistency
+- [ ] **Examples and templates** for users
+- [ ] **Performance benchmarking**
 
 ---
 
-**This project structure ensures maximum reliability, usability, and maintainability while providing comprehensive documentation and support for users at all levels. Every file works together to deliver a professional-grade InDesign document analysis solution.**
+**Current Status**: The project is fully functional with all core features working. The current simple structure is adequate for development and use, while the target structure provides a roadmap for scaling and professional distribution.
+
+**Next Steps**: Focus on testing and build automation while maintaining the working current structure.

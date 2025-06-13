@@ -48,15 +48,15 @@ git checkout v2.1-enhanced
 ## 📋 Install the Enhanced Scripts
 
 1. **Copy both enhanced files** to your Scripts Panel folder:
-   - `Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx`
-   - `Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx`
+   - `InDesignDocumentAnalyzer.jsx`
+   - `InDesignComparisonUtility.jsx`
 
 2. **Restart InDesign** (recommended but not always required)
 
 3. **Verify installation:**
    - Open InDesign
    - Go to `Window > Utilities > Scripts`
-   - You should see both enhanced scripts listed in the Scripts panel
+   - You should see both scripts listed in the Scripts panel
 
 ## ✅ Enhanced First Test Run
 

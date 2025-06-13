@@ -18,11 +18,11 @@ A comprehensive ExtendScript solution for analyzing InDesign documents and track
 ### Enhanced Installation
 
 1. **Download the enhanced scripts:**
-   - `Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx`
-   - `Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx`
+   - `InDesignDocumentAnalyzer.jsx`
+   - `InDesignComparisonUtility.jsx`
 
 2. **Install in InDesign:**
-   - Copy both files to your InDesign Scripts folder:
+  - Copy both files from the scripts/ folder to your InDesign Scripts folder:
      - **Windows**: `C:\Users\[username]\AppData\Roaming\Adobe\InDesign\[version]\Scripts\Scripts Panel`
      - **Mac**: `~/Library/Preferences/Adobe InDesign/[version]/Scripts/Scripts Panel`
 
@@ -33,10 +33,10 @@ A comprehensive ExtendScript solution for analyzing InDesign documents and track
 ### Enhanced Usage
 
 1. **Open your InDesign document and save it**
-2. **Run the main analyzer** (`Enhanced InDesign Document Analyzer v2.1 (Main Script).jsx`)
+2. **Run the main analyzer** (`InDesignDocumentAnalyzer.jsx`)
    - Loads comprehensive analysis functions
    - Shows success message with all v2.1 features
-3. **Run the comparison utility** (`Enhanced InDesign Comparison Utility v2.1 (Interface Script).jsx`)
+3. **Run the comparison utility** (`InDesignComparisonUtility.jsx`)
    - Shows enhanced main menu with status information
 4. **Choose "🔍 Quick Compare (Recommended)"** for streamlined workflow
 
