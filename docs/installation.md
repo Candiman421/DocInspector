@@ -3,7 +3,7 @@
 ## 📥 Download the Enhanced Scripts
 
 ### Option 1: Download from GitHub Releases
-1. Go to the [Releases page](https://github.com/yourusername/indesign-document-inspector/releases)
+1. Go to the [Releases page](https://github.com/CandiMan421/DocInspector/releases)
 2. Download the latest release ZIP file for v2.1
 3. Extract the ZIP file to get the enhanced `.jsx` files
 
@@ -11,7 +11,7 @@
 ```bash
 git clone https://github.com/CandiMan421/DocInspector.git
 cd DocInspector
-git checkout v2.1-enhanced
+git checkout indesign
 ```
 
 ## 📂 Find Your InDesign Scripts Folder
