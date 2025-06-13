@@ -1,6 +1,6 @@
 # Enhanced Maintenance & Extension Guide v2.1
 
-This comprehensive guide helps you maintain, debug, extend, and customize the Enhanced InDesign Document Analyzer v2.1 with bulletproof error handling, complete text capture, auto-discovery features, and professional-grade reporting.
+This comprehensive guide helps you maintain, debug, extend, and customize the Enhanced InDesign Document Inspector v2.1 with bulletproof error handling, complete text capture, auto-discovery features, and professional-grade reporting.
 
 ## 🛡️ Enhanced Safety Architecture
 
@@ -1600,7 +1600,7 @@ ENHANCED_TESTING.testSuites.performance = [
 // Enhanced version compatibility checking for v2.1
 function checkEnhancedVersionCompatibility() {
     var compatibility = {
-        analyzer: {
+        inspector: {
             version: "unknown",
             required: "2.1",
             compatible: false,
@@ -1630,14 +1630,14 @@ function checkEnhancedVersionCompatibility() {
         }
     };
     
-    // Check enhanced analyzer version
+    // Check enhanced inspector version
     try {
         if (typeof ANALYSIS_CONFIG !== 'undefined' && ANALYSIS_CONFIG.version) {
-            compatibility.analyzer.version = ANALYSIS_CONFIG.version;
-            compatibility.analyzer.compatible = ANALYSIS_CONFIG.version === "2.1";
+            compatibility.inspector.version = ANALYSIS_CONFIG.version;
+            compatibility.inspector.compatible = ANALYSIS_CONFIG.version === "2.1";
             
             // Check enhanced features
-            var enhancedFeatures = compatibility.analyzer.enhancedFeatures;
+            var enhancedFeatures = compatibility.inspector.enhancedFeatures;
             enhancedFeatures.textCapture = ANALYSIS_CONFIG.enableTextCapture === true;
             enhancedFeatures.autoDiscovery = ANALYSIS_CONFIG.enableAutoDiscovery === true;
             enhancedFeatures.propertyTracking = ANALYSIS_CONFIG.enablePropertyTracking === true;
@@ -1647,12 +1647,12 @@ function checkEnhancedVersionCompatibility() {
             // Build features list
             for (var feature in enhancedFeatures) {
                 if (enhancedFeatures[feature]) {
-                    compatibility.analyzer.features.push(feature);
+                    compatibility.inspector.features.push(feature);
                 }
             }
         }
     } catch (e) {
-        compatibility.analyzer.error = e.message;
+        compatibility.inspector.error = e.message;
     }
     
     // Check enhanced utility version
@@ -1715,7 +1715,7 @@ function checkEnhancedVersionCompatibility() {
     
     // Enhanced overall compatibility assessment
     compatibility.overall.compatible = 
-        compatibility.analyzer.compatible && 
+        compatibility.inspector.compatible && 
         compatibility.utility.compatible && 
         compatibility.indesign.supported;
     
@@ -1725,9 +1725,9 @@ function checkEnhancedVersionCompatibility() {
     
     // Generate enhanced warnings and recommendations
     if (!compatibility.overall.compatible) {
-        if (!compatibility.analyzer.compatible) {
-            compatibility.overall.warnings.push("Analyzer version mismatch - v2.1 required");
-            compatibility.overall.recommendations.push("Update analyzer to Enhanced v2.1");
+        if (!compatibility.inspector.compatible) {
+            compatibility.overall.warnings.push("Inspector version mismatch - v2.1 required");
+            compatibility.overall.recommendations.push("Update inspector to Enhanced v2.1");
         }
         if (!compatibility.utility.compatible) {
             compatibility.overall.warnings.push("Utility version mismatch - v2.1 required");
@@ -1741,16 +1741,16 @@ function checkEnhancedVersionCompatibility() {
     
     // Enhanced optimization recommendations
     if (compatibility.overall.enhancedCompatible) {
-        if (compatibility.analyzer.features.length < 5) {
+        if (compatibility.inspector.features.length < 5) {
             compatibility.overall.optimizations.push("Enable all enhanced features for optimal performance");
         }
-        if (!compatibility.analyzer.enhancedFeatures.textCapture) {
+        if (!compatibility.inspector.enhancedFeatures.textCapture) {
             compatibility.overall.optimizations.push("Enable text capture for comprehensive text analysis");
         }
-        if (!compatibility.analyzer.enhancedFeatures.autoDiscovery) {
+        if (!compatibility.inspector.enhancedFeatures.autoDiscovery) {
             compatibility.overall.optimizations.push("Enable auto-discovery for dynamic collection detection");
         }
-        if (!compatibility.analyzer.enhancedFeatures.performanceMonitoring) {
+        if (!compatibility.inspector.enhancedFeatures.performanceMonitoring) {
             compatibility.overall.optimizations.push("Enable performance monitoring for optimization insights");
         }
     }
@@ -1797,7 +1797,7 @@ function migrateToEnhancedVersion() {
         
         // Step 2: Initialize enhanced v2.1 features
         if (typeof ANALYSIS_CONFIG === 'undefined') {
-            migration.warnings.push("ANALYSIS_CONFIG not found - may need to reload enhanced analyzer");
+            migration.warnings.push("ANALYSIS_CONFIG not found - may need to reload enhanced inspector");
         } else {
             // Enable enhanced v2.1 features
             if (!ANALYSIS_CONFIG.enableTextCapture) {
@@ -1880,7 +1880,7 @@ function migrateToEnhancedVersion() {
         
         // Step 5: Initialize performance monitoring
         if (typeof PERFORMANCE_MONITOR === 'undefined') {
-            migration.warnings.push("Performance monitoring not available - ensure enhanced analyzer is loaded");
+            migration.warnings.push("Performance monitoring not available - ensure enhanced inspector is loaded");
         } else {
             PERFORMANCE_MONITOR.enabled = true;
             migration.steps.push("Enhanced performance monitoring enabled");
@@ -1922,6 +1922,6 @@ function migrateToEnhancedVersion() {
 
 ---
 
-**The Enhanced InDesign Document Analyzer v2.1 represents the pinnacle of document analysis technology for InDesign, providing comprehensive, reliable, and professional-grade analysis with bulletproof error handling, complete text capture, auto-discovery capabilities, and extensive reporting. This maintenance guide ensures that your enhanced analyzer will continue to evolve and improve, maintaining peak performance and reliability as your needs grow.**
+**The Enhanced InDesign Document Inspector v2.1 represents the pinnacle of document analysis technology for InDesign, providing comprehensive, reliable, and professional-grade analysis with bulletproof error handling, complete text capture, auto-discovery capabilities, and extensive reporting. This maintenance guide ensures that your enhanced inspector will continue to evolve and improve, maintaining peak performance and reliability as your needs grow.**
 
-**With the enhanced maintenance and extension system, your analyzer is equipped for any InDesign workflow, from simple change tracking to complex enterprise deployments, while maintaining the highest standards of safety, performance, and reliability.**
+**With the enhanced maintenance and extension system, your inspector is equipped for any InDesign workflow, from simple change tracking to complex enterprise deployments, while maintaining the highest standards of safety, performance, and reliability.**

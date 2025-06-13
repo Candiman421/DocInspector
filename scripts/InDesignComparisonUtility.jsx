@@ -1,13 +1,13 @@
 //
 // Enhanced InDesign Document Comparison Utility v2.1
 // Advanced interface for comprehensive document analysis with text capture, auto-discovery, and bulletproof error handling
-// Requires Enhanced InDesign Document Analyzer v2.1 to be loaded first
+// Requires Enhanced InDesign Document Inspector v2.1 to be loaded first
 //
 
 // Utility configuration and state management
 var UTILITY_CONFIG = {
     version: "2.1",
-    requiredAnalyzerVersion: "2.1",
+    requiredInspectorVersion: "2.1",
     enableProgressDialogs: true,
     enableDetailedReporting: true,
     maxReportFileSize: 10000000, // 10MB limit for JSON files
@@ -38,8 +38,8 @@ function quickCompare() {
         return;
     }
     
-    // Verify analyzer is loaded and compatible
-    if (!verifyAnalyzerCompatibility()) {
+    // Verify inspector is loaded and compatible
+    if (!verifyInspectorCompatibility()) {
         return;
     }
     
@@ -214,30 +214,30 @@ function quickCompare() {
     showEnhancedComparisonDialog(differences);
 }
 
-// Verify analyzer compatibility and availability
-function verifyAnalyzerCompatibility() {
-    // Check if main analyzer functions are available
+// Verify inspector compatibility and availability
+function verifyInspectorCompatibility() {
+    // Check if main inspector functions are available
     if (typeof createDocumentReport === 'undefined') {
-        alert("Enhanced InDesign Document Analyzer v2.1 Required!\n\n" +
-              "The comparison utility requires the main analyzer script to be loaded first.\n\n" +
-              "Please run 'InDesignDocumentAnalyzer.jsx' first, then try again.\n\n" +
-              "Required version: " + UTILITY_CONFIG.requiredAnalyzerVersion);
+        alert("Enhanced InDesign Document Inspector v2.1 Required!\n\n" +
+              "The comparison utility requires the main inspector script to be loaded first.\n\n" +
+              "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
+              "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
         return false;
     }
     
     // Check for required global objects
     if (typeof ANALYSIS_CONFIG === 'undefined') {
-        alert("Analyzer configuration not found!\n\n" +
-              "Please ensure you're running the correct version of the analyzer script.\n" +
-              "Required: Enhanced InDesign Document Analyzer v2.1");
+        alert("Inspector configuration not found!\n\n" +
+              "Please ensure you're running the correct version of the inspector script.\n" +
+              "Required: Enhanced InDesign Document Inspector v2.1");
         return false;
     }
     
     // Check version compatibility
-    if (ANALYSIS_CONFIG.version !== UTILITY_CONFIG.requiredAnalyzerVersion) {
+    if (ANALYSIS_CONFIG.version !== UTILITY_CONFIG.requiredInspectorVersion) {
         var continueAnyway = confirm("Version Mismatch Warning!\n\n" +
-                                   "Analyzer version: " + (ANALYSIS_CONFIG.version || "unknown") + "\n" +
-                                   "Utility requires: " + UTILITY_CONFIG.requiredAnalyzerVersion + "\n\n" +
+                                   "Inspector version: " + (ANALYSIS_CONFIG.version || "unknown") + "\n" +
+                                   "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
                                    "Continue anyway? (Not recommended)");
         if (!continueAnyway) {
             return false;
@@ -246,7 +246,7 @@ function verifyAnalyzerCompatibility() {
     
     // Check for enhanced features
     if (!ANALYSIS_CONFIG.enableTextCapture) {
-        var enableFeatures = confirm("Enhanced features are disabled in the analyzer.\n\n" +
+        var enableFeatures = confirm("Enhanced features are disabled in the inspector.\n\n" +
                                    "Enable text capture and auto-discovery for full functionality?");
         if (enableFeatures) {
             ANALYSIS_CONFIG.enableTextCapture = true;
@@ -273,7 +273,7 @@ function validateAnalysisReport(report) {
     }
     
     // Check version compatibility
-    if (report.analysisVersion !== UTILITY_CONFIG.requiredAnalyzerVersion) {
+    if (report.analysisVersion !== UTILITY_CONFIG.requiredInspectorVersion) {
         // Allow but warn about version mismatch
         return true; // Still valid, just potentially incompatible
     }
@@ -369,7 +369,7 @@ function showBaselineCreatedDialog(stats) {
     
     var successText = successPanel.add("statictext", undefined, 
         "Enhanced baseline analysis has been successfully created!\n\n" +
-        "The analyzer has captured comprehensive information about your document,\n" +
+        "The inspector has captured comprehensive information about your document,\n" +
         "including text content, object properties, and collection structure.",
         {multiline: true});
     successText.alignment = "fill";
@@ -1491,7 +1491,7 @@ function generateEnhancedCodeExample(change, accessPath) {
 function createTechnicalReport(differences) {
     var report = "TECHNICAL ANALYSIS REPORT\n";
     report += "Generated: " + new Date().toString() + "\n";
-    report += "Analysis Engine: Enhanced InDesign Document Analyzer v2.1\n";
+    report += "Analysis Engine: Enhanced InDesign Document Inspector v2.1\n";
     report += "=" + Array(60).join("=") + "\n\n";
     
     // Analysis statistics
@@ -1576,7 +1576,7 @@ function showProgressDialog(message, operation) {
     progressGroup.orientation = "column";
     progressGroup.alignment = "fill";
     
-    var titleText = progressGroup.add("statictext", undefined, "Enhanced InDesign Document Analyzer v2.1");
+    var titleText = progressGroup.add("statictext", undefined, "Enhanced InDesign Document Inspector v2.1");
     titleText.alignment = "center";
     titleText.graphics.font = ScriptUI.newFont("dialog", "BOLD", 12);
     
@@ -1603,7 +1603,7 @@ function showProgressDialog(message, operation) {
     try {
         // Simulate progress with status updates
         var stages = [
-            "Loading enhanced analyzer...",
+            "Loading enhanced inspector...",
             "Validating document structure...",
             "Processing collections...",
             "Capturing text content...",
@@ -1901,7 +1901,7 @@ function resetBaseline() {
 
 // Show help dialog
 function showHelpDialog() {
-    var helpDialog = new Window("dialog", "Enhanced InDesign Document Analyzer - Help");
+    var helpDialog = new Window("dialog", "Enhanced InDesign Document Inspector - Help");
     helpDialog.preferredSize.width = 600;
     helpDialog.preferredSize.height = 500;
     
@@ -1910,14 +1910,14 @@ function showHelpDialog() {
     helpGroup.alignment = "fill";
     
     var helpText = helpGroup.add("edittext", undefined, 
-        "ENHANCED INDESIGN DOCUMENT ANALYZER v2.1 - HELP\n\n" +
+        "ENHANCED INDESIGN DOCUMENT INSPECTOR v2.1 - HELP\n\n" +
         "OVERVIEW:\n" +
         "This tool analyzes InDesign documents and tracks changes with comprehensive\n" +
         "text capture, auto-discovery, and bulletproof error handling.\n\n" +
         "HOW TO USE:\n" +
         "1. Open an InDesign document\n" +
         "2. Save the document (required for analysis)\n" +
-        "3. Run the analyzer first: InDesignDocumentAnalyzer.jsx\n" +
+        "3. Run the inspector first: InDesignDocumentInspector.jsx\n" +
         "4. Run this utility: InDesignComparisonUtility.jsx\n" +
         "5. Choose 'Quick Compare' to start\n\n" +
         "FIRST TIME:\n" +
@@ -1940,7 +1940,7 @@ function showHelpDialog() {
         "• *_comparison.json - Complete technical data\n\n" +
         "TROUBLESHOOTING:\n" +
         "• Make sure both .jsx files are in Scripts Panel folder\n" +
-        "• Always run main analyzer before utility\n" +
+        "• Always run main inspector before utility\n" +
         "• Document must be saved before analysis\n" +
         "• Check error logs in analysis results\n\n" +
         "VERSION: 2.1 - Enhanced with comprehensive features",
@@ -1958,7 +1958,7 @@ function showHelpDialog() {
 
 // Main menu dialog
 function showMainMenu() {
-    var menuDialog = new Window("dialog", "Enhanced InDesign Document Analyzer v2.1");
+    var menuDialog = new Window("dialog", "Enhanced InDesign Document Inspector v2.1");
     menuDialog.preferredSize.width = 500;
     menuDialog.preferredSize.height = 400;
     
@@ -2032,15 +2032,15 @@ function showMainMenu() {
 function getStatusText() {
     var status = "";
     
-    // Check if analyzer is loaded
+    // Check if inspector is loaded
     if (typeof createDocumentReport === 'undefined') {
-        status += "⚠ Main analyzer not loaded\n";
-        status += "Please run InDesignDocumentAnalyzer.jsx first\n\n";
+        status += "⚠ Main inspector not loaded\n";
+        status += "Please run InDesignDocumentInspector.jsx first\n\n";
     } else {
-        status += "✓ Main analyzer loaded and ready\n";
+        status += "✓ Main inspector loaded and ready\n";
         
         // Check version compatibility
-        if (typeof ANALYSIS_CONFIG !== 'undefined' && ANALYSIS_CONFIG.version === UTILITY_CONFIG.requiredAnalyzerVersion) {
+        if (typeof ANALYSIS_CONFIG !== 'undefined' && ANALYSIS_CONFIG.version === UTILITY_CONFIG.requiredInspectorVersion) {
             status += "✓ Version " + ANALYSIS_CONFIG.version + " - fully compatible\n";
         } else {
             status += "⚠ Version mismatch detected\n";
@@ -2082,6 +2082,6 @@ try {
 } catch (error) {
     alert("Enhanced InDesign Comparison Utility v2.1\n\n" +
           "Startup Error: " + error.message + "\n\n" +
-          "Please ensure the main analyzer script is loaded first:\n" +
-          "Run 'InDesignDocumentAnalyzer.jsx' then try again.");
+          "Please ensure the main inspector script is loaded first:\n" +
+          "Run 'InDesignDocumentInspector.jsx' then try again.");
 }

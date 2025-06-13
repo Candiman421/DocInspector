@@ -1,4 +1,4 @@
-# Enhanced InDesign Document Analyzer v2.1 - Current & Future Project Structure
+# Enhanced InDesign Document Inspector v2.1 - Current & Future Project Structure
 
 ## 📁 Current Actual Project Structure
 
@@ -15,16 +15,16 @@ docinspector/
 │   └── 📄 usage-guide.md                               # Usage guide
 │
 ├── 📂 scripts/                                          # Script files folder
-│   ├── 📄 InDesignDocumentAnalyzer.jsx                 # Main analyzer script
+│   ├── 📄 InDesignDocumentInspector.jsx                 # Main inspector script
 │   └── 📄 InDesignComparisonUtility.jsx               # Comparison utility script
 ```
 
 ## 📋 Current File Descriptions & Status
 
 ### 🔧 Core Scripts (Current)
-- **InDesignDocumentAnalyzer.jsx**: Contains all analysis functions, safety systems, and enhanced features
+- **InDesignDocumentInspector.jsx**: Contains all analysis functions, safety systems, and enhanced features
 - **InDesignComparisonUtility.jsx**: User interface, workflow management, and report generation
-- **Dependency**: Utility requires Main Analyzer to be loaded first
+- **Dependency**: Utility requires Main Inspector to be loaded first
 
 ### 📚 Documentation Suite (Current)
 - **README.md**: Project overview with feature list
@@ -44,7 +44,7 @@ docinspector/
 All files reference **v2.1** consistently:
 - ✅ package.json: `"version": "2.1.0"`
 - ✅ Main script: `version: "2.1"`
-- ✅ Utility script: `requiredAnalyzerVersion: "2.1"`
+- ✅ Utility script: `requiredInspectorVersion: "2.1"`
 - ✅ Documentation: All guides reference v2.1 features
 
 #### Feature Consistency (Current Status)
@@ -62,7 +62,7 @@ Enhanced features documented across all files:
 ### Enhanced File Organization (Target)
 
 ```
-enhanced-indesign-document-analyzer/
+enhanced-indesign-document-inspector/
 ├── 📄 package.json                                          # Project configuration and metadata
 ├── 📄 README.md                                            # Main project documentation
 ├── 📄 LICENSE                                              # MIT License
@@ -70,7 +70,7 @@ enhanced-indesign-document-analyzer/
 ├── 📄 .gitignore                                          # Git ignore patterns
 │
 ├── 📂 src/                                                 # Source files
-│   ├── 📄 InDesignDocumentAnalyzer.jsx
+│   ├── 📄 InDesignDocumentInspector.jsx
 │   └── 📄 InDesignComparisonUtility.jsx
 │
 ├── 📂 docs/                                               # Documentation
@@ -104,7 +104,7 @@ enhanced-indesign-document-analyzer/
 │   └── 📂 documents/                                    # Test documents
 │
 └── 📂 dist/                                              # Distribution files (generated)
-    ├── 📄 enhanced-indesign-analyzer-v2.1.zip          # Complete release package
+    ├── 📄 enhanced-indesign-inspector-v2.1.zip          # Complete release package
     ├── 📄 scripts-only.zip                              # Scripts-only package
     ├── 📄 documentation.zip                             # Documentation package
     └── 📄 examples.zip                                  # Examples package

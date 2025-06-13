@@ -1,7 +1,7 @@
 //
-// Enhanced InDesign Document Analyzer Script v2.1
+// Enhanced InDesign Document Inspector Script v2.1
 // Comprehensive analysis with bulletproof error handling, text capture, and auto-discovery
-// Main analyzer script - must be loaded before using the comparison utility
+// Main inspector script - must be loaded before using the comparison utility
 //
 
 // Global configuration for analysis depth, safety, and new features
@@ -293,7 +293,7 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
     return results;
 }
 
-// Enhanced safe section analyzer with timeout protection and retry logic
+// Enhanced safe section inspector with timeout protection and retry logic
 function safeAnalyzeSection(sectionName, analyzeFunction) {
     var startTime = new Date().getTime();
     var sectionConfig = {
@@ -2483,7 +2483,7 @@ this.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
 
 // Enhanced script completion message
 try {
-    alert("Enhanced InDesign Document Analyzer v2.1 loaded successfully!\n\n" +
+    alert("Enhanced InDesign Document Inspector v2.1 loaded successfully!\n\n" +
           "NEW FEATURES:\n" +
           "✓ Comprehensive text content capture and analysis\n" +
           "✓ Auto-discovery of collections and properties\n" +
@@ -2495,12 +2495,12 @@ try {
           "• Run analyzeDocument() to analyze current document\n" +
           "• Use with Enhanced Comparison Utility for change tracking\n" +
           "• All functions available for advanced users\n\n" +
-          "The analyzer is now bulletproof and ready for any document!");
+          "The inspector is now bulletproof and ready for any document!");
           
 } catch (error) {
     // Even the alert failed - try a different approach
     try {
-        var dialog = app.dialogs.add({name: "Enhanced Analyzer Loaded"});
+        var dialog = app.dialogs.add({name: "Enhanced Inspector Loaded"});
         dialog.show();
         dialog.destroy();
     } catch (e) {

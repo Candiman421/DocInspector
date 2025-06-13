@@ -1,4 +1,4 @@
-# Enhanced InDesign Document Analyzer v2.1
+# Enhanced InDesign Document Inspector v2.1
 
 A comprehensive ExtendScript solution for analyzing InDesign documents and tracking changes between document versions with bulletproof error handling, complete text capture, auto-discovery, and professional-grade reporting.
 
@@ -18,7 +18,7 @@ A comprehensive ExtendScript solution for analyzing InDesign documents and track
 ### Enhanced Installation
 
 1. **Download the enhanced scripts:**
-   - `InDesignDocumentAnalyzer.jsx`
+   - `InDesignDocumentInspector.jsx`
    - `InDesignComparisonUtility.jsx`
 
 2. **Install in InDesign:**
@@ -33,7 +33,7 @@ A comprehensive ExtendScript solution for analyzing InDesign documents and track
 ### Enhanced Usage
 
 1. **Open your InDesign document and save it**
-2. **Run the main analyzer** (`InDesignDocumentAnalyzer.jsx`)
+2. **Run the main inspector** (`InDesignDocumentInspector.jsx`)
    - Loads comprehensive analysis functions
    - Shows success message with all v2.1 features
 3. **Run the comparison utility** (`InDesignComparisonUtility.jsx`)
@@ -84,7 +84,7 @@ A comprehensive ExtendScript solution for analyzing InDesign documents and track
 
 ## 📋 Enhanced Output Files
 
-The enhanced analyzer creates a comprehensive report suite in your document's folder:
+The enhanced inspector creates a comprehensive report suite in your document's folder:
 
 ### Core Analysis Files
 - **`[DocumentName]_baseline.json`** - Complete initial document state with enhanced data
@@ -366,6 +366,6 @@ MIT License - Enhanced version maintains open source licensing for community dev
 
 ---
 
-**The Enhanced InDesign Document Analyzer v2.1 represents the most comprehensive, reliable, and professional-grade document analysis solution available for InDesign. Whether you're tracking design changes, developing scripts, managing templates, or conducting quality assurance, the enhanced analyzer provides unmatched insight and reliability for any InDesign workflow.**
+**The Enhanced InDesign Document Inspector v2.1 represents the most comprehensive, reliable, and professional-grade document analysis solution available for InDesign. Whether you're tracking design changes, developing scripts, managing templates, or conducting quality assurance, the enhanced inspector provides unmatched insight and reliability for any InDesign workflow.**
 
 **Made for professionals who demand precision, safety, and comprehensive analysis in their InDesign document workflows.**

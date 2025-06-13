@@ -2,12 +2,12 @@
 
 ## 🚀 Quick Start with Enhanced Features
 
-The Enhanced InDesign Document Analyzer v2.1 provides comprehensive document analysis with bulletproof error handling, complete text capture, auto-discovery of collections, and professional-grade reporting.
+The Enhanced InDesign Document Inspector v2.1 provides comprehensive document analysis with bulletproof error handling, complete text capture, auto-discovery of collections, and professional-grade reporting.
 
 ### Basic Workflow (Enhanced)
 1. **Open your InDesign document**
 2. **Save the document** (required for file path access)
-3. **Run the main analyzer script** (loads enhanced core functions)
+3. **Run the main inspector script** (loads enhanced core functions)
 4. **Run the comparison utility** (shows enhanced interface)
 5. **Use Quick Compare** for streamlined analysis
 
@@ -16,7 +16,7 @@ The Enhanced InDesign Document Analyzer v2.1 provides comprehensive document ana
 When you run the comparison utility, you'll see the enhanced main menu with:
 
 ### Status Panel (Real-time Information)
-- ✅ **Main analyzer loaded and ready** - v2.1 core functions available
+- ✅ **Main inspector loaded and ready** - v2.1 core functions available
 - ✅ **Version 2.1 - fully compatible** - optimal feature set
 - ✅ **Document: [name]** - current document status
 - ✅ **Document saved and ready** - file system access confirmed
@@ -30,13 +30,13 @@ When you run the comparison utility, you'll see the enhanced main menu with:
 ## ⚠️ **Important: Script Load Order**
 
 **ALWAYS run scripts in this order:**
-1. **First**: Run `InDesignDocumentAnalyzer.jsx` (loads core functions)
+1. **First**: Run `InDesignDocumentInspector.jsx` (loads core functions)
 2. **Second**: Run `InDesignComparisonUtility.jsx` (provides interface)
 
 **If you see version/compatibility errors:**
 - Close InDesign completely
 - Restart InDesign  
-- Run main analyzer first, then utility
+- Run main inspector first, then utility
 
 ## 🎯 Enhanced Quick Compare Workflow
 
@@ -44,7 +44,7 @@ When you run the comparison utility, you'll see the enhanced main menu with:
 When you run Quick Compare for the first time:
 
 1. **Comprehensive Analysis** with progress tracking:
-   - Loading enhanced analyzer...
+   - Loading enhanced inspector...
    - Validating document structure...
    - Processing collections with auto-discovery...
    - Capturing complete text content...
@@ -76,7 +76,7 @@ After making changes to your document:
 ## 📝 Enhanced Text Content Analysis
 
 ### Comprehensive Text Capture
-The enhanced v2.1 analyzer captures:
+The enhanced v2.1 inspector captures:
 
 #### Text Frame Analysis
 - **Complete text content** from all text frames
@@ -110,7 +110,7 @@ The generated `*_text_analysis.txt` includes:
 ## 🔍 Auto-Discovery Engine
 
 ### Collection Discovery
-The enhanced analyzer automatically discovers:
+The enhanced inspector automatically discovers:
 
 #### Standard Collections
 - **Pages, spreads, master spreads**
@@ -173,7 +173,7 @@ Each property receives:
 - **Safety recommendations**
 
 ### Broken Properties Report Features
-The enhanced analyzer provides:
+The enhanced inspector provides:
 - **Complete property accessibility analysis**
 - **Alternative access methods** for broken properties
 - **Safety guidance** for problematic properties
@@ -183,7 +183,7 @@ The enhanced analyzer provides:
 ## 🛠️ Enhanced Access Path Generation
 
 ### Comprehensive Path Patterns
-The enhanced analyzer generates access paths for:
+The enhanced inspector generates access paths for:
 
 #### Basic Property Access
 ```javascript
@@ -454,7 +454,7 @@ For teams working on InDesign projects:
 
 #### "Enhanced features not working"
 - **Check versions**: Ensure both scripts are exactly v2.1
-- **Reload analyzer**: Run main analyzer script again
+- **Reload inspector**: Run main inspector script again
 - **Check configuration**: Verify enhanced features are enabled
 - **Review error logs**: Check `*_error.txt` files for details
 
@@ -504,4 +504,4 @@ For teams working on InDesign projects:
 
 ---
 
-**The Enhanced InDesign Document Analyzer v2.1 provides professional-grade document analysis with comprehensive features for any InDesign workflow. Use this guide to leverage all enhanced capabilities for maximum insight into your document changes and structure.**
+**The Enhanced InDesign Document Inspector v2.1 provides professional-grade document analysis with comprehensive features for any InDesign workflow. Use this guide to leverage all enhanced capabilities for maximum insight into your document changes and structure.**

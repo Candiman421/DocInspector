@@ -2,13 +2,13 @@
   "name": "doc-inspector",
   "version": "2.1.0",
   "description": "Document content analysis utility",
-  "main": "InDesignDocumentAnalyzer.jsx",
+  "main": "InDesignDocumentInspector.jsx",
   "scripts": {
     "test": "echo \"Testing requires specialized environment\" && exit 0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/CandiMan421/DocAnalyzer.git"
+    "url": "https://github.com/CandiMan421/DocInspector.git"
   },
   "keywords": [
     "utility",

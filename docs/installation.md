@@ -3,14 +3,14 @@
 ## 📥 Download the Enhanced Scripts
 
 ### Option 1: Download from GitHub Releases
-1. Go to the [Releases page](https://github.com/yourusername/indesign-document-analyzer/releases)
+1. Go to the [Releases page](https://github.com/yourusername/indesign-document-inspector/releases)
 2. Download the latest release ZIP file for v2.1
 3. Extract the ZIP file to get the enhanced `.jsx` files
 
 ### Option 2: Clone the Repository
 ```bash
-git clone https://github.com/CandiMan421/DocAnalyzer.git
-cd DocAnalyzer
+git clone https://github.com/CandiMan421/DocInspector.git
+cd DocInspector
 git checkout v2.1-enhanced
 ```
 
@@ -48,7 +48,7 @@ git checkout v2.1-enhanced
 ## 📋 Install the Enhanced Scripts
 
 1. **Copy both enhanced files** to your Scripts Panel folder:
-   - `InDesignDocumentAnalyzer.jsx`
+   - `InDesignDocumentInspector.jsx`
    - `InDesignComparisonUtility.jsx`
 
 2. **Restart InDesign** (recommended but not always required)
@@ -63,8 +63,8 @@ git checkout v2.1-enhanced
 ### Step 1: Load the Enhanced Core Functions
 1. Open any InDesign document (or create a new one)
 2. **Save the document first** (scripts need a file path)
-3. In the Scripts panel, **double-click the main analyzer script**
-4. You should see: "Enhanced InDesign Document Analyzer v2.1 loaded successfully!"
+3. In the Scripts panel, **double-click the main inspector script**
+4. You should see: "Enhanced InDesign Document Inspector v2.1 loaded successfully!"
 5. The message will detail all new features:
    - ✓ Comprehensive text content capture and analysis
    - ✓ Auto-discovery of collections and properties
@@ -77,14 +77,14 @@ git checkout v2.1-enhanced
 1. **Double-click the comparison utility script**
 2. You should see the enhanced main menu dialog appear
 3. The status panel will show:
-   - ✓ Main analyzer loaded and ready
+   - ✓ Main inspector loaded and ready
    - ✓ Version 2.1 - fully compatible
    - Document status and baseline information
 
 ### Step 3: Create Your Enhanced Baseline
 1. Choose "🔍 Quick Compare (Recommended)"
 2. The script will perform comprehensive analysis with progress dialogs:
-   - Loading enhanced analyzer...
+   - Loading enhanced inspector...
    - Validating document structure...
    - Processing collections...
    - Capturing text content...
@@ -117,9 +117,9 @@ git checkout v2.1-enhanced
 - **Restart InDesign**: Sometimes required for scripts to appear
 - **Check permissions**: Make sure you can write to the Scripts folder
 
-### "Enhanced analyzer functions not found"
-- **Run order matters**: Always run the main analyzer script first
-- **Both scripts needed**: The utility depends on the enhanced main analyzer
+### "Enhanced inspector functions not found"
+- **Run order matters**: Always run the main inspector script first
+- **Both scripts needed**: The utility depends on the enhanced main inspector
 - **Version compatibility**: Ensure both scripts are v2.1
 - **Restart and retry**: If there are issues, restart InDesign and try again
 
@@ -230,7 +230,7 @@ Enhanced v2.1 includes:
 ### Complete System Check
 1. **Open InDesign** and create/open a test document
 2. **Save the document** in a test location
-3. **Run the main analyzer** - should show v2.1 success message
+3. **Run the main inspector** - should show v2.1 success message
 4. **Run the comparison utility** - should show enhanced main menu
 5. **Check status panel** - should show all green checkmarks
 6. **Create baseline** - should show enhanced statistics
