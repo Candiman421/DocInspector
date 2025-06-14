@@ -1,6 +1,6 @@
 // ============================================================================
 // CHUNK 4: UTILITY FUNCTIONS & COMPREHENSIVE REPORT GENERATION - ESTK OPTIMIZED
-// ES3 COMPATIBLE VERSION
+// ES3 COMPATIBLE VERSION - ALL RESERVED WORDS FIXED
 // ============================================================================
 
 // Enhanced quick analysis and comparison workflow - ROBUST FOR PRODUCTION USE
@@ -13,24 +13,27 @@ function quickCompare() {
     }
     
     var doc = app.activeDocument;
-    // Safe property access
-    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
+    
+    // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
+    var docSaved = safeGetProperty(doc, 'saved', false);
     var docPath = safeGetProperty(doc, 'filePath');
+    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
     
     // Ensure document is saved with enhanced validation
-    if (!safeGetProperty(doc, 'saved', false) || !docPath) {
+    if (!docSaved || !docPath) {
         var shouldSave = confirm("Document must be saved for analysis. Save now?");
         if (shouldSave) {
             var saveFile = File.saveDialog("Save document for analysis", "*.indd");
             if (saveFile) {
                 try {
                     doc.save(saveFile);
+                    // Update cached values after save
                     docPath = safeGetProperty(doc, 'filePath');
                     docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
                     debugLog("Document saved to: " + docPath, "FILE");
-                } catch (e) {
-                    alert("Failed to save document: " + e.message);
-                    debugLog("Save failed: " + e.message, "ERROR");
+                } catch (exc) { // FIXED: error -> exc
+                    alert("Failed to save document: " + exc.message);
+                    debugLog("Save failed: " + exc.message, "ERROR");
                     return;
                 }
             } else {
@@ -76,9 +79,9 @@ function quickCompare() {
                 
                 return saveReportSafely(baselineFile, report, "baseline");
                 
-            } catch (e) {
-                alert("Baseline creation failed: " + e.message);
-                debugLog("Baseline creation failed: " + e.message, "ERROR");
+            } catch (exc) { // FIXED: error -> exc
+                alert("Baseline creation failed: " + exc.message);
+                debugLog("Baseline creation failed: " + exc.message, "ERROR");
                 clearLargeObjects();
                 return false;
             }
@@ -111,9 +114,9 @@ function quickCompare() {
             
             return saveReportSafely(currentFile, currentReport, "current");
             
-        } catch (e) {
-            alert("Current analysis failed: " + e.message);
-            debugLog("Current analysis failed: " + e.message, "ERROR");
+        } catch (exc) { // FIXED: error -> exc
+            alert("Current analysis failed: " + exc.message);
+            debugLog("Current analysis failed: " + exc.message, "ERROR");
             clearLargeObjects();
             return false;
         }
@@ -157,9 +160,9 @@ function quickCompare() {
         
         debugLog("Baseline loaded successfully", "BASELINE");
         
-    } catch (e) {
-        alert("Failed to load baseline report: " + e.message + "\nConsider recreating the baseline.");
-        debugLog("Baseline load failed: " + e.message, "ERROR");
+    } catch (exc) { // FIXED: error -> exc
+        alert("Failed to load baseline report: " + exc.message + "\nConsider recreating the baseline.");
+        debugLog("Baseline load failed: " + exc.message, "ERROR");
         clearLargeObjects();
         return;
     }
@@ -189,9 +192,9 @@ function quickCompare() {
             debugLog("Comparison completed successfully", "COMPARE");
             return true;
             
-        } catch (e) {
-            alert("Comparison failed: " + e.message);
-            debugLog("Comparison failed: " + e.message, "ERROR");
+        } catch (exc) { // FIXED: error -> exc
+            alert("Comparison failed: " + exc.message);
+            debugLog("Comparison failed: " + exc.message, "ERROR");
             clearLargeObjects();
             return false;
         }
@@ -209,9 +212,9 @@ function quickCompare() {
     var reportSuiteSuccess = showProgressDialog("Generating comprehensive report suite...", function() {
         try {
             return createComprehensiveReportSuite(differences, docPath, docName);
-        } catch (e) {
-            alert("Report generation failed: " + e.message);
-            debugLog("Report generation failed: " + e.message, "ERROR");
+        } catch (exc) { // FIXED: error -> exc
+            alert("Report generation failed: " + exc.message);
+            debugLog("Report generation failed: " + exc.message, "ERROR");
             clearLargeObjects();
             return false;
         }
@@ -242,20 +245,22 @@ function validateAnalysisReport(report) {
     // Check for required sections
     var requiredSections = ['timestamp', 'analysisVersion', 'documentInfo'];
     for (var i = 0; i < requiredSections.length; i++) {
-        if (!report[requiredSections[i]]) {
+        if (!safeGetProperty(report, requiredSections[i])) { // FIXED: Use safeGetProperty
             debugLog("Report validation failed: missing " + requiredSections[i], "ERROR");
             return false;
         }
     }
     
     // Check version compatibility
-    if (report.analysisVersion && stringIndexOf(report.analysisVersion, '2.1') === -1) {
-        debugLog("Report version mismatch: " + report.analysisVersion, "WARN");
+    var analysisVersion = safeGetProperty(report, 'analysisVersion');
+    if (analysisVersion && stringIndexOf(analysisVersion, '2.1') === -1) {
+        debugLog("Report version mismatch: " + analysisVersion, "WARN");
         return true; // Still valid, just potentially incompatible
     }
     
     // Enhanced validation for critical data
-    if (report.documentInfo && !safeGetProperty(report.documentInfo, 'name')) {
+    var documentInfo = safeGetProperty(report, 'documentInfo');
+    if (documentInfo && !safeGetProperty(documentInfo, 'name')) {
         debugLog("Report validation warning: missing document name", "WARN");
     }
     
@@ -273,13 +278,16 @@ function validateComparisonResults(differences) {
     }
     
     // Check for required structure
-    if (!differences.summary || !differences.changes) {
+    var summary = safeGetProperty(differences, 'summary');
+    var changes = safeGetProperty(differences, 'changes');
+    if (!summary || !changes) {
         debugLog("Comparison validation failed: missing summary or changes", "ERROR");
         return false;
     }
     
     // Validate summary structure
-    if (typeof safeGetProperty(differences.summary, 'hasChanges') !== 'boolean') {
+    var hasChanges = safeGetProperty(summary, 'hasChanges');
+    if (typeof hasChanges !== 'boolean') {
         debugLog("Comparison validation warning: invalid hasChanges type", "WARN");
     }
     
@@ -305,8 +313,8 @@ function saveReportSafely(file, report, reportType) {
                 var backupFile = File(file.path + "/" + file.name.replace(/\.json$/, "_backup.json"));
                 file.copy(backupFile);
                 debugLog("Backup created: " + backupFile.name, "FILE");
-            } catch (e) {
-                debugLog("Backup creation failed: " + e.message, "WARN");
+            } catch (exc) { // FIXED: error -> exc
+                debugLog("Backup creation failed: " + exc.message, "WARN");
                 // Backup failed but continue - not critical
             }
         }
@@ -331,8 +339,8 @@ function saveReportSafely(file, report, reportType) {
                       Math.round(jsonString.length / 1024) + "KB vs " + 
                       Math.round(ANALYSIS_CONFIG.maxReportSize / 1024) + "KB limit).");
                 debugLog("Report simplified due to size", "WARN");
-            } catch (e) {
-                alert("Report too large and simplification failed: " + e.message);
+            } catch (exc) { // FIXED: error -> exc
+                alert("Report too large and simplification failed: " + exc.message);
                 return false;
             }
         }
@@ -377,9 +385,9 @@ function saveReportSafely(file, report, reportType) {
         debugLog("Report saved successfully: " + file.length + " bytes", "FILE");
         return true;
         
-    } catch (e) {
-        alert("Failed to save " + reportType + " report: " + e.message);
-        debugLog("Save operation failed: " + e.message, "ERROR");
+    } catch (exc) { // FIXED: error -> exc
+        alert("Failed to save " + reportType + " report: " + exc.message);
+        debugLog("Save operation failed: " + exc.message, "ERROR");
         return false;
     }
 }
@@ -433,7 +441,7 @@ function showProgressDialog(message, operation) {
     
     try {
         progressDialog.show();
-    } catch (e) {
+    } catch (exc) { // FIXED: error -> exc
         return operation();
     }
     
@@ -476,10 +484,10 @@ function showProgressDialog(message, operation) {
         progressDialog.close();
         return result;
         
-    } catch (e) {
+    } catch (exc) { // FIXED: error -> exc
         progressDialog.close();
-        $.writeln("[ERROR] Progress dialog operation failed: " + e.message);
-        throw e;
+        $.writeln("[ERROR] Progress dialog operation failed: " + exc.message);
+        throw exc;
     }
 }
 
@@ -521,12 +529,13 @@ function showBaselineCreatedDialog() {
     
     viewFolderBtn.onClick = function() {
         try {
-            if (UTILITY_STATE.currentDocument && safeGetProperty(UTILITY_STATE.currentDocument, 'filePath')) {
-                var folder = Folder(safeGetProperty(UTILITY_STATE.currentDocument, 'filePath'));
+            var currentDoc = UTILITY_STATE.currentDocument;
+            if (currentDoc && safeGetProperty(currentDoc, 'filePath')) {
+                var folder = Folder(safeGetProperty(currentDoc, 'filePath'));
                 folder.execute();
             }
-        } catch (e) {
-            alert("Could not open folder: " + e.message);
+        } catch (exc) { // FIXED: error -> exc
+            alert("Could not open folder: " + exc.message);
         }
     };
     
@@ -579,9 +588,9 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
                 report.file.write(report.content);
                 report.file.close();
                 debugLog("Saved " + report.type + " report: " + report.file.name, "REPORTS");
-            } catch (e) {
-                alert("Failed to save " + report.type + ": " + e.message);
-                debugLog("Failed to save " + report.type + ": " + e.message, "ERROR");
+            } catch (exc) { // FIXED: error -> exc
+                alert("Failed to save " + report.type + ": " + exc.message);
+                debugLog("Failed to save " + report.type + ": " + exc.message, "ERROR");
                 return false;
             }
         }
@@ -590,9 +599,9 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
         debugLog("Comprehensive report suite created successfully", "REPORTS");
         return true;
         
-    } catch (e) {
-        alert("Report generation failed: " + e.message);
-        debugLog("Report generation failed: " + e.message, "ERROR");
+    } catch (exc) { // FIXED: error -> exc
+        alert("Report generation failed: " + exc.message);
+        debugLog("Report generation failed: " + exc.message, "ERROR");
         return false;
     }
 }
@@ -604,36 +613,40 @@ function createEnhancedHumanReadableSummary(differences) {
     summary += "Analysis Version: 2.1-ESTK (Comprehensive Change Detection)\n";
     summary += repeatString("=", 70) + "\n\n";
     
-    if (!safeGetProperty(differences.summary, 'hasChanges')) {
+    var diffSummary = safeGetProperty(differences, 'summary');
+    if (!safeGetProperty(diffSummary, 'hasChanges')) {
         summary += "STATUS: NO CHANGES DETECTED\n";
         summary += "The document appears identical to the baseline.\n\n";
         
-        if (differences.discoveryInfo) {
+        var discoveryInfo = safeGetProperty(differences, 'discoveryInfo');
+        if (discoveryInfo) {
             summary += "PROCESSING SUMMARY\n";
-            summary += "Text items processed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsProcessed', 0)) + "\n";
-            summary += "Properties analyzed: " + (safeGetProperty(differences.discoveryInfo, 'propertiesChanged', 0)) + "\n";
-            summary += "Sections analyzed: " + objectKeys(differences.changes).length + "\n";
+            summary += "Text items processed: " + (safeGetProperty(discoveryInfo, 'textItemsProcessed', 0)) + "\n";
+            summary += "Properties analyzed: " + (safeGetProperty(discoveryInfo, 'propertiesChanged', 0)) + "\n";
+            summary += "Sections analyzed: " + objectKeys(safeGetProperty(differences, 'changes', {})).length + "\n";
         }
         return summary;
     }
     
     summary += "STATUS: CHANGES DETECTED\n";
-    summary += "Changed sections: " + safeGetProperty(differences.summary, 'changedSections', []).length + "\n";
-    summary += "Total changes: " + safeGetProperty(differences.summary, 'totalChanges', 0) + "\n";
-    summary += "Significant changes: " + safeGetProperty(differences.summary, 'significantChanges', 0) + "\n";
-    if (differences.errors && differences.errors.length > 0) {
-        summary += "Errors handled: " + differences.errors.length + "\n";
+    summary += "Changed sections: " + safeGetLength(safeGetProperty(diffSummary, 'changedSections', [])) + "\n";
+    summary += "Total changes: " + safeGetProperty(diffSummary, 'totalChanges', 0) + "\n";
+    summary += "Significant changes: " + safeGetProperty(diffSummary, 'significantChanges', 0) + "\n";
+    var diffErrors = safeGetProperty(differences, 'errors');
+    if (diffErrors && safeGetLength(diffErrors) > 0) {
+        summary += "Errors handled: " + safeGetLength(diffErrors) + "\n";
     }
     
     // Enhanced discovery summary
-    if (differences.discoveryInfo) {
+    var discoveryInfo = safeGetProperty(differences, 'discoveryInfo');
+    if (discoveryInfo) {
         summary += "\nCOMPREHENSIVE ANALYSIS SUMMARY\n";
-        summary += "Text items processed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsProcessed', 0)) + "\n";
-        summary += "Text items changed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsChanged', 0)) + "\n";
-        summary += "Properties changed: " + (safeGetProperty(differences.discoveryInfo, 'propertiesChanged', 0)) + "\n";
+        summary += "Text items processed: " + (safeGetProperty(discoveryInfo, 'textItemsProcessed', 0)) + "\n";
+        summary += "Text items changed: " + (safeGetProperty(discoveryInfo, 'textItemsChanged', 0)) + "\n";
+        summary += "Properties changed: " + (safeGetProperty(discoveryInfo, 'propertiesChanged', 0)) + "\n";
         
         // Text changes breakdown
-        var textChangesDetailed = safeGetProperty(differences.discoveryInfo, 'textChangesDetailed');
+        var textChangesDetailed = safeGetProperty(discoveryInfo, 'textChangesDetailed');
         if (textChangesDetailed) {
             summary += "\nTEXT CHANGES DETAILED\n";
             var charChanges = safeGetProperty(textChangesDetailed, 'characterChanges', 0);
@@ -656,7 +669,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         
         // Structural changes
-        var structuralChanges = safeGetProperty(differences.discoveryInfo, 'structuralChanges');
+        var structuralChanges = safeGetProperty(discoveryInfo, 'structuralChanges');
         if (structuralChanges) {
             summary += "\nSTRUCTURAL CHANGES\n";
             var pagesChanged = safeGetProperty(structuralChanges, 'pagesChanged', 0);
@@ -680,15 +693,16 @@ function createEnhancedHumanReadableSummary(differences) {
     }
     summary += "\n";
     
-    var changes = differences.changes;
+    var changes = safeGetProperty(differences, 'changes', {});
     
     // Detailed section analysis
     var prioritySections = ['documentInfo', 'textContent', 'textFrames', 'pages', 'layers', 'styles', 'images', 'links'];
     
     for (var s = 0; s < prioritySections.length; s++) {
         var sectionName = prioritySections[s];
-        if (changes[sectionName] && changes[sectionName].length > 0) {
-            summary += getSectionSummary(sectionName, changes[sectionName]);
+        var sectionChanges = safeGetProperty(changes, sectionName);
+        if (sectionChanges && safeGetLength(sectionChanges) > 0) {
+            summary += getSectionSummary(sectionName, sectionChanges);
         }
     }
     
@@ -721,34 +735,39 @@ function getSectionSummary(sectionName, changes) {
     summary += "[" + displayName + "]\n";
     summary += repeatString("-", displayName.length + 2) + "\n";
     
-    if (categorized.additions.length > 0) {
-        summary += "Added " + categorized.additions.length + " item(s)\n";
+    var additionsLength = safeGetLength(categorized.additions);
+    var deletionsLength = safeGetLength(categorized.deletions);
+    var modificationsLength = safeGetLength(categorized.modifications);
+    
+    if (additionsLength > 0) {
+        summary += "Added " + additionsLength + " item(s)\n";
         // Show first addition example
         if (categorized.additions[0]) {
             summary += "  Example: " + formatChangeExample(categorized.additions[0]) + "\n";
         }
     }
-    if (categorized.deletions.length > 0) {
-        summary += "Removed " + categorized.deletions.length + " item(s)\n";
+    if (deletionsLength > 0) {
+        summary += "Removed " + deletionsLength + " item(s)\n";
         // Show first deletion example
         if (categorized.deletions[0]) {
             summary += "  Example: " + formatChangeExample(categorized.deletions[0]) + "\n";
         }
     }
-    if (categorized.modifications.length > 0) {
-        summary += "Modified " + categorized.modifications.length + " item(s)\n";
+    if (modificationsLength > 0) {
+        summary += "Modified " + modificationsLength + " item(s)\n";
         
         // Show key modifications with significance priority - ES3 compatible
         var significantMods = arrayFilter(categorized.modifications, function(change) {
             return safeGetProperty(change, 'significance') === 'high';
         });
-        var modsToShow = significantMods.length > 0 ? significantMods : categorized.modifications;
+        var modsToShow = safeGetLength(significantMods) > 0 ? significantMods : categorized.modifications;
         
-        for (var i = 0; i < Math.min(modsToShow.length, 3); i++) {
+        var modsToShowLength = safeGetLength(modsToShow);
+        for (var i = 0; i < Math.min(modsToShowLength, 3); i++) {
             summary += "  " + formatChangeExample(modsToShow[i]) + "\n";
         }
-        if (categorized.modifications.length > 3) {
-            summary += "  ... and " + (categorized.modifications.length - 3) + " more changes\n";
+        if (modificationsLength > 3) {
+            summary += "  ... and " + (modificationsLength - 3) + " more changes\n";
         }
     }
     summary += "\n";
@@ -764,7 +783,8 @@ function categorizeChanges(changesList) {
         modifications: []
     };
     
-    for (var i = 0; i < changesList.length; i++) {
+    var changesLength = safeGetLength(changesList);
+    for (var i = 0; i < changesLength; i++) {
         var change = changesList[i];
         var changeType = safeGetProperty(change, 'type');
         if (changeType === 'addition') {
@@ -808,12 +828,13 @@ function createDetailedTextAnalysisSummary(differences) {
     analysis += repeatString("=", 65) + "\n\n";
     
     // Text content changes section
-    var textContentChanges = safeGetProperty(differences.changes, 'textContent');
-    if (textContentChanges && textContentChanges.length > 0) {
+    var textContentChanges = safeGetProperty(safeGetProperty(differences, 'changes'), 'textContent');
+    if (textContentChanges && safeGetLength(textContentChanges) > 0) {
         analysis += "TEXT CONTENT CHANGES DETECTED\n";
         analysis += repeatString("-", 30) + "\n\n";
         
-        for (var i = 0; i < Math.min(textContentChanges.length, 10); i++) { // Limit for readability
+        var textContentLength = safeGetLength(textContentChanges);
+        for (var i = 0; i < Math.min(textContentLength, 10); i++) { // Limit for readability
             var change = textContentChanges[i];
             
             analysis += "CHANGE " + (i + 1) + ":\n";
@@ -845,8 +866,8 @@ function createDetailedTextAnalysisSummary(differences) {
     }
     
     // Text frame changes
-    var textFrameChanges = safeGetProperty(differences.changes, 'textFrames');
-    if (textFrameChanges && textFrameChanges.length > 0) {
+    var textFrameChanges = safeGetProperty(safeGetProperty(differences, 'changes'), 'textFrames');
+    if (textFrameChanges && safeGetLength(textFrameChanges) > 0) {
         analysis += "TEXT FRAME CHANGES\n";
         analysis += repeatString("-", 18) + "\n\n";
         
@@ -859,7 +880,8 @@ function createDetailedTextAnalysisSummary(differences) {
                    stringIndexOf(path, 'overflows') !== -1;
         });
         
-        for (var i = 0; i < Math.min(textRelatedChanges.length, 8); i++) {
+        var textRelatedLength = safeGetLength(textRelatedChanges);
+        for (var i = 0; i < Math.min(textRelatedLength, 8); i++) {
             var change = textRelatedChanges[i];
             analysis += "Frame Change " + (i + 1) + ":\n";
             analysis += "Property: " + safeGetProperty(change, 'path', 'unknown') + "\n";
@@ -901,12 +923,14 @@ function createTechnicalSummary(differences) {
     // Analysis statistics
     technical += "ANALYSIS STATISTICS\n";
     technical += repeatString("-", 19) + "\n";
-    var changedSections = safeGetProperty(differences.summary, 'changedSections', []);
-    technical += "Sections analyzed: " + changedSections.length + "\n";
-    technical += "Changes detected: " + (safeGetProperty(differences.summary, 'hasChanges') ? "Yes" : "No") + "\n";
-    technical += "Total changes: " + safeGetProperty(differences.summary, 'totalChanges', 0) + "\n";
-    technical += "Significant changes: " + safeGetProperty(differences.summary, 'significantChanges', 0) + "\n";
-    technical += "Errors encountered: " + (differences.errors ? differences.errors.length : 0) + "\n";
+    var diffSummary = safeGetProperty(differences, 'summary');
+    var changedSections = safeGetProperty(diffSummary, 'changedSections', []);
+    technical += "Sections analyzed: " + safeGetLength(changedSections) + "\n";
+    technical += "Changes detected: " + (safeGetProperty(diffSummary, 'hasChanges') ? "Yes" : "No") + "\n";
+    technical += "Total changes: " + safeGetProperty(diffSummary, 'totalChanges', 0) + "\n";
+    technical += "Significant changes: " + safeGetProperty(diffSummary, 'significantChanges', 0) + "\n";
+    var diffErrors = safeGetProperty(differences, 'errors');
+    technical += "Errors encountered: " + (diffErrors ? safeGetLength(diffErrors) : 0) + "\n";
     
     var discoveryInfo = safeGetProperty(differences, 'discoveryInfo');
     if (discoveryInfo) {
@@ -919,10 +943,11 @@ function createTechnicalSummary(differences) {
     // Change distribution
     technical += "CHANGE DISTRIBUTION BY SECTION\n";
     technical += repeatString("-", 30) + "\n";
-    var changes = differences.changes;
+    var changes = safeGetProperty(differences, 'changes', {});
     for (var section in changes) {
-        if (changes[section] && changes[section].length) {
-            technical += section + ": " + changes[section].length + " changes\n";
+        var sectionChanges = safeGetProperty(changes, section);
+        if (sectionChanges && safeGetLength(sectionChanges)) {
+            technical += section + ": " + safeGetLength(sectionChanges) + " changes\n";
         }
     }
     
@@ -967,13 +992,15 @@ function createAccessPathGuide(differences) {
     
     // Collect unique access patterns from changes
     var accessPatterns = {};
-    var changedSections = safeGetProperty(differences.summary, 'changedSections', []);
+    var diffSummary = safeGetProperty(differences, 'summary');
+    var changedSections = safeGetProperty(diffSummary, 'changedSections', []);
     
-    for (var s = 0; s < changedSections.length; s++) {
+    for (var s = 0; s < safeGetLength(changedSections); s++) {
         var sectionName = changedSections[s];
-        var sectionChanges = safeGetProperty(differences.changes, sectionName, []);
+        var sectionChanges = safeGetProperty(safeGetProperty(differences, 'changes'), sectionName, []);
         
-        for (var i = 0; i < Math.min(sectionChanges.length, 10); i++) { // Limit for readability
+        var sectionChangesLength = safeGetLength(sectionChanges);
+        for (var i = 0; i < Math.min(sectionChangesLength, 10); i++) { // Limit for readability
             var change = sectionChanges[i];
             var accessPath = safeGetProperty(change, 'accessPath');
             if (accessPath) {
@@ -994,29 +1021,33 @@ function createAccessPathGuide(differences) {
     for (var pattern in accessPatterns) {
         var info = accessPatterns[pattern];
         
-        guide += "PROPERTY: " + info.path + "\n";
-        guide += "Section: " + info.section + "\n";
+        guide += "PROPERTY: " + safeGetProperty(info, 'path') + "\n";
+        guide += "Section: " + safeGetProperty(info, 'section') + "\n";
         guide += "Primary Access: " + pattern + "\n";
         
-        var alternatives = safeGetProperty(info.accessPath, 'alternatives', []);
-        if (alternatives.length > 0) {
+        var accessInfo = safeGetProperty(info, 'accessPath');
+        var alternatives = safeGetProperty(accessInfo, 'alternatives', []);
+        var alternativesLength = safeGetLength(alternatives);
+        if (alternativesLength > 0) {
             guide += "Alternative Methods:\n";
-            for (var j = 0; j < Math.min(alternatives.length, 3); j++) {
+            for (var j = 0; j < Math.min(alternativesLength, 3); j++) {
                 if (stringIndexOf(alternatives[j], 'Error') === -1) {
                     guide += "  * " + alternatives[j] + "\n";
                 }
             }
         }
         
-        var safetyLevel = safeGetProperty(info.accessPath, 'safetyLevel');
+        var safetyLevel = safeGetProperty(accessInfo, 'safetyLevel');
         if (safetyLevel) {
             guide += "Safety Level: " + safetyLevel + "\n";
         }
         
-        if (info.safetyNotes && info.safetyNotes.length > 0) {
+        var safetyNotes = safeGetProperty(info, 'safetyNotes', []);
+        var safetyNotesLength = safeGetLength(safetyNotes);
+        if (safetyNotesLength > 0) {
             guide += "Safety Guidelines:\n";
-            for (var k = 0; k < Math.min(info.safetyNotes.length, 3); k++) {
-                guide += "  ! " + info.safetyNotes[k] + "\n";
+            for (var k = 0; k < Math.min(safetyNotesLength, 3); k++) {
+                guide += "  ! " + safetyNotes[k] + "\n";
             }
         }
         

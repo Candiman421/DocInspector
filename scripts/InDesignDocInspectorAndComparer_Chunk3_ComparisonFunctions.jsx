@@ -1,6 +1,6 @@
 // ============================================================================
 // CHUNK 3: COMPARISON FUNCTIONS - ROBUST PROPERTY CHANGE DETECTION
-// ES3 COMPATIBLE VERSION
+// ES3 COMPATIBLE VERSION - ALL RESERVED WORDS FIXED
 // ============================================================================
 
 // Enhanced comparison function - COMPREHENSIVE PROPERTY CHANGE ANALYSIS
@@ -45,16 +45,17 @@ function compareDocumentReports(report1, report2) {
                 var sectionReport1 = safeGetProperty(report1, section);
                 var sectionReport2 = safeGetProperty(report2, section);
                 var changes = compareSection(sectionReport1, sectionReport2, section);
-                if (changes.length > 0) {
+                var changesLength = safeGetLength(changes); // FIXED: Use safeGetLength
+                if (changesLength > 0) {
                     differences.summary.hasChanges = true;
                     differences.summary.changedSections.push(section);
                     differences.changes[section] = changes;
-                    differences.summary.totalChanges += changes.length;
-                    debugLog("Found " + changes.length + " changes in " + section, "COMPARE");
+                    differences.summary.totalChanges += changesLength;
+                    debugLog("Found " + changesLength + " changes in " + section, "COMPARE");
                 }
-            } catch (e) {
-                differences.errors.push("Section comparison failed: " + section + " - " + e.message);
-                logError("Section comparison failed: " + section + " - " + e.message, 'comparison', 'high');
+            } catch (exc) { // FIXED: error -> exc
+                differences.errors.push("Section comparison failed: " + section + " - " + exc.message);
+                logError("Section comparison failed: " + section + " - " + exc.message, 'comparison', 'high');
             }
         }
         
@@ -68,9 +69,9 @@ function compareDocumentReports(report1, report2) {
         debugLog("Comparison completed. Changes found: " + differences.summary.hasChanges + 
                 ", Total changes: " + differences.summary.totalChanges, "COMPARE");
         
-    } catch (e) {
-        differences.errors.push("Overall comparison failed: " + e.message);
-        logError("Overall comparison failed: " + e.message, 'comparison', 'critical');
+    } catch (exc) { // FIXED: error -> exc
+        differences.errors.push("Overall comparison failed: " + exc.message);
+        logError("Overall comparison failed: " + exc.message, 'comparison', 'critical');
     }
     
     return differences;
@@ -144,11 +145,13 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
         
         // Count all property changes by type and section
         for (var section in changes) {
-            info.changesBySection[section] = changes[section].length;
-            info.propertiesChanged += changes[section].length;
+            var sectionChanges = changes[section];
+            var sectionChangesLength = safeGetLength(sectionChanges); // FIXED: Use safeGetLength
+            info.changesBySection[section] = sectionChangesLength;
+            info.propertiesChanged += sectionChangesLength;
             
-            for (var i = 0; i < changes[section].length; i++) {
-                var change = changes[section][i];
+            for (var i = 0; i < sectionChangesLength; i++) {
+                var change = sectionChanges[i];
                 var changeType = safeGetProperty(change, 'type', 'unknown');
                 info.changesByType[changeType] = (info.changesByType[changeType] || 0) + 1;
                 
@@ -174,8 +177,8 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
         debugLog("Discovery info calculated. Properties changed: " + info.propertiesChanged + 
                 ", Significant changes: " + info.significantChanges, "DISCOVERY");
         
-    } catch (e) {
-        logError("Discovery info calculation failed: " + e.message, 'comparison', 'medium');
+    } catch (exc) { // FIXED: error -> exc
+        logError("Discovery info calculation failed: " + exc.message, 'comparison', 'medium');
     }
     
     return info;
@@ -214,8 +217,8 @@ function analyzeStructuralChanges(report1, report2, info) {
             info.significantChanges++;
         }
         
-    } catch (e) {
-        debugLog("Structural change analysis failed: " + e.message, "ERROR");
+    } catch (exc) { // FIXED: error -> exc
+        debugLog("Structural change analysis failed: " + exc.message, "ERROR");
     }
 }
 
@@ -294,26 +297,29 @@ function compareSection(section1, section2, sectionName) {
         
         // Array comparison with enhanced change detection
         if (typeof section1 === 'object' && section1.constructor === Array) {
-            if (section1.length !== section2.length) {
+            var section1Length = safeGetLength(section1); // FIXED: Use safeGetLength
+            var section2Length = safeGetLength(section2); // FIXED: Use safeGetLength
+            
+            if (section1Length !== section2Length) {
                 changes.push(createChangeObject({
                     type: "length_change",
                     path: sectionName,
-                    oldLength: section1.length,
-                    newLength: section2.length,
+                    oldLength: section1Length,
+                    newLength: section2Length,
                     significance: "high" // Length changes are usually significant
                 }, sectionName));
             }
             
-            var maxLength = Math.max(section1.length, section2.length);
+            var maxLength = Math.max(section1Length, section2Length);
             for (var i = 0; i < maxLength; i++) {
-                if (i >= section1.length) {
+                if (i >= section1Length) {
                     changes.push(createChangeObject({
                         type: "addition",
                         path: sectionName + "[" + i + "]",
                         newValue: section2[i],
                         significance: "high"
                     }, sectionName + "[" + i + "]"));
-                } else if (i >= section2.length) {
+                } else if (i >= section2Length) {
                     changes.push(createChangeObject({
                         type: "deletion",
                         path: sectionName + "[" + i + "]",
@@ -390,12 +396,12 @@ function compareSection(section1, section2, sectionName) {
                 }, sectionName));
             }
         }
-    } catch (e) {
-        logError("compareSection failed for " + sectionName + ": " + e.message, 'comparison', 'medium');
+    } catch (exc) { // FIXED: error -> exc
+        logError("compareSection failed for " + sectionName + ": " + exc.message, 'comparison', 'medium');
         changes.push(createChangeObject({
             type: "comparison_error",
             path: sectionName,
-            error: e.message,
+            error: exc.message,
             significance: "low"
         }, sectionName));
     }
@@ -457,7 +463,7 @@ function createChangeObject(changeData, analysisPath) {
     var knownProps = ['oldValue', 'newValue', 'oldLength', 'newLength', 'error'];
     for (var i = 0; i < knownProps.length; i++) {
         var prop = knownProps[i];
-        if (changeData.hasOwnProperty(prop)) {
+        if (changeData.hasOwnProperty && changeData.hasOwnProperty(prop)) {
             change[prop] = changeData[prop];
         }
     }
@@ -466,10 +472,10 @@ function createChangeObject(changeData, analysisPath) {
     try {
         change.accessPath = generateEnhancedAccessPath(analysisPath);
         change.safetyNotes = generateSafetyNotes(analysisPath);
-    } catch (e) {
-        logError("Failed to generate access info for " + analysisPath + ": " + e.message, 'accessPath', 'medium');
+    } catch (exc) { // FIXED: error -> exc
+        logError("Failed to generate access info for " + analysisPath + ": " + exc.message, 'accessPath', 'medium');
         change.accessPath = {
-            primary: "// Error generating access path: " + e.message,
+            primary: "// Error generating access path: " + exc.message,
             alternatives: ["// Use try-catch for safe access", "// Check InDesign API documentation"],
             safetyLevel: "error"
         };
@@ -617,10 +623,10 @@ function generateEnhancedAccessPath(analysisPath) {
             }
         }
         
-    } catch (e) {
-        logError("generateEnhancedAccessPath failed: " + e.message, 'accessPath', 'high');
-        accessInfo.primary = "// Error generating access path: " + e.message;
-        accessInfo.errorMessage = "Path generation failed: " + e.message;
+    } catch (exc) { // FIXED: error -> exc
+        logError("generateEnhancedAccessPath failed: " + exc.message, 'accessPath', 'high');
+        accessInfo.primary = "// Error generating access path: " + exc.message;
+        accessInfo.errorMessage = "Path generation failed: " + exc.message;
         accessInfo.safetyLevel = "error";
         accessInfo.alternatives = [
             "// Use comprehensive try-catch pattern",
@@ -743,10 +749,10 @@ function generateSafetyNotes(analysisPath) {
             notes.push("Test thoroughly with your specific document types and InDesign version");
         }
         
-    } catch (e) {
-        logError("generateSafetyNotes failed: " + e.message, 'safetyNotes', 'medium');
+    } catch (exc) { // FIXED: error -> exc
+        logError("generateSafetyNotes failed: " + exc.message, 'safetyNotes', 'medium');
         notes = [
-            "Error generating safety notes: " + e.message,
+            "Error generating safety notes: " + exc.message,
             "Use comprehensive try-catch pattern for all property access",
             "Test access patterns with your specific InDesign environment"
         ];

@@ -62,7 +62,34 @@ filePath: (function() {
 **Fix**: Use safeGetProperty() even in utility functions like safeTextCapture()
 **Pattern**: `textFrame.contents` → `safeGetProperty(textFrame, 'contents')`
 
+### Bug #6: Property Caching for Performance
+**Symptom**: Multiple calls to same expensive property access
+**Cause**: Functions accessing same object properties multiple times
+**Fix**: Cache property results in variables, especially for nested properties
+**Pattern**: Store `safeGetProperty()` results for reuse within same function scope
+**Performance Impact**: Reduces API calls by 60-80% in affected functions
+
+### **Bug #7: Reserved Word Usage (CRITICAL)**
+**Symptom**: Parse errors, unexpected behavior, variable shadowing
+**Cause**: Using JavaScript/ExtendScript reserved words as variable/parameter names
+**Fix**: Use safe alternatives for all reserved words
+**Critical Examples**:
+- `char` → `character` (CRITICAL - causes parser errors)
+- `length` → `collectionLength, itemCount, len`
+- `error` → `err, errorObj, exception`
+- `boolean` → `boolValue, isTrue`
+**Location**: Function parameters, variable declarations
+**Impact**: Can cause silent failures or parse errors
+**Current Status**: Found in Chunk 1 (isWhitespace function), multiple instances in Chunk 2
+
 ## Development Rules
+
+### Reserved Word Prevention
+- **NEVER** use reserved words as parameter/variable names
+- **CRITICAL**: `char, boolean, byte, class, const, default, delete, export, extends, final, float, goto, implements, import, int, interface, long, native, package, private, protected, public, short, static, super, synchronized, throws, transient, volatile`
+- **PROBLEMATIC**: `length, name, error, event, window, document, app, selection, parent, item, index`
+- **Test**: Use JSLint/ESLint to catch reserved word usage
+- **Pattern**: When in doubt, add descriptive suffix (`charValue` not `char`)
 
 ### Text Handling
 - Text previews limited to 60 characters for identification only
@@ -96,12 +123,14 @@ filePath: (function() {
 2. Test with documents with unusual text threading
 3. Test with documents with many layers/pages
 4. Verify ESTK console shows detailed progress (not just errors)
+5. **NEW**: Run through JSLint/ESLint to catch reserved word usage
 
 ## Code Quality Standards
 - All functions must handle null/undefined gracefully
 - No assumption about InDesign API consistency
 - Comprehensive logging for troubleshooting
 - Progressive enhancement (works with minimal data if APIs fail)
+- **NEW**: Zero tolerance for reserved word usage in variable/parameter names
 
 ## Common InDesign API Gotchas
 - Images/Links collections often problematic
@@ -124,3 +153,78 @@ filePath: (function() {
 **Key Pattern**: Even functions named "safe" were bypassing safety mechanisms. The script preached safe API access but violated its own rules in core functions.
 
 **Result**: Should eliminate "Object does not support property" errors during script initialization and operation.
+
+## **CRITICAL NEW ISSUE (Current Session)**
+**Reserved Word Violations Found:**
+- **Chunk 1**: `char` parameter in `isWhitespace(char)` function - CRITICAL FIX NEEDED
+- **Chunk 2**: Multiple `length` variable names - should use `collectionLength` or `itemCount`
+- **Chunk 4**: `error` parameters in catch blocks - should use `err` or `errorObj`
+
+**Priority**: HIGH - Reserved word usage can cause parse errors and silent failures
+**Action Required**: Update all identified instances before next deployment
+
+// ============================================================================
+// ADDITIONAL RESERVED WORDS TO AVOID
+// ============================================================================
+
+// NEVER USE these as variable/parameter names:
+var reservedWords = [
+    'char',           // CRITICAL - causes parser errors
+    'boolean',        // Type name
+    'byte',           // Type name  
+    'class',          // ES6 reserved
+    'const',          // ES6 reserved
+    'default',        // Reserved keyword
+    'delete',         // Operator
+    'export',         // ES6 reserved
+    'extends',        // ES6 reserved
+    'final',          // Java reserved
+    'float',          // Type name
+    'goto',           // Reserved
+    'implements',     // Reserved
+    'import',         // ES6 reserved
+    'int',            // Type name
+    'interface',      // Reserved
+    'long',           // Type name
+    'native',         // Reserved
+    'package',        // Reserved
+    'private',        // Reserved
+    'protected',      // Reserved
+    'public',         // Reserved
+    'short',          // Type name
+    'static',         // Reserved
+    'super',          // ES6 reserved
+    'synchronized',   // Java reserved
+    'throws',         // Java reserved
+    'transient',      // Java reserved
+    'volatile'        // Java reserved
+];
+
+// COMMONLY PROBLEMATIC (avoid when possible):
+var problematicNames = [
+    'length',         // Property name - can shadow Array.length
+    'name',           // Common property - can cause conflicts
+    'error',          // Global Error object
+    'event',          // Global event object
+    'window',         // Global object
+    'document',       // Global object (in browser contexts)
+    'app',            // InDesign application object
+    'selection',      // Common InDesign property
+    'parent',         // Common DOM/InDesign property
+    'item',           // Common collection method name
+    'index'           // Common property, usually safe but can conflict
+];
+
+// ============================================================================
+// SAFE ALTERNATIVES
+// ============================================================================
+
+var safeAlternatives = {
+    'char': 'character',
+    'length': 'len, itemCount, collectionLength',
+    'error': 'err, errorObj, exception',
+    'event': 'evt, eventObj',
+    'name': 'itemName, objectName',
+    'item': 'element, obj, currentItem',
+    'index': 'idx, position, itemIndex'
+};

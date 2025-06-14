@@ -27,6 +27,10 @@ var ANALYSIS_CONFIG = {
     maxCollectionSample: 20, // Increased for thorough change detection
     maxReportSize: 3000000, // 3MB limit - larger for comprehensive analysis
     
+    // SAFETY LIMITS - Replace all hardcoded values
+    maxSafetyLimit: 50, // For safeIterateCollection safety override
+    pageItemSampleLimit: 30, // For getPageItemsInfo sampling
+    
     // Runtime tracking - ESSENTIAL for change detection
     textItemsProcessed: 0,
     processingStartTime: null,
@@ -152,9 +156,9 @@ function stringTrim(str) {
     return str.substring(start, end + 1);
 }
 
-// Helper function to check if character is whitespace
-function isWhitespace(char) {
-    return char === ' ' || char === '\t' || char === '\n' || char === '\r' || char === '\f';
+// Helper function to check if character is whitespace - FIXED: char -> character
+function isWhitespace(character) {
+    return character === ' ' || character === '\t' || character === '\n' || character === '\r' || character === '\f';
 }
 
 // ES3-compatible Date.toISOString function
@@ -303,14 +307,14 @@ function safeTextCapture(textFrame) {
             var cleanPreview = "";
             var lastWasSpace = false;
             for (var i = 0; i < preview.length; i++) {
-                var char = preview.charAt(i);
-                if (isWhitespace(char)) {
+                var currentChar = preview.charAt(i);
+                if (isWhitespace(currentChar)) {
                     if (!lastWasSpace) {
                         cleanPreview += " ";
                         lastWasSpace = true;
                     }
                 } else {
-                    cleanPreview += char;
+                    cleanPreview += currentChar;
                     lastWasSpace = false;
                 }
             }
@@ -554,10 +558,10 @@ function safeGetLength(collection) {
         
         // Try standard length property
         if (typeof collection.length !== 'undefined' && collection.length !== null) {
-            var len = collection.length;
+            var collectionLength = collection.length;
             // Validate length is a reasonable number
-            if (typeof len === 'number' && len >= 0 && len < 1000000) {
-                return len;
+            if (typeof collectionLength === 'number' && collectionLength >= 0 && collectionLength < 1000000) {
+                return collectionLength;
             }
         }
         
@@ -629,26 +633,26 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
     
     var results = [];
     var startTime = new Date().getTime();
-    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, 50); // Increased safety limit
+    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit); // FIXED: Use config
     
     debugLog("Starting enhanced collection iteration: " + (collectionName || "unknown"), "ITER");
     
     try {
-        var length = safeGetLength(collection);
-        debugLog("Collection length determined: " + length, "ITER");
+        var collectionLength = safeGetLength(collection); // FIXED: length -> collectionLength
+        debugLog("Collection length determined: " + collectionLength, "ITER");
         
-        if (length === 0) {
+        if (collectionLength === 0) {
             debugLog("Empty collection: " + (collectionName || "unknown"), "ITER");
             return results;
         }
         
         // Enhanced iteration with multiple access methods
-        for (var i = 0; i < Math.min(length, maxItems); i++) {
+        for (var i = 0; i < Math.min(collectionLength, maxItems); i++) {
             // Enhanced timeout protection
             if (new Date().getTime() - startTime > ANALYSIS_CONFIG.timeoutThreshold) {
                 debugLog("Collection iteration timed out at item " + i, "TIMEOUT");
                 results.push({
-                    notice: "Processing timed out at item " + i + " of " + length,
+                    notice: "Processing timed out at item " + i + " of " + collectionLength,
                     timeout: true,
                     collectionName: collectionName || "unknown",
                     timeoutThreshold: ANALYSIS_CONFIG.timeoutThreshold
@@ -752,10 +756,10 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
         }
         
         // Add comprehensive truncation notice
-        if (length > maxItems) {
+        if (collectionLength > maxItems) {
             results.push({
                 notice: "Collection truncated for performance and safety",
-                totalItems: length,
+                totalItems: collectionLength,
                 shownItems: maxItems,
                 collectionName: collectionName || "unknown",
                 processingTime: new Date().getTime() - startTime,
@@ -858,28 +862,28 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
             
             return result;
             
-        } catch (error) {
+        } catch (exc) { // FIXED: error -> exc
             var duration = new Date().getTime() - attemptStartTime;
-            debugLog("Section " + sectionName + " failed: " + error.message + " (attempt " + (sectionConfig.retryCount + 1) + ")", "ERROR");
+            debugLog("Section " + sectionName + " failed: " + exc.message + " (attempt " + (sectionConfig.retryCount + 1) + ")", "ERROR");
             
             // Enhanced retry logic for different error types
             var shouldRetry = false;
-            var errorCategory = categorizeAPIError(error.message);
+            var errorCategory = categorizeAPIError(exc.message);
             
             if (sectionConfig.retryCount < sectionConfig.maxRetries) {
                 // Retry for certain error types
                 if (errorCategory === 'timeout' || 
                     errorCategory === 'access_denied' || 
                     errorCategory === 'invalid_index' ||
-                    stringIndexOf(error.message, 'busy') !== -1 ||
-                    stringIndexOf(error.message, 'not available') !== -1) {
+                    stringIndexOf(exc.message, 'busy') !== -1 ||
+                    stringIndexOf(exc.message, 'not available') !== -1) {
                     shouldRetry = true;
                 }
             }
             
             if (shouldRetry) {
                 sectionConfig.retryCount++;
-                debugLog("Section " + sectionName + " failed, retrying (" + sectionConfig.retryCount + "/" + sectionConfig.maxRetries + "): " + error.message, "RETRY");
+                debugLog("Section " + sectionName + " failed, retrying (" + sectionConfig.retryCount + "/" + sectionConfig.maxRetries + "): " + exc.message, "RETRY");
                 
                 // Adaptive delay based on error type
                 var retryDelay = sectionConfig.retryDelay * (sectionConfig.retryCount * 2); // Increasing delay
@@ -890,11 +894,11 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
                 
                 return attemptAnalysis();
             } else {
-                logError("Section " + sectionName + " analysis failed permanently: " + error.message, 'sectionFailure', 'high');
+                logError("Section " + sectionName + " analysis failed permanently: " + exc.message, 'sectionFailure', 'high');
                 return {
-                    error: "Section analysis failed: " + error.message,
+                    error: "Section analysis failed: " + exc.message,
                     sectionName: sectionName,
-                    line: error.line || "unknown",
+                    line: exc.line || "unknown",
                     recoverable: sectionConfig.retryCount < sectionConfig.maxRetries,
                     retryCount: sectionConfig.retryCount,
                     errorType: errorCategory,

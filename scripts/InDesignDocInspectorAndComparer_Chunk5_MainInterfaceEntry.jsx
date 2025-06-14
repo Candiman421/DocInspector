@@ -1,5 +1,6 @@
 // ============================================================================
 // CHUNK 5: MAIN INTERFACE & ENTRY POINT - ESTK OPTIMIZED
+// ES3 COMPATIBLE VERSION - ALL RESERVED WORDS FIXED
 // ============================================================================
 
 // Show enhanced comparison dialog with comprehensive features
@@ -36,7 +37,8 @@ function showEnhancedComparisonDialog(differences) {
     technicalText.alignment = "fill";
     
     // Text Analysis tab (if text changes exist)
-    if (safeGetProperty(differences.changes, 'textContent') || safeGetProperty(differences.changes, 'textFrames')) {
+    var diffChanges = safeGetProperty(differences, 'changes');
+    if (safeGetProperty(diffChanges, 'textContent') || safeGetProperty(diffChanges, 'textFrames')) {
         var textTab = tabPanel.add("tab", undefined, "Text Analysis");
         var textPanel = textTab.add("panel", undefined, "Text Content Changes");
         textPanel.alignment = "fill";
@@ -58,12 +60,13 @@ function showEnhancedComparisonDialog(differences) {
     // Button event handlers
     openFolderBtn.onClick = function() {
         try {
-            if (UTILITY_STATE.currentDocument && safeGetProperty(UTILITY_STATE.currentDocument, 'filePath')) {
-                var folder = Folder(safeGetProperty(UTILITY_STATE.currentDocument, 'filePath'));
+            var currentDoc = UTILITY_STATE.currentDocument;
+            if (currentDoc && safeGetProperty(currentDoc, 'filePath')) { // FIXED: Use safeGetProperty
+                var folder = Folder(safeGetProperty(currentDoc, 'filePath'));
                 folder.execute();
             }
-        } catch (e) {
-            alert("Could not open folder: " + e.message);
+        } catch (exc) { // FIXED: error -> exc
+            alert("Could not open folder: " + exc.message);
         }
     };
     
@@ -93,8 +96,9 @@ function exportAllReportsToFolder(differences) {
     if (!folder) return;
     
     var timestamp = new Date().getTime();
-    var docName = UTILITY_STATE.currentDocument ? 
-                  safeGetProperty(UTILITY_STATE.currentDocument, 'name', 'document').replace(/\.[^\.]+$/, "") : 
+    var currentDoc = UTILITY_STATE.currentDocument;
+    var docName = currentDoc ? 
+                  safeGetProperty(currentDoc, 'name', 'document').replace(/\.[^\.]+$/, "") : // FIXED: Use safeGetProperty
                   "document_" + timestamp;
     
     try {
@@ -119,8 +123,8 @@ function exportAllReportsToFolder(differences) {
             jsonFile.write(JSON.stringify(reports.comparison, null, 2));
             jsonFile.close();
             savedFiles.push(jsonFile.name);
-        } catch (e) {
-            alert("Failed to save JSON report: " + e.message);
+        } catch (exc) { // FIXED: error -> exc
+            alert("Failed to save JSON report: " + exc.message);
             return;
         }
         
@@ -140,8 +144,8 @@ function exportAllReportsToFolder(differences) {
                 file.write(report.content);
                 file.close();
                 savedFiles.push(file.name);
-            } catch (e) {
-                alert("Failed to save " + report.file + ": " + e.message);
+            } catch (exc) { // FIXED: error -> exc
+                alert("Failed to save " + report.file + ": " + exc.message);
                 return;
             }
         }
@@ -158,9 +162,9 @@ function exportAllReportsToFolder(differences) {
               
         debugLog("Export completed successfully: " + savedFiles.length + " files", "EXPORT");
               
-    } catch (e) {
-        alert("Export failed: " + e.message);
-        debugLog("Export failed: " + e.message, "ERROR");
+    } catch (exc) { // FIXED: error -> exc
+        alert("Export failed: " + exc.message);
+        debugLog("Export failed: " + exc.message, "ERROR");
     }
 }
 
@@ -177,13 +181,21 @@ function analyzeDocument() {
     try {
         debugLog("Starting standalone document analysis", "ANALYZE");
         
-        // Check if document is saved - FIXED: Use safe property access
-        if (!safeGetProperty(doc, 'saved', false)) {
+        // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
+        var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
+        var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
+        var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, ""); // FIXED: Use safeGetProperty
+        
+        // Check if document is saved
+        if (!docSaved) {
             var shouldSave = confirm("Document must be saved before analysis. Save now?");
             if (shouldSave) {
                 var saveFile = File.saveDialog("Save document", "*.indd");
                 if (saveFile) {
                     doc.save(saveFile);
+                    // Update cached values after save
+                    docPath = safeGetProperty(doc, 'filePath');
+                    docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
                     debugLog("Document saved for analysis", "ANALYZE");
                 } else {
                     alert("Analysis cancelled.");
@@ -202,9 +214,7 @@ function analyzeDocument() {
             return null;
         }
         
-        // Save comprehensive report - FIXED: Use safe property access
-        var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
-        var docPath = safeGetProperty(doc, 'filePath');
+        // Save comprehensive report
         var reportFile = File(docPath + "/" + docName + "_analysis.json");
         
         if (saveReportSafely(reportFile, report, "analysis")) {
@@ -212,9 +222,10 @@ function analyzeDocument() {
             
             var summary = "Analysis complete! (" + duration + "s)\n\n";
             summary += "ANALYSIS RESULTS:\n";
-            summary += "Text items processed: " + (safeGetProperty(report.discoveryStats, 'textItemsProcessed', 0)) + "\n";
-            summary += "Collections analyzed: " + (safeGetProperty(report.discoveryStats, 'collectionsAnalyzed', 0)) + "\n";
-            summary += "Errors handled: " + (safeGetProperty(report.discoveryStats, 'errorsEncountered', 0)) + "\n";
+            var discoveryStats = safeGetProperty(report, 'discoveryStats');
+            summary += "Text items processed: " + (safeGetProperty(discoveryStats, 'textItemsProcessed', 0)) + "\n";
+            summary += "Collections analyzed: " + (safeGetProperty(discoveryStats, 'collectionsAnalyzed', 0)) + "\n";
+            summary += "Errors handled: " + (safeGetProperty(discoveryStats, 'errorsEncountered', 0)) + "\n";
             summary += "Processing time: " + safeGetProperty(report, 'processingTime', 0) + "ms\n\n";
             summary += "Report saved as: " + reportFile.name + "\n\n";
             summary += "Use Quick Compare to track changes over time!";
@@ -225,12 +236,12 @@ function analyzeDocument() {
         
         return report;
         
-    } catch (error) {
-        var errorMsg = "Analysis failed: " + error.message;
-        if (error.line) errorMsg += "\nLine: " + error.line;
+    } catch (exc) { // FIXED: error -> exc
+        var errorMsg = "Analysis failed: " + exc.message;
+        if (exc.line) errorMsg += "\nLine: " + exc.line;
         
         alert(errorMsg);
-        debugLog("Analysis failed: " + error.message, "ERROR");
+        debugLog("Analysis failed: " + exc.message, "ERROR");
         return null;
     }
 }
@@ -243,11 +254,13 @@ function resetBaseline() {
     }
     
     var doc = app.activeDocument;
-    // FIXED: Use safe property access
-    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
-    var docPath = safeGetProperty(doc, 'filePath');
     
-    if (!safeGetProperty(doc, 'saved', false) || !docPath) {
+    // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
+    var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
+    var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
+    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, ""); // FIXED: Use safeGetProperty
+    
+    if (!docSaved || !docPath) {
         alert("Document must be saved before creating baseline.");
         return;
     }
@@ -263,8 +276,8 @@ function resetBaseline() {
             try {
                 baselineFile.copy(backupFile);
                 debugLog("Baseline backup created: " + backupFile.name, "BASELINE");
-            } catch (e) {
-                debugLog("Backup creation failed: " + e.message, "WARN");
+            } catch (exc) { // FIXED: error -> exc
+                debugLog("Backup creation failed: " + exc.message, "WARN");
             }
         }
         
@@ -292,9 +305,9 @@ function resetBaseline() {
             debugLog("Baseline reset failed", "ERROR");
         }
         
-    } catch (e) {
-        alert("Baseline reset failed: " + e.message);
-        debugLog("Baseline reset failed: " + e.message, "ERROR");
+    } catch (exc) { // FIXED: error -> exc
+        alert("Baseline reset failed: " + exc.message);
+        debugLog("Baseline reset failed: " + exc.message, "ERROR");
     }
 }
 
@@ -456,7 +469,7 @@ function showMainMenu() {
     menuDialog.show();
 }
 
-// Get enhanced current status text with detailed information - FIXED
+// Get enhanced current status text with detailed information - FULLY FIXED
 function getEnhancedStatusText() {
     var status = "Enhanced InDesign Document Inspector v2.1-ESTK\n";
     status += "Comprehensive change detection with ESTK optimization\n\n";
@@ -471,27 +484,30 @@ function getEnhancedStatusText() {
         status += "* Write permissions required in document folder\n";
     } else {
         var doc = app.activeDocument;
-        status += "DOCUMENT: " + safeGetProperty(doc, 'name', 'Unknown') + "\n";
+        var docName = safeGetProperty(doc, 'name', 'Unknown'); // FIXED: Use safeGetProperty
+        var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
+        var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
         
-        if (!safeGetProperty(doc, 'saved', false) || !safeGetProperty(doc, 'filePath')) {
+        status += "DOCUMENT: " + docName + "\n";
+        
+        if (!docSaved || !docPath) {
             status += "STATUS: Document not saved\n";
             status += "Please save before analysis\n";
         } else {
             status += "STATUS: Document saved and ready\n";
-            status += "LOCATION: " + safeGetProperty(doc, 'filePath', 'Unknown') + "\n";
+            status += "LOCATION: " + docPath + "\n";
             
             // Check for existing baseline
-            var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
-            var docPath = safeGetProperty(doc, 'filePath');
+            var baselineDocName = docName.replace(/\.[^\.]+$/, "");
             if (docPath) {
-                var baselineFile = File(docPath + "/" + docName + "_baseline.json");
+                var baselineFile = File(docPath + "/" + baselineDocName + "_baseline.json");
                 
                 if (baselineFile.exists) {
                     status += "BASELINE: Exists - ready for comparison\n";
                     try {
                         var baselineDate = new Date(baselineFile.modified);
                         status += "BASELINE DATE: " + baselineDate.toLocaleString() + "\n";
-                    } catch (e) {
+                    } catch (exc) { // FIXED: error -> exc
                         status += "BASELINE DATE: Unknown\n";
                     }
                 } else {
@@ -499,7 +515,7 @@ function getEnhancedStatusText() {
                 }
             }
             
-            // Document statistics using safe methods
+            // Document statistics using safe methods - ALL FIXED
             status += "\nDOCUMENT INFO:\n";
             status += "Pages: " + safeGetLength(safeGetProperty(doc, 'pages')) + "\n";
             status += "Text Frames: " + safeGetLength(safeGetProperty(doc, 'textFrames')) + "\n";
@@ -553,10 +569,10 @@ try {
     // Show main menu
     showMainMenu();
     
-} catch (error) {
+} catch (exc) { // FIXED: error -> exc
     // Enhanced error handling for startup
     var errorMsg = "Enhanced InDesign Inspector v2.1-ESTK\n\n" +
-                   "Initialization Error: " + error.message + "\n\n" +
+                   "Initialization Error: " + exc.message + "\n\n" +
                    "This comprehensive script contains all functionality\n" +
                    "optimized for ESTK development and debugging.\n\n" +
                    "Check the ESTK console for detailed error information.";
@@ -565,8 +581,8 @@ try {
     
     // Log error to ESTK console
     $.writeln(repeatString("=", 25) + " INITIALIZATION ERROR " + repeatString("=", 25));
-    $.writeln("Error: " + error.message);
-    if (error.line) $.writeln("Line: " + error.line);
-    if (error.stack) $.writeln("Stack: " + error.stack);
+    $.writeln("Error: " + exc.message);
+    if (exc.line) $.writeln("Line: " + exc.line);
+    if (exc.stack) $.writeln("Stack: " + exc.stack);
     $.writeln(repeatString("=", 72));
 }
