@@ -6,7 +6,7 @@ const path = require('path');
 // Configuration
 const TARGET_FOLDER = './scripts'; // Adjust if needed - current folder is '.'
 const OUTPUT_FILE = 'InDesignDocInspectorAndComparer_ChunkBuilt.jsx';
-const CHUNK_PATTERN = /^InDesignDocInspectorAndComparer_Chunk(\d+)_.*\.jsx$/;
+const CHUNK_PATTERN = /^InDesignDocInspectorAndComparer_Chunk_([0-9]+(?:\.[0-9]+)*)_.*\.jsx$/;
 
 console.log('🔧 InDesign Inspector Chunk Builder');
 console.log('=====================================');
@@ -19,25 +19,46 @@ function discoverChunkFiles(folderPath) {
         files.forEach(file => {
             const match = file.match(CHUNK_PATTERN);
             if (match) {
-                const chunkNumber = parseInt(match[1]);
+                const versionString = match[1]; // e.g., "2.1", "2.1.3", "7"
                 const fullPath = path.join(folderPath, file);
                 chunkFiles.push({
                     filename: file,
                     path: fullPath,
-                    chunkNumber: chunkNumber
+                    versionString: versionString,
+                    versionArray: parseVersionNumber(versionString)
                 });
-                console.log(`📁 Found: ${file} (Chunk ${chunkNumber})`);
+                console.log(`📁 Found: ${file} (Version ${versionString})`);
             }
         });
         
-        // Sort by chunk number
-        chunkFiles.sort((a, b) => a.chunkNumber - b.chunkNumber);
+        // Sort by version number using proper version comparison
+        chunkFiles.sort((a, b) => compareVersions(a.versionArray, b.versionArray));
         
         return chunkFiles;
     } catch (error) {
         console.error(`❌ Error reading folder ${folderPath}:`, error.message);
         process.exit(1);
     }
+}
+
+// Parse version string into array for proper comparison
+function parseVersionNumber(versionString) {
+    return versionString.split('.').map(num => parseInt(num, 10));
+}
+
+// Compare version arrays (e.g., [2,1] vs [2,1,3] vs [7])
+function compareVersions(a, b) {
+    const maxLength = Math.max(a.length, b.length);
+    
+    for (let i = 0; i < maxLength; i++) {
+        const aVal = a[i] || 0; // Treat missing parts as 0
+        const bVal = b[i] || 0;
+        
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+    }
+    
+    return 0; // Equal
 }
 
 function buildCombinedFile(chunkFiles, outputPath) {
@@ -54,7 +75,7 @@ function buildCombinedFile(chunkFiles, outputPath) {
     combinedContent += '// This file contains all ' + chunkFiles.length + ' chunks assembled in proper order:\n';
     
     chunkFiles.forEach((chunk, index) => {
-        combinedContent += '// Chunk ' + (index + 1) + ': ' + chunk.filename + '\n';
+        combinedContent += '// Chunk ' + (index + 1) + ' (v' + chunk.versionString + '): ' + chunk.filename + '\n';
     });
     
     combinedContent += '//\n';
@@ -63,14 +84,14 @@ function buildCombinedFile(chunkFiles, outputPath) {
     
     // Process each chunk file
     chunkFiles.forEach((chunk, index) => {
-        console.log(`📝 Processing: ${chunk.filename}`);
+        console.log(`📝 Processing: ${chunk.filename} (Version ${chunk.versionString})`);
         
         try {
             const content = fs.readFileSync(chunk.path, 'utf8');
             
             // Add chunk separator comment
             combinedContent += '// ' + '='.repeat(76) + '\n';
-            combinedContent += '// CHUNK ' + (index + 1) + ': ' + chunk.filename.toUpperCase() + '\n';
+            combinedContent += '// CHUNK ' + (index + 1) + ' (v' + chunk.versionString + '): ' + chunk.filename.toUpperCase() + '\n';
             combinedContent += '// ' + '='.repeat(76) + '\n\n';
             
             // Add the chunk content
@@ -98,6 +119,9 @@ function buildCombinedFile(chunkFiles, outputPath) {
         console.log(`📊 File size: ${sizeKB} KB (${stats.size} bytes)`);
         console.log(`📊 Total chunks: ${chunkFiles.length}`);
         
+        // Show version summary
+        console.log(`📊 Version range: ${chunkFiles[0].versionString} → ${chunkFiles[chunkFiles.length - 1].versionString}`);
+        
     } catch (error) {
         console.error(`❌ Error writing ${outputPath}:`, error.message);
         process.exit(1);
@@ -109,22 +133,33 @@ function validateChunkSequence(chunkFiles) {
     
     if (chunkFiles.length === 0) {
         console.error('❌ No chunk files found matching pattern!');
-        console.log('Expected pattern: InDesignDocInspectorAndComparer_Chunk[N]_*.jsx');
+        console.log('Expected pattern: InDesignDocInspectorAndComparer_Chunk_[VERSION]_*.jsx');
+        console.log('Examples: InDesignDocInspectorAndComparer_Chunk_2.1_Config.jsx');
+        console.log('         InDesignDocInspectorAndComparer_Chunk_2.1.3_Hotfix.jsx');
+        console.log('         InDesignDocInspectorAndComparer_Chunk_7_NewFeature.jsx');
         process.exit(1);
     }
     
-    // Check for missing chunks
+    // Check for duplicate versions
+    const versionMap = new Map();
     for (let i = 0; i < chunkFiles.length; i++) {
-        const expectedChunk = i + 1;
-        const actualChunk = chunkFiles[i].chunkNumber;
-        
-        if (actualChunk !== expectedChunk) {
-            console.error(`❌ Missing chunk ${expectedChunk}! Found chunk ${actualChunk} instead.`);
+        const chunk = chunkFiles[i];
+        if (versionMap.has(chunk.versionString)) {
+            console.error(`❌ Duplicate version ${chunk.versionString} found!`);
+            console.error(`   First file: ${versionMap.get(chunk.versionString)}`);
+            console.error(`   Second file: ${chunk.filename}`);
             process.exit(1);
         }
+        versionMap.set(chunk.versionString, chunk.filename);
     }
     
-    console.log(`✅ Chunk sequence validated: ${chunkFiles.length} chunks found in correct order`);
+    // Show sorted sequence
+    console.log('✅ Found chunks in sorted order:');
+    chunkFiles.forEach((chunk, index) => {
+        console.log(`   ${index + 1}. Version ${chunk.versionString}: ${chunk.filename}`);
+    });
+    
+    console.log(`✅ Chunk sequence validated: ${chunkFiles.length} chunks found and sorted`);
     return true;
 }
 
@@ -135,7 +170,8 @@ function main() {
     
     console.log(`📂 Target folder: ${targetFolder}`);
     console.log(`📄 Output file: ${outputFile}`);
-    console.log(`🔍 Pattern: ${CHUNK_PATTERN}\n`);
+    console.log(`🔍 Pattern: ${CHUNK_PATTERN}`);
+    console.log(`📋 Supports versions like: 2.1, 2.1.3, 7, etc.\n`);
     
     // Check if target folder exists
     if (!fs.existsSync(targetFolder)) {

@@ -437,13 +437,13 @@ function showHelpDialog() {
     dialog.show();
 }
 
-// Main menu dialog with enhanced status information
+// Main menu dialog with enhanced status information and mode selection
 function showMainMenu() {
     enhancedStatusLog("UI", "Displaying main menu", 0, 1, "Opening enhanced main menu");
     
     var menuDialog = new Window("dialog", "Enhanced InDesign Inspector v2.1-ESTK");
-    menuDialog.preferredSize.width = 550;
-    menuDialog.preferredSize.height = 450;
+    menuDialog.preferredSize.width = 600;
+    menuDialog.preferredSize.height = 550;
     
     var mainGroup = menuDialog.add("group");
     mainGroup.orientation = "column";
@@ -455,16 +455,62 @@ function showMainMenu() {
     
     var titleText = titlePanel.add("statictext", undefined, 
         "ESTK-optimized InDesign document analysis with:\n" +
-        "* Comprehensive text content capture (" + ANALYSIS_CONFIG.maxTextPreviewLength + "-char previews)\n" +
-        "* Robust property change detection with validation\n" +
+        "* Progressive analysis modes (Minimal → Comprehensive)\n" +
+        "* Document validation and compatibility detection\n" +
+        "* Emergency bailouts prevent hanging\n" +
+        "* Enhanced progress reporting with detailed feedback\n" +
         "* Safe API access with multiple fallback methods\n" +
-        "* Enhanced error handling and recovery\n" +
         "* ESTK debugging with detailed console output\n" +
         "* Baseline creation and comparison workflow\n" +
-        "* Multiple report formats for different needs\n" +
-        "* Enhanced progress reporting prevents hanging",
+        "* Multiple report formats for different needs",
         {multiline: true});
     titleText.alignment = "fill";
+    
+    // Analysis Mode Selection Panel
+    var modePanel = mainGroup.add("panel", undefined, "Analysis Mode Selection");
+    modePanel.alignment = "fill";
+    
+    var modeGroup = modePanel.add("group");
+    modeGroup.orientation = "column";
+    modeGroup.alignment = "fill";
+    
+    var modeRadios = {
+        minimal: modeGroup.add("radiobutton", undefined, "MINIMAL - Property dump only (safest, 1s timeout)"),
+        basic: modeGroup.add("radiobutton", undefined, "BASIC - Document info + counts (safe, 3s timeout)"),
+        standard: modeGroup.add("radiobutton", undefined, "STANDARD - Basic + text content (balanced, 8s timeout)"),
+        comprehensive: modeGroup.add("radiobutton", undefined, "COMPREHENSIVE - Full analysis (complete, 15s timeout)")
+    };
+    
+    // Set default mode based on current setting
+    var currentMode = getCurrentAnalysisMode();
+    if (currentMode === ANALYSIS_MODES.MINIMAL) {
+        modeRadios.minimal.value = true;
+    } else if (currentMode === ANALYSIS_MODES.STANDARD) {
+        modeRadios.standard.value = true;
+    } else if (currentMode === ANALYSIS_MODES.COMPREHENSIVE) {
+        modeRadios.comprehensive.value = true;
+    } else {
+        modeRadios.basic.value = true; // Default to basic
+    }
+    
+    var modeDescText = modeGroup.add("statictext", undefined, getModeDescription(currentMode), {multiline: true});
+    modeDescText.alignment = "fill";
+    
+    // Update description when mode changes
+    function updateModeDescription() {
+        var selectedMode = ANALYSIS_MODES.BASIC;
+        if (modeRadios.minimal.value) selectedMode = ANALYSIS_MODES.MINIMAL;
+        else if (modeRadios.standard.value) selectedMode = ANALYSIS_MODES.STANDARD;
+        else if (modeRadios.comprehensive.value) selectedMode = ANALYSIS_MODES.COMPREHENSIVE;
+        
+        modeDescText.text = getModeDescription(selectedMode);
+        setAnalysisMode(selectedMode);
+    }
+    
+    modeRadios.minimal.onClick = updateModeDescription;
+    modeRadios.basic.onClick = updateModeDescription;
+    modeRadios.standard.onClick = updateModeDescription;
+    modeRadios.comprehensive.onClick = updateModeDescription;
     
     // Action buttons
     var actionsPanel = mainGroup.add("panel", undefined, "Actions");

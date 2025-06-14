@@ -9,11 +9,11 @@ Save `build-chunks.js` in your **root project folder** (same level as your `scri
 DOCINSPECTOR/                    <- Save build-chunks.js HERE
 ├── docs/
 ├── scripts/                     <- Your chunk files are here
-│   ├── InDesignDocInspectorAndComparer_Chunk1_ConfigAndUtils.jsx
-│   ├── InDesignDocInspectorAndComparer_Chunk2_CoreInspectorFunctions.jsx
-│   ├── InDesignDocInspectorAndComparer_Chunk3_ComparisonFunctions.jsx
-│   ├── InDesignDocInspectorAndComparer_Chunk4_ReportGeneration.jsx
-│   └── InDesignDocInspectorAndComparer_Chunk5_MainInterfaceEntry.jsx
+│   ├── InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx
+│   ├── InDesignDocInspectorAndComparer_Chunk_2_CoreInspectorFunctions.jsx
+│   ├── InDesignDocInspectorAndComparer_Chunk_3_ComparisonFunctions.jsx
+│   ├── InDesignDocInspectorAndComparer_Chunk_4_ReportGeneration.jsx
+│   └── InDesignDocInspectorAndComparer_Chunk_5_MainInterfaceEntry.jsx
 ├── build-chunks.js             <- NEW FILE HERE
 ├── .gitignore
 ├── package.json
@@ -36,7 +36,7 @@ node build-chunks.js
 
 The script will:
 1. **Look in `./scripts`** folder for chunk files
-2. **Find all files** matching `InDesignDocInspectorAndComparer_Chunk[N]_*.jsx`
+2. **Find all files** matching `InDesignDocInspectorAndComparer_Chunk_[N]_*.jsx`
 3. **Sort them** by chunk number (1, 2, 3, 4, 5...)
 4. **Create** `InDesignDocInspectorAndComparer_ChunkBuilt.jsx` in the **root folder**
 
