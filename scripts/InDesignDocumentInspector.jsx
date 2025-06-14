@@ -2211,11 +2211,11 @@ function analyzeDocument() {
         
         // Create summary of key findings
         var summary = "Enhanced Document Analysis Complete! (" + duration + "s)\n\n";
-        summary += "✓ Collections discovered: " + (report.discoveryStats.collectionsDiscovered || 0) + "\n";
-        summary += "✓ Text items processed: " + (report.discoveryStats.textItemsProcessed || 0) + "\n";
-        summary += "✓ Properties checked: " + (report.brokenProperties.summary ? report.brokenProperties.summary.totalPropertiesChecked : 0) + "\n";
-        summary += "✓ Broken properties found: " + (report.discoveryStats.brokenPropertiesFound || 0) + "\n";
-        summary += "✓ Errors handled: " + (report.discoveryStats.errorsEncountered || 0) + "\n\n";
+        summary += "Collections discovered: " + (report.discoveryStats.collectionsDiscovered || 0) + "\n";
+        summary += "Text items processed: " + (report.discoveryStats.textItemsProcessed || 0) + "\n";
+        summary += "Properties checked: " + (report.brokenProperties.summary ? report.brokenProperties.summary.totalPropertiesChecked : 0) + "\n";
+        summary += "Broken properties found: " + (report.discoveryStats.brokenPropertiesFound || 0) + "\n";
+        summary += "Errors handled: " + (report.discoveryStats.errorsEncountered || 0) + "\n\n";
         summary += "Report saved as: " + reportFile.name + "\n\n";
         summary += "Next: Run the Comparison Utility to track changes!";
         
@@ -2510,27 +2510,34 @@ function repeatString(charToRepeat, count) {
     return result;
 }
 
-// Expose key functions for utility script
-this.safeGetProperty = safeGetProperty;
-this.safeGetNestedProperty = safeGetNestedProperty;
-this.createDocumentReport = createDocumentReport;
-this.compareDocumentReports = compareDocumentReports;
-this.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+// Make functions available globally for the comparison utility
+// Use global scope (no 'var') to ensure availability across scripts
+createDocumentReport = createDocumentReport;
+compareDocumentReports = compareDocumentReports;
+safeGetProperty = safeGetProperty;
+safeGetNestedProperty = safeGetNestedProperty;
+generateTextAccessPaths = generateTextAccessPaths;
+extractTextSamples = extractTextSamples;
+analyzeTableText = analyzeTableText;
+findTextInGroups = findTextInGroups;
+findNestedImages = findNestedImages;
+repeatString = repeatString;
+ANALYSIS_CONFIG = ANALYSIS_CONFIG;
 
 // Enhanced script completion message
 try {
     alert("Enhanced InDesign Document Inspector v2.1 loaded successfully!\n\n" +
           "NEW FEATURES:\n" +
-          "✓ Comprehensive text content capture and analysis\n" +
-          "✓ Auto-discovery of collections and properties\n" +
-          "✓ Enhanced broken property detection and tracking\n" +
-          "✓ Comprehensive error handling and recovery\n" +
-          "✓ Advanced access path generation with safety guidance\n" +
-          "✓ Performance optimizations and timeout protection\n\n" +
+          "- Comprehensive text content capture and analysis\n" +
+          "- Auto-discovery of collections and properties\n" +
+          "- Enhanced broken property detection and tracking\n" +
+          "- Comprehensive error handling and recovery\n" +
+          "- Advanced access path generation with safety guidance\n" +
+          "- Performance optimizations and timeout protection\n\n" +
           "READY FOR USE:\n" +
-          "• Run analyzeDocument() to analyze current document\n" +
-          "• Use with Enhanced Comparison Utility for change tracking\n" +
-          "• All functions available for advanced users\n\n" +
+          "- Run analyzeDocument() to analyze current document\n" +
+          "- Use with Enhanced Comparison Utility for change tracking\n" +
+          "- All functions available for advanced users\n\n" +
           "The inspector is now bulletproof and ready for any document!");
           
 } catch (error) {

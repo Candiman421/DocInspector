@@ -77,7 +77,7 @@ function quickCompare() {
     var baselineFile = File(docPath + "/" + docName + "_baseline.json");
     var currentFile = File(docPath + "/" + docName + "_current.json");
     
-    if (!baselineFile.exists()) {
+    if (!baselineFile.exists) {
         // Create enhanced baseline report
         var baselineSuccess = showProgressDialog("Creating enhanced baseline analysis...", function() {
             try {
@@ -364,7 +364,7 @@ function showBaselineCreatedDialog(stats) {
     mainGroup.alignment = "fill";
     
     // Success message
-    var successPanel = mainGroup.add("panel", undefined, "✓ Baseline Analysis Complete");
+    var successPanel = mainGroup.add("panel", undefined, "Baseline Analysis Complete");
     successPanel.alignment = "fill";
     
     var successText = successPanel.add("statictext", undefined, 
@@ -383,7 +383,7 @@ function showBaselineCreatedDialog(stats) {
         statsGroup.orientation = "column";
         statsGroup.alignment = "fill";
         
-        var statsText = "📊 DISCOVERY SUMMARY\n";
+        var statsText = "DISCOVERY SUMMARY\n";
         statsText += "Collections discovered: " + stats.collectionsDiscovered + "\n";
         statsText += "Text items processed: " + stats.textItemsProcessed + "\n";
         statsText += "Properties checked: " + (stats.brokenPropertiesFound || 0) + "\n";
@@ -405,10 +405,10 @@ function showBaselineCreatedDialog(stats) {
         "2. Run this utility again to see what changed\n" +
         "3. The comparison will show detailed differences\n\n" +
         "Features captured:\n" +
-        "• Complete text content from all text elements\n" +
-        "• Auto-discovered collections and properties\n" +
-        "• Broken property detection and alternatives\n" +
-        "• Comprehensive object model access paths",
+        "- Complete text content from all text elements\n" +
+        "- Auto-discovered collections and properties\n" +
+        "- Broken property detection and alternatives\n" +
+        "- Comprehensive object model access paths",
         {multiline: true});
     instructionsText.alignment = "fill";
     
@@ -503,12 +503,12 @@ function createEnhancedHumanReadableSummary(differences) {
     summary += "=" + Array(80).join("=") + "\n\n";
     
     if (!differences.summary.hasChanges) {
-        summary += "✓ NO CHANGES DETECTED\n";
+        summary += "NO CHANGES DETECTED\n";
         summary += "The document appears to be identical to the baseline.\n\n";
         
         // Show discovery information even with no changes
         if (differences.discoveryInfo) {
-            summary += "📊 DISCOVERY SUMMARY\n";
+            summary += "DISCOVERY SUMMARY\n";
             summary += "Collections discovered: " + (differences.discoveryInfo.totalCollections || 0) + "\n";
             summary += "Text items processed: " + (differences.discoveryInfo.textItemsProcessed || 0) + "\n";
             summary += "Properties accessible: " + (differences.discoveryInfo.accessibleProperties || 0) + "\n";
@@ -517,7 +517,7 @@ function createEnhancedHumanReadableSummary(differences) {
         return summary;
     }
     
-    summary += "⚠ CHANGES DETECTED\n";
+    summary += "CHANGES DETECTED\n";
     summary += "Changed sections: " + differences.summary.changedSections.length + "\n";
     if (differences.errors && differences.errors.length > 0) {
         summary += "Analysis errors handled: " + differences.errors.length + " (details available)\n";
@@ -525,7 +525,7 @@ function createEnhancedHumanReadableSummary(differences) {
     
     // Enhanced discovery summary
     if (differences.discoveryInfo) {
-        summary += "\n📊 COMPREHENSIVE DISCOVERY SUMMARY\n";
+        summary += "\nCOMPREHENSIVE DISCOVERY SUMMARY\n";
         summary += "Collections discovered: " + (differences.discoveryInfo.totalCollections || 0) + "\n";
         summary += "New collections found: " + (differences.discoveryInfo.newCollections || 0) + "\n";
         summary += "Collections removed: " + (differences.discoveryInfo.removedCollections || 0) + "\n";
@@ -540,18 +540,18 @@ function createEnhancedHumanReadableSummary(differences) {
     
     // Enhanced Text Content Analysis (Priority section)
     if (changes.textContent) {
-        summary += "📝 TEXT CONTENT ANALYSIS (ENHANCED)\n";
+        summary += "TEXT CONTENT ANALYSIS (ENHANCED)\n";
         summary += repeatString("-", 35) + "\n";
         var textChanges = categorizeChanges(changes.textContent);
         
         if (textChanges.additions.length > 0) {
-            summary += "• Added " + textChanges.additions.length + " text element(s)\n";
+            summary += "- Added " + textChanges.additions.length + " text element(s)\n";
         }
         if (textChanges.deletions.length > 0) {
-            summary += "• Removed " + textChanges.deletions.length + " text element(s)\n";
+            summary += "- Removed " + textChanges.deletions.length + " text element(s)\n";
         }
         if (textChanges.modifications.length > 0) {
-            summary += "• Modified " + textChanges.modifications.length + " text element(s)\n";
+            summary += "- Modified " + textChanges.modifications.length + " text element(s)\n";
             
             // Show detailed text changes
             for (var i = 0; i < Math.min(textChanges.modifications.length, 5); i++) {
@@ -562,9 +562,9 @@ function createEnhancedHumanReadableSummary(differences) {
                         summary += "  - " + textSummary + "\n";
                     }
                 } else if (change.path.indexOf('characterCount') !== -1) {
-                    summary += "  - Character count: " + change.oldValue + " → " + change.newValue + "\n";
+                    summary += "  - Character count: " + change.oldValue + " -> " + change.newValue + "\n";
                 } else if (change.path.indexOf('wordCount') !== -1) {
-                    summary += "  - Word count: " + change.oldValue + " → " + change.newValue + "\n";
+                    summary += "  - Word count: " + change.oldValue + " -> " + change.newValue + "\n";
                 }
             }
         }
@@ -573,75 +573,75 @@ function createEnhancedHumanReadableSummary(differences) {
     
     // Auto-Discovered Collections Changes
     if (changes.autoDiscoveredCollections) {
-        summary += "🔍 AUTO-DISCOVERED COLLECTIONS\n";
+        summary += "AUTO-DISCOVERED COLLECTIONS\n";
         summary += repeatString("-", 30) + "\n";
         var discoveryChanges = categorizeChanges(changes.autoDiscoveredCollections);
         
         if (discoveryChanges.additions.length > 0) {
-            summary += "• Found " + discoveryChanges.additions.length + " new collection(s)\n";
+            summary += "- Found " + discoveryChanges.additions.length + " new collection(s)\n";
             for (var i = 0; i < Math.min(discoveryChanges.additions.length, 3); i++) {
                 var change = discoveryChanges.additions[i];
                 summary += "  - New: " + formatChangeWithAccess(change) + "\n";
             }
         }
         if (discoveryChanges.modifications.length > 0) {
-            summary += "• Changed " + discoveryChanges.modifications.length + " collection(s)\n";
+            summary += "- Changed " + discoveryChanges.modifications.length + " collection(s)\n";
             for (var i = 0; i < Math.min(discoveryChanges.modifications.length, 3); i++) {
                 var change = discoveryChanges.modifications[i];
                 summary += "  - " + formatChangeWithAccess(change) + "\n";
             }
         }
         if (discoveryChanges.deletions.length > 0) {
-            summary += "• Lost access to " + discoveryChanges.deletions.length + " collection(s)\n";
+            summary += "- Lost access to " + discoveryChanges.deletions.length + " collection(s)\n";
         }
         summary += "\n";
     }
     
     // Broken Properties Analysis
     if (changes.brokenProperties) {
-        summary += "🔧 PROPERTY ACCESSIBILITY ANALYSIS\n";
+        summary += "PROPERTY ACCESSIBILITY ANALYSIS\n";
         summary += repeatString("-", 35) + "\n";
         var brokenChanges = categorizeChanges(changes.brokenProperties);
         
         if (brokenChanges.additions.length > 0) {
-            summary += "• " + brokenChanges.additions.length + " properties became inaccessible\n";
+            summary += "- " + brokenChanges.additions.length + " properties became inaccessible\n";
         }
         if (brokenChanges.deletions.length > 0) {
-            summary += "• " + brokenChanges.deletions.length + " properties became accessible again\n";
+            summary += "- " + brokenChanges.deletions.length + " properties became accessible again\n";
         }
         if (brokenChanges.modifications.length > 0) {
-            summary += "• " + brokenChanges.modifications.length + " properties changed accessibility status\n";
+            summary += "- " + brokenChanges.modifications.length + " properties changed accessibility status\n";
         }
         summary += "\n";
     }
     
     // Document Information Changes
     if (changes.documentInfo) {
-        summary += "📄 DOCUMENT INFORMATION\n";
+        summary += "DOCUMENT INFORMATION\n";
         summary += repeatString("-", 25) + "\n";
         for (var i = 0; i < Math.min(changes.documentInfo.length, 5); i++) {
             var change = changes.documentInfo[i];
-            summary += "• " + formatChangeWithAccess(change) + "\n";
+            summary += "- " + formatChangeWithAccess(change) + "\n";
         }
         if (changes.documentInfo.length > 5) {
-            summary += "• ... and " + (changes.documentInfo.length - 5) + " more changes\n";
+            summary += "- ... and " + (changes.documentInfo.length - 5) + " more changes\n";
         }
         summary += "\n";
     }
     
     // Page Changes
     if (changes.pages) {
-        summary += "📃 PAGES\n";
+        summary += "PAGES\n";
         summary += repeatString("-", 8) + "\n";
         var pageChanges = categorizeChanges(changes.pages);
         if (pageChanges.additions.length > 0) {
-            summary += "• Added " + pageChanges.additions.length + " page(s)\n";
+            summary += "- Added " + pageChanges.additions.length + " page(s)\n";
         }
         if (pageChanges.deletions.length > 0) {
-            summary += "• Removed " + pageChanges.deletions.length + " page(s)\n";
+            summary += "- Removed " + pageChanges.deletions.length + " page(s)\n";
         }
         if (pageChanges.modifications.length > 0) {
-            summary += "• Modified " + pageChanges.modifications.length + " page(s)\n";
+            summary += "- Modified " + pageChanges.modifications.length + " page(s)\n";
             for (var i = 0; i < Math.min(pageChanges.modifications.length, 3); i++) {
                 summary += "  - " + formatChangeWithAccess(pageChanges.modifications[i]) + "\n";
             }
@@ -651,17 +651,17 @@ function createEnhancedHumanReadableSummary(differences) {
     
     // Enhanced Stories Analysis
     if (changes.stories) {
-        summary += "📖 TEXT STORIES (ENHANCED)\n";
+        summary += "TEXT STORIES (ENHANCED)\n";
         summary += repeatString("-", 24) + "\n";
         var storyChanges = categorizeChanges(changes.stories);
         if (storyChanges.additions.length > 0) {
-            summary += "• Added " + storyChanges.additions.length + " story(ies)\n";
+            summary += "- Added " + storyChanges.additions.length + " story(ies)\n";
         }
         if (storyChanges.deletions.length > 0) {
-            summary += "• Removed " + storyChanges.deletions.length + " story(ies)\n";
+            summary += "- Removed " + storyChanges.deletions.length + " story(ies)\n";
         }
         if (storyChanges.modifications.length > 0) {
-            summary += "• Modified " + storyChanges.modifications.length + " story(ies)\n";
+            summary += "- Modified " + storyChanges.modifications.length + " story(ies)\n";
             
             // Enhanced story change analysis
             for (var i = 0; i < Math.min(storyChanges.modifications.length, 3); i++) {
@@ -686,20 +686,20 @@ function createEnhancedHumanReadableSummary(differences) {
     
     // Comprehensive Summary Footer
     summary += "=" + Array(80).join("=") + "\n";
-    summary += "📚 COMPREHENSIVE ANALYSIS COMPLETE\n";
+    summary += "COMPREHENSIVE ANALYSIS COMPLETE\n";
     summary += "Enhanced Features Applied:\n";
-    summary += "• Text content captured and analyzed in detail\n";
-    summary += "• Collections auto-discovered and tracked\n";
-    summary += "• Property accessibility monitored and reported\n";
-    summary += "• Object model access paths provided with safety guidance\n";
-    summary += "• Comprehensive error handling applied throughout\n";
-    summary += "• Performance optimizations and timeout protection\n\n";
-    summary += "📁 COMPANION REPORTS:\n";
-    summary += "• *_comparison.json (complete technical data)\n";
-    summary += "• *_text_analysis.txt (detailed text content changes)\n";
-    summary += "• *_discovery_report.txt (collection and property discovery)\n";
-    summary += "• *_access_paths_guide.txt (object model access guidance)\n";
-    summary += "• *_technical_report.txt (comprehensive technical analysis)\n\n";
+    summary += "- Text content captured and analyzed in detail\n";
+    summary += "- Collections auto-discovered and tracked\n";
+    summary += "- Property accessibility monitored and reported\n";
+    summary += "- Object model access paths provided with safety guidance\n";
+    summary += "- Comprehensive error handling applied throughout\n";
+    summary += "- Performance optimizations and timeout protection\n\n";
+    summary += "COMPANION REPORTS:\n";
+    summary += "- *_comparison.json (complete technical data)\n";
+    summary += "- *_text_analysis.txt (detailed text content changes)\n";
+    summary += "- *_discovery_report.txt (collection and property discovery)\n";
+    summary += "- *_access_paths_guide.txt (object model access guidance)\n";
+    summary += "- *_technical_report.txt (comprehensive technical analysis)\n\n";
     summary += "All reports work together to provide complete change analysis.\n";
     
     return summary;
@@ -731,7 +731,7 @@ function formatChangeWithAccess(change) {
     var formatted = change.path || 'unknown';
     
     if (change.type === 'value_change' || change.type === 'text_content_change') {
-        formatted += ": " + (change.oldValue || 'null') + " → " + (change.newValue || 'null');
+        formatted += ": " + (change.oldValue || 'null') + " -> " + (change.newValue || 'null');
     }
     
     if (change.accessPath && change.accessPath.primary) {
@@ -771,9 +771,9 @@ function getStoryChangeSummary(change) {
         if (change.path.indexOf('textContent') !== -1) {
             return "Story text content changed";
         } else if (change.path.indexOf('length') !== -1) {
-            return "Story length: " + change.oldValue + " → " + change.newValue + " characters";
+            return "Story length: " + change.oldValue + " -> " + change.newValue + " characters";
         } else if (change.path.indexOf('textFrameCount') !== -1) {
-            return "Text frame count: " + change.oldValue + " → " + change.newValue;
+            return "Text frame count: " + change.oldValue + " -> " + change.newValue;
         } else if (change.path.indexOf('overflows') !== -1) {
             return "Overflow status: " + (change.newValue ? "now overflows" : "overflow resolved");
         }
@@ -788,30 +788,30 @@ function getSectionSummary(sectionName, changes) {
     var categorized = categorizeChanges(changes);
     
     var displayName = sectionName.toUpperCase();
-    var icon = "📄";
+    var icon = "";
     
     switch (sectionName) {
-        case 'images': icon = "🖼️"; break;
-        case 'graphics': icon = "🎨"; break;
-        case 'textFrames': icon = "📝"; break;
-        case 'layers': icon = "📚"; break;
-        case 'styles': icon = "🎭"; break;
-        case 'colors': icon = "🌈"; break;
-        case 'fonts': icon = "🔤"; break;
-        case 'links': icon = "🔗"; break;
+        case 'images': icon = "[IMG] "; break;
+        case 'graphics': icon = "[GFX] "; break;
+        case 'textFrames': icon = "[TXT] "; break;
+        case 'layers': icon = "[LYR] "; break;
+        case 'styles': icon = "[STY] "; break;
+        case 'colors': icon = "[CLR] "; break;
+        case 'fonts': icon = "[FNT] "; break;
+        case 'links': icon = "[LNK] "; break;
     }
     
-    summary += icon + " " + displayName + "\n";
-    summary += repeatString("-", displayName.length + 3) + "\n";
+    summary += icon + displayName + "\n";
+    summary += repeatString("-", displayName.length + icon.length) + "\n";
     
     if (categorized.additions.length > 0) {
-        summary += "• Added " + categorized.additions.length + " item(s)\n";
+        summary += "- Added " + categorized.additions.length + " item(s)\n";
     }
     if (categorized.deletions.length > 0) {
-        summary += "• Removed " + categorized.deletions.length + " item(s)\n";
+        summary += "- Removed " + categorized.deletions.length + " item(s)\n";
     }
     if (categorized.modifications.length > 0) {
-        summary += "• Modified " + categorized.modifications.length + " item(s)\n";
+        summary += "- Modified " + categorized.modifications.length + " item(s)\n";
         for (var i = 0; i < Math.min(categorized.modifications.length, 2); i++) {
             summary += "  - " + formatChangeWithAccess(categorized.modifications[i]) + "\n";
         }
@@ -868,7 +868,7 @@ function createEnhancedTextAnalysisSummary(differences) {
                 if (oldText && newText) {
                     var oldWords = oldText.split(/\s+/).length;
                     var newWords = newText.split(/\s+/).length;
-                    summary += "Word count change: " + oldWords + " → " + newWords + " (" + (newWords - oldWords) + ")\n";
+                    summary += "Word count change: " + oldWords + " -> " + newWords + " (" + (newWords - oldWords) + ")\n";
                 }
                 
             } else if (change.type === "value_change") {
@@ -880,7 +880,7 @@ function createEnhancedTextAnalysisSummary(differences) {
             if (change.safetyNotes && change.safetyNotes.length > 0) {
                 summary += "Safety Notes:\n";
                 for (var j = 0; j < Math.min(change.safetyNotes.length, 2); j++) {
-                    summary += "  • " + change.safetyNotes[j] + "\n";
+                    summary += "  - " + change.safetyNotes[j] + "\n";
                 }
             }
             
@@ -1001,7 +1001,7 @@ function analyzeTextDifference(oldText, newText) {
         }
     } else {
         var diff = newLen - oldLen;
-        var analysis = "Length changed by " + diff + " characters (" + oldLen + " → " + newLen + ")";
+        var analysis = "Length changed by " + diff + " characters (" + oldLen + " -> " + newLen + ")";
         
         // Additional analysis for significant changes
         if (Math.abs(diff) > oldLen * 0.1) { // More than 10% change
@@ -1022,7 +1022,7 @@ function analyzeStoryTextContent(oldContent, newContent) {
         if (oldPreview === newPreview) {
             return "Content changes detected beyond preview area";
         } else {
-            return "Content preview changed: \"" + oldPreview + "...\" → \"" + newPreview + "...\"";
+            return "Content preview changed: \"" + oldPreview + "...\" -> \"" + newPreview + "...\"";
         }
     } catch (e) {
         return "Content analysis error";
@@ -1031,7 +1031,7 @@ function analyzeStoryTextContent(oldContent, newContent) {
 
 function formatChange(change) {
     if (change.type === 'value_change') {
-        return change.oldValue + " → " + change.newValue;
+        return change.oldValue + " -> " + change.newValue;
     } else if (change.type === 'addition') {
         return "Added: " + change.newValue;
     } else if (change.type === 'deletion') {
@@ -1068,11 +1068,11 @@ function createEnhancedDiscoveryReport(differences) {
         report += repeatString("-", 28) + "\n";
         var accessibilityRatio = info.accessibleProperties / (info.accessibleProperties + info.brokenProperties);
         if (accessibilityRatio > 0.9) {
-            report += "Status: ✓ Excellent - Most properties accessible\n";
+            report += "Status: Excellent - Most properties accessible\n";
         } else if (accessibilityRatio > 0.7) {
-            report += "Status: ⚠ Good - Some properties have access issues\n";
+            report += "Status: Good - Some properties have access issues\n";
         } else {
-            report += "Status: ⚠ Attention Needed - Many properties inaccessible\n";
+            report += "Status: Attention Needed - Many properties inaccessible\n";
         }
         report += "Accessibility Ratio: " + Math.round(accessibilityRatio * 100) + "%\n\n";
     }
@@ -1101,7 +1101,7 @@ function createEnhancedDiscoveryReport(differences) {
             if (change.safetyNotes && change.safetyNotes.length > 0) {
                 report += "Safety Notes:\n";
                 for (var j = 0; j < Math.min(change.safetyNotes.length, 2); j++) {
-                    report += "  • " + change.safetyNotes[j] + "\n";
+                    report += "  - " + change.safetyNotes[j] + "\n";
                 }
             }
             
@@ -1133,7 +1133,7 @@ function createEnhancedDiscoveryReport(differences) {
             if (change.accessPath && change.accessPath.alternatives) {
                 report += "Alternative Access Methods:\n";
                 for (var j = 0; j < Math.min(change.accessPath.alternatives.length, 2); j++) {
-                    report += "  • " + change.accessPath.alternatives[j] + "\n";
+                    report += "  - " + change.accessPath.alternatives[j] + "\n";
                 }
             }
             
@@ -1149,33 +1149,33 @@ function createEnhancedDiscoveryReport(differences) {
         var info = differences.discoveryInfo;
         
         if (info.newlyBrokenProperties > 0) {
-            report += "🔧 PROPERTY ACCESS ISSUES:\n";
-            report += "  • " + info.newlyBrokenProperties + " properties became inaccessible\n";
-            report += "  • Review error handling in your scripts\n";
-            report += "  • Consider using alternative access methods\n";
-            report += "  • Test with different document types\n\n";
+            report += "PROPERTY ACCESS ISSUES:\n";
+            report += "  - " + info.newlyBrokenProperties + " properties became inaccessible\n";
+            report += "  - Review error handling in your scripts\n";
+            report += "  - Consider using alternative access methods\n";
+            report += "  - Test with different document types\n\n";
         }
         
         if (info.newCollections > 0) {
-            report += "📊 NEW COLLECTIONS DISCOVERED:\n";
-            report += "  • " + info.newCollections + " new collections found\n";
-            report += "  • Update your scripts to handle new collections\n";
-            report += "  • Test collection access patterns\n";
-            report += "  • Verify collection reliability across documents\n\n";
+            report += "NEW COLLECTIONS DISCOVERED:\n";
+            report += "  - " + info.newCollections + " new collections found\n";
+            report += "  - Update your scripts to handle new collections\n";
+            report += "  - Test collection access patterns\n";
+            report += "  - Verify collection reliability across documents\n\n";
         }
         
         if (info.totalCollections > 20) {
-            report += "⚡ PERFORMANCE CONSIDERATIONS:\n";
-            report += "  • Document has " + info.totalCollections + " collections\n";
-            report += "  • Consider batch processing for large collections\n";
-            report += "  • Use sampling for analysis of very large collections\n";
-            report += "  • Implement timeout protection for complex operations\n\n";
+            report += "PERFORMANCE CONSIDERATIONS:\n";
+            report += "  - Document has " + info.totalCollections + " collections\n";
+            report += "  - Consider batch processing for large collections\n";
+            report += "  - Use sampling for analysis of very large collections\n";
+            report += "  - Implement timeout protection for complex operations\n\n";
         }
     }
     
-    report += "✓ Use this report to improve script reliability and performance\n";
-    report += "✓ All discovery data is captured for future reference\n";
-    report += "✓ Property access patterns are continuously monitored\n";
+    report += "Use this report to improve script reliability and performance\n";
+    report += "All discovery data is captured for future reference\n";
+    report += "Property access patterns are continuously monitored\n";
     
     return report;
 }
@@ -1223,7 +1223,7 @@ function createComprehensiveAccessPathsGuide(differences) {
                             guide += "Alternative Methods:\n";
                             for (var j = 0; j < Math.min(accessPath.alternatives.length, 3); j++) {
                                 if (accessPath.alternatives[j].indexOf('Error') === -1) {
-                                    guide += "  • " + accessPath.alternatives[j] + "\n";
+                                    guide += "  - " + accessPath.alternatives[j] + "\n";
                                 }
                             }
                         }
@@ -1235,7 +1235,7 @@ function createComprehensiveAccessPathsGuide(differences) {
                         if (change.safetyNotes && change.safetyNotes.length > 0) {
                             guide += "Safety Guidelines:\n";
                             for (var k = 0; k < Math.min(change.safetyNotes.length, 3); k++) {
-                                guide += "  ⚠ " + change.safetyNotes[k] + "\n";
+                                guide += "  - " + change.safetyNotes[k] + "\n";
                             }
                         }
                         
@@ -1365,11 +1365,11 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "VERSION-SPECIFIC GUIDANCE\n";
     guide += "=" + Array(26).join("=") + "\n\n";
     guide += "InDesign Version Compatibility:\n";
-    guide += "• CS6+: Basic object model support\n";
-    guide += "• CC 2015+: Enhanced scripting features\n";
-    guide += "• CC 2018+: Improved error handling\n";
-    guide += "• CC 2020+: Additional object properties\n";
-    guide += "• CC 2023+: Performance improvements\n\n";
+    guide += "- CS6+: Basic object model support\n";
+    guide += "- CC 2015+: Enhanced scripting features\n";
+    guide += "- CC 2018+: Improved error handling\n";
+    guide += "- CC 2020+: Additional object properties\n";
+    guide += "- CC 2023+: Performance improvements\n\n";
     guide += "Always test your scripts with the specific InDesign version you're targeting.\n";
     guide += "Some properties may not be available in older versions.\n\n";
     
@@ -1377,21 +1377,21 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "=" + Array(21).join("=") + "\n\n";
     guide += "Common Issues and Solutions:\n\n";
     guide += "1. 'Object does not support property' errors:\n";
-    guide += "   → Use hasOwnProperty() checks before accessing\n";
-    guide += "   → Verify object type before property access\n";
-    guide += "   → Consider alternative properties or methods\n\n";
+    guide += "   -> Use hasOwnProperty() checks before accessing\n";
+    guide += "   -> Verify object type before property access\n";
+    guide += "   -> Consider alternative properties or methods\n\n";
     guide += "2. 'Access denied' errors:\n";
-    guide += "   → Property may be read-only or restricted\n";
-    guide += "   → Try alternative access methods\n";
-    guide += "   → Check document state and permissions\n\n";
+    guide += "   -> Property may be read-only or restricted\n";
+    guide += "   -> Try alternative access methods\n";
+    guide += "   -> Check document state and permissions\n\n";
     guide += "3. Null or undefined values:\n";
-    guide += "   → Always check for null/undefined before use\n";
-    guide += "   → Use default values where appropriate\n";
-    guide += "   → Consider object lifecycle and initialization\n\n";
+    guide += "   -> Always check for null/undefined before use\n";
+    guide += "   -> Use default values where appropriate\n";
+    guide += "   -> Consider object lifecycle and initialization\n\n";
     guide += "4. Performance issues:\n";
-    guide += "   → Implement timeout protection for long operations\n";
-    guide += "   → Process large collections in batches\n";
-    guide += "   → Use sampling for analysis operations\n\n";
+    guide += "   -> Implement timeout protection for long operations\n";
+    guide += "   -> Process large collections in batches\n";
+    guide += "   -> Use sampling for analysis operations\n\n";
     
     return guide;
 }
@@ -1661,34 +1661,34 @@ function showEnhancedComparisonDialog(differences) {
     mainGroup.alignment = "fill";
     
     // Summary tab (enhanced)
-    var summaryTab = mainGroup.add("tab", undefined, "📊 Summary");
+    var summaryTab = mainGroup.add("tab", undefined, "Summary");
     createSummaryTab(summaryTab, differences);
     
     // Text Analysis tab (new)
-    var textTab = mainGroup.add("tab", undefined, "📝 Text Analysis");
+    var textTab = mainGroup.add("tab", undefined, "Text Analysis");
     createTextAnalysisTab(textTab, differences);
     
     // Discovery tab (enhanced)  
-    var discoveryTab = mainGroup.add("tab", undefined, "🔍 Auto-Discovery");
+    var discoveryTab = mainGroup.add("tab", undefined, "Auto-Discovery");
     createDiscoveryTab(discoveryTab, differences);
     
     // Technical Details tab
-    var detailsTab = mainGroup.add("tab", undefined, "🔧 Technical Details");
+    var detailsTab = mainGroup.add("tab", undefined, "Technical Details");
     createTechnicalDetailsTab(detailsTab, differences);
     
     // Access Paths tab (new)
-    var pathsTab = mainGroup.add("tab", undefined, "🛠️ Access Paths");
+    var pathsTab = mainGroup.add("tab", undefined, "Access Paths");
     createAccessPathsTab(pathsTab, differences);
     
     // Enhanced action buttons
     var buttonGroup = dialog.add("group");
     buttonGroup.alignment = "center";
     
-    var exportAllBtn = buttonGroup.add("button", undefined, "📁 Export All Reports");
-    var viewFolderBtn = buttonGroup.add("button", undefined, "📂 Open Report Folder");
-    var resetBaselineBtn = buttonGroup.add("button", undefined, "🔄 Reset Baseline");
-    var helpBtn = buttonGroup.add("button", undefined, "❓ Help");
-    var okBtn = buttonGroup.add("button", undefined, "✓ OK");
+    var exportAllBtn = buttonGroup.add("button", undefined, "Export All Reports");
+    var viewFolderBtn = buttonGroup.add("button", undefined, "Open Report Folder");
+    var resetBaselineBtn = buttonGroup.add("button", undefined, "Reset Baseline");
+    var helpBtn = buttonGroup.add("button", undefined, "Help");
+    var okBtn = buttonGroup.add("button", undefined, "OK");
     
     // Button event handlers
     exportAllBtn.onClick = function() {
@@ -1834,12 +1834,12 @@ function exportAllReportsToFolder(differences) {
               "Location: " + folder.fsName + "\n" +
               "Files saved: " + savedFiles.length + "\n\n" +
               "Files include:\n" +
-              "• Complete technical JSON data\n" +
-              "• Human-readable summary\n" +
-              "• Detailed text analysis\n" +
-              "• Auto-discovery report\n" +
-              "• Access paths guide\n" +
-              "• Technical analysis");
+              "- Complete technical JSON data\n" +
+              "- Human-readable summary\n" +
+              "- Detailed text analysis\n" +
+              "- Auto-discovery report\n" +
+              "- Access paths guide\n" +
+              "- Technical analysis");
               
     } catch (e) {
         alert("Export failed: " + e.message);
@@ -1921,28 +1921,28 @@ function showHelpDialog() {
         "4. Run this utility: InDesignComparisonUtility.jsx\n" +
         "5. Choose 'Quick Compare' to start\n\n" +
         "FIRST TIME:\n" +
-        "• Creates a baseline snapshot of your document\n" +
-        "• Make changes to your document\n" +
-        "• Run comparison again to see differences\n\n" +
+        "- Creates a baseline snapshot of your document\n" +
+        "- Make changes to your document\n" +
+        "- Run comparison again to see differences\n\n" +
         "FEATURES:\n" +
-        "• Comprehensive text content capture\n" +
-        "• Auto-discovery of collections and properties\n" +
-        "• Broken property detection and alternatives\n" +
-        "• Object model access paths with safety guidance\n" +
-        "• Multiple report formats (summary, technical, etc.)\n" +
-        "• Enhanced error handling and recovery\n\n" +
+        "- Comprehensive text content capture\n" +
+        "- Auto-discovery of collections and properties\n" +
+        "- Broken property detection and alternatives\n" +
+        "- Object model access paths with safety guidance\n" +
+        "- Multiple report formats (summary, technical, etc.)\n" +
+        "- Enhanced error handling and recovery\n\n" +
         "REPORTS GENERATED:\n" +
-        "• *_summary.txt - Human-readable changes\n" +
-        "• *_text_analysis.txt - Detailed text changes\n" +
-        "• *_discovery_report.txt - Collection discoveries\n" +
-        "• *_access_paths_guide.txt - Safe access patterns\n" +
-        "• *_technical_report.txt - Technical analysis\n" +
-        "• *_comparison.json - Complete technical data\n\n" +
+        "- *_summary.txt - Human-readable changes\n" +
+        "- *_text_analysis.txt - Detailed text changes\n" +
+        "- *_discovery_report.txt - Collection discoveries\n" +
+        "- *_access_paths_guide.txt - Safe access patterns\n" +
+        "- *_technical_report.txt - Technical analysis\n" +
+        "- *_comparison.json - Complete technical data\n\n" +
         "TROUBLESHOOTING:\n" +
-        "• Make sure both .jsx files are in Scripts Panel folder\n" +
-        "• Always run main inspector before utility\n" +
-        "• Document must be saved before analysis\n" +
-        "• Check error logs in analysis results\n\n" +
+        "- Make sure both .jsx files are in Scripts Panel folder\n" +
+        "- Always run main inspector before utility\n" +
+        "- Document must be saved before analysis\n" +
+        "- Check error logs in analysis results\n\n" +
         "VERSION: 2.1 - Enhanced with comprehensive features",
         {multiline: true, readonly: true});
     helpText.alignment = "fill";
@@ -1972,10 +1972,10 @@ function showMainMenu() {
     
     var titleText = titlePanel.add("statictext", undefined, 
         "Comprehensive InDesign document analysis with:\n" +
-        "• Enhanced text content capture\n" +
-        "• Auto-discovery of collections and properties\n" +
-        "• Bulletproof error handling and recovery\n" +
-        "• Safe object model access guidance",
+        "* Enhanced text content capture\n" +
+        "* Auto-discovery of collections and properties\n" +
+        "* Bulletproof error handling and recovery\n" +
+        "* Safe object model access guidance",
         {multiline: true});
     titleText.alignment = "fill";
     
@@ -1983,14 +1983,14 @@ function showMainMenu() {
     var actionsPanel = mainGroup.add("panel", undefined, "Actions");
     actionsPanel.alignment = "fill";
     
-    var quickCompareBtn = actionsPanel.add("button", undefined, "🔍 Quick Compare (Recommended)");
+    var quickCompareBtn = actionsPanel.add("button", undefined, "Quick Compare (Recommended)");
     quickCompareBtn.preferredSize.height = 40;
     quickCompareBtn.alignment = "fill";
     
-    var resetBtn = actionsPanel.add("button", undefined, "🔄 Reset Baseline");
+    var resetBtn = actionsPanel.add("button", undefined, "Reset Baseline");
     resetBtn.alignment = "fill";
     
-    var helpBtn = actionsPanel.add("button", undefined, "❓ Help & Documentation");
+    var helpBtn = actionsPanel.add("button", undefined, "Help & Documentation");
     helpBtn.alignment = "fill";
     
     // Status panel
@@ -2034,41 +2034,41 @@ function getStatusText() {
     
     // Check if inspector is loaded
     if (typeof createDocumentReport === 'undefined') {
-        status += "⚠ Main inspector not loaded\n";
+        status += "Main inspector not loaded\n";
         status += "Please run InDesignDocumentInspector.jsx first\n\n";
     } else {
-        status += "✓ Main inspector loaded and ready\n";
+        status += "Main inspector loaded and ready\n";
         
         // Check version compatibility
         if (typeof ANALYSIS_CONFIG !== 'undefined' && ANALYSIS_CONFIG.version === UTILITY_CONFIG.requiredInspectorVersion) {
-            status += "✓ Version " + ANALYSIS_CONFIG.version + " - fully compatible\n";
+            status += "Version " + ANALYSIS_CONFIG.version + " - fully compatible\n";
         } else {
-            status += "⚠ Version mismatch detected\n";
+            status += "Version mismatch detected\n";
         }
     }
     
     // Check document status
     if (!app.documents.length) {
-        status += "⚠ No document open\n";
+        status += "No document open\n";
         status += "Please open a document for analysis\n";
     } else {
         var doc = app.activeDocument;
-        status += "✓ Document: " + doc.name + "\n";
+        status += "Document: " + doc.name + "\n";
         
         if (!doc.saved || !doc.filePath) {
-            status += "⚠ Document not saved\n";
+            status += "Document not saved\n";
             status += "Please save before analysis\n";
         } else {
-            status += "✓ Document saved and ready\n";
+            status += "Document saved and ready\n";
             
             // Check for existing baseline
             var docName = doc.name.replace(/\.[^\.]+$/, "");
             var baselineFile = File(doc.filePath + "/" + docName + "_baseline.json");
             
             if (baselineFile.exists) {
-                status += "✓ Baseline exists - ready for comparison\n";
+                status += "Baseline exists - ready for comparison\n";
             } else {
-                status += "• No baseline - will create on first run\n";
+                status += "No baseline - will create on first run\n";
             }
         }
     }
