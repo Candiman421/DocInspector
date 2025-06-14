@@ -1,5 +1,6 @@
 // ============================================================================
 // CHUNK 3: COMPARISON FUNCTIONS - ROBUST PROPERTY CHANGE DETECTION
+// ES3 COMPATIBLE VERSION
 // ============================================================================
 
 // Enhanced comparison function - COMPREHENSIVE PROPERTY CHANGE ANALYSIS
@@ -8,7 +9,7 @@ function compareDocumentReports(report1, report2) {
     statusLog("Document Comparison", "Initializing", 0);
     
     var differences = {
-        timestamp: new Date().toISOString(),
+        timestamp: toISOString(new Date()),
         summary: {
             hasChanges: false,
             changedSections: [],
@@ -153,7 +154,7 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
                 
                 // Count style changes specifically
                 var changePath = safeGetProperty(change, 'path', '');
-                if (section === 'styles' || changePath.indexOf('Style') !== -1) {
+                if (section === 'styles' || stringIndexOf(changePath, 'Style') !== -1) {
                     info.textChangesDetailed.styleChanges++;
                 }
                 
@@ -218,12 +219,12 @@ function analyzeStructuralChanges(report1, report2, info) {
     }
 }
 
-// Determine if a change is significant for reporting
+// Determine if a change is significant for reporting - ES3 compatible
 function isSignificantChange(change, section) {
     var significantTypes = ['addition', 'deletion', 'text_content_change', 'overflow_change'];
     var changeType = safeGetProperty(change, 'type');
     
-    if (significantTypes.indexOf(changeType) !== -1) {
+    if (arrayIndexOf(significantTypes, changeType) !== -1) {
         return true;
     }
     
@@ -232,29 +233,29 @@ function isSignificantChange(change, section) {
     
     if (section === 'documentInfo') {
         var significantProps = ['saved', 'modified', 'readonly', 'pagesPerDocument'];
-        return significantProps.some(function(prop) {
-            return changePath.indexOf(prop) !== -1;
+        return arraySome(significantProps, function(prop) {
+            return stringIndexOf(changePath, prop) !== -1;
         });
     }
     
     if (section === 'textFrames' || section === 'textContent') {
         var textSignificantProps = ['overflows', 'characterCount', 'wordCount', 'appliedParagraphStyle', 'fontFamily', 'fontSize'];
-        return textSignificantProps.some(function(prop) {
-            return changePath.indexOf(prop) !== -1;
+        return arraySome(textSignificantProps, function(prop) {
+            return stringIndexOf(changePath, prop) !== -1;
         });
     }
     
     if (section === 'pages') {
         var pageSignificantProps = ['bounds', 'appliedMaster', 'textFrameCount', 'imageCount'];
-        return pageSignificantProps.some(function(prop) {
-            return changePath.indexOf(prop) !== -1;
+        return arraySome(pageSignificantProps, function(prop) {
+            return stringIndexOf(changePath, prop) !== -1;
         });
     }
     
     if (section === 'images' || section === 'links') {
         var linkSignificantProps = ['status', 'filePath', 'size', 'date'];
-        return linkSignificantProps.some(function(prop) {
-            return changePath.indexOf(prop) !== -1;
+        return arraySome(linkSignificantProps, function(prop) {
+            return stringIndexOf(changePath, prop) !== -1;
         });
     }
     
@@ -325,7 +326,7 @@ function compareSection(section1, section2, sectionName) {
                 }
             }
         } else if (typeof section1 === 'object') {
-            // Enhanced object comparison
+            // Enhanced object comparison - ES3 compatible
             var allKeys = {};
             for (var key in section1) allKeys[key] = true;
             for (var key in section2) allKeys[key] = true;
@@ -357,25 +358,25 @@ function compareSection(section1, section2, sectionName) {
                 var significance = "medium";
                 
                 // Enhanced handling for specific content changes
-                if (sectionName.indexOf('text') !== -1 || sectionName.indexOf('contents') !== -1 || sectionName.indexOf('textPreview') !== -1) {
+                if (stringIndexOf(sectionName, 'text') !== -1 || stringIndexOf(sectionName, 'contents') !== -1 || stringIndexOf(sectionName, 'textPreview') !== -1) {
                     changeType = "text_content_change";
                     significance = "high";
-                } else if (sectionName.indexOf('characterCount') !== -1 || sectionName.indexOf('wordCount') !== -1) {
+                } else if (stringIndexOf(sectionName, 'characterCount') !== -1 || stringIndexOf(sectionName, 'wordCount') !== -1) {
                     changeType = "text_metric_change";
                     significance = "medium";
-                } else if (sectionName.indexOf('overflows') !== -1) {
+                } else if (stringIndexOf(sectionName, 'overflows') !== -1) {
                     changeType = "overflow_change";
                     significance = "high";
-                } else if (sectionName.indexOf('bounds') !== -1) {
+                } else if (stringIndexOf(sectionName, 'bounds') !== -1) {
                     changeType = "geometry_change";
                     significance = "medium";
-                } else if (sectionName.indexOf('Style') !== -1) {
+                } else if (stringIndexOf(sectionName, 'Style') !== -1) {
                     changeType = "style_change";
                     significance = "medium";
-                } else if (sectionName.indexOf('color') !== -1 || sectionName.indexOf('Color') !== -1) {
+                } else if (stringIndexOf(sectionName, 'color') !== -1 || stringIndexOf(sectionName, 'Color') !== -1) {
                     changeType = "color_change";
                     significance = "low";
-                } else if (sectionName.indexOf('font') !== -1 || sectionName.indexOf('Font') !== -1) {
+                } else if (stringIndexOf(sectionName, 'font') !== -1 || stringIndexOf(sectionName, 'Font') !== -1) {
                     changeType = "font_change";
                     significance = "medium";
                 }
@@ -402,39 +403,39 @@ function compareSection(section1, section2, sectionName) {
     return changes;
 }
 
-// Determine property significance for better change prioritization
+// Determine property significance for better change prioritization - ES3 compatible
 function determinePropertySignificance(propertyName, sectionName) {
     // High significance properties - major document changes
     var highSigProps = ['overflows', 'bounds', 'name', 'status', 'filePath', 'saved', 'modified', 'characterCount', 'wordCount'];
-    if (highSigProps.indexOf(propertyName) !== -1) {
+    if (arrayIndexOf(highSigProps, propertyName) !== -1) {
         return "high";
     }
     
     // Text-related properties are generally significant
-    if (sectionName.indexOf('text') !== -1 || sectionName.indexOf('Text') !== -1) {
+    if (stringIndexOf(sectionName, 'text') !== -1 || stringIndexOf(sectionName, 'Text') !== -1) {
         var textSigProps = ['appliedParagraphStyle', 'appliedCharacterStyle', 'fontFamily', 'fontSize', 'textColor', 'isThreaded'];
-        if (textSigProps.indexOf(propertyName) !== -1) {
+        if (arrayIndexOf(textSigProps, propertyName) !== -1) {
             return "high";
         }
     }
     
     // Style and color changes are medium significance
-    if (sectionName.indexOf('style') !== -1 || sectionName.indexOf('color') !== -1) {
+    if (stringIndexOf(sectionName, 'style') !== -1 || stringIndexOf(sectionName, 'color') !== -1) {
         return "medium";
     }
     
     // Image and link properties
-    if (sectionName.indexOf('image') !== -1 || sectionName.indexOf('link') !== -1) {
+    if (stringIndexOf(sectionName, 'image') !== -1 || stringIndexOf(sectionName, 'link') !== -1) {
         var imageLinkSigProps = ['status', 'filePath', 'size', 'date', 'actualPpi', 'effectivePpi'];
-        if (imageLinkSigProps.indexOf(propertyName) !== -1) {
+        if (arrayIndexOf(imageLinkSigProps, propertyName) !== -1) {
             return "high";
         }
     }
     
     // Page and layout properties
-    if (sectionName.indexOf('page') !== -1 || sectionName.indexOf('layer') !== -1) {
+    if (stringIndexOf(sectionName, 'page') !== -1 || stringIndexOf(sectionName, 'layer') !== -1) {
         var layoutSigProps = ['appliedMaster', 'visible', 'locked', 'pageItems', 'textFrameCount', 'imageCount'];
-        if (layoutSigProps.indexOf(propertyName) !== -1) {
+        if (arrayIndexOf(layoutSigProps, propertyName) !== -1) {
             return "medium";
         }
     }
@@ -504,9 +505,9 @@ function generateEnhancedAccessPath(analysisPath) {
         accessInfo.primary = fullPath;
         
         // Enhanced pattern matching for InDesign-specific access
-        if (cleanPath.indexOf('textContent') !== -1) {
+        if (stringIndexOf(cleanPath, 'textContent') !== -1) {
             // Text content access patterns
-            if (cleanPath.indexOf('textFrameDetails[') !== -1) {
+            if (stringIndexOf(cleanPath, 'textFrameDetails[') !== -1) {
                 var frameMatch = cleanPath.match(/textFrameDetails\[(\d+)\]/);
                 if (frameMatch && frameMatch.length >= 2) {
                     var frameIndex = frameMatch[1];
@@ -528,7 +529,7 @@ function generateEnhancedAccessPath(analysisPath) {
                 ];
                 accessInfo.safetyLevel = "high";
             }
-        } else if (cleanPath.indexOf('pages[') !== -1) {
+        } else if (stringIndexOf(cleanPath, 'pages[') !== -1) {
             // Page access patterns with InDesign-specific methods
             var pageMatch = cleanPath.match(/pages\[(\d+)\](.*)/);
             if (pageMatch && pageMatch.length >= 2) {
@@ -543,7 +544,7 @@ function generateEnhancedAccessPath(analysisPath) {
                 accessInfo.collectionMethod = "Length: doc.pages.length";
                 accessInfo.safetyLevel = "high";
             }
-        } else if (cleanPath.indexOf('styles[') !== -1) {
+        } else if (stringIndexOf(cleanPath, 'styles[') !== -1) {
             // Style access patterns
             var styleMatch = cleanPath.match(/(paragraphStyles|characterStyles)\[(\d+)\]/);
             if (styleMatch && styleMatch.length >= 3) {
@@ -557,7 +558,7 @@ function generateEnhancedAccessPath(analysisPath) {
                 ];
                 accessInfo.safetyLevel = "medium";
             }
-        } else if (cleanPath.indexOf('images[') !== -1 || cleanPath.indexOf('links[') !== -1) {
+        } else if (stringIndexOf(cleanPath, 'images[') !== -1 || stringIndexOf(cleanPath, 'links[') !== -1) {
             // Image and link access patterns - often problematic
             var linkMatch = cleanPath.match(/(images|links)\[(\d+)\]/);
             if (linkMatch && linkMatch.length >= 3) {
@@ -571,7 +572,7 @@ function generateEnhancedAccessPath(analysisPath) {
                 ];
                 accessInfo.safetyLevel = "low"; // Images/links are often problematic
             }
-        } else if (cleanPath.indexOf('layers[') !== -1) {
+        } else if (stringIndexOf(cleanPath, 'layers[') !== -1) {
             // Layer access patterns
             var layerMatch = cleanPath.match(/layers\[(\d+)\]/);
             if (layerMatch && layerMatch.length >= 2) {
@@ -584,7 +585,7 @@ function generateEnhancedAccessPath(analysisPath) {
                 ];
                 accessInfo.safetyLevel = "high";
             }
-        } else if (cleanPath.indexOf('pageItems[') !== -1) {
+        } else if (stringIndexOf(cleanPath, 'pageItems[') !== -1) {
             // Page item access patterns
             var itemMatch = cleanPath.match(/pageItems\[(\d+)\]/);
             if (itemMatch && itemMatch.length >= 2) {
@@ -610,7 +611,7 @@ function generateEnhancedAccessPath(analysisPath) {
         
         // Add discovered alternatives if available
         for (var prop in ANALYSIS_CONFIG.discoveredAlternatives) {
-            if (cleanPath.indexOf(prop) !== -1) {
+            if (stringIndexOf(cleanPath, prop) !== -1) {
                 accessInfo.alternatives.unshift("// Alternative discovered: use ." + ANALYSIS_CONFIG.discoveredAlternatives[prop] + " instead of ." + prop);
                 break;
             }
@@ -700,12 +701,12 @@ function generateSafetyNotes(analysisPath) {
             }
         ];
         
-        // Apply specific safety rules
+        // Apply specific safety rules - ES3 compatible
         for (var i = 0; i < safetyRules.length; i++) {
             var rule = safetyRules[i];
-            if (pathLower.indexOf(rule.pattern) !== -1) {
+            if (stringIndexOf(pathLower, rule.pattern) !== -1) {
                 for (var j = 0; j < rule.notes.length; j++) {
-                    if (notes.indexOf(rule.notes[j]) === -1) {
+                    if (arrayIndexOf(notes, rule.notes[j]) === -1) {
                         notes.push(rule.notes[j]);
                     }
                 }
@@ -714,24 +715,24 @@ function generateSafetyNotes(analysisPath) {
         }
         
         // Universal safety patterns
-        if (pathLower.indexOf('[') !== -1) {
+        if (stringIndexOf(pathLower, '[') !== -1) {
             notes.push("Array/collection access - always check length first");
             notes.push("Use both index and .item() methods for robustness");
         }
         
-        if (pathLower.indexOf('bounds') !== -1) {
+        if (stringIndexOf(pathLower, 'bounds') !== -1) {
             notes.push("Bounds may be affected by transformations and parent containers");
         }
         
-        if (pathLower.indexOf('overflows') !== -1) {
+        if (stringIndexOf(pathLower, 'overflows') !== -1) {
             notes.push("Overflow status critical for text layout - may change with edits");
         }
         
-        if (pathLower.indexOf('font') !== -1) {
+        if (stringIndexOf(pathLower, 'font') !== -1) {
             notes.push("Font properties may reference missing or substituted fonts");
         }
         
-        if (pathLower.indexOf('color') !== -1) {
+        if (stringIndexOf(pathLower, 'color') !== -1) {
             notes.push("Color properties may reference custom color spaces");
         }
         

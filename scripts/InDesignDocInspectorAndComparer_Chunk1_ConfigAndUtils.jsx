@@ -3,6 +3,7 @@
 // Robust property change detection with API error handling
 // Chunk 1: Core Configuration & Utility Functions
 // Optimized for ExtendScript Toolkit (ESTK) development environment
+// ES3 COMPATIBLE VERSION
 //
 
 // ROBUST CONFIGURATION FOR CLUNKY INDESIGN APIS
@@ -67,6 +68,141 @@ var UTILITY_STATE = {
 };
 
 // ============================================================================
+// ES3 COMPATIBILITY HELPER FUNCTIONS - CRITICAL FOR EXTENDSCRIPT
+// ============================================================================
+
+// ES3-compatible indexOf function
+function arrayIndexOf(array, searchElement) {
+    if (!array || !array.length) return -1;
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === searchElement) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// ES3-compatible string indexOf function
+function stringIndexOf(str, searchValue, fromIndex) {
+    if (!str) return -1;
+    fromIndex = fromIndex || 0;
+    
+    for (var i = fromIndex; i < str.length; i++) {
+        var match = true;
+        for (var j = 0; j < searchValue.length; j++) {
+            if (i + j >= str.length || str.charAt(i + j) !== searchValue.charAt(j)) {
+                match = false;
+                break;
+            }
+        }
+        if (match) return i;
+    }
+    return -1;
+}
+
+// ES3-compatible array filter function
+function arrayFilter(array, callback) {
+    var result = [];
+    if (!array || !array.length) return result;
+    
+    for (var i = 0; i < array.length; i++) {
+        try {
+            if (callback(array[i], i, array)) {
+                result.push(array[i]);
+            }
+        } catch (e) {
+            // Continue processing other elements
+        }
+    }
+    return result;
+}
+
+// ES3-compatible array some function
+function arraySome(array, callback) {
+    if (!array || !array.length) return false;
+    
+    for (var i = 0; i < array.length; i++) {
+        try {
+            if (callback(array[i], i, array)) {
+                return true;
+            }
+        } catch (e) {
+            // Continue checking other elements
+        }
+    }
+    return false;
+}
+
+// ES3-compatible string trim function
+function stringTrim(str) {
+    if (!str) return "";
+    
+    // Remove leading whitespace
+    var start = 0;
+    while (start < str.length && isWhitespace(str.charAt(start))) {
+        start++;
+    }
+    
+    // Remove trailing whitespace
+    var end = str.length - 1;
+    while (end >= start && isWhitespace(str.charAt(end))) {
+        end--;
+    }
+    
+    return str.substring(start, end + 1);
+}
+
+// Helper function to check if character is whitespace
+function isWhitespace(char) {
+    return char === ' ' || char === '\t' || char === '\n' || char === '\r' || char === '\f';
+}
+
+// ES3-compatible Date.toISOString function
+function toISOString(date) {
+    try {
+        if (!date) date = new Date();
+        
+        var year = date.getFullYear();
+        var month = ('0' + (date.getMonth() + 1)).slice(-2);
+        var day = ('0' + date.getDate()).slice(-2);
+        var hours = ('0' + date.getHours()).slice(-2);
+        var minutes = ('0' + date.getMinutes()).slice(-2);
+        var seconds = ('0' + date.getSeconds()).slice(-2);
+        
+        return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes + ':' + seconds + 'Z';
+    } catch (e) {
+        // Fallback to basic string representation
+        try {
+            return date.toString();
+        } catch (e2) {
+            return "Invalid Date";
+        }
+    }
+}
+
+// ES3-compatible Object.keys function
+function objectKeys(obj) {
+    var keys = [];
+    if (!obj) return keys;
+    
+    for (var key in obj) {
+        if (obj.hasOwnProperty && obj.hasOwnProperty(key)) {
+            keys.push(key);
+        }
+    }
+    return keys;
+}
+
+// Helper function for string repetition (already exists but ensuring ES3 compatibility)
+function repeatString(str, count) {
+    var result = "";
+    for (var i = 0; i < count; i++) {
+        result += str;
+    }
+    return result;
+}
+
+// ============================================================================
 // CORE UTILITY FUNCTIONS - ESTK OPTIMIZED WITH ROBUST ERROR HANDLING
 // ============================================================================
 
@@ -119,25 +255,77 @@ function checkFileAccess(folderPath) {
     }
 }
 
-// ENHANCED text capture - BETTER IDENTIFICATION (50-60 chars for proper change detection) - FIXED
+// Enhanced text capture with comprehensive safety - ES3 COMPATIBLE
 function safeTextCapture(textFrame) {
     try {
         if (!textFrame) {
             return "[NO TEXT]";
         }
         
-        var content = safeGetProperty(textFrame, 'contents');
-        if (!content || typeof content !== 'string') {
+        // Multiple attempts to get content
+        var content = null;
+        
+        // Method 1: Use safe property access
+        content = safeGetProperty(textFrame, 'contents');
+        
+        // Method 2: Try alternative content properties
+        if (!content) {
+            content = safeGetProperty(textFrame, 'content');
+        }
+        if (!content) {
+            content = safeGetProperty(textFrame, 'text');
+        }
+        if (!content) {
+            content = safeGetProperty(textFrame, 'string');
+        }
+        
+        // Validate content type
+        if (!content) {
             return "[NO TEXT]";
         }
         
-        // Enhanced limit for proper identification - meaningful content preview
-        var preview = content.substring(0, ANALYSIS_CONFIG.maxTextPreviewLength).replace(/\s+/g, ' ').trim();
-        if (content.length > ANALYSIS_CONFIG.maxTextPreviewLength) {
+        if (typeof content !== 'string') {
+            // Try to convert to string safely
+            try {
+                content = String(content);
+            } catch (e) {
+                return "[NON-STRING]";
+            }
+        }
+        
+        // Enhanced content processing with safety checks
+        var previewLength = ANALYSIS_CONFIG.maxTextPreviewLength || 60;
+        var preview = content.substring(0, previewLength);
+        
+        // Clean whitespace safely - ES3 compatible
+        try {
+            // Replace multiple whitespace with single space
+            var cleanPreview = "";
+            var lastWasSpace = false;
+            for (var i = 0; i < preview.length; i++) {
+                var char = preview.charAt(i);
+                if (isWhitespace(char)) {
+                    if (!lastWasSpace) {
+                        cleanPreview += " ";
+                        lastWasSpace = true;
+                    }
+                } else {
+                    cleanPreview += char;
+                    lastWasSpace = false;
+                }
+            }
+            preview = stringTrim(cleanPreview);
+        } catch (e) {
+            // If cleaning fails, use original
+        }
+        
+        // Add truncation indicator
+        if (content.length > previewLength) {
             preview += "...";
         }
         
         return preview || "[EMPTY]";
+        
     } catch (e) {
         debugLog("Text capture failed: " + e.message, "ERROR");
         return "[ERROR:" + e.message.substring(0, 15) + "]";
@@ -163,16 +351,16 @@ function safeGetProperty(obj, prop, defaultValue) {
         
         // Handle string properties (simple and dotted paths)
         if (typeof prop === 'string') {
-            // Skip known problematic properties
+            // Skip known problematic properties - ES3 compatible
             for (var i = 0; i < ANALYSIS_CONFIG.problematicProperties.length; i++) {
-                if (prop.indexOf(ANALYSIS_CONFIG.problematicProperties[i]) !== -1) {
+                if (stringIndexOf(prop, ANALYSIS_CONFIG.problematicProperties[i]) !== -1) {
                     debugLog("Skipping problematic property: " + prop, "SKIP");
                     return defaultValue !== undefined ? defaultValue : null;
                 }
             }
             
             // Handle dotted paths like 'viewPreferences.horizontalMeasurementUnits'
-            if (prop.indexOf('.') !== -1) {
+            if (stringIndexOf(prop, '.') !== -1) {
                 return safeGetNestedProperty(obj, prop, defaultValue);
             }
             
@@ -316,7 +504,7 @@ function logError(message, category, severity) {
         }
         
         var errorEntry = {
-            timestamp: new Date().toISOString(),
+            timestamp: toISOString(new Date()),
             message: message,
             category: category || 'general',
             severity: severity || 'medium',
@@ -339,17 +527,17 @@ function logError(message, category, severity) {
 function categorizeAPIError(errorMessage) {
     var msg = errorMessage.toLowerCase();
     
-    if (msg.indexOf('object does not support') !== -1) {
+    if (stringIndexOf(msg, 'object does not support') !== -1) {
         return 'unsupported_property';
-    } else if (msg.indexOf('access denied') !== -1) {
+    } else if (stringIndexOf(msg, 'access denied') !== -1) {
         return 'access_denied';
-    } else if (msg.indexOf('invalid index') !== -1) {
+    } else if (stringIndexOf(msg, 'invalid index') !== -1) {
         return 'invalid_index';
-    } else if (msg.indexOf('timeout') !== -1) {
+    } else if (stringIndexOf(msg, 'timeout') !== -1) {
         return 'timeout';
-    } else if (msg.indexOf('permission') !== -1) {
+    } else if (stringIndexOf(msg, 'permission') !== -1) {
         return 'permission_error';
-    } else if (msg.indexOf('not found') !== -1) {
+    } else if (stringIndexOf(msg, 'not found') !== -1) {
         return 'not_found';
     } else {
         return 'unknown';
@@ -683,8 +871,8 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
                 if (errorCategory === 'timeout' || 
                     errorCategory === 'access_denied' || 
                     errorCategory === 'invalid_index' ||
-                    error.message.indexOf('busy') !== -1 ||
-                    error.message.indexOf('not available') !== -1) {
+                    stringIndexOf(error.message, 'busy') !== -1 ||
+                    stringIndexOf(error.message, 'not available') !== -1) {
                     shouldRetry = true;
                 }
             }
@@ -775,13 +963,4 @@ function checkMemoryLimits(dataSize, operation) {
         debugLog("Memory check failed: " + e.message, "ERROR");
         return true; // If we can't check, continue anyway
     }
-}
-
-// Helper function for string repetition
-function repeatString(str, count) {
-    var result = "";
-    for (var i = 0; i < count; i++) {
-        result += str;
-    }
-    return result;
 }

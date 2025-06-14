@@ -1,5 +1,6 @@
 // ============================================================================
 // CHUNK 4: UTILITY FUNCTIONS & COMPREHENSIVE REPORT GENERATION - ESTK OPTIMIZED
+// ES3 COMPATIBLE VERSION
 // ============================================================================
 
 // Enhanced quick analysis and comparison workflow - ROBUST FOR PRODUCTION USE
@@ -12,7 +13,7 @@ function quickCompare() {
     }
     
     var doc = app.activeDocument;
-    // FIXED: Use safe property access
+    // Safe property access
     var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
     var docPath = safeGetProperty(doc, 'filePath');
     
@@ -248,7 +249,7 @@ function validateAnalysisReport(report) {
     }
     
     // Check version compatibility
-    if (report.analysisVersion && report.analysisVersion.indexOf('2.1') === -1) {
+    if (report.analysisVersion && stringIndexOf(report.analysisVersion, '2.1') === -1) {
         debugLog("Report version mismatch: " + report.analysisVersion, "WARN");
         return true; // Still valid, just potentially incompatible
     }
@@ -611,7 +612,7 @@ function createEnhancedHumanReadableSummary(differences) {
             summary += "PROCESSING SUMMARY\n";
             summary += "Text items processed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsProcessed', 0)) + "\n";
             summary += "Properties analyzed: " + (safeGetProperty(differences.discoveryInfo, 'propertiesChanged', 0)) + "\n";
-            summary += "Sections analyzed: " + Object.keys(differences.changes).length + "\n";
+            summary += "Sections analyzed: " + objectKeys(differences.changes).length + "\n";
         }
         return summary;
     }
@@ -737,8 +738,8 @@ function getSectionSummary(sectionName, changes) {
     if (categorized.modifications.length > 0) {
         summary += "Modified " + categorized.modifications.length + " item(s)\n";
         
-        // Show key modifications with significance priority
-        var significantMods = categorized.modifications.filter(function(change) {
+        // Show key modifications with significance priority - ES3 compatible
+        var significantMods = arrayFilter(categorized.modifications, function(change) {
             return safeGetProperty(change, 'significance') === 'high';
         });
         var modsToShow = significantMods.length > 0 ? significantMods : categorized.modifications;
@@ -849,12 +850,13 @@ function createDetailedTextAnalysisSummary(differences) {
         analysis += "TEXT FRAME CHANGES\n";
         analysis += repeatString("-", 18) + "\n\n";
         
-        var textRelatedChanges = textFrameChanges.filter(function(change) {
+        // ES3-compatible filtering
+        var textRelatedChanges = arrayFilter(textFrameChanges, function(change) {
             var path = safeGetProperty(change, 'path', '');
-            return path.indexOf('textPreview') !== -1 || 
-                   path.indexOf('characterCount') !== -1 ||
-                   path.indexOf('wordCount') !== -1 ||
-                   path.indexOf('overflows') !== -1;
+            return stringIndexOf(path, 'textPreview') !== -1 || 
+                   stringIndexOf(path, 'characterCount') !== -1 ||
+                   stringIndexOf(path, 'wordCount') !== -1 ||
+                   stringIndexOf(path, 'overflows') !== -1;
         });
         
         for (var i = 0; i < Math.min(textRelatedChanges.length, 8); i++) {
@@ -976,7 +978,7 @@ function createAccessPathGuide(differences) {
             var accessPath = safeGetProperty(change, 'accessPath');
             if (accessPath) {
                 var primaryPath = safeGetProperty(accessPath, 'primary');
-                if (primaryPath && !accessPatterns[primaryPath] && primaryPath.indexOf('Error') === -1) {
+                if (primaryPath && !accessPatterns[primaryPath] && stringIndexOf(primaryPath, 'Error') === -1) {
                     accessPatterns[primaryPath] = {
                         path: safeGetProperty(change, 'path'),
                         accessPath: accessPath,
@@ -1000,7 +1002,7 @@ function createAccessPathGuide(differences) {
         if (alternatives.length > 0) {
             guide += "Alternative Methods:\n";
             for (var j = 0; j < Math.min(alternatives.length, 3); j++) {
-                if (alternatives[j].indexOf('Error') === -1) {
+                if (stringIndexOf(alternatives[j], 'Error') === -1) {
                     guide += "  * " + alternatives[j] + "\n";
                 }
             }

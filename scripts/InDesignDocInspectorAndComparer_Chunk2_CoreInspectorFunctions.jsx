@@ -1,5 +1,6 @@
 // ============================================================================
 // CHUNK 2: CORE INSPECTOR FUNCTIONS - ROBUST PROPERTY CHANGE DETECTION
+// ES3 COMPATIBLE VERSION
 // ============================================================================
 
 // Main document report creation - COMPREHENSIVE FOR THOROUGH CHANGE DETECTION
@@ -17,7 +18,7 @@ function createDocumentReport(doc) {
     clearLargeObjects();
     
     var report = {
-        timestamp: new Date().toISOString(),
+        timestamp: toISOString(new Date()),
         analysisVersion: "2.1-estk",
         performanceMode: "comprehensive", // Full analysis for proper change detection
         
@@ -175,7 +176,7 @@ function getErrorRecommendation(errorType) {
 function getDocumentInfo(doc) {
     debugLog("Analyzing document info", "DOC");
     
-    // FIXED: Avoid duplicate calls to safeGetProperty
+    // Safe nested property access for complex properties
     var docFilePath = safeGetProperty(doc, 'filePath');
     
     return {
@@ -288,7 +289,7 @@ function getStoriesInfo(doc) {
             // Additional for comprehensive threading detection
             isThreaded: safeGetLength(safeGetProperty(story, 'textFrames')) > 1,
             textContainers: safeGetLength(safeGetProperty(story, 'textContainers')),
-            // Text content preview for change detection - FIXED
+            // Text content preview for change detection
             textPreview: (function() {
                 var content = safeGetProperty(story, 'contents');
                 return content ? content.substring(0, 100) : "[NO CONTENT]";
@@ -336,7 +337,7 @@ function getTextFramesInfo(doc) {
             // Text threading information
             previousTextFrame: safeGetProperty(safeGetProperty(textFrame, 'previousTextFrame'), 'id'),
             nextTextFrame: safeGetProperty(safeGetProperty(textFrame, 'nextTextFrame'), 'id'),
-            // Content statistics for change detection - FIXED
+            // Content statistics for change detection
             characterCount: (function() {
                 var content = safeGetProperty(textFrame, 'contents');
                 return content ? content.length : 0;
@@ -348,14 +349,20 @@ function getTextFramesInfo(doc) {
     }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames");
 }
 
-// FIXED: Use safe property access
+// ES3-compatible word count calculation
 function calculateWordCount(textFrame) {
     try {
         var content = safeGetProperty(textFrame, 'contents');
         if (content) {
-            return content.split(/\s+/).filter(function(word) { 
-                return word.length > 0; 
-            }).length;
+            // ES3-compatible word splitting and filtering
+            var words = content.split(/\s+/);
+            var wordCount = 0;
+            for (var i = 0; i < words.length; i++) {
+                if (words[i].length > 0) {
+                    wordCount++;
+                }
+            }
+            return wordCount;
         }
     } catch (e) {
         debugLog("Failed to calculate word count: " + e.message, "WARN");
@@ -363,7 +370,6 @@ function calculateWordCount(textFrame) {
     return 0;
 }
 
-// FIXED: Use safe property access
 function getFirstParagraphStyle(textFrame) {
     try {
         var paragraphs = safeGetProperty(textFrame, 'paragraphs');
@@ -449,9 +455,15 @@ function getComprehensiveTextContent(doc) {
                 var content = safeGetProperty(textFrame, 'contents');
                 if (content) {
                     frameAnalysis.characterCount = content.length;
-                    frameAnalysis.wordCount = content.split(/\s+/).filter(function(word) { 
-                        return word.length > 0; 
-                    }).length;
+                    // ES3-compatible word counting
+                    var words = content.split(/\s+/);
+                    var wordCount = 0;
+                    for (var i = 0; i < words.length; i++) {
+                        if (words[i].length > 0) {
+                            wordCount++;
+                        }
+                    }
+                    frameAnalysis.wordCount = wordCount;
                     frameAnalysis.paragraphCount = safeGetLength(safeGetProperty(textFrame, 'paragraphs'));
                     
                     // Try to get comprehensive font and color information for change detection
@@ -485,7 +497,7 @@ function getComprehensiveTextContent(doc) {
             ANALYSIS_CONFIG.textItemsProcessed++;
             
             return frameAnalysis;
-        }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames"); // Use config value for comprehensive coverage
+        }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames");
     } catch (e) {
         textAnalysis.textFrameDetailsError = "Text frames analysis failed: " + e.message;
         debugLog("Text frames analysis failed: " + e.message, "ERROR");
@@ -524,7 +536,7 @@ function getComprehensiveTextContent(doc) {
             ANALYSIS_CONFIG.textItemsProcessed++;
             
             return storyAnalysis;
-        }, ANALYSIS_CONFIG.maxCollectionSample, "stories"); // Use config value for comprehensive coverage
+        }, ANALYSIS_CONFIG.maxCollectionSample, "stories");
     } catch (e) {
         textAnalysis.storyDetailsError = "Stories analysis failed: " + e.message;
         debugLog("Stories analysis failed: " + e.message, "ERROR");
