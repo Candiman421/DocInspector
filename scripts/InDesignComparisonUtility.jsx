@@ -541,7 +541,7 @@ function createEnhancedHumanReadableSummary(differences) {
     // Enhanced Text Content Analysis (Priority section)
     if (changes.textContent) {
         summary += "📝 TEXT CONTENT ANALYSIS (ENHANCED)\n";
-        summary += "-".repeat(35) + "\n";
+        summary += repeatString("-", 35) + "\n";
         var textChanges = categorizeChanges(changes.textContent);
         
         if (textChanges.additions.length > 0) {
@@ -574,7 +574,7 @@ function createEnhancedHumanReadableSummary(differences) {
     // Auto-Discovered Collections Changes
     if (changes.autoDiscoveredCollections) {
         summary += "🔍 AUTO-DISCOVERED COLLECTIONS\n";
-        summary += "-".repeat(30) + "\n";
+        summary += repeatString("-", 30) + "\n";
         var discoveryChanges = categorizeChanges(changes.autoDiscoveredCollections);
         
         if (discoveryChanges.additions.length > 0) {
@@ -600,7 +600,7 @@ function createEnhancedHumanReadableSummary(differences) {
     // Broken Properties Analysis
     if (changes.brokenProperties) {
         summary += "🔧 PROPERTY ACCESSIBILITY ANALYSIS\n";
-        summary += "-".repeat(35) + "\n";
+        summary += repeatString("-", 35) + "\n";
         var brokenChanges = categorizeChanges(changes.brokenProperties);
         
         if (brokenChanges.additions.length > 0) {
@@ -618,7 +618,7 @@ function createEnhancedHumanReadableSummary(differences) {
     // Document Information Changes
     if (changes.documentInfo) {
         summary += "📄 DOCUMENT INFORMATION\n";
-        summary += "-".repeat(25) + "\n";
+        summary += repeatString("-", 25) + "\n";
         for (var i = 0; i < Math.min(changes.documentInfo.length, 5); i++) {
             var change = changes.documentInfo[i];
             summary += "• " + formatChangeWithAccess(change) + "\n";
@@ -632,7 +632,7 @@ function createEnhancedHumanReadableSummary(differences) {
     // Page Changes
     if (changes.pages) {
         summary += "📃 PAGES\n";
-        summary += "-".repeat(8) + "\n";
+        summary += repeatString("-", 8) + "\n";
         var pageChanges = categorizeChanges(changes.pages);
         if (pageChanges.additions.length > 0) {
             summary += "• Added " + pageChanges.additions.length + " page(s)\n";
@@ -652,7 +652,7 @@ function createEnhancedHumanReadableSummary(differences) {
     // Enhanced Stories Analysis
     if (changes.stories) {
         summary += "📖 TEXT STORIES (ENHANCED)\n";
-        summary += "-".repeat(24) + "\n";
+        summary += repeatString("-", 24) + "\n";
         var storyChanges = categorizeChanges(changes.stories);
         if (storyChanges.additions.length > 0) {
             summary += "• Added " + storyChanges.additions.length + " story(ies)\n";
@@ -802,7 +802,7 @@ function getSectionSummary(sectionName, changes) {
     }
     
     summary += icon + " " + displayName + "\n";
-    summary += "-".repeat(displayName.length + 3) + "\n";
+    summary += repeatString("-", displayName.length + 3) + "\n";
     
     if (categorized.additions.length > 0) {
         summary += "• Added " + categorized.additions.length + " item(s)\n";
@@ -834,7 +834,7 @@ function createEnhancedTextAnalysisSummary(differences) {
     // Text content changes
     if (differences.changes.textContent) {
         summary += "TEXT CONTENT CHANGES\n";
-        summary += "-".repeat(20) + "\n\n";
+        summary += repeatString("-", 20) + "\n\n";
         
         var textChanges = differences.changes.textContent;
         for (var i = 0; i < textChanges.length; i++) {
@@ -884,14 +884,14 @@ function createEnhancedTextAnalysisSummary(differences) {
                 }
             }
             
-            summary += "\n" + "-".repeat(50) + "\n\n";
+            summary += "\n" + repeatString("-", 50) + "\n\n";
         }
     }
     
     // Story-level text changes
     if (differences.changes.stories) {
         summary += "\nSTORY-LEVEL TEXT CHANGES\n";
-        summary += "-".repeat(25) + "\n\n";
+        summary += repeatString("-", 25) + "\n\n";
         
         var storyChanges = differences.changes.stories;
         var textRelatedChanges = [];
@@ -936,7 +936,7 @@ function createEnhancedTextAnalysisSummary(differences) {
     // Text frame analysis
     if (differences.changes.textFrames) {
         summary += "\nTEXT FRAME CHANGES\n";
-        summary += "-".repeat(18) + "\n\n";
+        summary += repeatString("-", 18) + "\n\n";
         
         var frameChanges = differences.changes.textFrames;
         var textFrameTextChanges = [];
@@ -966,7 +966,7 @@ function createEnhancedTextAnalysisSummary(differences) {
     
     // Comprehensive text statistics
     summary += "\nTEXT ANALYSIS SUMMARY\n";
-    summary += "-".repeat(21) + "\n";
+    summary += repeatString("-", 21) + "\n";
     summary += "Total text-related changes: " + ((differences.changes.textContent ? differences.changes.textContent.length : 0) +
                                                 (textRelatedChanges ? textRelatedChanges.length : 0) +
                                                 (textFrameTextChanges ? textFrameTextChanges.length : 0)) + "\n";
@@ -1052,7 +1052,7 @@ function createEnhancedDiscoveryReport(differences) {
         var info = differences.discoveryInfo;
         
         report += "DISCOVERY SUMMARY\n";
-        report += "-".repeat(17) + "\n";
+        report += repeatString("-", 17) + "\n";
         report += "Total collections discovered: " + (info.totalCollections || 0) + "\n";
         report += "New collections found: " + (info.newCollections || 0) + "\n";
         report += "Collections that disappeared: " + (info.removedCollections || 0) + "\n";
@@ -1065,7 +1065,7 @@ function createEnhancedDiscoveryReport(differences) {
         
         // Discovery health assessment
         report += "DISCOVERY HEALTH ASSESSMENT\n";
-        report += "-".repeat(28) + "\n";
+        report += repeatString("-", 28) + "\n";
         var accessibilityRatio = info.accessibleProperties / (info.accessibleProperties + info.brokenProperties);
         if (accessibilityRatio > 0.9) {
             report += "Status: ✓ Excellent - Most properties accessible\n";
@@ -1080,7 +1080,7 @@ function createEnhancedDiscoveryReport(differences) {
     // Auto-discovered collections changes
     if (differences.changes.autoDiscoveredCollections) {
         report += "COLLECTION DISCOVERY CHANGES\n";
-        report += "-".repeat(28) + "\n\n";
+        report += repeatString("-", 28) + "\n\n";
         
         var collectionChanges = differences.changes.autoDiscoveredCollections;
         for (var i = 0; i < collectionChanges.length; i++) {
@@ -1105,14 +1105,14 @@ function createEnhancedDiscoveryReport(differences) {
                 }
             }
             
-            report += "\n" + "-".repeat(40) + "\n\n";
+            report += "\n" + repeatString("-", 40) + "\n\n";
         }
     }
     
     // Broken properties analysis
     if (differences.changes.brokenProperties) {
         report += "PROPERTY ACCESSIBILITY ANALYSIS\n";
-        report += "-".repeat(32) + "\n\n";
+        report += repeatString("-", 32) + "\n\n";
         
         var brokenChanges = differences.changes.brokenProperties;
         for (var i = 0; i < brokenChanges.length; i++) {
@@ -1143,7 +1143,7 @@ function createEnhancedDiscoveryReport(differences) {
     
     // Discovery recommendations
     report += "\nDISCOVERY RECOMMENDATIONS\n";
-    report += "-".repeat(25) + "\n";
+    report += repeatString("-", 25) + "\n";
     
     if (differences.discoveryInfo) {
         var info = differences.discoveryInfo;
@@ -1243,7 +1243,7 @@ function createComprehensiveAccessPathsGuide(differences) {
                         guide += "\nComprehensive Access Example:\n";
                         guide += generateEnhancedCodeExample(change, accessPath);
                         
-                        guide += "\n" + "-".repeat(50) + "\n\n";
+                        guide += "\n" + repeatString("-", 50) + "\n\n";
                     }
                 }
             }
@@ -1496,7 +1496,7 @@ function createTechnicalReport(differences) {
     
     // Analysis statistics
     report += "ANALYSIS STATISTICS\n";
-    report += "-".repeat(19) + "\n";
+    report += repeatString("-", 19) + "\n";
     report += "Total sections analyzed: " + (differences.summary.changedSections ? differences.summary.changedSections.length : 0) + "\n";
     report += "Changes detected: " + (differences.summary.hasChanges ? "Yes" : "No") + "\n";
     report += "Errors encountered: " + (differences.errors ? differences.errors.length : 0) + "\n";
@@ -1511,7 +1511,7 @@ function createTechnicalReport(differences) {
     
     // Change distribution
     report += "CHANGE DISTRIBUTION\n";
-    report += "-".repeat(19) + "\n";
+    report += repeatString("-", 19) + "\n";
     var changes = differences.changes;
     for (var section in changes) {
         if (changes[section] && changes[section].length) {
@@ -1523,7 +1523,7 @@ function createTechnicalReport(differences) {
     // Error analysis
     if (differences.errors && differences.errors.length > 0) {
         report += "ERROR ANALYSIS\n";
-        report += "-".repeat(14) + "\n";
+        report += repeatString("-", 14) + "\n";
         var errorCategories = {};
         
         for (var i = 0; i < differences.errors.length; i++) {
@@ -1543,7 +1543,7 @@ function createTechnicalReport(differences) {
     
     // Performance metrics
     report += "PERFORMANCE METRICS\n";
-    report += "-".repeat(19) + "\n";
+    report += repeatString("-", 19) + "\n";
     report += "Analysis completed successfully with enhanced error handling\n";
     report += "Memory usage optimized through safe property access\n";
     report += "Timeout protection enabled for all operations\n";
@@ -1551,7 +1551,7 @@ function createTechnicalReport(differences) {
     
     // Technical recommendations
     report += "TECHNICAL RECOMMENDATIONS\n";
-    report += "-".repeat(25) + "\n";
+    report += repeatString("-", 25) + "\n";
     report += "1. Use provided access paths for reliable property access\n";
     report += "2. Implement comprehensive error handling in your scripts\n";
     report += "3. Test with various document types and InDesign versions\n";
@@ -2074,6 +2074,15 @@ function getStatusText() {
     }
     
     return status;
+}
+
+// Helper function for string repetition - Fixed: avoiding reserved word 'char'
+function repeatString(charToRepeat, count) {
+    var result = "";
+    for (var i = 0; i < count; i++) {
+        result += charToRepeat;
+    }
+    return result;
 }
 
 // Script entry point - show main menu

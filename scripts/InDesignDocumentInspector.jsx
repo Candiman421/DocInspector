@@ -2290,7 +2290,12 @@ function testStyleProperties(doc, brokenTracking, testSuites) {
     // Test paragraph styles if available
     if (doc.paragraphStyles && doc.paragraphStyles.length > 0) {
         try {
-            brokenTracking.testResults.style = runPropertyTests(doc.paragraphStyles[0], testSuites.style, 'doc.paragraphStyles[0]', brokenTracking);
+            var styleTestSuite = [
+                { prop: 'name', expected: 'string', critical: true },
+                { prop: 'basedOn', expected: 'object', nullable: true },
+                { prop: 'appliedTo', expected: 'object', nullable: true }
+            ];
+            brokenTracking.testResults.style = runPropertyTests(doc.paragraphStyles[0], styleTestSuite, 'doc.paragraphStyles[0]', brokenTracking);
         } catch (e) {
             brokenTracking.brokenByCategory.styleLevel.push({
                 property: "paragraphStyles[0]",
@@ -2307,7 +2312,13 @@ function testLinkProperties(doc, brokenTracking, testSuites) {
     // Test links if available
     if (doc.links && doc.links.length > 0) {
         try {
-            brokenTracking.testResults.link = runPropertyTests(doc.links[0], testSuites.link, 'doc.links[0]', brokenTracking);
+            var linkTestSuite = [
+                { prop: 'name', expected: 'string', critical: true },
+                { prop: 'filePath', expected: 'string', nullable: true },
+                { prop: 'status', expected: 'object', nullable: true },
+                { prop: 'size', expected: 'number', nullable: true }
+            ];
+            brokenTracking.testResults.link = runPropertyTests(doc.links[0], linkTestSuite, 'doc.links[0]', brokenTracking);
         } catch (e) {
             brokenTracking.brokenByCategory.linkLevel.push({
                 property: "links[0]",
@@ -2465,11 +2476,36 @@ function findTextInGroups(doc) {
     return textInGroups;
 }
 
-// Helper function for string repetition
-function repeatString(char, count) {
+function findNestedImages(doc) {
+    var nestedImages = [];
+    
+    try {
+        // Look for images in graphics
+        if (doc.graphics && doc.graphics.length > 0) {
+            for (var i = 0; i < Math.min(doc.graphics.length, 20); i++) {
+                var graphic = doc.graphics[i];
+                var imageCount = safeGetLength(graphic.images);
+                if (imageCount > 0) {
+                    nestedImages.push({
+                        graphicIndex: i,
+                        imageCount: imageCount,
+                        path: "doc.graphics[" + i + "].images"
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        nestedImages.push({ error: "Nested image search failed: " + e.message });
+    }
+    
+    return nestedImages;
+}
+
+// Helper function for string repetition - Fixed: 'char' is a reserved word in ExtendScript
+function repeatString(charToRepeat, count) {
     var result = "";
     for (var i = 0; i < count; i++) {
-        result += char;
+        result += charToRepeat;
     }
     return result;
 }
