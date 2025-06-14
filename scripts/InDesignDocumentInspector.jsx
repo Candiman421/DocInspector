@@ -2511,41 +2511,50 @@ function repeatString(charToRepeat, count) {
 }
 
 // Make functions available globally for the comparison utility
-// ExtendScript global scope assignments
-if (typeof window !== 'undefined') {
-    // Browser environment
-    window.createDocumentReport = createDocumentReport;
-    window.compareDocumentReports = compareDocumentReports;
-    window.safeGetProperty = safeGetProperty;
-    window.safeGetNestedProperty = safeGetNestedProperty;
-    window.generateTextAccessPaths = generateTextAccessPaths;
-    window.extractTextSamples = extractTextSamples;
-    window.analyzeTableText = analyzeTableText;
-    window.findTextInGroups = findTextInGroups;
-    window.findNestedImages = findNestedImages;
-    window.repeatString = repeatString;
-    window.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
-} else {
-    // ExtendScript environment - use $.global
-    $.global.createDocumentReport = createDocumentReport;
-    $.global.compareDocumentReports = compareDocumentReports;
-    $.global.safeGetProperty = safeGetProperty;
-    $.global.safeGetNestedProperty = safeGetNestedProperty;
-    $.global.generateTextAccessPaths = generateTextAccessPaths;
-    $.global.extractTextSamples = extractTextSamples;
-    $.global.analyzeTableText = analyzeTableText;
-    $.global.findTextInGroups = findTextInGroups;
-    $.global.findNestedImages = findNestedImages;
-    $.global.repeatString = repeatString;
-    $.global.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
-}
+// ExtendScript-specific global scope assignment
+(function() {
+    // Get the global object
+    var global = (function() { return this; })();
+    
+    // Assign all necessary functions to global scope
+    global.createDocumentReport = createDocumentReport;
+    global.compareDocumentReports = compareDocumentReports;
+    global.safeGetProperty = safeGetProperty;
+    global.safeGetNestedProperty = safeGetNestedProperty;
+    global.generateTextAccessPaths = generateTextAccessPaths;
+    global.extractTextSamples = extractTextSamples;
+    global.analyzeTableText = analyzeTableText;
+    global.findTextInGroups = findTextInGroups;
+    global.findNestedImages = findNestedImages;
+    global.repeatString = repeatString;
+    global.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+    
+    // Also assign to $ for ExtendScript
+    $.createDocumentReport = createDocumentReport;
+    $.compareDocumentReports = compareDocumentReports;
+    $.safeGetProperty = safeGetProperty;
+    $.safeGetNestedProperty = safeGetNestedProperty;
+    $.generateTextAccessPaths = generateTextAccessPaths;
+    $.extractTextSamples = extractTextSamples;
+    $.analyzeTableText = analyzeTableText;
+    $.findTextInGroups = findTextInGroups;
+    $.findNestedImages = findNestedImages;
+    $.repeatString = repeatString;
+    $.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+})();
 
-// Also assign to this context for backward compatibility
-this.createDocumentReport = createDocumentReport;
-this.compareDocumentReports = compareDocumentReports;
-this.safeGetProperty = safeGetProperty;
-this.safeGetNestedProperty = safeGetNestedProperty;
-this.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+// Direct assignment as backup
+createDocumentReport = createDocumentReport;
+compareDocumentReports = compareDocumentReports;
+safeGetProperty = safeGetProperty;
+safeGetNestedProperty = safeGetNestedProperty;
+generateTextAccessPaths = generateTextAccessPaths;
+extractTextSamples = extractTextSamples;
+analyzeTableText = analyzeTableText;
+findTextInGroups = findTextInGroups;
+findNestedImages = findNestedImages;
+repeatString = repeatString;
+ANALYSIS_CONFIG = ANALYSIS_CONFIG;
 
 // Enhanced script completion message
 try {
@@ -2573,3 +2582,21 @@ try {
         // Script loaded but can't show completion message
     }
 }
+
+// Diagnostic function to test if everything loaded properly
+function testInspectorLoaded() {
+    try {
+        alert("Testing inspector functions...\n\n" +
+              "createDocumentReport: " + (typeof createDocumentReport) + "\n" +
+              "ANALYSIS_CONFIG: " + (typeof ANALYSIS_CONFIG) + "\n" +
+              "$.createDocumentReport: " + (typeof $.createDocumentReport) + "\n" +
+              "$.ANALYSIS_CONFIG: " + (typeof $.ANALYSIS_CONFIG));
+        return true;
+    } catch (e) {
+        alert("Test failed: " + e.message);
+        return false;
+    }
+}
+
+// Call the test immediately
+testInspectorLoaded();

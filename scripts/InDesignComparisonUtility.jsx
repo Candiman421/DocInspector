@@ -33,20 +33,25 @@ var UTILITY_STATE = {
 
 // Enhanced quick analysis and comparison workflow with comprehensive error handling
 function quickCompare() {
+    // Diagnostic check
+    alert("At start of quickCompare:\n" +
+        "createDocumentReport: " + (typeof createDocumentReport) + "\n" +
+        "ANALYSIS_CONFIG: " + (typeof ANALYSIS_CONFIG));
+
     if (!app.documents.length) {
         alert("Please open a document first.");
         return;
     }
-    
+
     // Verify inspector is loaded and compatible
     if (!verifyInspectorCompatibility()) {
         return;
     }
-    
+
     var doc = app.activeDocument;
     var docName = doc.name.replace(/\.[^\.]+$/, "");
     var docPath = doc.filePath;
-    
+
     // Ensure document is saved
     if (!doc.saved || !docPath) {
         var shouldSave = confirm("Document must be saved for analysis. Save now?");
@@ -70,134 +75,134 @@ function quickCompare() {
             return;
         }
     }
-    
+
     UTILITY_STATE.currentDocument = doc;
-    
+
     // Check for existing baseline report
     var baselineFile = File(docPath + "/" + docName + "_baseline.json");
     var currentFile = File(docPath + "/" + docName + "_current.json");
-    
+
     if (!baselineFile.exists) {
         // Create enhanced baseline report
-        var baselineSuccess = showProgressDialog("Creating enhanced baseline analysis...", function() {
+        var baselineSuccess = showProgressDialog("Creating enhanced baseline analysis...", function () {
             try {
                 var report = createDocumentReport(doc);
                 if (!report) {
                     alert("Failed to create baseline analysis. Please check the document and try again.");
                     return false;
                 }
-                
+
                 // Validate report before saving
                 if (!validateAnalysisReport(report)) {
                     alert("Generated report failed validation. Analysis may be incomplete.");
                     return false;
                 }
-                
+
                 // Save with error handling
                 return saveReportSafely(baselineFile, report, "baseline");
-                
+
             } catch (e) {
                 alert("Baseline creation failed: " + e.message);
                 return false;
             }
         });
-        
+
         if (!baselineSuccess) {
             return;
         }
-        
+
         UTILITY_STATE.reportFiles.baseline = baselineFile;
-        
+
         // Show enhanced baseline creation summary
         var baselineStats = getBaselineStats();
         showBaselineCreatedDialog(baselineStats);
         return;
     }
-    
+
     // Create current report with enhanced progress tracking
     var currentReport = null;
-    var currentSuccess = showProgressDialog("Analyzing current document state...", function() {
+    var currentSuccess = showProgressDialog("Analyzing current document state...", function () {
         try {
             currentReport = createDocumentReport(doc);
             if (!currentReport) {
                 alert("Failed to analyze current document. Please check for errors and try again.");
                 return false;
             }
-            
+
             if (!validateAnalysisReport(currentReport)) {
                 alert("Current analysis may be incomplete - proceeding with caution.");
             }
-            
+
             return saveReportSafely(currentFile, currentReport, "current");
-            
+
         } catch (e) {
             alert("Current analysis failed: " + e.message);
             return false;
         }
     });
-    
+
     if (!currentReport || !currentSuccess) {
         return;
     }
-    
+
     UTILITY_STATE.reportFiles.current = currentFile;
     UTILITY_STATE.lastAnalysisReport = currentReport;
-    
+
     // Load baseline report with error handling
     var baselineReport = null;
     try {
         baselineFile.open("r");
         var baselineContent = baselineFile.read();
         baselineFile.close();
-        
+
         if (!baselineContent || baselineContent.length === 0) {
             alert("Baseline file is empty or corrupted. Please recreate the baseline.");
             return;
         }
-        
+
         baselineReport = JSON.parse(baselineContent);
-        
+
         if (!validateAnalysisReport(baselineReport)) {
             alert("Baseline report is invalid or corrupted. Consider recreating the baseline.");
         }
-        
+
     } catch (e) {
         alert("Failed to load baseline report: " + e.message + "\nConsider recreating the baseline.");
         return;
     }
-    
+
     // Enhanced comparison with comprehensive progress tracking
     var differences = null;
-    var comparisonSuccess = showProgressDialog("Performing comprehensive document comparison...", function() {
+    var comparisonSuccess = showProgressDialog("Performing comprehensive document comparison...", function () {
         try {
             differences = compareDocumentReports(baselineReport, currentReport);
-            
+
             if (!differences) {
                 alert("Comparison failed - no results generated.");
                 return false;
             }
-            
+
             // Validate comparison results
             if (!validateComparisonResults(differences)) {
                 alert("Comparison results may be incomplete - proceeding with available data.");
             }
-            
+
             return true;
-            
+
         } catch (e) {
             alert("Comparison failed: " + e.message);
             return false;
         }
     });
-    
+
     if (!differences || !comparisonSuccess) {
         return;
     }
-    
+
     UTILITY_STATE.lastComparisonResult = differences;
-    
+
     // Create comprehensive report suite
-    var reportSuiteSuccess = showProgressDialog("Generating comprehensive report suite...", function() {
+    var reportSuiteSuccess = showProgressDialog("Generating comprehensive report suite...", function () {
         try {
             return createComprehensiveReportSuite(differences, docPath, docName);
         } catch (e) {
@@ -205,65 +210,134 @@ function quickCompare() {
             return false;
         }
     });
-    
+
     if (!reportSuiteSuccess) {
         return;
     }
-    
+
     // Display enhanced comparison results
     showEnhancedComparisonDialog(differences);
 }
 
 // Verify inspector compatibility and availability
 function verifyInspectorCompatibility() {
-    // Check if main inspector functions are available
-    if (typeof createDocumentReport === 'undefined') {
+    // Check if main inspector functions are available in multiple locations
+    var createReportFn = null;
+    var analysisConfig = null;
+
+    // Try multiple ways to access the functions
+    if (typeof createDocumentReport !== 'undefined') {
+        createReportFn = createDocumentReport;
+    } else if (typeof $.createDocumentReport !== 'undefined') {
+        createReportFn = $.createDocumentReport;
+    } else if (typeof window !== 'undefined' && typeof window.createDocumentReport !== 'undefined') {
+        createReportFn = window.createDocumentReport;
+    }
+
+    if (typeof ANALYSIS_CONFIG !== 'undefined') {
+        analysisConfig = ANALYSIS_CONFIG;
+    } else if (typeof $.ANALYSIS_CONFIG !== 'undefined') {
+        analysisConfig = $.ANALYSIS_CONFIG;
+    } else if (typeof window !== 'undefined' && typeof window.ANALYSIS_CONFIG !== 'undefined') {
+        analysisConfig = window.ANALYSIS_CONFIG;
+    }
+
+    if (!createReportFn) {
         alert("Enhanced InDesign Document Inspector v2.1 Required!\n\n" +
-              "The comparison utility requires the main inspector script to be loaded first.\n\n" +
-              "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
-              "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
+            "The comparison utility requires the main inspector script to be loaded first.\n\n" +
+            "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
+            "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
         return false;
     }
-    
-    // Check for required global objects
-    if (typeof ANALYSIS_CONFIG === 'undefined') {
+
+    if (!analysisConfig) {
         alert("Inspector configuration not found!\n\n" +
-              "Please ensure you're running the correct version of the inspector script.\n" +
-              "Required: Enhanced InDesign Document Inspector v2.1");
+            "Please ensure you're running the correct version of the inspector script.\n" +
+            "Required: Enhanced InDesign Document Inspector v2.1");
         return false;
     }
-    
+
+    // Make functions available locally if they were found elsewhere
+    if (typeof createDocumentReport === 'undefined') {
+        createDocumentReport = createReportFn;
+    }
+    if (typeof ANALYSIS_CONFIG === 'undefined') {
+        ANALYSIS_CONFIG = analysisConfig;
+    }
+
     // Check version compatibility
-    if (ANALYSIS_CONFIG.version !== UTILITY_CONFIG.requiredInspectorVersion) {
+    if (analysisConfig.version !== UTILITY_CONFIG.requiredInspectorVersion) {
         var continueAnyway = confirm("Version Mismatch Warning!\n\n" +
-                                   "Inspector version: " + (ANALYSIS_CONFIG.version || "unknown") + "\n" +
-                                   "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
-                                   "Continue anyway? (Not recommended)");
+            "Inspector version: " + (analysisConfig.version || "unknown") + "\n" +
+            "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
+            "Continue anyway? (Not recommended)");
         if (!continueAnyway) {
             return false;
         }
     }
-    
+
     // Check for enhanced features
-    if (!ANALYSIS_CONFIG.enableTextCapture) {
+    if (!analysisConfig.enableTextCapture) {
         var enableFeatures = confirm("Enhanced features are disabled in the inspector.\n\n" +
-                                   "Enable text capture and auto-discovery for full functionality?");
+            "Enable text capture and auto-discovery for full functionality?");
         if (enableFeatures) {
-            ANALYSIS_CONFIG.enableTextCapture = true;
-            ANALYSIS_CONFIG.enableAutoDiscovery = true;
-            ANALYSIS_CONFIG.enablePropertyTracking = true;
+            analysisConfig.enableTextCapture = true;
+            analysisConfig.enableAutoDiscovery = true;
+            analysisConfig.enablePropertyTracking = true;
         }
     }
-    
+
     return true;
 }
+// function verifyInspectorCompatibility() {
+//     // Check if main inspector functions are available
+//     if (typeof createDocumentReport === 'undefined') {
+//         alert("Enhanced InDesign Document Inspector v2.1 Required!\n\n" +
+//               "The comparison utility requires the main inspector script to be loaded first.\n\n" +
+//               "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
+//               "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
+//         return false;
+//     }
+
+//     // Check for required global objects
+//     if (typeof ANALYSIS_CONFIG === 'undefined') {
+//         alert("Inspector configuration not found!\n\n" +
+//               "Please ensure you're running the correct version of the inspector script.\n" +
+//               "Required: Enhanced InDesign Document Inspector v2.1");
+//         return false;
+//     }
+
+//     // Check version compatibility
+//     if (ANALYSIS_CONFIG.version !== UTILITY_CONFIG.requiredInspectorVersion) {
+//         var continueAnyway = confirm("Version Mismatch Warning!\n\n" +
+//                                    "Inspector version: " + (ANALYSIS_CONFIG.version || "unknown") + "\n" +
+//                                    "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
+//                                    "Continue anyway? (Not recommended)");
+//         if (!continueAnyway) {
+//             return false;
+//         }
+//     }
+
+//     // Check for enhanced features
+//     if (!ANALYSIS_CONFIG.enableTextCapture) {
+//         var enableFeatures = confirm("Enhanced features are disabled in the inspector.\n\n" +
+//                                    "Enable text capture and auto-discovery for full functionality?");
+//         if (enableFeatures) {
+//             ANALYSIS_CONFIG.enableTextCapture = true;
+//             ANALYSIS_CONFIG.enableAutoDiscovery = true;
+//             ANALYSIS_CONFIG.enablePropertyTracking = true;
+//         }
+//     }
+
+//     return true;
+// }
 
 // Validate analysis report structure and content
 function validateAnalysisReport(report) {
     if (!report || typeof report !== 'object') {
         return false;
     }
-    
+
     // Check for required sections
     var requiredSections = ['timestamp', 'analysisVersion', 'documentInfo'];
     for (var i = 0; i < requiredSections.length; i++) {
@@ -271,13 +345,13 @@ function validateAnalysisReport(report) {
             return false;
         }
     }
-    
+
     // Check version compatibility
     if (report.analysisVersion !== UTILITY_CONFIG.requiredInspectorVersion) {
         // Allow but warn about version mismatch
         return true; // Still valid, just potentially incompatible
     }
-    
+
     return true;
 }
 
@@ -286,12 +360,12 @@ function validateComparisonResults(differences) {
     if (!differences || typeof differences !== 'object') {
         return false;
     }
-    
+
     // Check for required structure
     if (!differences.summary || !differences.changes) {
         return false;
     }
-    
+
     return true;
 }
 
@@ -307,26 +381,26 @@ function saveReportSafely(file, report, reportType) {
                 // Backup failed but continue
             }
         }
-        
+
         // Prepare JSON string
         var jsonString = JSON.stringify(report, null, 2);
-        
+
         // Check file size
         if (jsonString.length > UTILITY_CONFIG.maxReportFileSize) {
             var proceed = confirm("Report file is very large (" + Math.round(jsonString.length / 1024 / 1024) + "MB).\n\n" +
-                                "This may cause performance issues. Continue anyway?");
+                "This may cause performance issues. Continue anyway?");
             if (!proceed) {
                 return false;
             }
         }
-        
+
         // Save file
         file.open("w");
         file.write(jsonString);
         file.close();
-        
+
         return true;
-        
+
     } catch (e) {
         alert("Failed to save " + reportType + " report: " + e.message);
         return false;
@@ -339,14 +413,14 @@ function getBaselineStats() {
         if (!ANALYSIS_CONFIG) {
             return null;
         }
-        
+
         return {
             collectionsDiscovered: ANALYSIS_CONFIG.discoveredCollections ? ANALYSIS_CONFIG.discoveredCollections.length : 0,
             textItemsProcessed: ANALYSIS_CONFIG.textItemsProcessed || 0,
             brokenPropertiesFound: ANALYSIS_CONFIG.brokenPropertiesFound ? ANALYSIS_CONFIG.brokenPropertiesFound.length : 0,
             errorsHandled: ANALYSIS_CONFIG.errors ? ANALYSIS_CONFIG.errors.length : 0,
-            processingTime: ANALYSIS_CONFIG.processingStartTime ? 
-                           (new Date().getTime() - ANALYSIS_CONFIG.processingStartTime) / 1000 : 0
+            processingTime: ANALYSIS_CONFIG.processingStartTime ?
+                (new Date().getTime() - ANALYSIS_CONFIG.processingStartTime) / 1000 : 0
         };
     } catch (e) {
         return null;
@@ -358,31 +432,31 @@ function showBaselineCreatedDialog(stats) {
     var dialog = new Window("dialog", "Enhanced Baseline Created Successfully");
     dialog.preferredSize.width = 500;
     dialog.preferredSize.height = 450;
-    
+
     var mainGroup = dialog.add("group");
     mainGroup.orientation = "column";
     mainGroup.alignment = "fill";
-    
+
     // Success message
     var successPanel = mainGroup.add("panel", undefined, "Baseline Analysis Complete");
     successPanel.alignment = "fill";
-    
-    var successText = successPanel.add("statictext", undefined, 
+
+    var successText = successPanel.add("statictext", undefined,
         "Enhanced baseline analysis has been successfully created!\n\n" +
         "The inspector has captured comprehensive information about your document,\n" +
         "including text content, object properties, and collection structure.",
-        {multiline: true});
+        { multiline: true });
     successText.alignment = "fill";
-    
+
     // Statistics panel
     if (stats) {
         var statsPanel = mainGroup.add("panel", undefined, "Analysis Statistics");
         statsPanel.alignment = "fill";
-        
+
         var statsGroup = statsPanel.add("group");
         statsGroup.orientation = "column";
         statsGroup.alignment = "fill";
-        
+
         var statsText = "DISCOVERY SUMMARY\n";
         statsText += "Collections discovered: " + stats.collectionsDiscovered + "\n";
         statsText += "Text items processed: " + stats.textItemsProcessed + "\n";
@@ -391,15 +465,15 @@ function showBaselineCreatedDialog(stats) {
         if (stats.processingTime > 0) {
             statsText += "Processing time: " + stats.processingTime.toFixed(1) + " seconds\n";
         }
-        
-        var statsDisplay = statsGroup.add("statictext", undefined, statsText, {multiline: true});
+
+        var statsDisplay = statsGroup.add("statictext", undefined, statsText, { multiline: true });
         statsDisplay.alignment = "fill";
     }
-    
+
     // Instructions panel
     var instructionsPanel = mainGroup.add("panel", undefined, "Next Steps");
     instructionsPanel.alignment = "fill";
-    
+
     var instructionsText = instructionsPanel.add("statictext", undefined,
         "1. Make your changes to the document\n" +
         "2. Run this utility again to see what changed\n" +
@@ -409,17 +483,17 @@ function showBaselineCreatedDialog(stats) {
         "- Auto-discovered collections and properties\n" +
         "- Broken property detection and alternatives\n" +
         "- Comprehensive object model access paths",
-        {multiline: true});
+        { multiline: true });
     instructionsText.alignment = "fill";
-    
+
     // Buttons
     var buttonGroup = mainGroup.add("group");
     buttonGroup.alignment = "center";
-    
+
     var viewReportBtn = buttonGroup.add("button", undefined, "View Baseline Report");
     var okBtn = buttonGroup.add("button", undefined, "OK");
-    
-    viewReportBtn.onClick = function() {
+
+    viewReportBtn.onClick = function () {
         try {
             if (UTILITY_STATE.reportFiles.baseline) {
                 UTILITY_STATE.reportFiles.baseline.execute();
@@ -428,11 +502,11 @@ function showBaselineCreatedDialog(stats) {
             alert("Could not open baseline report: " + e.message);
         }
     };
-    
-    okBtn.onClick = function() {
+
+    okBtn.onClick = function () {
         dialog.close();
     };
-    
+
     dialog.show();
 }
 
@@ -447,7 +521,7 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
             accessPathsGuide: createComprehensiveAccessPathsGuide(differences),
             technicalReport: createTechnicalReport(differences)
         };
-        
+
         // Save all reports with error handling
         var reportFiles = {
             comparison: File(docPath + "/" + docName + "_comparison.json"),
@@ -457,21 +531,21 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
             accessPathsGuide: File(docPath + "/" + docName + "_access_paths_guide.txt"),
             technicalReport: File(docPath + "/" + docName + "_technical_report.txt")
         };
-        
+
         // Save JSON comparison data
         if (!saveReportSafely(reportFiles.comparison, differences, "comparison")) {
             return false;
         }
-        
+
         // Save text reports
         var textReports = [
-            {file: reportFiles.summary, content: reports.summary, type: "summary"},
-            {file: reportFiles.textAnalysis, content: reports.textAnalysis, type: "text analysis"},
-            {file: reportFiles.discoveryReport, content: reports.discoveryReport, type: "discovery report"},
-            {file: reportFiles.accessPathsGuide, content: reports.accessPathsGuide, type: "access paths guide"},
-            {file: reportFiles.technicalReport, content: reports.technicalReport, type: "technical report"}
+            { file: reportFiles.summary, content: reports.summary, type: "summary" },
+            { file: reportFiles.textAnalysis, content: reports.textAnalysis, type: "text analysis" },
+            { file: reportFiles.discoveryReport, content: reports.discoveryReport, type: "discovery report" },
+            { file: reportFiles.accessPathsGuide, content: reports.accessPathsGuide, type: "access paths guide" },
+            { file: reportFiles.technicalReport, content: reports.technicalReport, type: "technical report" }
         ];
-        
+
         for (var i = 0; i < textReports.length; i++) {
             var report = textReports[i];
             try {
@@ -483,12 +557,12 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
                 return false;
             }
         }
-        
+
         // Update state
         UTILITY_STATE.reportFiles = reportFiles;
-        
+
         return true;
-        
+
     } catch (e) {
         alert("Report suite creation failed: " + e.message);
         return false;
@@ -501,11 +575,11 @@ function createEnhancedHumanReadableSummary(differences) {
     summary += "Generated: " + new Date().toString() + "\n";
     summary += "Analysis Version: 2.1 (Text Capture + Auto-Discovery + Enhanced Error Handling)\n";
     summary += "=" + Array(80).join("=") + "\n\n";
-    
+
     if (!differences.summary.hasChanges) {
         summary += "NO CHANGES DETECTED\n";
         summary += "The document appears to be identical to the baseline.\n\n";
-        
+
         // Show discovery information even with no changes
         if (differences.discoveryInfo) {
             summary += "DISCOVERY SUMMARY\n";
@@ -516,13 +590,13 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         return summary;
     }
-    
+
     summary += "CHANGES DETECTED\n";
     summary += "Changed sections: " + differences.summary.changedSections.length + "\n";
     if (differences.errors && differences.errors.length > 0) {
         summary += "Analysis errors handled: " + differences.errors.length + " (details available)\n";
     }
-    
+
     // Enhanced discovery summary
     if (differences.discoveryInfo) {
         summary += "\nCOMPREHENSIVE DISCOVERY SUMMARY\n";
@@ -535,15 +609,15 @@ function createEnhancedHumanReadableSummary(differences) {
         summary += "Properties now broken: " + (differences.discoveryInfo.newlyBrokenProperties || 0) + "\n";
     }
     summary += "\n";
-    
+
     var changes = differences.changes;
-    
+
     // Enhanced Text Content Analysis (Priority section)
     if (changes.textContent) {
         summary += "TEXT CONTENT ANALYSIS (ENHANCED)\n";
         summary += repeatString("-", 35) + "\n";
         var textChanges = categorizeChanges(changes.textContent);
-        
+
         if (textChanges.additions.length > 0) {
             summary += "- Added " + textChanges.additions.length + " text element(s)\n";
         }
@@ -552,7 +626,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         if (textChanges.modifications.length > 0) {
             summary += "- Modified " + textChanges.modifications.length + " text element(s)\n";
-            
+
             // Show detailed text changes
             for (var i = 0; i < Math.min(textChanges.modifications.length, 5); i++) {
                 var change = textChanges.modifications[i];
@@ -570,13 +644,13 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         summary += "\n";
     }
-    
+
     // Auto-Discovered Collections Changes
     if (changes.autoDiscoveredCollections) {
         summary += "AUTO-DISCOVERED COLLECTIONS\n";
         summary += repeatString("-", 30) + "\n";
         var discoveryChanges = categorizeChanges(changes.autoDiscoveredCollections);
-        
+
         if (discoveryChanges.additions.length > 0) {
             summary += "- Found " + discoveryChanges.additions.length + " new collection(s)\n";
             for (var i = 0; i < Math.min(discoveryChanges.additions.length, 3); i++) {
@@ -596,13 +670,13 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         summary += "\n";
     }
-    
+
     // Broken Properties Analysis
     if (changes.brokenProperties) {
         summary += "PROPERTY ACCESSIBILITY ANALYSIS\n";
         summary += repeatString("-", 35) + "\n";
         var brokenChanges = categorizeChanges(changes.brokenProperties);
-        
+
         if (brokenChanges.additions.length > 0) {
             summary += "- " + brokenChanges.additions.length + " properties became inaccessible\n";
         }
@@ -614,7 +688,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         summary += "\n";
     }
-    
+
     // Document Information Changes
     if (changes.documentInfo) {
         summary += "DOCUMENT INFORMATION\n";
@@ -628,7 +702,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         summary += "\n";
     }
-    
+
     // Page Changes
     if (changes.pages) {
         summary += "PAGES\n";
@@ -648,7 +722,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         summary += "\n";
     }
-    
+
     // Enhanced Stories Analysis
     if (changes.stories) {
         summary += "TEXT STORIES (ENHANCED)\n";
@@ -662,7 +736,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         if (storyChanges.modifications.length > 0) {
             summary += "- Modified " + storyChanges.modifications.length + " story(ies)\n";
-            
+
             // Enhanced story change analysis
             for (var i = 0; i < Math.min(storyChanges.modifications.length, 3); i++) {
                 var change = storyChanges.modifications[i];
@@ -674,7 +748,7 @@ function createEnhancedHumanReadableSummary(differences) {
         }
         summary += "\n";
     }
-    
+
     // Continue with other sections (images, graphics, etc.)
     var otherSections = ['images', 'graphics', 'textFrames', 'layers', 'styles', 'colors', 'fonts', 'links'];
     for (var s = 0; s < otherSections.length; s++) {
@@ -683,7 +757,7 @@ function createEnhancedHumanReadableSummary(differences) {
             summary += getSectionSummary(sectionName, changes[sectionName]);
         }
     }
-    
+
     // Comprehensive Summary Footer
     summary += "=" + Array(80).join("=") + "\n";
     summary += "COMPREHENSIVE ANALYSIS COMPLETE\n";
@@ -701,7 +775,7 @@ function createEnhancedHumanReadableSummary(differences) {
     summary += "- *_access_paths_guide.txt (object model access guidance)\n";
     summary += "- *_technical_report.txt (comprehensive technical analysis)\n\n";
     summary += "All reports work together to provide complete change analysis.\n";
-    
+
     return summary;
 }
 
@@ -712,7 +786,7 @@ function categorizeChanges(changesList) {
         deletions: [],
         modifications: []
     };
-    
+
     for (var i = 0; i < changesList.length; i++) {
         var change = changesList[i];
         if (change.type === 'addition') {
@@ -723,21 +797,21 @@ function categorizeChanges(changesList) {
             categorized.modifications.push(change);
         }
     }
-    
+
     return categorized;
 }
 
 function formatChangeWithAccess(change) {
     var formatted = change.path || 'unknown';
-    
+
     if (change.type === 'value_change' || change.type === 'text_content_change') {
         formatted += ": " + (change.oldValue || 'null') + " -> " + (change.newValue || 'null');
     }
-    
+
     if (change.accessPath && change.accessPath.primary) {
         formatted += " (Access: " + change.accessPath.primary + ")";
     }
-    
+
     return formatted;
 }
 
@@ -746,7 +820,7 @@ function getEnhancedTextChangeSummary(change) {
         if (change.type === "text_content_change" || change.type === "value_change") {
             var oldText = change.oldValue || "";
             var newText = change.newValue || "";
-            
+
             if (oldText.length === 0 && newText.length > 0) {
                 return "Text added: \"" + newText.substring(0, 50) + (newText.length > 50 ? "..." : "") + "\"";
             } else if (oldText.length > 0 && newText.length === 0) {
@@ -786,10 +860,10 @@ function getStoryChangeSummary(change) {
 function getSectionSummary(sectionName, changes) {
     var summary = "";
     var categorized = categorizeChanges(changes);
-    
+
     var displayName = sectionName.toUpperCase();
     var icon = "";
-    
+
     switch (sectionName) {
         case 'images': icon = "[IMG] "; break;
         case 'graphics': icon = "[GFX] "; break;
@@ -800,10 +874,10 @@ function getSectionSummary(sectionName, changes) {
         case 'fonts': icon = "[FNT] "; break;
         case 'links': icon = "[LNK] "; break;
     }
-    
+
     summary += icon + displayName + "\n";
     summary += repeatString("-", displayName.length + icon.length) + "\n";
-    
+
     if (categorized.additions.length > 0) {
         summary += "- Added " + categorized.additions.length + " item(s)\n";
     }
@@ -820,7 +894,7 @@ function getSectionSummary(sectionName, changes) {
         }
     }
     summary += "\n";
-    
+
     return summary;
 }
 
@@ -830,52 +904,52 @@ function createEnhancedTextAnalysisSummary(differences) {
     summary += "Generated: " + new Date().toString() + "\n";
     summary += "Analysis Version: 2.1 - Comprehensive Text Capture & Analysis\n";
     summary += "=" + Array(70).join("=") + "\n\n";
-    
+
     // Text content changes
     if (differences.changes.textContent) {
         summary += "TEXT CONTENT CHANGES\n";
         summary += repeatString("-", 20) + "\n\n";
-        
+
         var textChanges = differences.changes.textContent;
         for (var i = 0; i < textChanges.length; i++) {
             var change = textChanges[i];
-            
+
             summary += "CHANGE " + (i + 1) + ":\n";
             summary += "Path: " + change.path + "\n";
             summary += "Type: " + change.type + "\n";
-            
+
             if (change.accessPath) {
                 summary += "Primary Access: " + change.accessPath.primary + "\n";
                 if (change.accessPath.alternatives && change.accessPath.alternatives.length > 0) {
                     summary += "Alternative Access: " + change.accessPath.alternatives[0] + "\n";
                 }
             }
-            
-            if (change.type === "text_content_change" || (change.type === "value_change" && 
+
+            if (change.type === "text_content_change" || (change.type === "value_change" &&
                 (change.path.indexOf('textContent') !== -1 || change.path.indexOf('contents') !== -1))) {
-                
+
                 var oldText = change.oldValue || "";
                 var newText = change.newValue || "";
-                
+
                 summary += "Old Text: \"" + oldText.substring(0, 300) + (oldText.length > 300 ? "..." : "") + "\"\n";
                 summary += "New Text: \"" + newText.substring(0, 300) + (newText.length > 300 ? "..." : "") + "\"\n";
-                
+
                 // Enhanced text difference analysis
                 var textDiff = analyzeTextDifference(oldText, newText);
                 summary += "Analysis: " + textDiff + "\n";
-                
+
                 // Word and character analysis
                 if (oldText && newText) {
                     var oldWords = oldText.split(/\s+/).length;
                     var newWords = newText.split(/\s+/).length;
                     summary += "Word count change: " + oldWords + " -> " + newWords + " (" + (newWords - oldWords) + ")\n";
                 }
-                
+
             } else if (change.type === "value_change") {
                 summary += "Old Value: " + change.oldValue + "\n";
                 summary += "New Value: " + change.newValue + "\n";
             }
-            
+
             // Safety notes for text access
             if (change.safetyNotes && change.safetyNotes.length > 0) {
                 summary += "Safety Notes:\n";
@@ -883,23 +957,23 @@ function createEnhancedTextAnalysisSummary(differences) {
                     summary += "  - " + change.safetyNotes[j] + "\n";
                 }
             }
-            
+
             summary += "\n" + repeatString("-", 50) + "\n\n";
         }
     }
-    
+
     // Story-level text changes
     if (differences.changes.stories) {
         summary += "\nSTORY-LEVEL TEXT CHANGES\n";
         summary += repeatString("-", 25) + "\n\n";
-        
+
         var storyChanges = differences.changes.stories;
         var textRelatedChanges = [];
-        
+
         for (var i = 0; i < storyChanges.length; i++) {
             var change = storyChanges[i];
-            if (change.path.indexOf('textContent') !== -1 || 
-                change.path.indexOf('length') !== -1 || 
+            if (change.path.indexOf('textContent') !== -1 ||
+                change.path.indexOf('length') !== -1 ||
                 change.path.indexOf('characters') !== -1 ||
                 change.path.indexOf('words') !== -1 ||
                 change.path.indexOf('paragraphs') !== -1 ||
@@ -907,20 +981,20 @@ function createEnhancedTextAnalysisSummary(differences) {
                 textRelatedChanges.push(change);
             }
         }
-        
+
         for (var i = 0; i < textRelatedChanges.length; i++) {
             var change = textRelatedChanges[i];
             summary += "Story Change " + (i + 1) + ":\n";
             summary += "Property: " + change.path + "\n";
             summary += "Change: " + formatChange(change) + "\n";
-            
+
             if (change.accessPath) {
                 summary += "Access: " + change.accessPath.primary + "\n";
                 if (change.accessPath.safetyLevel) {
                     summary += "Safety Level: " + change.accessPath.safetyLevel + "\n";
                 }
             }
-            
+
             // Enhanced story text analysis
             if (change.path.indexOf('textContent') !== -1 && change.oldValue && change.newValue) {
                 var contentAnalysis = analyzeStoryTextContent(change.oldValue, change.newValue);
@@ -928,52 +1002,52 @@ function createEnhancedTextAnalysisSummary(differences) {
                     summary += "Content Analysis: " + contentAnalysis + "\n";
                 }
             }
-            
+
             summary += "\n";
         }
     }
-    
+
     // Text frame analysis
     if (differences.changes.textFrames) {
         summary += "\nTEXT FRAME CHANGES\n";
         summary += repeatString("-", 18) + "\n\n";
-        
+
         var frameChanges = differences.changes.textFrames;
         var textFrameTextChanges = [];
-        
+
         for (var i = 0; i < frameChanges.length; i++) {
             var change = frameChanges[i];
-            if (change.path.indexOf('contents') !== -1 || 
+            if (change.path.indexOf('contents') !== -1 ||
                 change.path.indexOf('overflows') !== -1 ||
                 change.path.indexOf('characterCount') !== -1) {
                 textFrameTextChanges.push(change);
             }
         }
-        
+
         for (var i = 0; i < textFrameTextChanges.length; i++) {
             var change = textFrameTextChanges[i];
             summary += "Frame Change " + (i + 1) + ":\n";
             summary += "Property: " + change.path + "\n";
             summary += "Change: " + formatChange(change) + "\n";
-            
+
             if (change.accessPath) {
                 summary += "Access: " + change.accessPath.primary + "\n";
             }
-            
+
             summary += "\n";
         }
     }
-    
+
     // Comprehensive text statistics
     summary += "\nTEXT ANALYSIS SUMMARY\n";
     summary += repeatString("-", 21) + "\n";
     summary += "Total text-related changes: " + ((differences.changes.textContent ? differences.changes.textContent.length : 0) +
-                                                (textRelatedChanges ? textRelatedChanges.length : 0) +
-                                                (textFrameTextChanges ? textFrameTextChanges.length : 0)) + "\n";
+        (textRelatedChanges ? textRelatedChanges.length : 0) +
+        (textFrameTextChanges ? textFrameTextChanges.length : 0)) + "\n";
     summary += "Text content modifications detected across multiple document elements\n";
     summary += "Enhanced analysis includes character counts, word counts, and content previews\n";
     summary += "All text changes include safe access paths and usage guidance\n\n";
-    
+
     return summary;
 }
 
@@ -982,10 +1056,10 @@ function analyzeTextDifference(oldText, newText) {
     if (!oldText && !newText) return "Both texts empty";
     if (!oldText) return "Text added (" + newText.length + " characters)";
     if (!newText) return "Text removed (" + oldText.length + " characters)";
-    
+
     var oldLen = oldText.length;
     var newLen = newText.length;
-    
+
     if (oldLen === newLen) {
         if (oldText === newText) {
             return "No change detected";
@@ -1002,12 +1076,12 @@ function analyzeTextDifference(oldText, newText) {
     } else {
         var diff = newLen - oldLen;
         var analysis = "Length changed by " + diff + " characters (" + oldLen + " -> " + newLen + ")";
-        
+
         // Additional analysis for significant changes
         if (Math.abs(diff) > oldLen * 0.1) { // More than 10% change
             analysis += " - Significant content change";
         }
-        
+
         return analysis;
     }
 }
@@ -1015,10 +1089,10 @@ function analyzeTextDifference(oldText, newText) {
 function analyzeStoryTextContent(oldContent, newContent) {
     try {
         if (!oldContent || !newContent) return null;
-        
+
         var oldPreview = oldContent.substring ? oldContent.substring(0, 100) : String(oldContent).substring(0, 100);
         var newPreview = newContent.substring ? newContent.substring(0, 100) : String(newContent).substring(0, 100);
-        
+
         if (oldPreview === newPreview) {
             return "Content changes detected beyond preview area";
         } else {
@@ -1047,10 +1121,10 @@ function createEnhancedDiscoveryReport(differences) {
     report += "Generated: " + new Date().toString() + "\n";
     report += "Discovery Engine Version: 2.1 - Comprehensive Collection & Property Discovery\n";
     report += "=" + Array(70).join("=") + "\n\n";
-    
+
     if (differences.discoveryInfo) {
         var info = differences.discoveryInfo;
-        
+
         report += "DISCOVERY SUMMARY\n";
         report += repeatString("-", 17) + "\n";
         report += "Total collections discovered: " + (info.totalCollections || 0) + "\n";
@@ -1062,7 +1136,7 @@ function createEnhancedDiscoveryReport(differences) {
         report += "Properties that became inaccessible: " + (info.newlyBrokenProperties || 0) + "\n";
         report += "Text items processed: " + (info.textItemsProcessed || 0) + "\n";
         report += "Text items with changes: " + (info.textItemsChanged || 0) + "\n\n";
-        
+
         // Discovery health assessment
         report += "DISCOVERY HEALTH ASSESSMENT\n";
         report += repeatString("-", 28) + "\n";
@@ -1076,12 +1150,12 @@ function createEnhancedDiscoveryReport(differences) {
         }
         report += "Accessibility Ratio: " + Math.round(accessibilityRatio * 100) + "%\n\n";
     }
-    
+
     // Auto-discovered collections changes
     if (differences.changes.autoDiscoveredCollections) {
         report += "COLLECTION DISCOVERY CHANGES\n";
         report += repeatString("-", 28) + "\n\n";
-        
+
         var collectionChanges = differences.changes.autoDiscoveredCollections;
         for (var i = 0; i < collectionChanges.length; i++) {
             var change = collectionChanges[i];
@@ -1089,7 +1163,7 @@ function createEnhancedDiscoveryReport(differences) {
             report += "Path: " + change.path + "\n";
             report += "Change Type: " + change.type + "\n";
             report += "Details: " + formatChange(change) + "\n";
-            
+
             if (change.accessPath) {
                 report += "Access Method: " + change.accessPath.primary + "\n";
                 if (change.accessPath.alternatives && change.accessPath.alternatives.length > 0) {
@@ -1097,57 +1171,57 @@ function createEnhancedDiscoveryReport(differences) {
                 }
                 report += "Safety Level: " + (change.accessPath.safetyLevel || "medium") + "\n";
             }
-            
+
             if (change.safetyNotes && change.safetyNotes.length > 0) {
                 report += "Safety Notes:\n";
                 for (var j = 0; j < Math.min(change.safetyNotes.length, 2); j++) {
                     report += "  - " + change.safetyNotes[j] + "\n";
                 }
             }
-            
+
             report += "\n" + repeatString("-", 40) + "\n\n";
         }
     }
-    
+
     // Broken properties analysis
     if (differences.changes.brokenProperties) {
         report += "PROPERTY ACCESSIBILITY ANALYSIS\n";
         report += repeatString("-", 32) + "\n\n";
-        
+
         var brokenChanges = differences.changes.brokenProperties;
         for (var i = 0; i < brokenChanges.length; i++) {
             var change = brokenChanges[i];
             report += "Property: " + change.path + "\n";
             report += "Status Change: " + change.type + "\n";
-            
+
             if (change.type === "addition") {
                 report += "Impact: Property became inaccessible\n";
             } else if (change.type === "deletion") {
                 report += "Impact: Property became accessible again\n";
             }
-            
+
             if (change.error || change.reason) {
                 report += "Reason: " + (change.error || change.reason) + "\n";
             }
-            
+
             if (change.accessPath && change.accessPath.alternatives) {
                 report += "Alternative Access Methods:\n";
                 for (var j = 0; j < Math.min(change.accessPath.alternatives.length, 2); j++) {
                     report += "  - " + change.accessPath.alternatives[j] + "\n";
                 }
             }
-            
+
             report += "\n";
         }
     }
-    
+
     // Discovery recommendations
     report += "\nDISCOVERY RECOMMENDATIONS\n";
     report += repeatString("-", 25) + "\n";
-    
+
     if (differences.discoveryInfo) {
         var info = differences.discoveryInfo;
-        
+
         if (info.newlyBrokenProperties > 0) {
             report += "PROPERTY ACCESS ISSUES:\n";
             report += "  - " + info.newlyBrokenProperties + " properties became inaccessible\n";
@@ -1155,7 +1229,7 @@ function createEnhancedDiscoveryReport(differences) {
             report += "  - Consider using alternative access methods\n";
             report += "  - Test with different document types\n\n";
         }
-        
+
         if (info.newCollections > 0) {
             report += "NEW COLLECTIONS DISCOVERED:\n";
             report += "  - " + info.newCollections + " new collections found\n";
@@ -1163,7 +1237,7 @@ function createEnhancedDiscoveryReport(differences) {
             report += "  - Test collection access patterns\n";
             report += "  - Verify collection reliability across documents\n\n";
         }
-        
+
         if (info.totalCollections > 20) {
             report += "PERFORMANCE CONSIDERATIONS:\n";
             report += "  - Document has " + info.totalCollections + " collections\n";
@@ -1172,11 +1246,11 @@ function createEnhancedDiscoveryReport(differences) {
             report += "  - Implement timeout protection for complex operations\n\n";
         }
     }
-    
+
     report += "Use this report to improve script reliability and performance\n";
     report += "All discovery data is captured for future reference\n";
     report += "Property access patterns are continuously monitored\n";
-    
+
     return report;
 }
 
@@ -1186,39 +1260,39 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "Generated: " + new Date().toString() + "\n";
     guide += "Enhanced Version 2.1 - Complete Access Path Reference\n";
     guide += "=" + Array(70).join("=") + "\n\n";
-    
+
     guide += "OVERVIEW\n";
     guide += "This guide provides comprehensive access patterns for all properties that changed\n";
     guide += "in your InDesign document, including enhanced text content access, auto-discovered\n";
     guide += "collections, and safety guidance for problematic properties.\n\n";
-    
+
     // Section-by-section enhanced access paths
     try {
         var sections = differences.summary.changedSections || [];
-        
+
         for (var s = 0; s < sections.length; s++) {
             var sectionName = sections[s];
             var sectionChanges = differences.changes[sectionName] || [];
-            
+
             guide += "SECTION: " + sectionName.toUpperCase() + "\n";
             guide += "=" + Array(sectionName.length + 10).join("=") + "\n\n";
-            
+
             var uniquePaths = {};
             var pathCount = 0;
-            
+
             for (var i = 0; i < sectionChanges.length && pathCount < 20; i++) {
                 var change = sectionChanges[i];
                 var accessPath = change.accessPath;
-                
+
                 if (accessPath && accessPath.primary) {
                     var primary = accessPath.primary;
                     if (!uniquePaths[primary] && primary.indexOf('Error') === -1) {
                         uniquePaths[primary] = true;
                         pathCount++;
-                        
+
                         guide += "Property: " + change.path + "\n";
                         guide += "Primary Access: " + primary + "\n";
-                        
+
                         if (accessPath.alternatives && accessPath.alternatives.length > 0) {
                             guide += "Alternative Methods:\n";
                             for (var j = 0; j < Math.min(accessPath.alternatives.length, 3); j++) {
@@ -1227,27 +1301,27 @@ function createComprehensiveAccessPathsGuide(differences) {
                                 }
                             }
                         }
-                        
+
                         if (accessPath.safetyLevel) {
                             guide += "Safety Level: " + accessPath.safetyLevel + "\n";
                         }
-                        
+
                         if (change.safetyNotes && change.safetyNotes.length > 0) {
                             guide += "Safety Guidelines:\n";
                             for (var k = 0; k < Math.min(change.safetyNotes.length, 3); k++) {
                                 guide += "  - " + change.safetyNotes[k] + "\n";
                             }
                         }
-                        
+
                         // Enhanced code examples based on change type
                         guide += "\nComprehensive Access Example:\n";
                         guide += generateEnhancedCodeExample(change, accessPath);
-                        
+
                         guide += "\n" + repeatString("-", 50) + "\n\n";
                     }
                 }
             }
-            
+
             if (pathCount === 0) {
                 guide += "No accessible properties found in this section.\n";
                 guide += "This may indicate analysis issues or unavailable data.\n\n";
@@ -1256,11 +1330,11 @@ function createComprehensiveAccessPathsGuide(differences) {
     } catch (e) {
         guide += "Error generating section-specific paths: " + e.message + "\n\n";
     }
-    
+
     // Enhanced safety patterns
     guide += "\nENHANCED SAFETY PATTERNS\n";
     guide += "=" + Array(26).join("=") + "\n\n";
-    
+
     guide += "1. Text Content Access (Enhanced):\n";
     guide += "   // Comprehensive text extraction with error handling\n";
     guide += "   function getTextContentSafely(textFrame) {\n";
@@ -1280,7 +1354,7 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "       }\n";
     guide += "       return null;\n";
     guide += "   }\n\n";
-    
+
     guide += "2. Auto-Discovery Pattern:\n";
     guide += "   // Safely discover and access collections\n";
     guide += "   function discoverCollectionsSafely(obj) {\n";
@@ -1309,7 +1383,7 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "       }\n";
     guide += "       return collections;\n";
     guide += "   }\n\n";
-    
+
     guide += "3. Broken Property Handling:\n";
     guide += "   // Universal safe property access\n";
     guide += "   function safeGetProperty(obj, prop, defaultValue) {\n";
@@ -1325,7 +1399,7 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "       }\n";
     guide += "       return defaultValue;\n";
     guide += "   }\n\n";
-    
+
     guide += "4. Collection Iteration (Enhanced):\n";
     guide += "   // Safe collection processing with timeout\n";
     guide += "   function iterateCollectionSafely(collection, processor, maxItems) {\n";
@@ -1360,7 +1434,7 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "       \n";
     guide += "       return results;\n";
     guide += "   }\n\n";
-    
+
     // Version-specific guidance
     guide += "VERSION-SPECIFIC GUIDANCE\n";
     guide += "=" + Array(26).join("=") + "\n\n";
@@ -1372,7 +1446,7 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "- CC 2023+: Performance improvements\n\n";
     guide += "Always test your scripts with the specific InDesign version you're targeting.\n";
     guide += "Some properties may not be available in older versions.\n\n";
-    
+
     guide += "TROUBLESHOOTING GUIDE\n";
     guide += "=" + Array(21).join("=") + "\n\n";
     guide += "Common Issues and Solutions:\n\n";
@@ -1392,14 +1466,14 @@ function createComprehensiveAccessPathsGuide(differences) {
     guide += "   -> Implement timeout protection for long operations\n";
     guide += "   -> Process large collections in batches\n";
     guide += "   -> Use sampling for analysis operations\n\n";
-    
+
     return guide;
 }
 
 // Generate enhanced code example based on change type
 function generateEnhancedCodeExample(change, accessPath) {
     var code = "";
-    
+
     try {
         if (change.path.indexOf('textContent') !== -1 || change.path.indexOf('contents') !== -1) {
             // Text content access example
@@ -1483,7 +1557,7 @@ function generateEnhancedCodeExample(change, accessPath) {
         code = "// Error generating code example: " + e.message + "\n";
         code += "// Use basic try-catch pattern for safe access\n";
     }
-    
+
     return code;
 }
 
@@ -1493,22 +1567,22 @@ function createTechnicalReport(differences) {
     report += "Generated: " + new Date().toString() + "\n";
     report += "Analysis Engine: Enhanced InDesign Document Inspector v2.1\n";
     report += "=" + Array(60).join("=") + "\n\n";
-    
+
     // Analysis statistics
     report += "ANALYSIS STATISTICS\n";
     report += repeatString("-", 19) + "\n";
     report += "Total sections analyzed: " + (differences.summary.changedSections ? differences.summary.changedSections.length : 0) + "\n";
     report += "Changes detected: " + (differences.summary.hasChanges ? "Yes" : "No") + "\n";
     report += "Errors encountered: " + (differences.errors ? differences.errors.length : 0) + "\n";
-    
+
     if (differences.discoveryInfo) {
         report += "Collections processed: " + (differences.discoveryInfo.totalCollections || 0) + "\n";
         report += "Text elements analyzed: " + (differences.discoveryInfo.textItemsProcessed || 0) + "\n";
         report += "Property accessibility checks: " + ((differences.discoveryInfo.accessibleProperties || 0) + (differences.discoveryInfo.brokenProperties || 0)) + "\n";
     }
-    
+
     report += "\n";
-    
+
     // Change distribution
     report += "CHANGE DISTRIBUTION\n";
     report += repeatString("-", 19) + "\n";
@@ -1519,28 +1593,28 @@ function createTechnicalReport(differences) {
         }
     }
     report += "\n";
-    
+
     // Error analysis
     if (differences.errors && differences.errors.length > 0) {
         report += "ERROR ANALYSIS\n";
         report += repeatString("-", 14) + "\n";
         var errorCategories = {};
-        
+
         for (var i = 0; i < differences.errors.length; i++) {
             var error = differences.errors[i];
             var category = error.indexOf('timeout') !== -1 ? 'timeout' :
-                          error.indexOf('access') !== -1 ? 'access' :
-                          error.indexOf('comparison') !== -1 ? 'comparison' : 'other';
-            
+                error.indexOf('access') !== -1 ? 'access' :
+                    error.indexOf('comparison') !== -1 ? 'comparison' : 'other';
+
             errorCategories[category] = (errorCategories[category] || 0) + 1;
         }
-        
+
         for (var category in errorCategories) {
             report += category + " errors: " + errorCategories[category] + "\n";
         }
         report += "\n";
     }
-    
+
     // Performance metrics
     report += "PERFORMANCE METRICS\n";
     report += repeatString("-", 19) + "\n";
@@ -1548,7 +1622,7 @@ function createTechnicalReport(differences) {
     report += "Memory usage optimized through safe property access\n";
     report += "Timeout protection enabled for all operations\n";
     report += "Collection sampling applied to prevent performance issues\n\n";
-    
+
     // Technical recommendations
     report += "TECHNICAL RECOMMENDATIONS\n";
     report += repeatString("-", 25) + "\n";
@@ -1558,7 +1632,7 @@ function createTechnicalReport(differences) {
     report += "4. Consider performance implications for large documents\n";
     report += "5. Use discovery features to identify new collections\n";
     report += "6. Monitor property accessibility over time\n\n";
-    
+
     return report;
 }
 
@@ -1567,31 +1641,31 @@ function showProgressDialog(message, operation) {
     if (!UTILITY_CONFIG.enableProgressDialogs) {
         return operation();
     }
-    
+
     var progressDialog = new Window("dialog", "Enhanced Analysis in Progress");
     progressDialog.preferredSize.width = 400;
     progressDialog.preferredSize.height = 150;
-    
+
     var progressGroup = progressDialog.add("group");
     progressGroup.orientation = "column";
     progressGroup.alignment = "fill";
-    
+
     var titleText = progressGroup.add("statictext", undefined, "Enhanced InDesign Document Inspector v2.1");
     titleText.alignment = "center";
     titleText.graphics.font = ScriptUI.newFont("dialog", "BOLD", 12);
-    
+
     var messageText = progressGroup.add("statictext", undefined, message);
     messageText.alignment = "center";
     messageText.preferredSize.height = 40;
-    
+
     var progressBar = progressGroup.add("progressbar", undefined, 0, 100);
     progressBar.alignment = "fill";
     progressBar.preferredSize.height = 12;
-    
+
     var statusText = progressGroup.add("statictext", undefined, "Initializing enhanced analysis...");
     statusText.alignment = "center";
     statusText.preferredSize.height = 20;
-    
+
     // Show dialog non-modally if possible
     try {
         progressDialog.show();
@@ -1599,7 +1673,7 @@ function showProgressDialog(message, operation) {
         // Fallback to simple processing
         return operation();
     }
-    
+
     try {
         // Simulate progress with status updates
         var stages = [
@@ -1611,39 +1685,39 @@ function showProgressDialog(message, operation) {
             "Generating reports...",
             "Finalizing analysis..."
         ];
-        
+
         for (var i = 0; i < stages.length; i++) {
             statusText.text = stages[i];
             progressBar.value = (i / stages.length) * 90; // Leave 10% for actual operation
             progressDialog.update();
-            
+
             // Small delay to show progress
             var startTime = new Date().getTime();
             while (new Date().getTime() - startTime < 100) {
                 // Brief pause
             }
         }
-        
+
         // Run the actual operation
         statusText.text = "Completing analysis...";
         progressBar.value = 95;
         progressDialog.update();
-        
+
         var result = operation();
-        
+
         progressBar.value = 100;
         statusText.text = "Analysis complete!";
         progressDialog.update();
-        
+
         // Brief pause to show completion
         var startTime = new Date().getTime();
         while (new Date().getTime() - startTime < 500) {
             // Show completion
         }
-        
+
         progressDialog.close();
         return result;
-        
+
     } catch (e) {
         progressDialog.close();
         throw e;
@@ -1655,47 +1729,47 @@ function showEnhancedComparisonDialog(differences) {
     var dialog = new Window("dialog", "Enhanced Document Comparison Results v2.1");
     dialog.preferredSize.width = 900;
     dialog.preferredSize.height = 700;
-    
+
     // Create comprehensive tabbed interface
     var mainGroup = dialog.add("tabbedpanel");
     mainGroup.alignment = "fill";
-    
+
     // Summary tab (enhanced)
     var summaryTab = mainGroup.add("tab", undefined, "Summary");
     createSummaryTab(summaryTab, differences);
-    
+
     // Text Analysis tab (new)
     var textTab = mainGroup.add("tab", undefined, "Text Analysis");
     createTextAnalysisTab(textTab, differences);
-    
+
     // Discovery tab (enhanced)  
     var discoveryTab = mainGroup.add("tab", undefined, "Auto-Discovery");
     createDiscoveryTab(discoveryTab, differences);
-    
+
     // Technical Details tab
     var detailsTab = mainGroup.add("tab", undefined, "Technical Details");
     createTechnicalDetailsTab(detailsTab, differences);
-    
+
     // Access Paths tab (new)
     var pathsTab = mainGroup.add("tab", undefined, "Access Paths");
     createAccessPathsTab(pathsTab, differences);
-    
+
     // Enhanced action buttons
     var buttonGroup = dialog.add("group");
     buttonGroup.alignment = "center";
-    
+
     var exportAllBtn = buttonGroup.add("button", undefined, "Export All Reports");
     var viewFolderBtn = buttonGroup.add("button", undefined, "Open Report Folder");
     var resetBaselineBtn = buttonGroup.add("button", undefined, "Reset Baseline");
     var helpBtn = buttonGroup.add("button", undefined, "Help");
     var okBtn = buttonGroup.add("button", undefined, "OK");
-    
+
     // Button event handlers
-    exportAllBtn.onClick = function() {
+    exportAllBtn.onClick = function () {
         exportAllReportsToFolder(differences);
     };
-    
-    viewFolderBtn.onClick = function() {
+
+    viewFolderBtn.onClick = function () {
         try {
             if (UTILITY_STATE.currentDocument && UTILITY_STATE.currentDocument.filePath) {
                 var folder = Folder(UTILITY_STATE.currentDocument.filePath);
@@ -1705,24 +1779,24 @@ function showEnhancedComparisonDialog(differences) {
             alert("Could not open report folder: " + e.message);
         }
     };
-    
-    resetBaselineBtn.onClick = function() {
+
+    resetBaselineBtn.onClick = function () {
         var confirmReset = confirm("This will create a new baseline from the current document state.\n\n" +
-                                 "The existing baseline will be backed up.\n\nContinue?");
+            "The existing baseline will be backed up.\n\nContinue?");
         if (confirmReset) {
             dialog.close();
             resetBaseline();
         }
     };
-    
-    helpBtn.onClick = function() {
+
+    helpBtn.onClick = function () {
         showHelpDialog();
     };
-    
-    okBtn.onClick = function() {
+
+    okBtn.onClick = function () {
         dialog.close();
     };
-    
+
     dialog.show();
 }
 
@@ -1731,9 +1805,9 @@ function createSummaryTab(tab, differences) {
     var summaryPanel = tab.add("panel", undefined, "Change Summary");
     summaryPanel.alignment = "fill";
     summaryPanel.preferredSize.height = 500;
-    
+
     var summary = createEnhancedHumanReadableSummary(differences);
-    var summaryText = summaryPanel.add("edittext", undefined, summary, {multiline: true, readonly: true});
+    var summaryText = summaryPanel.add("edittext", undefined, summary, { multiline: true, readonly: true });
     summaryText.alignment = "fill";
 }
 
@@ -1742,9 +1816,9 @@ function createTextAnalysisTab(tab, differences) {
     var textPanel = tab.add("panel", undefined, "Text Content Analysis");
     textPanel.alignment = "fill";
     textPanel.preferredSize.height = 500;
-    
+
     var textAnalysis = createEnhancedTextAnalysisSummary(differences);
-    var textText = textPanel.add("edittext", undefined, textAnalysis, {multiline: true, readonly: true});
+    var textText = textPanel.add("edittext", undefined, textAnalysis, { multiline: true, readonly: true });
     textText.alignment = "fill";
 }
 
@@ -1753,9 +1827,9 @@ function createDiscoveryTab(tab, differences) {
     var discoveryPanel = tab.add("panel", undefined, "Auto-Discovery Results");
     discoveryPanel.alignment = "fill";
     discoveryPanel.preferredSize.height = 500;
-    
+
     var discoveryReport = createEnhancedDiscoveryReport(differences);
-    var discoveryText = discoveryPanel.add("edittext", undefined, discoveryReport, {multiline: true, readonly: true});
+    var discoveryText = discoveryPanel.add("edittext", undefined, discoveryReport, { multiline: true, readonly: true });
     discoveryText.alignment = "fill";
 }
 
@@ -1764,9 +1838,9 @@ function createTechnicalDetailsTab(tab, differences) {
     var detailsPanel = tab.add("panel", undefined, "Technical Analysis");
     detailsPanel.alignment = "fill";
     detailsPanel.preferredSize.height = 500;
-    
+
     var technicalReport = createTechnicalReport(differences);
-    var detailsText = detailsPanel.add("edittext", undefined, technicalReport, {multiline: true, readonly: true});
+    var detailsText = detailsPanel.add("edittext", undefined, technicalReport, { multiline: true, readonly: true });
     detailsText.alignment = "fill";
 }
 
@@ -1775,9 +1849,9 @@ function createAccessPathsTab(tab, differences) {
     var pathsPanel = tab.add("panel", undefined, "Object Model Access Paths");
     pathsPanel.alignment = "fill";
     pathsPanel.preferredSize.height = 500;
-    
+
     var accessGuide = createComprehensiveAccessPathsGuide(differences);
-    var pathsText = pathsPanel.add("edittext", undefined, accessGuide, {multiline: true, readonly: true});
+    var pathsText = pathsPanel.add("edittext", undefined, accessGuide, { multiline: true, readonly: true });
     pathsText.alignment = "fill";
 }
 
@@ -1785,12 +1859,12 @@ function createAccessPathsTab(tab, differences) {
 function exportAllReportsToFolder(differences) {
     var folder = Folder.selectDialog("Select folder to save comprehensive report suite:");
     if (!folder) return;
-    
+
     var timestamp = new Date().getTime();
-    var docName = UTILITY_STATE.currentDocument ? 
-                  UTILITY_STATE.currentDocument.name.replace(/\.[^\.]+$/, "") : 
-                  "document_" + timestamp;
-    
+    var docName = UTILITY_STATE.currentDocument ?
+        UTILITY_STATE.currentDocument.name.replace(/\.[^\.]+$/, "") :
+        "document_" + timestamp;
+
     try {
         // Create all reports
         var reports = {
@@ -1801,26 +1875,26 @@ function exportAllReportsToFolder(differences) {
             accessGuide: createComprehensiveAccessPathsGuide(differences),
             technicalReport: createTechnicalReport(differences)
         };
-        
+
         // Save all files
         var savedFiles = [];
-        
+
         // JSON file
         var jsonFile = File(folder.fsName + "/" + docName + "_comprehensive_analysis_" + timestamp + ".json");
         jsonFile.open("w");
         jsonFile.write(JSON.stringify(reports.comparison, null, 2));
         jsonFile.close();
         savedFiles.push(jsonFile.name);
-        
+
         // Text reports
         var textReports = [
-            {file: docName + "_summary_" + timestamp + ".txt", content: reports.summary},
-            {file: docName + "_text_analysis_" + timestamp + ".txt", content: reports.textAnalysis},
-            {file: docName + "_discovery_report_" + timestamp + ".txt", content: reports.discoveryReport},
-            {file: docName + "_access_guide_" + timestamp + ".txt", content: reports.accessGuide},
-            {file: docName + "_technical_report_" + timestamp + ".txt", content: reports.technicalReport}
+            { file: docName + "_summary_" + timestamp + ".txt", content: reports.summary },
+            { file: docName + "_text_analysis_" + timestamp + ".txt", content: reports.textAnalysis },
+            { file: docName + "_discovery_report_" + timestamp + ".txt", content: reports.discoveryReport },
+            { file: docName + "_access_guide_" + timestamp + ".txt", content: reports.accessGuide },
+            { file: docName + "_technical_report_" + timestamp + ".txt", content: reports.technicalReport }
         ];
-        
+
         for (var i = 0; i < textReports.length; i++) {
             var report = textReports[i];
             var file = File(folder.fsName + "/" + report.file);
@@ -1829,18 +1903,18 @@ function exportAllReportsToFolder(differences) {
             file.close();
             savedFiles.push(file.name);
         }
-        
+
         alert("Comprehensive report suite exported successfully!\n\n" +
-              "Location: " + folder.fsName + "\n" +
-              "Files saved: " + savedFiles.length + "\n\n" +
-              "Files include:\n" +
-              "- Complete technical JSON data\n" +
-              "- Human-readable summary\n" +
-              "- Detailed text analysis\n" +
-              "- Auto-discovery report\n" +
-              "- Access paths guide\n" +
-              "- Technical analysis");
-              
+            "Location: " + folder.fsName + "\n" +
+            "Files saved: " + savedFiles.length + "\n\n" +
+            "Files include:\n" +
+            "- Complete technical JSON data\n" +
+            "- Human-readable summary\n" +
+            "- Detailed text analysis\n" +
+            "- Auto-discovery report\n" +
+            "- Access paths guide\n" +
+            "- Technical analysis");
+
     } catch (e) {
         alert("Export failed: " + e.message);
     }
@@ -1852,28 +1926,28 @@ function resetBaseline() {
         alert("Please open a document first.");
         return;
     }
-    
+
     var doc = app.activeDocument;
     var docName = doc.name.replace(/\.[^\.]+$/, "");
     var docPath = doc.filePath;
-    
+
     if (!doc.saved || !docPath) {
         alert("Document must be saved before creating baseline.");
         return;
     }
-    
+
     var confirmReset = confirm("This will create a new baseline from the current document state.\n\nContinue?");
     if (!confirmReset) return;
-    
+
     try {
         alert("Starting baseline creation...");
-        
+
         var baselineFile = File(docPath + "/" + docName + "_baseline.json");
-        
+
         alert("About to call createDocumentReport...");
         var report = createDocumentReport(doc);
         alert("createDocumentReport completed!");
-        
+
         if (report && validateAnalysisReport(report)) {
             alert("Report validated, saving...");
             var success = saveReportSafely(baselineFile, report, "baseline");
@@ -1885,7 +1959,7 @@ function resetBaseline() {
         } else {
             alert("Failed to create or validate baseline report.");
         }
-        
+
     } catch (e) {
         alert("Baseline creation failed: " + e.message + "\nLine: " + (e.line || "unknown"));
     }
@@ -1895,31 +1969,31 @@ function resetBaseline() {
 //         alert("Please open a document first.");
 //         return;
 //     }
-    
+
 //     var doc = app.activeDocument;
 //     var docName = doc.name.replace(/\.[^\.]+$/, "");
 //     var docPath = doc.filePath;
-    
+
 //     if (!doc.saved || !docPath) {
 //         alert("Document must be saved before creating baseline.");
 //         return;
 //     }
-    
+
 //     var confirmReset = confirm("This will replace the existing baseline with the current document state.\n\n" +
 //                              "The old baseline will be backed up as *_baseline_backup.json.\n\n" +
 //                              "Continue?");
-    
+
 //     if (!confirmReset) return;
-    
+
 //     try {
 //         var baselineFile = File(docPath + "/" + docName + "_baseline.json");
 //         var backupFile = File(docPath + "/" + docName + "_baseline_backup.json");
-        
+
 //         // Backup existing baseline
 //         if (baselineFile.exists) {
 //             baselineFile.copy(backupFile);
 //         }
-        
+
 //         // Create new baseline
 //         var success = showProgressDialog("Creating new baseline...", function() {
 //             var report = createDocumentReport(doc);
@@ -1928,7 +2002,7 @@ function resetBaseline() {
 //             }
 //             return false;
 //         });
-        
+
 //         if (success) {
 //             alert("New baseline created successfully!\n\n" +
 //                   "Old baseline backed up as: " + backupFile.name + "\n" +
@@ -1936,7 +2010,7 @@ function resetBaseline() {
 //         } else {
 //             alert("Failed to create new baseline.");
 //         }
-        
+
 //     } catch (e) {
 //         alert("Baseline reset failed: " + e.message);
 //     }
@@ -1947,12 +2021,12 @@ function showHelpDialog() {
     var helpDialog = new Window("dialog", "Enhanced InDesign Document Inspector - Help");
     helpDialog.preferredSize.width = 600;
     helpDialog.preferredSize.height = 500;
-    
+
     var helpGroup = helpDialog.add("group");
     helpGroup.orientation = "column";
     helpGroup.alignment = "fill";
-    
-    var helpText = helpGroup.add("edittext", undefined, 
+
+    var helpText = helpGroup.add("edittext", undefined,
         "ENHANCED INDESIGN DOCUMENT INSPECTOR v2.1 - HELP\n\n" +
         "OVERVIEW:\n" +
         "This tool analyzes InDesign documents and tracks changes with comprehensive\n" +
@@ -1987,15 +2061,15 @@ function showHelpDialog() {
         "- Document must be saved before analysis\n" +
         "- Check error logs in analysis results\n\n" +
         "VERSION: 2.1 - Enhanced with comprehensive features",
-        {multiline: true, readonly: true});
+        { multiline: true, readonly: true });
     helpText.alignment = "fill";
-    
+
     var okButton = helpGroup.add("button", undefined, "OK");
     okButton.alignment = "center";
-    okButton.onClick = function() {
+    okButton.onClick = function () {
         helpDialog.close();
     };
-    
+
     helpDialog.show();
 }
 
@@ -2004,84 +2078,84 @@ function showMainMenu() {
     var menuDialog = new Window("dialog", "Enhanced InDesign Document Inspector v2.1");
     menuDialog.preferredSize.width = 500;
     menuDialog.preferredSize.height = 400;
-    
+
     var mainGroup = menuDialog.add("group");
     mainGroup.orientation = "column";
     mainGroup.alignment = "fill";
-    
+
     // Title and version info
     var titlePanel = mainGroup.add("panel", undefined, "Enhanced Document Analysis Suite");
     titlePanel.alignment = "fill";
-    
-    var titleText = titlePanel.add("statictext", undefined, 
+
+    var titleText = titlePanel.add("statictext", undefined,
         "Comprehensive InDesign document analysis with:\n" +
         "* Enhanced text content capture\n" +
         "* Auto-discovery of collections and properties\n" +
         "* Bulletproof error handling and recovery\n" +
         "* Safe object model access guidance",
-        {multiline: true});
+        { multiline: true });
     titleText.alignment = "fill";
-    
+
     // Action buttons
     var actionsPanel = mainGroup.add("panel", undefined, "Actions");
     actionsPanel.alignment = "fill";
-    
+
     var quickCompareBtn = actionsPanel.add("button", undefined, "Quick Compare (Recommended)");
     quickCompareBtn.preferredSize.height = 40;
     quickCompareBtn.alignment = "fill";
-    
+
     var resetBtn = actionsPanel.add("button", undefined, "Reset Baseline");
     resetBtn.alignment = "fill";
-    
+
     var helpBtn = actionsPanel.add("button", undefined, "Help & Documentation");
     helpBtn.alignment = "fill";
-    
+
     // Status panel
     var statusPanel = mainGroup.add("panel", undefined, "Status");
     statusPanel.alignment = "fill";
-    
-    var statusText = statusPanel.add("statictext", undefined, getStatusText(), {multiline: true});
+
+    var statusText = statusPanel.add("statictext", undefined, getStatusText(), { multiline: true });
     statusText.alignment = "fill";
-    
+
     // Bottom buttons
     var buttonGroup = mainGroup.add("group");
     buttonGroup.alignment = "center";
-    
+
     var cancelBtn = buttonGroup.add("button", undefined, "Cancel");
-    
+
     // Event handlers
-    quickCompareBtn.onClick = function() {
+    quickCompareBtn.onClick = function () {
         menuDialog.close();
         quickCompare();
     };
-    
-    resetBtn.onClick = function() {
+
+    resetBtn.onClick = function () {
         menuDialog.close();
         resetBaseline();
     };
-    
-    helpBtn.onClick = function() {
+
+    helpBtn.onClick = function () {
         showHelpDialog();
     };
-    
-    cancelBtn.onClick = function() {
+
+    cancelBtn.onClick = function () {
         menuDialog.close();
     };
-    
+
     menuDialog.show();
 }
 
 // Get current status text
 function getStatusText() {
     var status = "";
-    
+
     // Check if inspector is loaded
     if (typeof createDocumentReport === 'undefined') {
         status += "Main inspector not loaded\n";
         status += "Please run InDesignDocumentInspector.jsx first\n\n";
     } else {
         status += "Main inspector loaded and ready\n";
-        
+
         // Check version compatibility
         if (typeof ANALYSIS_CONFIG !== 'undefined' && ANALYSIS_CONFIG.version === UTILITY_CONFIG.requiredInspectorVersion) {
             status += "Version " + ANALYSIS_CONFIG.version + " - fully compatible\n";
@@ -2089,7 +2163,7 @@ function getStatusText() {
             status += "Version mismatch detected\n";
         }
     }
-    
+
     // Check document status
     if (!app.documents.length) {
         status += "No document open\n";
@@ -2097,17 +2171,17 @@ function getStatusText() {
     } else {
         var doc = app.activeDocument;
         status += "Document: " + doc.name + "\n";
-        
+
         if (!doc.saved || !doc.filePath) {
             status += "Document not saved\n";
             status += "Please save before analysis\n";
         } else {
             status += "Document saved and ready\n";
-            
+
             // Check for existing baseline
             var docName = doc.name.replace(/\.[^\.]+$/, "");
             var baselineFile = File(doc.filePath + "/" + docName + "_baseline.json");
-            
+
             if (baselineFile.exists) {
                 status += "Baseline exists - ready for comparison\n";
             } else {
@@ -2115,7 +2189,7 @@ function getStatusText() {
             }
         }
     }
-    
+
     return status;
 }
 
@@ -2133,7 +2207,7 @@ try {
     showMainMenu();
 } catch (error) {
     alert("Enhanced InDesign Comparison Utility v2.1\n\n" +
-          "Startup Error: " + error.message + "\n\n" +
-          "Please ensure the main inspector script is loaded first:\n" +
-          "Run 'InDesignDocumentInspector.jsx' then try again.");
+        "Startup Error: " + error.message + "\n\n" +
+        "Please ensure the main inspector script is loaded first:\n" +
+        "Run 'InDesignDocumentInspector.jsx' then try again.");
 }
