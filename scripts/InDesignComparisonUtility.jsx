@@ -1862,42 +1862,85 @@ function resetBaseline() {
         return;
     }
     
-    var confirmReset = confirm("This will replace the existing baseline with the current document state.\n\n" +
-                             "The old baseline will be backed up as *_baseline_backup.json.\n\n" +
-                             "Continue?");
-    
+    var confirmReset = confirm("This will create a new baseline from the current document state.\n\nContinue?");
     if (!confirmReset) return;
     
     try {
+        alert("Starting baseline creation...");
+        
         var baselineFile = File(docPath + "/" + docName + "_baseline.json");
-        var backupFile = File(docPath + "/" + docName + "_baseline_backup.json");
         
-        // Backup existing baseline
-        if (baselineFile.exists) {
-            baselineFile.copy(backupFile);
-        }
+        alert("About to call createDocumentReport...");
+        var report = createDocumentReport(doc);
+        alert("createDocumentReport completed!");
         
-        // Create new baseline
-        var success = showProgressDialog("Creating new baseline...", function() {
-            var report = createDocumentReport(doc);
-            if (report && validateAnalysisReport(report)) {
-                return saveReportSafely(baselineFile, report, "baseline");
+        if (report && validateAnalysisReport(report)) {
+            alert("Report validated, saving...");
+            var success = saveReportSafely(baselineFile, report, "baseline");
+            if (success) {
+                alert("New baseline created successfully!\nSaved as: " + baselineFile.name);
+            } else {
+                alert("Failed to save baseline.");
             }
-            return false;
-        });
-        
-        if (success) {
-            alert("New baseline created successfully!\n\n" +
-                  "Old baseline backed up as: " + backupFile.name + "\n" +
-                  "New baseline saved as: " + baselineFile.name);
         } else {
-            alert("Failed to create new baseline.");
+            alert("Failed to create or validate baseline report.");
         }
         
     } catch (e) {
-        alert("Baseline reset failed: " + e.message);
+        alert("Baseline creation failed: " + e.message + "\nLine: " + (e.line || "unknown"));
     }
 }
+// function resetBaseline() {
+//     if (!app.documents.length) {
+//         alert("Please open a document first.");
+//         return;
+//     }
+    
+//     var doc = app.activeDocument;
+//     var docName = doc.name.replace(/\.[^\.]+$/, "");
+//     var docPath = doc.filePath;
+    
+//     if (!doc.saved || !docPath) {
+//         alert("Document must be saved before creating baseline.");
+//         return;
+//     }
+    
+//     var confirmReset = confirm("This will replace the existing baseline with the current document state.\n\n" +
+//                              "The old baseline will be backed up as *_baseline_backup.json.\n\n" +
+//                              "Continue?");
+    
+//     if (!confirmReset) return;
+    
+//     try {
+//         var baselineFile = File(docPath + "/" + docName + "_baseline.json");
+//         var backupFile = File(docPath + "/" + docName + "_baseline_backup.json");
+        
+//         // Backup existing baseline
+//         if (baselineFile.exists) {
+//             baselineFile.copy(backupFile);
+//         }
+        
+//         // Create new baseline
+//         var success = showProgressDialog("Creating new baseline...", function() {
+//             var report = createDocumentReport(doc);
+//             if (report && validateAnalysisReport(report)) {
+//                 return saveReportSafely(baselineFile, report, "baseline");
+//             }
+//             return false;
+//         });
+        
+//         if (success) {
+//             alert("New baseline created successfully!\n\n" +
+//                   "Old baseline backed up as: " + backupFile.name + "\n" +
+//                   "New baseline saved as: " + baselineFile.name);
+//         } else {
+//             alert("Failed to create new baseline.");
+//         }
+        
+//     } catch (e) {
+//         alert("Baseline reset failed: " + e.message);
+//     }
+// }
 
 // Show help dialog
 function showHelpDialog() {

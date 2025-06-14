@@ -2511,18 +2511,41 @@ function repeatString(charToRepeat, count) {
 }
 
 // Make functions available globally for the comparison utility
-// Use global scope (no 'var') to ensure availability across scripts
-createDocumentReport = createDocumentReport;
-compareDocumentReports = compareDocumentReports;
-safeGetProperty = safeGetProperty;
-safeGetNestedProperty = safeGetNestedProperty;
-generateTextAccessPaths = generateTextAccessPaths;
-extractTextSamples = extractTextSamples;
-analyzeTableText = analyzeTableText;
-findTextInGroups = findTextInGroups;
-findNestedImages = findNestedImages;
-repeatString = repeatString;
-ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+// ExtendScript global scope assignments
+if (typeof window !== 'undefined') {
+    // Browser environment
+    window.createDocumentReport = createDocumentReport;
+    window.compareDocumentReports = compareDocumentReports;
+    window.safeGetProperty = safeGetProperty;
+    window.safeGetNestedProperty = safeGetNestedProperty;
+    window.generateTextAccessPaths = generateTextAccessPaths;
+    window.extractTextSamples = extractTextSamples;
+    window.analyzeTableText = analyzeTableText;
+    window.findTextInGroups = findTextInGroups;
+    window.findNestedImages = findNestedImages;
+    window.repeatString = repeatString;
+    window.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+} else {
+    // ExtendScript environment - use $.global
+    $.global.createDocumentReport = createDocumentReport;
+    $.global.compareDocumentReports = compareDocumentReports;
+    $.global.safeGetProperty = safeGetProperty;
+    $.global.safeGetNestedProperty = safeGetNestedProperty;
+    $.global.generateTextAccessPaths = generateTextAccessPaths;
+    $.global.extractTextSamples = extractTextSamples;
+    $.global.analyzeTableText = analyzeTableText;
+    $.global.findTextInGroups = findTextInGroups;
+    $.global.findNestedImages = findNestedImages;
+    $.global.repeatString = repeatString;
+    $.global.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+}
+
+// Also assign to this context for backward compatibility
+this.createDocumentReport = createDocumentReport;
+this.compareDocumentReports = compareDocumentReports;
+this.safeGetProperty = safeGetProperty;
+this.safeGetNestedProperty = safeGetNestedProperty;
+this.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
 
 // Enhanced script completion message
 try {
