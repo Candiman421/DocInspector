@@ -3,7 +3,179 @@
 // ES3 COMPATIBLE VERSION - ALL RESERVED WORDS FIXED
 // ============================================================================
 
-// Main document report creation - COMPREHENSIVE FOR THOROUGH CHANGE DETECTION
+// ============================================================================
+// ENHANCED DOCUMENT REPORT CREATION WITH VALIDATION - NEW
+// ============================================================================
+
+// Enhanced document report creation with comprehensive validation and progress reporting
+function createValidatedDocumentReport(doc) {
+    enhancedStatusLog("ANALYSIS", "Starting validated document analysis", 0, 10, "Initializing");
+    
+    // Step 1: Validate document first
+    var validation = validateDocumentState(doc);
+    if (!validation.isValid) {
+        enhancedStatusLog("ANALYSIS", "Document validation FAILED", 1, 10, "Cannot proceed");
+        return {
+            timestamp: toISOString(new Date()),
+            analysisVersion: "2.1-estk",
+            error: "Document validation failed",
+            validationErrors: validation.errors,
+            validationWarnings: validation.warnings,
+            status: "FAILED_VALIDATION"
+        };
+    }
+    
+    enhancedStatusLog("ANALYSIS", "Document validation passed", 1, 10, "Proceeding with analysis");
+    
+    // Initialize runtime tracking
+    ANALYSIS_CONFIG.processingStartTime = new Date().getTime();
+    ANALYSIS_CONFIG.errors = [];
+    ANALYSIS_CONFIG.textItemsProcessed = 0;
+    ANALYSIS_CONFIG.brokenPropertiesFound = [];
+    
+    // Clear memory before starting
+    clearLargeObjects();
+    
+    var report = {
+        timestamp: toISOString(new Date()),
+        analysisVersion: "2.1-estk",
+        performanceMode: "comprehensive",
+        validationResults: validation,
+        
+        // Use enhanced progress reporting for each section
+        documentInfo: safeAnalyzeSection("documentInfo", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing document info", 2, 10, "Basic document properties");
+            return getDocumentInfo(doc); 
+        }),
+        
+        pages: safeAnalyzeSection("pages", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing pages", 3, 10, "Page structure and properties");
+            return getPagesInfo(doc); 
+        }),
+        
+        layers: safeAnalyzeSection("layers", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing layers", 4, 10, "Layer structure and visibility");
+            return getLayersInfo(doc); 
+        }),
+        
+        stories: safeAnalyzeSection("stories", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing stories", 5, 10, "Text stories and threading");
+            return getStoriesInfo(doc); 
+        }),
+        
+        textFrames: safeAnalyzeSection("textFrames", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing text frames", 6, 10, "Text frame properties and content");
+            return getTextFramesInfo(doc); 
+        }),
+        
+        textContent: safeAnalyzeSection("textContent", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing text content", 7, 10, "Comprehensive text analysis");
+            return getComprehensiveTextContent(doc); 
+        }),
+        
+        styles: safeAnalyzeSection("styles", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing styles", 8, 10, "Paragraph and character styles");
+            return getStylesInfo(doc); 
+        }),
+        
+        colors: safeAnalyzeSection("colors", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing colors", 9, 10, "Color definitions and swatches");
+            return getColorsInfo(doc); 
+        }),
+        
+        fonts: safeAnalyzeSection("fonts", function() { 
+            enhancedStatusLog("ANALYSIS", "Analyzing fonts", 10, 10, "Font usage and availability");
+            return getFontsInfo(doc); 
+        })
+    };
+    
+    // Add additional sections only if validation shows they're accessible
+    if (validation.capabilities.hasAdvancedProperties) {
+        enhancedStatusLog("ANALYSIS", "Adding advanced sections", 10, 10, "Images and links analysis");
+        report.images = safeAnalyzeSection("images", function() { return getImagesInfo(doc); });
+        report.links = safeAnalyzeSection("links", function() { return getLinksInfo(doc); });
+        report.pageItems = safeAnalyzeSection("pageItems", function() { return getPageItemsInfo(doc); });
+    } else {
+        enhancedStatusLog("ANALYSIS", "Skipping advanced sections", 10, 10, "Advanced properties not accessible");
+        report.images = { warning: "Advanced properties not accessible - images section skipped" };
+        report.links = { warning: "Advanced properties not accessible - links section skipped" };
+        report.pageItems = { warning: "Advanced properties not accessible - pageItems section skipped" };
+    }
+    
+    // Add processing time and stats
+    var totalTime = new Date().getTime() - ANALYSIS_CONFIG.processingStartTime;
+    report.processingTime = totalTime;
+    report.discoveryStats = {
+        textItemsProcessed: ANALYSIS_CONFIG.textItemsProcessed,
+        errorsEncountered: ANALYSIS_CONFIG.errors.length,
+        brokenPropertiesFound: ANALYSIS_CONFIG.brokenPropertiesFound.length,
+        collectionsAnalyzed: countAnalyzedCollections(report)
+    };
+    report.errors = ANALYSIS_CONFIG.errors;
+    report.apiGuidance = generateAPIGuidance();
+    
+    enhancedStatusLog("ANALYSIS", "Document analysis completed", 10, 10, 
+        "Total time: " + totalTime + "ms, Errors: " + ANALYSIS_CONFIG.errors.length);
+    
+    // Validate report before returning
+    if (!validateReport(report)) {
+        enhancedStatusLog("ANALYSIS", "Report validation failed", 10, 10, "Creating minimal report");
+        return createMinimalReport(doc, validation);
+    }
+    
+    // Final cleanup
+    clearLargeObjects();
+    
+    return report;
+}
+
+// Report validation to prevent JSON stringify failures
+function validateReport(report) {
+    try {
+        enhancedStatusLog("VALIDATION", "Validating report object", 0, 3, "Checking structure");
+        
+        if (!report || typeof report !== 'object') {
+            return false;
+        }
+        
+        enhancedStatusLog("VALIDATION", "Testing JSON serialization", 1, 3, "Checking for circular references");
+        
+        // Test JSON serialization
+        var testJson = JSON.stringify(report);
+        if (!testJson || testJson.length === 0) {
+            return false;
+        }
+        
+        enhancedStatusLog("VALIDATION", "Report validation passed", 3, 3, "Report is valid");
+        return true;
+        
+    } catch (exc) {
+        enhancedStatusLog("VALIDATION", "Report validation failed", 3, 3, "Error: " + exc.message);
+        return false;
+    }
+}
+
+// Minimal report fallback for failed analyses
+function createMinimalReport(doc, validation) {
+    enhancedStatusLog("FALLBACK", "Creating minimal report", 0, 1, "Basic document info only");
+    
+    return {
+        timestamp: toISOString(new Date()),
+        analysisVersion: "2.1-estk",
+        status: "MINIMAL_REPORT",
+        reason: "Full analysis failed - providing basic information only",
+        validationResults: validation,
+        documentInfo: {
+            name: safeGetProperty(doc, 'name', 'Unknown Document'),
+            saved: safeGetProperty(doc, 'saved', false),
+            basicPageCount: safeGetLength(safeGetProperty(doc, 'pages')),
+            basicTextFrameCount: safeGetLength(safeGetProperty(doc, 'textFrames'))
+        },
+        recommendation: "Document may have compatibility issues or corrupted properties"
+    };
+}
+
+// LEGACY FUNCTION - DEPRECATED: Use createValidatedDocumentReport instead
 function createDocumentReport(doc) {
     // Initialize runtime tracking
     ANALYSIS_CONFIG.processingStartTime = new Date().getTime();
@@ -214,7 +386,7 @@ function getDocumentInfo(doc) {
 function getPagesInfo(doc) {
     debugLog("Analyzing pages", "PAGES");
     
-    return safeIterateCollection(safeGetProperty(doc, 'pages'), function(page, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'pages'), function(page, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(page, 'id'),
@@ -258,7 +430,7 @@ function extractMarginInfo(page) {
 function getLayersInfo(doc) {
     debugLog("Analyzing layers", "LAYERS");
     
-    return safeIterateCollection(safeGetProperty(doc, 'layers'), function(layer, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'layers'), function(layer, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(layer, 'id'),
@@ -280,7 +452,7 @@ function getLayersInfo(doc) {
 function getStoriesInfo(doc) {
     debugLog("Analyzing stories", "STORIES");
     
-    return safeIterateCollection(safeGetProperty(doc, 'stories'), function(story, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'stories'), function(story, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(story, 'id'),
@@ -321,7 +493,7 @@ function calculateWordsPerParagraph(story) {
 function getTextFramesInfo(doc) {
     debugLog("Analyzing text frames", "TEXTFRAMES");
     
-    return safeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(textFrame, 'id'),
@@ -396,7 +568,7 @@ function getComprehensiveTextContent(doc) {
     }
     
     debugLog("Analyzing comprehensive text content", "TEXT");
-    statusLog("Text Analysis", "Processing text frames", 25);
+    enhancedStatusLog("TEXT", "Processing text frames", 0, 100, "Starting comprehensive text analysis");
     
     var textAnalysis = {
         summary: {
@@ -417,7 +589,8 @@ function getComprehensiveTextContent(doc) {
     
     // COMPREHENSIVE text frame analysis - ENHANCED IDENTIFICATION
     try {
-        textAnalysis.textFrameDetails = safeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, itemIndex) { // FIXED: index -> itemIndex
+        enhancedStatusLog("TEXT", "Processing text frames", 25, 100, "Analyzing individual text frames");
+        textAnalysis.textFrameDetails = enhancedSafeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, itemIndex) { // FIXED: index -> itemIndex
             var frameAnalysis = {
                 index: itemIndex,
                 id: safeGetProperty(textFrame, 'id'),
@@ -507,11 +680,11 @@ function getComprehensiveTextContent(doc) {
         debugLog("Text frames analysis failed: " + e.message, "ERROR");
     }
     
-    statusLog("Text Analysis", "Processing stories", 50);
+    enhancedStatusLog("TEXT", "Processing stories", 50, 100, "Analyzing story threading and content");
     
     // COMPREHENSIVE story analysis  
     try {
-        textAnalysis.storyDetails = safeIterateCollection(safeGetProperty(doc, 'stories'), function(story, itemIndex) { // FIXED: index -> itemIndex
+        textAnalysis.storyDetails = enhancedSafeIterateCollection(safeGetProperty(doc, 'stories'), function(story, itemIndex) { // FIXED: index -> itemIndex
             var storyAnalysis = {
                 index: itemIndex,
                 id: safeGetProperty(story, 'id'),
@@ -546,14 +719,14 @@ function getComprehensiveTextContent(doc) {
         debugLog("Stories analysis failed: " + e.message, "ERROR");
     }
     
-    statusLog("Text Analysis", "Calculating statistics", 75);
+    enhancedStatusLog("TEXT", "Calculating statistics", 75, 100, "Generating comprehensive text metrics");
     
     // Calculate comprehensive text statistics
     textAnalysis.textStatistics = calculateComprehensiveTextStatistics(textAnalysis);
     
     textAnalysis.summary.processingTime = new Date().getTime() - textStartTime;
     debugLog("Comprehensive text content analysis completed", "TEXT");
-    statusLog("Text Analysis", "Completed", 100);
+    enhancedStatusLog("TEXT", "Text analysis completed", 100, 100, "Analysis complete");
     
     return textAnalysis;
 }
@@ -650,7 +823,7 @@ function getStylesInfo(doc) {
     debugLog("Analyzing styles", "STYLES");
     
     return {
-        paragraphStyles: safeIterateCollection(safeGetProperty(doc, 'paragraphStyles'), function(style, itemIndex) { // FIXED: index -> itemIndex
+        paragraphStyles: enhancedSafeIterateCollection(safeGetProperty(doc, 'paragraphStyles'), function(style, itemIndex) { // FIXED: index -> itemIndex
             return {
                 index: itemIndex,
                 id: safeGetProperty(style, 'id'),
@@ -666,7 +839,7 @@ function getStylesInfo(doc) {
             };
         }, ANALYSIS_CONFIG.maxCollectionSample, "paragraphStyles"),
         
-        characterStyles: safeIterateCollection(safeGetProperty(doc, 'characterStyles'), function(style, itemIndex) { // FIXED: index -> itemIndex
+        characterStyles: enhancedSafeIterateCollection(safeGetProperty(doc, 'characterStyles'), function(style, itemIndex) { // FIXED: index -> itemIndex
             return {
                 index: itemIndex,
                 id: safeGetProperty(style, 'id'),
@@ -685,7 +858,7 @@ function getStylesInfo(doc) {
 function getColorsInfo(doc) {
     debugLog("Analyzing colors", "COLORS");
     
-    return safeIterateCollection(safeGetProperty(doc, 'colors'), function(color, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'colors'), function(color, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(color, 'id'),
@@ -704,7 +877,7 @@ function getColorsInfo(doc) {
 function getFontsInfo(doc) {
     debugLog("Analyzing fonts", "FONTS");
     
-    return safeIterateCollection(safeGetProperty(doc, 'fonts'), function(font, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'fonts'), function(font, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(font, 'id'),
@@ -726,7 +899,7 @@ function getFontsInfo(doc) {
 function getImagesInfo(doc) {
     debugLog("Analyzing images", "IMAGES");
     
-    return safeIterateCollection(safeGetProperty(doc, 'images'), function(image, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'images'), function(image, itemIndex) { // FIXED: index -> itemIndex
         var itemLink = safeGetProperty(image, 'itemLink');
         return {
             index: itemIndex,
@@ -757,7 +930,7 @@ function getImagesInfo(doc) {
 function getLinksInfo(doc) {
     debugLog("Analyzing links", "LINKS");
     
-    return safeIterateCollection(safeGetProperty(doc, 'links'), function(link, itemIndex) { // FIXED: index -> itemIndex
+    return enhancedSafeIterateCollection(safeGetProperty(doc, 'links'), function(link, itemIndex) { // FIXED: index -> itemIndex
         return {
             index: itemIndex,
             id: safeGetProperty(link, 'id'),
@@ -788,7 +961,7 @@ function getPageItemsInfo(doc) {
     };
     
     // Sample page items for detailed analysis - FIXED: Use config limit
-    pageItemsInfo.sample = safeIterateCollection(safeGetProperty(doc, 'pageItems'), function(item, itemIndex) { // FIXED: index -> itemIndex
+    pageItemsInfo.sample = enhancedSafeIterateCollection(safeGetProperty(doc, 'pageItems'), function(item, itemIndex) { // FIXED: index -> itemIndex
         var itemConstructor = safeGetProperty(item, 'constructor');
         var itemType = itemConstructor ? safeGetProperty(itemConstructor, 'name', 'unknown') : 'unknown';
         

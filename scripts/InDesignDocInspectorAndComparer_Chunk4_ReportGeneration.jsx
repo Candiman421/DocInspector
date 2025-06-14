@@ -6,6 +6,7 @@
 // Enhanced quick analysis and comparison workflow - ROBUST FOR PRODUCTION USE
 function quickCompare() {
     debugLog("Starting QuickCompare workflow", "WORKFLOW");
+    enhancedStatusLog("WORKFLOW", "QuickCompare initializing", 0, 100, "Starting enhanced comparison workflow");
     
     if (!app.documents.length) {
         alert("Please open a document first.");
@@ -19,6 +20,8 @@ function quickCompare() {
     var docPath = safeGetProperty(doc, 'filePath');
     var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
     
+    enhancedStatusLog("WORKFLOW", "Document validation", 5, 100, "Checking document save status");
+    
     // Ensure document is saved with enhanced validation
     if (!docSaved || !docPath) {
         var shouldSave = confirm("Document must be saved for analysis. Save now?");
@@ -31,6 +34,7 @@ function quickCompare() {
                     docPath = safeGetProperty(doc, 'filePath');
                     docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
                     debugLog("Document saved to: " + docPath, "FILE");
+                    enhancedStatusLog("WORKFLOW", "Document saved", 10, 100, "Saved to: " + docPath);
                 } catch (exc) { // FIXED: error -> exc
                     alert("Failed to save document: " + exc.message);
                     debugLog("Save failed: " + exc.message, "ERROR");
@@ -54,6 +58,8 @@ function quickCompare() {
     
     UTILITY_STATE.currentDocument = doc;
     
+    enhancedStatusLog("WORKFLOW", "Checking baseline", 15, 100, "Looking for existing baseline");
+    
     // Check for existing baseline with enhanced error handling
     var baselineFile = File(docPath + "/" + docName + "_baseline.json");
     var currentFile = File(docPath + "/" + docName + "_current.json");
@@ -63,10 +69,12 @@ function quickCompare() {
     if (!baselineFile.exists) {
         // Create enhanced baseline report
         debugLog("Creating new baseline", "BASELINE");
+        enhancedStatusLog("WORKFLOW", "Creating baseline", 20, 100, "No baseline found - creating new one");
+        
         var baselineSuccess = showProgressDialog("Creating comprehensive baseline analysis...", function() {
             try {
                 clearLargeObjects();
-                var report = createDocumentReport(doc);
+                var report = createValidatedDocumentReport(doc); // ENHANCED: Use validated version
                 if (!report) {
                     alert("Failed to create baseline analysis. Please check the document and try again.");
                     return false;
@@ -92,9 +100,12 @@ function quickCompare() {
         }
         
         UTILITY_STATE.reportFiles.baseline = baselineFile;
+        enhancedStatusLog("WORKFLOW", "Baseline created", 100, 100, "New baseline ready for future comparisons");
         showBaselineCreatedDialog();
         return;
     }
+    
+    enhancedStatusLog("WORKFLOW", "Creating current analysis", 30, 100, "Analyzing current document state");
     
     // Create current report with enhanced error handling
     debugLog("Creating current document analysis", "CURRENT");
@@ -102,7 +113,7 @@ function quickCompare() {
     var currentSuccess = showProgressDialog("Analyzing current document state...", function() {
         try {
             clearLargeObjects();
-            currentReport = createDocumentReport(doc);
+            currentReport = createValidatedDocumentReport(doc); // ENHANCED: Use validated version
             if (!currentReport) {
                 alert("Failed to analyze current document. Please check for errors and try again.");
                 return false;
@@ -129,6 +140,8 @@ function quickCompare() {
     
     UTILITY_STATE.reportFiles.current = currentFile;
     UTILITY_STATE.lastAnalysisReport = currentReport;
+    
+    enhancedStatusLog("WORKFLOW", "Loading baseline", 50, 100, "Loading baseline for comparison");
     
     // Load baseline report with enhanced error handling and validation
     debugLog("Loading baseline report", "BASELINE");
@@ -159,6 +172,7 @@ function quickCompare() {
         }
         
         debugLog("Baseline loaded successfully", "BASELINE");
+        enhancedStatusLog("WORKFLOW", "Baseline loaded", 60, 100, "Baseline ready for comparison");
         
     } catch (exc) { // FIXED: error -> exc
         alert("Failed to load baseline report: " + exc.message + "\nConsider recreating the baseline.");
@@ -166,6 +180,8 @@ function quickCompare() {
         clearLargeObjects();
         return;
     }
+    
+    enhancedStatusLog("WORKFLOW", "Performing comparison", 70, 100, "Comparing current state to baseline");
     
     // Enhanced comparison with comprehensive progress tracking
     debugLog("Starting document comparison", "COMPARE");
@@ -207,6 +223,8 @@ function quickCompare() {
     
     UTILITY_STATE.lastComparisonResult = differences;
     
+    enhancedStatusLog("WORKFLOW", "Generating reports", 85, 100, "Creating comprehensive report suite");
+    
     // Create comprehensive report suite with enhanced error handling
     debugLog("Generating report suite", "REPORTS");
     var reportSuiteSuccess = showProgressDialog("Generating comprehensive report suite...", function() {
@@ -225,6 +243,8 @@ function quickCompare() {
         return;
     }
     
+    enhancedStatusLog("WORKFLOW", "QuickCompare completed", 100, 100, "Analysis complete - displaying results");
+    
     // Display enhanced comparison results
     showEnhancedComparisonDialog(differences);
     
@@ -236,6 +256,7 @@ function quickCompare() {
 // Enhanced analysis report validation
 function validateAnalysisReport(report) {
     debugLog("Validating analysis report", "VALIDATE");
+    enhancedStatusLog("VALIDATE", "Report validation", 0, 4, "Checking report structure");
     
     if (!report || typeof report !== 'object') {
         debugLog("Report validation failed: invalid object", "ERROR");
@@ -247,16 +268,22 @@ function validateAnalysisReport(report) {
     for (var i = 0; i < requiredSections.length; i++) {
         if (!safeGetProperty(report, requiredSections[i])) { // FIXED: Use safeGetProperty
             debugLog("Report validation failed: missing " + requiredSections[i], "ERROR");
+            enhancedStatusLog("VALIDATE", "Validation failed", 4, 4, "Missing: " + requiredSections[i]);
             return false;
         }
     }
+    
+    enhancedStatusLog("VALIDATE", "Checking version", 1, 4, "Verifying compatibility");
     
     // Check version compatibility
     var analysisVersion = safeGetProperty(report, 'analysisVersion');
     if (analysisVersion && stringIndexOf(analysisVersion, '2.1') === -1) {
         debugLog("Report version mismatch: " + analysisVersion, "WARN");
+        enhancedStatusLog("VALIDATE", "Version mismatch", 2, 4, "Version: " + analysisVersion);
         return true; // Still valid, just potentially incompatible
     }
+    
+    enhancedStatusLog("VALIDATE", "Checking content", 3, 4, "Validating document data");
     
     // Enhanced validation for critical data
     var documentInfo = safeGetProperty(report, 'documentInfo');
@@ -264,6 +291,7 @@ function validateAnalysisReport(report) {
         debugLog("Report validation warning: missing document name", "WARN");
     }
     
+    enhancedStatusLog("VALIDATE", "Validation passed", 4, 4, "Report is valid");
     debugLog("Report validation passed", "VALIDATE");
     return true;
 }
@@ -271,6 +299,7 @@ function validateAnalysisReport(report) {
 // Enhanced comparison results validation
 function validateComparisonResults(differences) {
     debugLog("Validating comparison results", "VALIDATE");
+    enhancedStatusLog("VALIDATE", "Comparison validation", 0, 3, "Checking comparison structure");
     
     if (!differences || typeof differences !== 'object') {
         debugLog("Comparison validation failed: invalid object", "ERROR");
@@ -282,8 +311,11 @@ function validateComparisonResults(differences) {
     var changes = safeGetProperty(differences, 'changes');
     if (!summary || !changes) {
         debugLog("Comparison validation failed: missing summary or changes", "ERROR");
+        enhancedStatusLog("VALIDATE", "Validation failed", 3, 3, "Missing summary or changes");
         return false;
     }
+    
+    enhancedStatusLog("VALIDATE", "Checking summary", 1, 3, "Validating comparison summary");
     
     // Validate summary structure
     var hasChanges = safeGetProperty(summary, 'hasChanges');
@@ -291,6 +323,7 @@ function validateComparisonResults(differences) {
         debugLog("Comparison validation warning: invalid hasChanges type", "WARN");
     }
     
+    enhancedStatusLog("VALIDATE", "Comparison validation passed", 3, 3, "Results are valid");
     debugLog("Comparison validation passed", "VALIDATE");
     return true;
 }
@@ -298,6 +331,7 @@ function validateComparisonResults(differences) {
 // Enhanced safe report saving with comprehensive error handling and backup
 function saveReportSafely(file, report, reportType) {
     debugLog("Saving " + reportType + " report: " + file.fsName, "FILE");
+    enhancedStatusLog("FILE", "Saving " + reportType + " report", 0, 8, "Preparing to save: " + file.name);
     
     try {
         // Enhanced file system access checking
@@ -307,17 +341,22 @@ function saveReportSafely(file, report, reportType) {
             return false;
         }
         
+        enhancedStatusLog("FILE", "Creating backup", 1, 8, "Backing up existing file if present");
+        
         // Create backup if file exists and backup is enabled
         if (UTILITY_CONFIG.createBackups && file.exists) {
             try {
                 var backupFile = File(file.path + "/" + file.name.replace(/\.json$/, "_backup.json"));
                 file.copy(backupFile);
                 debugLog("Backup created: " + backupFile.name, "FILE");
+                enhancedStatusLog("FILE", "Backup created", 2, 8, "Backup: " + backupFile.name);
             } catch (exc) { // FIXED: error -> exc
                 debugLog("Backup creation failed: " + exc.message, "WARN");
                 // Backup failed but continue - not critical
             }
         }
+        
+        enhancedStatusLog("FILE", "Serializing report", 3, 8, "Converting report to JSON");
         
         // Prepare JSON string with error handling
         var jsonString;
@@ -329,6 +368,8 @@ function saveReportSafely(file, report, reportType) {
             return false;
         }
         
+        enhancedStatusLog("FILE", "Checking size limits", 4, 8, "Verifying report size");
+        
         // Enhanced memory and size checking
         if (!checkMemoryLimits(jsonString.length, reportType + " report")) {
             // Try to create a simplified version
@@ -339,11 +380,16 @@ function saveReportSafely(file, report, reportType) {
                       Math.round(jsonString.length / 1024) + "KB vs " + 
                       Math.round(ANALYSIS_CONFIG.maxReportSize / 1024) + "KB limit).");
                 debugLog("Report simplified due to size", "WARN");
+                enhancedStatusLog("FILE", "Report simplified", 5, 8, "Size reduced for compatibility");
             } catch (exc) { // FIXED: error -> exc
                 alert("Report too large and simplification failed: " + exc.message);
                 return false;
             }
+        } else {
+            enhancedStatusLog("FILE", "Size check passed", 5, 8, "Report size acceptable");
         }
+        
+        enhancedStatusLog("FILE", "Writing file", 6, 8, "Saving to disk");
         
         // Save file with enhanced error handling
         try {
@@ -355,6 +401,8 @@ function saveReportSafely(file, report, reportType) {
             debugLog("File write failed: " + writeError.message, "ERROR");
             return false;
         }
+        
+        enhancedStatusLog("FILE", "Verifying file", 7, 8, "Checking file integrity");
         
         // Verify file was written correctly
         if (!file.exists || file.length === 0) {
@@ -382,12 +430,14 @@ function saveReportSafely(file, report, reportType) {
         report = null;
         clearLargeObjects();
         
+        enhancedStatusLog("FILE", "Save completed", 8, 8, "File saved successfully: " + file.length + " bytes");
         debugLog("Report saved successfully: " + file.length + " bytes", "FILE");
         return true;
         
     } catch (exc) { // FIXED: error -> exc
         alert("Failed to save " + reportType + " report: " + exc.message);
         debugLog("Save operation failed: " + exc.message, "ERROR");
+        enhancedStatusLog("FILE", "Save failed", 8, 8, "Error: " + exc.message);
         return false;
     }
 }
@@ -412,6 +462,8 @@ function showProgressDialog(message, operation) {
     if (!UTILITY_CONFIG.enableProgressDialogs) {
         return operation();
     }
+    
+    enhancedStatusLog("PROGRESS", "Showing progress dialog", 0, 1, message);
     
     var progressDialog = new Window("dialog", "Enhanced Analysis in Progress");
     progressDialog.preferredSize.width = 450;
@@ -550,6 +602,7 @@ function showBaselineCreatedDialog() {
 function createComprehensiveReportSuite(differences, docPath, docName) {
     try {
         debugLog("Creating comprehensive report suite", "REPORTS");
+        enhancedStatusLog("REPORTS", "Creating report suite", 0, 6, "Generating all report formats");
         
         // Create all essential reports
         var reports = {
@@ -558,6 +611,8 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
             technical: createTechnicalSummary(differences),
             accessGuide: createAccessPathGuide(differences)
         };
+        
+        enhancedStatusLog("REPORTS", "Preparing report files", 1, 6, "Setting up file paths");
         
         // Save reports with enhanced error handling
         var reportFiles = {
@@ -568,10 +623,14 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
             accessGuide: File(docPath + "/" + docName + "_access_guide.txt")
         };
         
+        enhancedStatusLog("REPORTS", "Saving JSON comparison", 2, 6, "Saving technical comparison data");
+        
         // Save JSON comparison data
         if (!saveReportSafely(reportFiles.comparison, differences, "comparison")) {
             return false;
         }
+        
+        enhancedStatusLog("REPORTS", "Saving text reports", 3, 6, "Creating human-readable reports");
         
         // Save text reports with individual error handling
         var textReports = [
@@ -583,6 +642,9 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
         
         for (var i = 0; i < textReports.length; i++) {
             var report = textReports[i];
+            var progress = 4 + (i / textReports.length);
+            enhancedStatusLog("REPORTS", "Saving " + report.type, progress, 6, "Writing: " + report.file.name);
+            
             try {
                 report.file.open("w");
                 report.file.write(report.content);
@@ -596,6 +658,7 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
         }
         
         UTILITY_STATE.reportFiles = reportFiles;
+        enhancedStatusLog("REPORTS", "Report suite completed", 6, 6, "All reports generated successfully");
         debugLog("Comprehensive report suite created successfully", "REPORTS");
         return true;
         

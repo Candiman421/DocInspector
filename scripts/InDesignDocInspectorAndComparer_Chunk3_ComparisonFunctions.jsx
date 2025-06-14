@@ -6,7 +6,7 @@
 // Enhanced comparison function - COMPREHENSIVE PROPERTY CHANGE ANALYSIS
 function compareDocumentReports(report1, report2) {
     debugLog("Starting comprehensive document comparison", "COMPARE");
-    statusLog("Document Comparison", "Initializing", 0);
+    enhancedStatusLog("COMPARE", "Document comparison initializing", 0, 100, "Setting up comparison analysis");
     
     var differences = {
         timestamp: toISOString(new Date()),
@@ -38,7 +38,8 @@ function compareDocumentReports(report1, report2) {
         for (var i = 0; i < sections.length; i++) {
             var section = sections[i];
             var progress = Math.round((i / totalSections) * 80); // Reserve 20% for final processing
-            statusLog("Document Comparison", "Comparing " + section, progress);
+            enhancedStatusLog("COMPARE", "Comparing section: " + section, i + 1, totalSections, 
+                "Analyzing " + section + " for property changes");
             
             try {
                 debugLog("Comparing section: " + section, "COMPARE");
@@ -52,26 +53,38 @@ function compareDocumentReports(report1, report2) {
                     differences.changes[section] = changes;
                     differences.summary.totalChanges += changesLength;
                     debugLog("Found " + changesLength + " changes in " + section, "COMPARE");
+                    enhancedStatusLog("COMPARE", "Changes detected in " + section, i + 1, totalSections, 
+                        changesLength + " property changes found");
+                } else {
+                    enhancedStatusLog("COMPARE", "No changes in " + section, i + 1, totalSections, 
+                        "Section identical to baseline");
                 }
             } catch (exc) { // FIXED: error -> exc
                 differences.errors.push("Section comparison failed: " + section + " - " + exc.message);
                 logError("Section comparison failed: " + section + " - " + exc.message, 'comparison', 'high');
+                enhancedStatusLog("COMPARE", "Section comparison failed: " + section, i + 1, totalSections, 
+                    "Error: " + exc.message);
             }
         }
         
-        statusLog("Document Comparison", "Calculating discovery info", 90);
+        enhancedStatusLog("COMPARE", "Calculating discovery information", totalSections, totalSections, 
+            "Generating comprehensive change analysis");
         
         // Calculate enhanced discovery info
         differences.discoveryInfo = calculateEnhancedDiscoveryInfo(report1, report2, differences.changes);
         differences.summary.significantChanges = safeGetProperty(differences.discoveryInfo, 'significantChanges', 0);
         
-        statusLog("Document Comparison", "Completed", 100);
+        enhancedStatusLog("COMPARE", "Comparison completed", 100, 100, 
+            "Total changes: " + differences.summary.totalChanges + 
+            ", Significant: " + differences.summary.significantChanges);
+        
         debugLog("Comparison completed. Changes found: " + differences.summary.hasChanges + 
                 ", Total changes: " + differences.summary.totalChanges, "COMPARE");
         
     } catch (exc) { // FIXED: error -> exc
         differences.errors.push("Overall comparison failed: " + exc.message);
         logError("Overall comparison failed: " + exc.message, 'comparison', 'critical');
+        enhancedStatusLog("COMPARE", "Comparison failed", 100, 100, "Critical error: " + exc.message);
     }
     
     return differences;
@@ -101,6 +114,8 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
     };
     
     try {
+        enhancedStatusLog("DISCOVERY", "Analyzing text changes", 0, 5, "Comparing text content metrics");
+        
         // Enhanced text analysis changes using safe access
         var textContent1 = safeGetProperty(report1, 'textContent');
         var textContent2 = safeGetProperty(report2, 'textContent');
@@ -140,8 +155,12 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
             }
         }
         
+        enhancedStatusLog("DISCOVERY", "Analyzing structural changes", 1, 5, "Comparing document structure");
+        
         // Analyze structural changes
         analyzeStructuralChanges(report1, report2, info);
+        
+        enhancedStatusLog("DISCOVERY", "Counting property changes", 2, 5, "Categorizing all detected changes");
         
         // Count all property changes by type and section
         for (var section in changes) {
@@ -168,17 +187,23 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
             }
         }
         
+        enhancedStatusLog("DISCOVERY", "Processing report statistics", 3, 5, "Extracting processing metrics");
+        
         // Get processing stats from reports using safe access
         var discoveryStats2 = safeGetProperty(report2, 'discoveryStats');
         if (discoveryStats2) {
             info.textItemsProcessed = safeGetProperty(discoveryStats2, 'textItemsProcessed', 0);
         }
         
+        enhancedStatusLog("DISCOVERY", "Discovery analysis completed", 5, 5, 
+            "Properties: " + info.propertiesChanged + ", Significant: " + info.significantChanges);
+        
         debugLog("Discovery info calculated. Properties changed: " + info.propertiesChanged + 
                 ", Significant changes: " + info.significantChanges, "DISCOVERY");
         
     } catch (exc) { // FIXED: error -> exc
         logError("Discovery info calculation failed: " + exc.message, 'comparison', 'medium');
+        enhancedStatusLog("DISCOVERY", "Discovery analysis failed", 5, 5, "Error: " + exc.message);
     }
     
     return info;
@@ -186,12 +211,16 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
 
 function analyzeStructuralChanges(report1, report2, info) {
     try {
+        enhancedStatusLog("STRUCTURAL", "Analyzing structural changes", 0, 4, "Comparing document structure elements");
+        
         // Page changes using safe access
         var pages1 = safeGetLength(safeGetProperty(report1, 'pages', []));
         var pages2 = safeGetLength(safeGetProperty(report2, 'pages', []));
         if (pages1 !== pages2) {
             info.structuralChanges.pagesChanged = Math.abs(pages2 - pages1);
             info.significantChanges++;
+            enhancedStatusLog("STRUCTURAL", "Page count changed", 1, 4, 
+                "From " + pages1 + " to " + pages2 + " pages");
         }
         
         // Layer changes using safe access
@@ -200,6 +229,8 @@ function analyzeStructuralChanges(report1, report2, info) {
         if (layers1 !== layers2) {
             info.structuralChanges.layersChanged = Math.abs(layers2 - layers1);
             info.significantChanges++;
+            enhancedStatusLog("STRUCTURAL", "Layer count changed", 2, 4, 
+                "From " + layers1 + " to " + layers2 + " layers");
         }
         
         // Page item changes using safe access
@@ -211,14 +242,19 @@ function analyzeStructuralChanges(report1, report2, info) {
             var itemDiff = items2 - items1;
             if (itemDiff > 0) {
                 info.structuralChanges.itemsAdded = itemDiff;
+                enhancedStatusLog("STRUCTURAL", "Page items added", 3, 4, itemDiff + " items added");
             } else {
                 info.structuralChanges.itemsRemoved = Math.abs(itemDiff);
+                enhancedStatusLog("STRUCTURAL", "Page items removed", 3, 4, Math.abs(itemDiff) + " items removed");
             }
             info.significantChanges++;
         }
         
+        enhancedStatusLog("STRUCTURAL", "Structural analysis completed", 4, 4, "Structure comparison complete");
+        
     } catch (exc) { // FIXED: error -> exc
         debugLog("Structural change analysis failed: " + exc.message, "ERROR");
+        enhancedStatusLog("STRUCTURAL", "Structural analysis failed", 4, 4, "Error: " + exc.message);
     }
 }
 
@@ -269,6 +305,8 @@ function compareSection(section1, section2, sectionName) {
     var changes = [];
     
     try {
+        enhancedStatusLog("SECTION_COMPARE", "Comparing " + sectionName, 0, 1, "Analyzing section properties");
+        
         // Type mismatch check
         if (typeof section1 !== typeof section2) {
             changes.push(createChangeObject({
@@ -308,6 +346,9 @@ function compareSection(section1, section2, sectionName) {
                     newLength: section2Length,
                     significance: "high" // Length changes are usually significant
                 }, sectionName));
+                
+                enhancedStatusLog("SECTION_COMPARE", "Array length changed", 1, 1, 
+                    sectionName + ": " + section1Length + " → " + section2Length);
             }
             
             var maxLength = Math.max(section1Length, section2Length);
@@ -404,6 +445,8 @@ function compareSection(section1, section2, sectionName) {
             error: exc.message,
             significance: "low"
         }, sectionName));
+        enhancedStatusLog("SECTION_COMPARE", "Section comparison failed", 1, 1, 
+            sectionName + " error: " + exc.message);
     }
     
     return changes;

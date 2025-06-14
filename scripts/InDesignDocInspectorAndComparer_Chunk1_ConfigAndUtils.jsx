@@ -207,6 +207,110 @@ function repeatString(str, count) {
 }
 
 // ============================================================================
+// ENHANCED PROGRESS REPORTING FUNCTIONS - NEW FOR HANGING PREVENTION
+// ============================================================================
+
+// Enhanced progress reporting with detailed operational information
+function enhancedStatusLog(section, operation, current, total, details) {
+    if (ANALYSIS_CONFIG.enableESTKDebugging) {
+        var progress = total > 0 ? Math.round((current / total) * 100) : 0;
+        var timestamp = new Date().toLocaleTimeString();
+        $.writeln("[PROGRESS] [" + timestamp + "] " + section + " (" + progress + "%): " + operation);
+        if (details) {
+            $.writeln("  └─ " + details);
+        }
+        if (current % 5 === 0 || current === total) { // Every 5 items or completion
+            $.writeln("  └─ Processed " + current + "/" + total + " items");
+        }
+    }
+}
+
+// ============================================================================
+// DOCUMENT VALIDATION FUNCTIONS - NEW FOR API FAILURE PREVENTION
+// ============================================================================
+
+// Comprehensive document validation before analysis
+function validateDocumentState(doc) {
+    enhancedStatusLog("VALIDATION", "Starting document validation", 0, 5, "Checking document object");
+    
+    var validation = {
+        isValid: false,
+        errors: [],
+        warnings: [],
+        capabilities: {
+            hasBasicProperties: false,
+            hasCollections: false,
+            hasAdvancedProperties: false
+        }
+    };
+    
+    try {
+        // Test 1: Basic document object
+        enhancedStatusLog("VALIDATION", "Testing basic document object", 1, 5, "Checking if doc exists");
+        if (!doc) {
+            validation.errors.push("Document object is null or undefined");
+            return validation;
+        }
+        
+        // Test 2: Essential properties with safe access
+        enhancedStatusLog("VALIDATION", "Testing essential properties", 2, 5, "Checking name, saved status");
+        var docName = safeGetProperty(doc, 'name');
+        var docSaved = safeGetProperty(doc, 'saved');
+        
+        if (docName) {
+            validation.capabilities.hasBasicProperties = true;
+            enhancedStatusLog("VALIDATION", "Basic properties OK", 2, 5, "name: " + docName);
+        } else {
+            validation.warnings.push("Cannot access document name property");
+        }
+        
+        // Test 3: Collection access
+        enhancedStatusLog("VALIDATION", "Testing collection access", 3, 5, "Checking pages, textFrames");
+        var pagesCollection = safeGetProperty(doc, 'pages');
+        var textFramesCollection = safeGetProperty(doc, 'textFrames');
+        
+        if (pagesCollection || textFramesCollection) {
+            validation.capabilities.hasCollections = true;
+            var pageCount = safeGetLength(pagesCollection);
+            var frameCount = safeGetLength(textFramesCollection);
+            enhancedStatusLog("VALIDATION", "Collections accessible", 3, 5, 
+                "pages: " + pageCount + ", textFrames: " + frameCount);
+        } else {
+            validation.errors.push("Cannot access basic collections (pages, textFrames)");
+        }
+        
+        // Test 4: Advanced properties
+        enhancedStatusLog("VALIDATION", "Testing advanced properties", 4, 5, "Checking viewPreferences, links");
+        var viewPrefs = safeGetProperty(doc, 'viewPreferences');
+        var linksCollection = safeGetProperty(doc, 'links');
+        
+        if (viewPrefs || linksCollection) {
+            validation.capabilities.hasAdvancedProperties = true;
+            enhancedStatusLog("VALIDATION", "Advanced properties accessible", 4, 5, "viewPrefs and links OK");
+        } else {
+            validation.warnings.push("Advanced properties may not be accessible");
+        }
+        
+        // Test 5: Final validation
+        enhancedStatusLog("VALIDATION", "Completing validation", 5, 5, "Determining analysis capability");
+        
+        if (validation.capabilities.hasBasicProperties && validation.capabilities.hasCollections) {
+            validation.isValid = true;
+            enhancedStatusLog("VALIDATION", "Document validation PASSED", 5, 5, "Ready for analysis");
+        } else {
+            validation.errors.push("Document lacks minimum required capabilities for analysis");
+            enhancedStatusLog("VALIDATION", "Document validation FAILED", 5, 5, "Cannot proceed with analysis");
+        }
+        
+    } catch (exc) {
+        validation.errors.push("Validation failed with exception: " + exc.message);
+        enhancedStatusLog("VALIDATION", "Validation exception", 5, 5, "Error: " + exc.message);
+    }
+    
+    return validation;
+}
+
+// ============================================================================
 // CORE UTILITY FUNCTIONS - ESTK OPTIMIZED WITH ROBUST ERROR HANDLING
 // ============================================================================
 
@@ -219,7 +323,7 @@ function debugLog(message, category) {
     }
 }
 
-// Enhanced status logging for complex operations
+// Enhanced status logging for complex operations - DEPRECATED, use enhancedStatusLog
 function statusLog(operation, details, progress) {
     if (ANALYSIS_CONFIG.enableESTKDebugging) {
         var progressStr = progress ? " (" + progress + "%)" : "";
@@ -624,7 +728,146 @@ function safeGetLength(collection) {
     }
 }
 
-// Enhanced collection iterator with maximum safety and error recovery
+// ============================================================================
+// ENHANCED COLLECTION ITERATION WITH DETAILED PROGRESS REPORTING - NEW
+// ============================================================================
+
+// Enhanced collection iteration with detailed progress and timeout protection
+function enhancedSafeIterateCollection(collection, callback, maxItems, collectionName) {
+    if (!collection || !callback) {
+        enhancedStatusLog("ITERATION", "Invalid parameters", 0, 0, "collection or callback missing");
+        return [];
+    }
+    
+    var results = [];
+    var startTime = new Date().getTime();
+    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit);
+    
+    enhancedStatusLog("ITERATION", "Starting collection analysis", 0, 0, collectionName || "unknown");
+    
+    try {
+        var collectionLength = safeGetLength(collection);
+        var actualMax = Math.min(collectionLength, maxItems);
+        
+        enhancedStatusLog("ITERATION", "Collection size determined", 0, actualMax, 
+            "Length: " + collectionLength + ", Processing: " + actualMax);
+        
+        if (collectionLength === 0) {
+            enhancedStatusLog("ITERATION", "Empty collection", 0, 0, collectionName + " has no items");
+            return results;
+        }
+        
+        // Enhanced iteration with detailed progress
+        for (var i = 0; i < actualMax; i++) {
+            // Enhanced timeout protection
+            if (new Date().getTime() - startTime > ANALYSIS_CONFIG.timeoutThreshold) {
+                enhancedStatusLog("ITERATION", "TIMEOUT PROTECTION", i, actualMax, 
+                    "Stopped at item " + i + " after " + ANALYSIS_CONFIG.timeoutThreshold + "ms");
+                results.push({
+                    notice: "Processing timed out at item " + i + " of " + collectionLength,
+                    timeout: true,
+                    collectionName: collectionName || "unknown",
+                    timeoutThreshold: ANALYSIS_CONFIG.timeoutThreshold
+                });
+                break;
+            }
+            
+            // Progress reporting every 5 items or on important milestones
+            if (i % 5 === 0 || i === actualMax - 1) {
+                enhancedStatusLog("ITERATION", "Processing items", i + 1, actualMax, 
+                    collectionName + " item " + (i + 1));
+            }
+            
+            try {
+                var item = null;
+                var accessMethod = "unknown";
+                
+                // Enhanced access method reporting
+                try {
+                    item = collection[i];
+                    accessMethod = "array[" + i + "]";
+                    if (item && i % 10 === 0) { // Report every 10th successful access
+                        enhancedStatusLog("ITERATION", "Access method working", i + 1, actualMax, 
+                            "Using " + accessMethod);
+                    }
+                } catch (e1) {
+                    if (i < 3) { // Only log first few failures
+                        enhancedStatusLog("ITERATION", "Array access failed", i + 1, actualMax, 
+                            "Item " + i + ": " + e1.message);
+                    }
+                }
+                
+                // Fallback to .item() method
+                if (!item && collection.item) {
+                    try {
+                        item = collection.item(i);
+                        accessMethod = "collection.item(" + i + ")";
+                        if (item && i % 10 === 0) {
+                            enhancedStatusLog("ITERATION", "Fallback method working", i + 1, actualMax, 
+                                "Using " + accessMethod);
+                        }
+                    } catch (e2) {
+                        if (i < 3) {
+                            enhancedStatusLog("ITERATION", ".item() access failed", i + 1, actualMax, 
+                                "Item " + i + ": " + e2.message);
+                        }
+                    }
+                }
+                
+                // Process item if we got it
+                if (item) {
+                    try {
+                        var result = callback(item, i);
+                        if (result !== null && result !== undefined) {
+                            if (typeof result === 'object') {
+                                result._accessMethod = accessMethod;
+                            }
+                            results.push(result);
+                        }
+                    } catch (callbackError) {
+                        enhancedStatusLog("ITERATION", "Callback failed", i + 1, actualMax, 
+                            "Item " + i + ": " + callbackError.message);
+                        results.push({
+                            error: "Callback processing failed",
+                            index: i,
+                            errorMessage: callbackError.message,
+                            accessMethod: accessMethod,
+                            collectionName: collectionName || "unknown"
+                        });
+                    }
+                } else {
+                    if (i < 3) { // Only report first few access failures
+                        enhancedStatusLog("ITERATION", "Item access failed", i + 1, actualMax, 
+                            "Could not access item " + i + " with any method");
+                    }
+                }
+                
+            } catch (itemError) {
+                if (i < 3) {
+                    enhancedStatusLog("ITERATION", "Item processing failed", i + 1, actualMax, 
+                        "Item " + i + ": " + itemError.message);
+                }
+            }
+        }
+        
+        var totalTime = new Date().getTime() - startTime;
+        enhancedStatusLog("ITERATION", "Collection analysis complete", actualMax, actualMax, 
+            collectionName + ": " + results.length + " results in " + totalTime + "ms");
+        
+    } catch (exc) {
+        enhancedStatusLog("ITERATION", "Collection analysis FAILED", 0, 0, 
+            collectionName + ": " + exc.message);
+        results.push({
+            error: "Collection iteration completely failed: " + exc.message,
+            collectionName: collectionName || "unknown",
+            errorType: categorizeAPIError(exc.message)
+        });
+    }
+    
+    return results;
+}
+
+// Enhanced collection iterator with maximum safety and error recovery (LEGACY - use enhancedSafeIterateCollection)
 function safeIterateCollection(collection, callback, maxItems, collectionName) {
     if (!collection || !callback) {
         debugLog("Invalid collection or callback provided to safeIterateCollection", "WARN");
@@ -802,7 +1045,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
     };
     
     debugLog("Starting enhanced section analysis: " + sectionName, "SECTION");
-    statusLog("Section Analysis", sectionName, 0);
+    enhancedStatusLog("SECTION", "Section analysis starting", 0, 1, sectionName);
     
     function attemptAnalysis() {
         var attemptStartTime = new Date().getTime();
@@ -819,7 +1062,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
             var duration = new Date().getTime() - attemptStartTime;
             
             debugLog("Section " + sectionName + " completed in " + duration + "ms", "SECTION");
-            statusLog("Section Analysis", sectionName + " completed", 100);
+            enhancedStatusLog("SECTION", "Section analysis completed", 1, 1, sectionName + " - " + duration + "ms");
             
             // Enhanced timeout detection and retry logic
             if (duration > sectionConfig.timeout) {

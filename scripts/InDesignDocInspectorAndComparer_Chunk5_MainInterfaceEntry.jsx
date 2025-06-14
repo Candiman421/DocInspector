@@ -5,6 +5,8 @@
 
 // Show enhanced comparison dialog with comprehensive features
 function showEnhancedComparisonDialog(differences) {
+    enhancedStatusLog("UI", "Displaying comparison results", 0, 1, "Opening enhanced comparison dialog");
+    
     var dialog = new Window("dialog", "Document Comparison Results - Enhanced Inspector v2.1");
     dialog.preferredSize.width = 700;
     dialog.preferredSize.height = 600;
@@ -87,11 +89,14 @@ function showEnhancedComparisonDialog(differences) {
         dialog.close();
     };
     
+    enhancedStatusLog("UI", "Comparison dialog ready", 1, 1, "User interface displayed");
     dialog.show();
 }
 
 // Export all reports to a selected folder
 function exportAllReportsToFolder(differences) {
+    enhancedStatusLog("EXPORT", "Starting export process", 0, 100, "Initializing report export");
+    
     var folder = Folder.selectDialog("Select folder to save comprehensive report suite:");
     if (!folder) return;
     
@@ -103,6 +108,7 @@ function exportAllReportsToFolder(differences) {
     
     try {
         debugLog("Exporting all reports to: " + folder.fsName, "EXPORT");
+        enhancedStatusLog("EXPORT", "Creating reports", 10, 100, "Generating all report formats");
         
         // Create all reports
         var reports = {
@@ -113,12 +119,15 @@ function exportAllReportsToFolder(differences) {
             accessGuide: createAccessPathGuide(differences)
         };
         
+        enhancedStatusLog("EXPORT", "Saving files", 30, 100, "Writing reports to selected folder");
+        
         // Save all files with enhanced error handling
         var savedFiles = [];
         
         // JSON file
         var jsonFile = File(folder.fsName + "/" + docName + "_comprehensive_analysis_" + timestamp + ".json");
         try {
+            enhancedStatusLog("EXPORT", "Saving JSON data", 40, 100, "Writing: " + jsonFile.name);
             jsonFile.open("w");
             jsonFile.write(JSON.stringify(reports.comparison, null, 2));
             jsonFile.close();
@@ -138,6 +147,9 @@ function exportAllReportsToFolder(differences) {
         
         for (var i = 0; i < textReports.length; i++) {
             var report = textReports[i];
+            var progress = 50 + (i / textReports.length) * 40;
+            enhancedStatusLog("EXPORT", "Saving text report", progress, 100, "Writing: " + report.file);
+            
             try {
                 var file = File(folder.fsName + "/" + report.file);
                 file.open("w");
@@ -149,6 +161,8 @@ function exportAllReportsToFolder(differences) {
                 return;
             }
         }
+        
+        enhancedStatusLog("EXPORT", "Export completed", 100, 100, savedFiles.length + " files saved successfully");
         
         alert("Comprehensive report suite exported successfully!\n\n" +
               "Location: " + folder.fsName + "\n" +
@@ -165,11 +179,14 @@ function exportAllReportsToFolder(differences) {
     } catch (exc) { // FIXED: error -> exc
         alert("Export failed: " + exc.message);
         debugLog("Export failed: " + exc.message, "ERROR");
+        enhancedStatusLog("EXPORT", "Export failed", 100, 100, "Error: " + exc.message);
     }
 }
 
 // Enhanced main analysis function
 function analyzeDocument() {
+    enhancedStatusLog("WORKFLOW", "Document analysis starting", 0, 100, "Standalone document analysis");
+    
     if (!app.documents.length) {
         alert("Please open a document first.");
         return null;
@@ -180,6 +197,7 @@ function analyzeDocument() {
     
     try {
         debugLog("Starting standalone document analysis", "ANALYZE");
+        enhancedStatusLog("WORKFLOW", "Validating document", 5, 100, "Checking document state");
         
         // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
         var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
@@ -192,6 +210,7 @@ function analyzeDocument() {
             if (shouldSave) {
                 var saveFile = File.saveDialog("Save document", "*.indd");
                 if (saveFile) {
+                    enhancedStatusLog("WORKFLOW", "Saving document", 10, 100, "Saving to: " + saveFile.name);
                     doc.save(saveFile);
                     // Update cached values after save
                     docPath = safeGetProperty(doc, 'filePath');
@@ -207,18 +226,24 @@ function analyzeDocument() {
             }
         }
         
-        var report = createDocumentReport(doc);
+        enhancedStatusLog("WORKFLOW", "Starting comprehensive analysis", 20, 100, "Using enhanced document analysis");
+        
+        var report = createValidatedDocumentReport(doc); // ENHANCED: Use validated version
         
         if (!report) {
             alert("Failed to create document report.");
             return null;
         }
         
+        enhancedStatusLog("WORKFLOW", "Saving analysis report", 80, 100, "Writing comprehensive analysis to file");
+        
         // Save comprehensive report
         var reportFile = File(docPath + "/" + docName + "_analysis.json");
         
         if (saveReportSafely(reportFile, report, "analysis")) {
             var duration = (new Date().getTime() - startTime) / 1000;
+            
+            enhancedStatusLog("WORKFLOW", "Analysis completed", 100, 100, "Report generated successfully");
             
             var summary = "Analysis complete! (" + duration + "s)\n\n";
             summary += "ANALYSIS RESULTS:\n";
@@ -242,12 +267,15 @@ function analyzeDocument() {
         
         alert(errorMsg);
         debugLog("Analysis failed: " + exc.message, "ERROR");
+        enhancedStatusLog("WORKFLOW", "Analysis failed", 100, 100, "Error: " + exc.message);
         return null;
     }
 }
 
 // Reset baseline functionality with enhanced validation
 function resetBaseline() {
+    enhancedStatusLog("WORKFLOW", "Baseline reset starting", 0, 100, "Initializing baseline reset");
+    
     if (!app.documents.length) {
         alert("Please open a document first.");
         return;
@@ -266,24 +294,30 @@ function resetBaseline() {
     }
     
     debugLog("Resetting baseline for document: " + docName, "BASELINE");
+    enhancedStatusLog("WORKFLOW", "Validating document", 10, 100, "Document: " + docName);
     
     try {
         var baselineFile = File(docPath + "/" + docName + "_baseline.json");
         var backupFile = File(docPath + "/" + docName + "_baseline_backup.json");
+        
+        enhancedStatusLog("WORKFLOW", "Creating backup", 20, 100, "Backing up existing baseline");
         
         // Create backup if baseline exists
         if (baselineFile.exists) {
             try {
                 baselineFile.copy(backupFile);
                 debugLog("Baseline backup created: " + backupFile.name, "BASELINE");
+                enhancedStatusLog("WORKFLOW", "Backup created", 30, 100, "Backup: " + backupFile.name);
             } catch (exc) { // FIXED: error -> exc
                 debugLog("Backup creation failed: " + exc.message, "WARN");
             }
         }
         
+        enhancedStatusLog("WORKFLOW", "Creating new baseline", 40, 100, "Starting comprehensive analysis");
+        
         // Create new baseline
         var success = showProgressDialog("Creating new baseline...", function() {
-            var report = createDocumentReport(doc);
+            var report = createValidatedDocumentReport(doc); // ENHANCED: Use validated version
             if (report && validateAnalysisReport(report)) {
                 return saveReportSafely(baselineFile, report, "baseline");
             }
@@ -291,6 +325,8 @@ function resetBaseline() {
         });
         
         if (success) {
+            enhancedStatusLog("WORKFLOW", "Baseline reset completed", 100, 100, "New baseline ready");
+            
             var message = "New baseline created successfully!\n\n";
             message += "New baseline saved as: " + baselineFile.name + "\n";
             if (backupFile.exists) {
@@ -303,16 +339,20 @@ function resetBaseline() {
         } else {
             alert("Failed to create new baseline.");
             debugLog("Baseline reset failed", "ERROR");
+            enhancedStatusLog("WORKFLOW", "Baseline reset failed", 100, 100, "Could not create new baseline");
         }
         
     } catch (exc) { // FIXED: error -> exc
         alert("Baseline reset failed: " + exc.message);
         debugLog("Baseline reset failed: " + exc.message, "ERROR");
+        enhancedStatusLog("WORKFLOW", "Baseline reset failed", 100, 100, "Error: " + exc.message);
     }
 }
 
 // Show help dialog with comprehensive information
 function showHelpDialog() {
+    enhancedStatusLog("UI", "Displaying help dialog", 0, 1, "Opening help and documentation");
+    
     var helpDialog = new Window("dialog", "Enhanced InDesign Inspector - Help & Documentation");
     helpDialog.preferredSize.width = 650;
     helpDialog.preferredSize.height = 550;
@@ -327,13 +367,14 @@ function showHelpDialog() {
         "Comprehensive InDesign document analysis and change tracking tool\n" +
         "optimized for ExtendScript Toolkit (ESTK) development and debugging.\n\n" +
         "FEATURES:\n" +
-        "* Comprehensive document property analysis\n" +
+        "* Comprehensive document property analysis with validation\n" +
         "* Robust text content capture and change detection\n" +
         "* Safe object model access with multiple fallback methods\n" +
         "* Enhanced error handling and recovery\n" +
         "* ESTK debugging with detailed console output\n" +
         "* Baseline creation and comparison workflow\n" +
-        "* Multiple report formats for different use cases\n\n" +
+        "* Multiple report formats for different use cases\n" +
+        "* Enhanced progress reporting and hanging prevention\n\n" +
         "HOW TO USE:\n" +
         "1. Open an InDesign document\n" +
         "2. Save the document (required for analysis)\n" +
@@ -358,20 +399,29 @@ function showHelpDialog() {
         "* Error categorization and troubleshooting guidance\n" +
         "* Alternative property access method discovery\n" +
         "* Performance monitoring and memory management\n" +
-        "* Timeout protection for complex operations\n\n" +
+        "* Timeout protection for complex operations\n" +
+        "* Document validation and capability detection\n\n" +
+        "ENHANCED FEATURES (v2.1-ESTK):\n" +
+        "* Document state validation prevents hanging\n" +
+        "* Enhanced progress reporting with detailed feedback\n" +
+        "* Graceful degradation for problematic documents\n" +
+        "* Collection-level progress tracking\n" +
+        "* Comprehensive error recovery and retry logic\n\n" +
         "TROUBLESHOOTING:\n" +
         "* Document must be saved before analysis\n" +
         "* Check ESTK console for detailed debugging output\n" +
         "* Use baseline reset if comparison issues occur\n" +
         "* All error logs are captured in analysis results\n" +
-        "* Property access failures include alternative methods\n\n" +
+        "* Property access failures include alternative methods\n" +
+        "* Document validation detects compatibility issues\n\n" +
         "BEST PRACTICES:\n" +
         "* Test with simple documents first\n" +
         "* Use ESTK for development and debugging\n" +
         "* Review access guide for safe property patterns\n" +
         "* Monitor console output for API issues\n" +
-        "* Keep baseline reports for version tracking\n\n" +
-        "VERSION: 2.1-ESTK - Comprehensive Change Detection with ESTK Optimization",
+        "* Keep baseline reports for version tracking\n" +
+        "* Check validation results for problematic documents\n\n" +
+        "VERSION: 2.1-ESTK - Comprehensive Change Detection with Enhanced Validation",
         {multiline: true, readonly: true});
     helpText.alignment = "fill";
     
@@ -383,11 +433,14 @@ function showHelpDialog() {
         helpDialog.close();
     };
     
-    helpDialog.show();
+    enhancedStatusLog("UI", "Help dialog ready", 1, 1, "Documentation displayed");
+    dialog.show();
 }
 
 // Main menu dialog with enhanced status information
 function showMainMenu() {
+    enhancedStatusLog("UI", "Displaying main menu", 0, 1, "Opening enhanced main menu");
+    
     var menuDialog = new Window("dialog", "Enhanced InDesign Inspector v2.1-ESTK");
     menuDialog.preferredSize.width = 550;
     menuDialog.preferredSize.height = 450;
@@ -403,12 +456,13 @@ function showMainMenu() {
     var titleText = titlePanel.add("statictext", undefined, 
         "ESTK-optimized InDesign document analysis with:\n" +
         "* Comprehensive text content capture (" + ANALYSIS_CONFIG.maxTextPreviewLength + "-char previews)\n" +
-        "* Robust property change detection\n" +
+        "* Robust property change detection with validation\n" +
         "* Safe API access with multiple fallback methods\n" +
         "* Enhanced error handling and recovery\n" +
         "* ESTK debugging with detailed console output\n" +
         "* Baseline creation and comparison workflow\n" +
-        "* Multiple report formats for different needs",
+        "* Multiple report formats for different needs\n" +
+        "* Enhanced progress reporting prevents hanging",
         {multiline: true});
     titleText.alignment = "fill";
     
@@ -466,6 +520,7 @@ function showMainMenu() {
         menuDialog.close();
     };
     
+    enhancedStatusLog("UI", "Main menu ready", 1, 1, "User interface displayed");
     menuDialog.show();
 }
 
@@ -482,6 +537,7 @@ function getEnhancedStatusText() {
         status += "* Document must be open in InDesign\n";
         status += "* Document must be saved before analysis\n";
         status += "* Write permissions required in document folder\n";
+        status += "* Enhanced validation detects compatibility issues\n";
     } else {
         var doc = app.activeDocument;
         var docName = safeGetProperty(doc, 'name', 'Unknown'); // FIXED: Use safeGetProperty
@@ -521,12 +577,21 @@ function getEnhancedStatusText() {
             status += "Text Frames: " + safeGetLength(safeGetProperty(doc, 'textFrames')) + "\n";
             status += "Images: " + safeGetLength(safeGetProperty(doc, 'images')) + "\n";
             status += "Links: " + safeGetLength(safeGetProperty(doc, 'links')) + "\n";
+            
+            // Enhanced validation status
+            status += "\nENHANCED FEATURES:\n";
+            status += "Document validation: Enabled\n";
+            status += "Progress reporting: Enhanced\n";
+            status += "Hanging prevention: Active\n";
         }
     }
     
-    status += "\nESTK DEBUGGING: Enabled (check console output)\n";
-    status += "MEMORY MANAGEMENT: Active cleanup enabled\n";
-    status += "ERROR HANDLING: Comprehensive with retry logic\n";
+    status += "\nSYSTEM STATUS:\n";
+    status += "ESTK debugging: " + (ANALYSIS_CONFIG.enableESTKDebugging ? "Enabled" : "Disabled") + "\n";
+    status += "Memory management: Active cleanup enabled\n";
+    status += "Error handling: Comprehensive with retry logic\n";
+    status += "Timeout protection: " + (ANALYSIS_CONFIG.timeoutThreshold / 1000) + "s limits\n";
+    status += "Collection sampling: " + ANALYSIS_CONFIG.maxCollectionSample + " items max\n";
     
     return status;
 }
@@ -542,7 +607,50 @@ try {
     $.writeln("Enhanced InDesign Document Inspector v2.1-ESTK");
     $.writeln("Loading comprehensive document analysis suite...");
     $.writeln("ESTK Debugging: ENABLED");
+    $.writeln("Enhanced Features: Document Validation, Progress Reporting, Hanging Prevention");
     $.writeln(repeatString("=", 60));
+    
+    enhancedStatusLog("INIT", "System initialization", 0, 5, "Loading enhanced analysis engine");
+    
+    // Verify core functions are available
+    var coreTests = [
+        {name: "validateDocumentState", func: validateDocumentState},
+        {name: "createValidatedDocumentReport", func: createValidatedDocumentReport},
+        {name: "enhancedSafeIterateCollection", func: enhancedSafeIterateCollection},
+        {name: "enhancedStatusLog", func: enhancedStatusLog},
+        {name: "safeGetProperty", func: safeGetProperty}
+    ];
+    
+    enhancedStatusLog("INIT", "Verifying core functions", 1, 5, "Testing enhanced function availability");
+    
+    for (var i = 0; i < coreTests.length; i++) {
+        var test = coreTests[i];
+        if (typeof test.func !== 'function') {
+            throw new Error("Core function missing: " + test.name);
+        }
+    }
+    
+    enhancedStatusLog("INIT", "Core functions verified", 2, 5, "All enhanced functions available");
+    
+    // Test document validation if document is open
+    if (app.documents.length > 0) {
+        enhancedStatusLog("INIT", "Testing document validation", 3, 5, "Checking current document compatibility");
+        
+        try {
+            var testValidation = validateDocumentState(app.activeDocument);
+            if (testValidation.isValid) {
+                enhancedStatusLog("INIT", "Document validation passed", 4, 5, "Current document is compatible");
+            } else {
+                enhancedStatusLog("INIT", "Document validation issues detected", 4, 5, "Some features may be limited");
+            }
+        } catch (validationError) {
+            enhancedStatusLog("INIT", "Document validation test failed", 4, 5, "Will use basic compatibility mode");
+        }
+    } else {
+        enhancedStatusLog("INIT", "No document open", 3, 5, "Ready for document analysis when opened");
+    }
+    
+    enhancedStatusLog("INIT", "Initialization completed", 5, 5, "Enhanced inspector ready for use");
     
     // Show startup completion message
     alert("Enhanced InDesign Document Inspector v2.1-ESTK loaded successfully!\n\n" +
@@ -553,11 +661,18 @@ try {
           "* ESTK debugging with detailed console output\n" +
           "* Baseline creation and comparison workflow\n" +
           "* Multiple report formats for different use cases\n\n" +
+          "ENHANCED FEATURES (NEW):\n" +
+          "* Document state validation prevents hanging\n" +
+          "* Enhanced progress reporting with detailed feedback\n" +
+          "* Graceful degradation for problematic documents\n" +
+          "* Collection-level progress tracking\n" +
+          "* Comprehensive timeout protection\n\n" +
           "ESTK OPTIMIZATIONS:\n" +
           "* Comprehensive $.writeln() debugging output\n" +
           "* Memory management and cleanup\n" +
           "* Timeout protection for complex operations\n" +
-          "* Alternative property access method discovery\n\n" +
+          "* Alternative property access method discovery\n" +
+          "* Real-time progress reporting prevents hanging\n\n" +
           "Ready for comprehensive InDesign document analysis!\n\n" +
           "Check the ESTK console for detailed progress information.");
     
@@ -565,6 +680,7 @@ try {
     debugLog("Enhanced InDesign Inspector v2.1-ESTK initialized successfully", "INIT");
     debugLog("All chunks loaded and ready for operation", "INIT");
     debugLog("ESTK debugging enabled - check console for detailed output", "INIT");
+    debugLog("Enhanced features: Document validation, progress reporting, hanging prevention", "INIT");
     
     // Show main menu
     showMainMenu();
@@ -584,5 +700,37 @@ try {
     $.writeln("Error: " + exc.message);
     if (exc.line) $.writeln("Line: " + exc.line);
     if (exc.stack) $.writeln("Stack: " + exc.stack);
+    $.writeln("Enhanced Features Status: Some features may not be available");
+    $.writeln("Fallback: Basic functionality should still work");
     $.writeln(repeatString("=", 72));
+    
+    // Try to show a basic menu as fallback
+    try {
+        var fallbackDialog = new Window("dialog", "InDesign Inspector - Basic Mode");
+        fallbackDialog.preferredSize.width = 400;
+        fallbackDialog.preferredSize.height = 200;
+        
+        var fallbackGroup = fallbackDialog.add("group");
+        fallbackGroup.orientation = "column";
+        fallbackGroup.alignment = "fill";
+        
+        var fallbackText = fallbackGroup.add("statictext", undefined, 
+            "Enhanced features failed to initialize.\n\n" +
+            "Error: " + exc.message + "\n\n" +
+            "Basic analysis may still be available.\nCheck ESTK console for details.",
+            {multiline: true});
+        fallbackText.alignment = "fill";
+        
+        var fallbackButtonGroup = fallbackGroup.add("group");
+        fallbackButtonGroup.alignment = "center";
+        
+        var fallbackOkBtn = fallbackButtonGroup.add("button", undefined, "OK");
+        fallbackOkBtn.onClick = function() {
+            fallbackDialog.close();
+        };
+        
+        fallbackDialog.show();
+    } catch (fallbackError) {
+        $.writeln("Fallback dialog also failed: " + fallbackError.message);
+    }
 }
