@@ -35,14 +35,14 @@ var UTILITY_STATE = {
 function quickCompare() {
     // Diagnostic check
     alert("At start of quickCompare:\n" +
-        "createDocumentReport: " + (typeof createDocumentReport) + "\n" +
-        "ANALYSIS_CONFIG: " + (typeof ANALYSIS_CONFIG));
-
+          "$.global.InDesignInspectorFunctions: " + (typeof $.global.InDesignInspectorFunctions) + "\n" +
+          "Inspector loaded: " + ($.global.InDesignInspectorFunctions ? $.global.InDesignInspectorFunctions.loaded : "false"));
+    
     if (!app.documents.length) {
         alert("Please open a document first.");
         return;
     }
-
+    
     // Verify inspector is loaded and compatible
     if (!verifyInspectorCompatibility()) {
         return;
@@ -221,74 +221,123 @@ function quickCompare() {
 
 // Verify inspector compatibility and availability
 function verifyInspectorCompatibility() {
-    // Check if main inspector functions are available in multiple locations
-    var createReportFn = null;
-    var analysisConfig = null;
-
-    // Try multiple ways to access the functions
-    if (typeof createDocumentReport !== 'undefined') {
-        createReportFn = createDocumentReport;
-    } else if (typeof $.createDocumentReport !== 'undefined') {
-        createReportFn = $.createDocumentReport;
-    } else if (typeof window !== 'undefined' && typeof window.createDocumentReport !== 'undefined') {
-        createReportFn = window.createDocumentReport;
-    }
-
-    if (typeof ANALYSIS_CONFIG !== 'undefined') {
-        analysisConfig = ANALYSIS_CONFIG;
-    } else if (typeof $.ANALYSIS_CONFIG !== 'undefined') {
-        analysisConfig = $.ANALYSIS_CONFIG;
-    } else if (typeof window !== 'undefined' && typeof window.ANALYSIS_CONFIG !== 'undefined') {
-        analysisConfig = window.ANALYSIS_CONFIG;
-    }
-
-    if (!createReportFn) {
+    // Check if inspector functions are available in global storage
+    if (!$.global.InDesignInspectorFunctions || !$.global.InDesignInspectorFunctions.loaded) {
         alert("Enhanced InDesign Document Inspector v2.1 Required!\n\n" +
-            "The comparison utility requires the main inspector script to be loaded first.\n\n" +
-            "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
-            "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
+              "The comparison utility requires the main inspector script to be loaded first.\n\n" +
+              "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
+              "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
         return false;
     }
-
-    if (!analysisConfig) {
-        alert("Inspector configuration not found!\n\n" +
-            "Please ensure you're running the correct version of the inspector script.\n" +
-            "Required: Enhanced InDesign Document Inspector v2.1");
-        return false;
-    }
-
-    // Make functions available locally if they were found elsewhere
-    if (typeof createDocumentReport === 'undefined') {
-        createDocumentReport = createReportFn;
-    }
-    if (typeof ANALYSIS_CONFIG === 'undefined') {
-        ANALYSIS_CONFIG = analysisConfig;
-    }
-
+    
+    var inspectorFunctions = $.global.InDesignInspectorFunctions;
+    
+    // Make functions available locally
+    createDocumentReport = inspectorFunctions.createDocumentReport;
+    compareDocumentReports = inspectorFunctions.compareDocumentReports;
+    safeGetProperty = inspectorFunctions.safeGetProperty;
+    safeGetNestedProperty = inspectorFunctions.safeGetNestedProperty;
+    generateTextAccessPaths = inspectorFunctions.generateTextAccessPaths;
+    extractTextSamples = inspectorFunctions.extractTextSamples;
+    analyzeTableText = inspectorFunctions.analyzeTableText;
+    findTextInGroups = inspectorFunctions.findTextInGroups;
+    findNestedImages = inspectorFunctions.findNestedImages;
+    repeatString = inspectorFunctions.repeatString;
+    ANALYSIS_CONFIG = inspectorFunctions.ANALYSIS_CONFIG;
+    
     // Check version compatibility
-    if (analysisConfig.version !== UTILITY_CONFIG.requiredInspectorVersion) {
+    if (inspectorFunctions.version !== UTILITY_CONFIG.requiredInspectorVersion) {
         var continueAnyway = confirm("Version Mismatch Warning!\n\n" +
-            "Inspector version: " + (analysisConfig.version || "unknown") + "\n" +
-            "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
-            "Continue anyway? (Not recommended)");
+                                   "Inspector version: " + (inspectorFunctions.version || "unknown") + "\n" +
+                                   "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
+                                   "Continue anyway? (Not recommended)");
         if (!continueAnyway) {
             return false;
         }
     }
-
+    
     // Check for enhanced features
-    if (!analysisConfig.enableTextCapture) {
+    if (!ANALYSIS_CONFIG.enableTextCapture) {
         var enableFeatures = confirm("Enhanced features are disabled in the inspector.\n\n" +
-            "Enable text capture and auto-discovery for full functionality?");
+                                   "Enable text capture and auto-discovery for full functionality?");
         if (enableFeatures) {
-            analysisConfig.enableTextCapture = true;
-            analysisConfig.enableAutoDiscovery = true;
-            analysisConfig.enablePropertyTracking = true;
+            ANALYSIS_CONFIG.enableTextCapture = true;
+            ANALYSIS_CONFIG.enableAutoDiscovery = true;
+            ANALYSIS_CONFIG.enablePropertyTracking = true;
         }
     }
-
+    
     return true;
 }
+// function verifyInspectorCompatibility() {
+//     // Check if main inspector functions are available in multiple locations
+//     var createReportFn = null;
+//     var analysisConfig = null;
+
+//     // Try multiple ways to access the functions
+//     if (typeof createDocumentReport !== 'undefined') {
+//         createReportFn = createDocumentReport;
+//     } else if (typeof $.createDocumentReport !== 'undefined') {
+//         createReportFn = $.createDocumentReport;
+//     } else if (typeof window !== 'undefined' && typeof window.createDocumentReport !== 'undefined') {
+//         createReportFn = window.createDocumentReport;
+//     }
+
+//     if (typeof ANALYSIS_CONFIG !== 'undefined') {
+//         analysisConfig = ANALYSIS_CONFIG;
+//     } else if (typeof $.ANALYSIS_CONFIG !== 'undefined') {
+//         analysisConfig = $.ANALYSIS_CONFIG;
+//     } else if (typeof window !== 'undefined' && typeof window.ANALYSIS_CONFIG !== 'undefined') {
+//         analysisConfig = window.ANALYSIS_CONFIG;
+//     }
+
+//     if (!createReportFn) {
+//         alert("Enhanced InDesign Document Inspector v2.1 Required!\n\n" +
+//             "The comparison utility requires the main inspector script to be loaded first.\n\n" +
+//             "Please run 'InDesignDocumentInspector.jsx' first, then try again.\n\n" +
+//             "Required version: " + UTILITY_CONFIG.requiredInspectorVersion);
+//         return false;
+//     }
+
+//     if (!analysisConfig) {
+//         alert("Inspector configuration not found!\n\n" +
+//             "Please ensure you're running the correct version of the inspector script.\n" +
+//             "Required: Enhanced InDesign Document Inspector v2.1");
+//         return false;
+//     }
+
+//     // Make functions available locally if they were found elsewhere
+//     if (typeof createDocumentReport === 'undefined') {
+//         createDocumentReport = createReportFn;
+//     }
+//     if (typeof ANALYSIS_CONFIG === 'undefined') {
+//         ANALYSIS_CONFIG = analysisConfig;
+//     }
+
+//     // Check version compatibility
+//     if (analysisConfig.version !== UTILITY_CONFIG.requiredInspectorVersion) {
+//         var continueAnyway = confirm("Version Mismatch Warning!\n\n" +
+//             "Inspector version: " + (analysisConfig.version || "unknown") + "\n" +
+//             "Utility requires: " + UTILITY_CONFIG.requiredInspectorVersion + "\n\n" +
+//             "Continue anyway? (Not recommended)");
+//         if (!continueAnyway) {
+//             return false;
+//         }
+//     }
+
+//     // Check for enhanced features
+//     if (!analysisConfig.enableTextCapture) {
+//         var enableFeatures = confirm("Enhanced features are disabled in the inspector.\n\n" +
+//             "Enable text capture and auto-discovery for full functionality?");
+//         if (enableFeatures) {
+//             analysisConfig.enableTextCapture = true;
+//             analysisConfig.enableAutoDiscovery = true;
+//             analysisConfig.enablePropertyTracking = true;
+//         }
+//     }
+
+//     return true;
+// }
 // function verifyInspectorCompatibility() {
 //     // Check if main inspector functions are available
 //     if (typeof createDocumentReport === 'undefined') {

@@ -2510,51 +2510,35 @@ function repeatString(charToRepeat, count) {
     return result;
 }
 
-// Make functions available globally for the comparison utility
-// ExtendScript-specific global scope assignment
-(function() {
-    // Get the global object
-    var global = (function() { return this; })();
-    
-    // Assign all necessary functions to global scope
-    global.createDocumentReport = createDocumentReport;
-    global.compareDocumentReports = compareDocumentReports;
-    global.safeGetProperty = safeGetProperty;
-    global.safeGetNestedProperty = safeGetNestedProperty;
-    global.generateTextAccessPaths = generateTextAccessPaths;
-    global.extractTextSamples = extractTextSamples;
-    global.analyzeTableText = analyzeTableText;
-    global.findTextInGroups = findTextInGroups;
-    global.findNestedImages = findNestedImages;
-    global.repeatString = repeatString;
-    global.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
-    
-    // Also assign to $ for ExtendScript
-    $.createDocumentReport = createDocumentReport;
-    $.compareDocumentReports = compareDocumentReports;
-    $.safeGetProperty = safeGetProperty;
-    $.safeGetNestedProperty = safeGetNestedProperty;
-    $.generateTextAccessPaths = generateTextAccessPaths;
-    $.extractTextSamples = extractTextSamples;
-    $.analyzeTableText = analyzeTableText;
-    $.findTextInGroups = findTextInGroups;
-    $.findNestedImages = findNestedImages;
-    $.repeatString = repeatString;
-    $.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
-})();
+// Make functions available globally using ExtendScript's persistent storage
+$.global.InDesignInspectorFunctions = {
+    createDocumentReport: createDocumentReport,
+    compareDocumentReports: compareDocumentReports,
+    safeGetProperty: safeGetProperty,
+    safeGetNestedProperty: safeGetNestedProperty,
+    generateTextAccessPaths: generateTextAccessPaths,
+    extractTextSamples: extractTextSamples,
+    analyzeTableText: analyzeTableText,
+    findTextInGroups: findTextInGroups,
+    findNestedImages: findNestedImages,
+    repeatString: repeatString,
+    ANALYSIS_CONFIG: ANALYSIS_CONFIG,
+    version: "2.1",
+    loaded: true
+};
 
-// Direct assignment as backup
-createDocumentReport = createDocumentReport;
-compareDocumentReports = compareDocumentReports;
-safeGetProperty = safeGetProperty;
-safeGetNestedProperty = safeGetNestedProperty;
-generateTextAccessPaths = generateTextAccessPaths;
-extractTextSamples = extractTextSamples;
-analyzeTableText = analyzeTableText;
-findTextInGroups = findTextInGroups;
-findNestedImages = findNestedImages;
-repeatString = repeatString;
-ANALYSIS_CONFIG = ANALYSIS_CONFIG;
+// Also assign individual functions for backward compatibility
+$.global.createDocumentReport = createDocumentReport;
+$.global.compareDocumentReports = compareDocumentReports;
+$.global.safeGetProperty = safeGetProperty;
+$.global.safeGetNestedProperty = safeGetNestedProperty;
+$.global.generateTextAccessPaths = generateTextAccessPaths;
+$.global.extractTextSamples = extractTextSamples;
+$.global.analyzeTableText = analyzeTableText;
+$.global.findTextInGroups = findTextInGroups;
+$.global.findNestedImages = findNestedImages;
+$.global.repeatString = repeatString;
+$.global.ANALYSIS_CONFIG = ANALYSIS_CONFIG;
 
 // Enhanced script completion message
 try {
