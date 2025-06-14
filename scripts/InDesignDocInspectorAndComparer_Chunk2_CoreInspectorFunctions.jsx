@@ -175,16 +175,19 @@ function getErrorRecommendation(errorType) {
 function getDocumentInfo(doc) {
     debugLog("Analyzing document info", "DOC");
     
+    // FIXED: Avoid duplicate calls to safeGetProperty
+    var docFilePath = safeGetProperty(doc, 'filePath');
+    
     return {
         name: safeGetProperty(doc, 'name'),
         id: safeGetProperty(doc, 'id'),
-        filePath: safeGetProperty(doc, 'filePath') ? safeGetProperty(doc, 'filePath').toString() : null,
+        filePath: docFilePath ? docFilePath.toString() : null,
         saved: safeGetProperty(doc, 'saved', false),
         modified: safeGetProperty(doc, 'modified', false),
         readonly: safeGetProperty(doc, 'readonly', false),
         visible: safeGetProperty(doc, 'visible', true),
-        selection: safeGetProperty(doc, 'selection') ? safeGetLength(doc.selection) : 0,
-        activeLayer: safeGetProperty(doc.activeLayer, 'name'),
+        selection: safeGetProperty(doc, 'selection') ? safeGetLength(safeGetProperty(doc, 'selection')) : 0,
+        activeLayer: safeGetProperty(safeGetProperty(doc, 'activeLayer'), 'name'),
         zeroPoint: safeGetProperty(doc, 'zeroPoint'),
         rulers: {
             horizontal: safeGetProperty(doc, 'viewPreferences.horizontalMeasurementUnits'),
@@ -199,14 +202,14 @@ function getDocumentInfo(doc) {
         pageHeight: safeGetProperty(doc, 'documentPreferences.pageHeight'),
         pageWidth: safeGetProperty(doc, 'documentPreferences.pageWidth'),
         facingPages: safeGetProperty(doc, 'documentPreferences.facingPages'),
-        pagesPerDocument: safeGetLength(doc.pages)
+        pagesPerDocument: safeGetLength(safeGetProperty(doc, 'pages'))
     };
 }
 
 function getPagesInfo(doc) {
     debugLog("Analyzing pages", "PAGES");
     
-    return safeIterateCollection(doc.pages, function(page, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'pages'), function(page, index) {
         return {
             index: index,
             id: safeGetProperty(page, 'id'),
@@ -214,15 +217,15 @@ function getPagesInfo(doc) {
             bounds: safeGetProperty(page, 'bounds'),
             side: safeGetProperty(page, 'side'),
             documentOffset: safeGetProperty(page, 'documentOffset'),
-            appliedMaster: safeGetProperty(page.appliedMaster, 'name'),
-            pageItems: safeGetLength(page.pageItems),
+            appliedMaster: safeGetProperty(safeGetProperty(page, 'appliedMaster'), 'name'),
+            pageItems: safeGetLength(safeGetProperty(page, 'pageItems')),
             // Additional properties for comprehensive change detection
             margins: extractMarginInfo(page),
             orientation: safeGetProperty(page, 'orientation'),
             // Text frame count on this page
-            textFrameCount: page.textFrames ? safeGetLength(page.textFrames) : 0,
+            textFrameCount: safeGetLength(safeGetProperty(page, 'textFrames')),
             // Image count on this page
-            imageCount: page.images ? safeGetLength(page.images) : 0
+            imageCount: safeGetLength(safeGetProperty(page, 'images'))
         };
     }, ANALYSIS_CONFIG.maxCollectionSample, "pages");
 }
@@ -250,7 +253,7 @@ function extractMarginInfo(page) {
 function getLayersInfo(doc) {
     debugLog("Analyzing layers", "LAYERS");
     
-    return safeIterateCollection(doc.layers, function(layer, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'layers'), function(layer, index) {
         return {
             index: index,
             id: safeGetProperty(layer, 'id'),
@@ -258,13 +261,13 @@ function getLayersInfo(doc) {
             visible: safeGetProperty(layer, 'visible', true),
             locked: safeGetProperty(layer, 'locked', false),
             color: safeGetProperty(layer, 'layerColor'),
-            pageItems: safeGetLength(layer.pageItems),
+            pageItems: safeGetLength(safeGetProperty(layer, 'pageItems')),
             // Additional properties for comprehensive change tracking
             printable: safeGetProperty(layer, 'printable'),
             showGuides: safeGetProperty(layer, 'showGuides'),
             layerOrder: index, // Track layer order changes
-            textFrameCount: layer.textFrames ? safeGetLength(layer.textFrames) : 0,
-            imageCount: layer.images ? safeGetLength(layer.images) : 0
+            textFrameCount: safeGetLength(safeGetProperty(layer, 'textFrames')),
+            imageCount: safeGetLength(safeGetProperty(layer, 'images'))
         };
     }, ANALYSIS_CONFIG.maxCollectionSample, "layers");
 }
@@ -272,21 +275,24 @@ function getLayersInfo(doc) {
 function getStoriesInfo(doc) {
     debugLog("Analyzing stories", "STORIES");
     
-    return safeIterateCollection(doc.stories, function(story, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'stories'), function(story, index) {
         return {
             index: index,
             id: safeGetProperty(story, 'id'),
             length: safeGetProperty(story, 'length', 0),
-            textFrames: safeGetLength(story.textFrames),
+            textFrames: safeGetLength(safeGetProperty(story, 'textFrames')),
             overflows: safeGetProperty(story, 'overflows', false),
-            characters: safeGetLength(story.characters),
-            words: safeGetLength(story.words),
-            paragraphs: safeGetLength(story.paragraphs),
+            characters: safeGetLength(safeGetProperty(story, 'characters')),
+            words: safeGetLength(safeGetProperty(story, 'words')),
+            paragraphs: safeGetLength(safeGetProperty(story, 'paragraphs')),
             // Additional for comprehensive threading detection
-            isThreaded: safeGetLength(story.textFrames) > 1,
-            textContainers: safeGetLength(story.textContainers),
-            // Text content preview for change detection
-            textPreview: story.contents ? story.contents.substring(0, 100) : "[NO CONTENT]",
+            isThreaded: safeGetLength(safeGetProperty(story, 'textFrames')) > 1,
+            textContainers: safeGetLength(safeGetProperty(story, 'textContainers')),
+            // Text content preview for change detection - FIXED
+            textPreview: (function() {
+                var content = safeGetProperty(story, 'contents');
+                return content ? content.substring(0, 100) : "[NO CONTENT]";
+            })(),
             // Story statistics for change tracking
             averageWordsPerParagraph: calculateWordsPerParagraph(story),
             hasOverflow: safeGetProperty(story, 'overflows', false)
@@ -296,8 +302,8 @@ function getStoriesInfo(doc) {
 
 function calculateWordsPerParagraph(story) {
     try {
-        var wordCount = safeGetLength(story.words);
-        var paragraphCount = safeGetLength(story.paragraphs);
+        var wordCount = safeGetLength(safeGetProperty(story, 'words'));
+        var paragraphCount = safeGetLength(safeGetProperty(story, 'paragraphs'));
         if (paragraphCount > 0) {
             return Math.round((wordCount / paragraphCount) * 10) / 10;
         }
@@ -310,28 +316,31 @@ function calculateWordsPerParagraph(story) {
 function getTextFramesInfo(doc) {
     debugLog("Analyzing text frames", "TEXTFRAMES");
     
-    return safeIterateCollection(doc.textFrames, function(textFrame, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, index) {
         return {
             index: index,
             id: safeGetProperty(textFrame, 'id'),
             bounds: safeGetProperty(textFrame, 'bounds'),
             overflows: safeGetProperty(textFrame, 'overflows', false),
-            parentStory: safeGetProperty(textFrame.parentStory, 'id'),
-            layer: safeGetProperty(textFrame.itemLayer, 'name'),
+            parentStory: safeGetProperty(safeGetProperty(textFrame, 'parentStory'), 'id'),
+            layer: safeGetProperty(safeGetProperty(textFrame, 'itemLayer'), 'name'),
             textPreview: safeTextCapture(textFrame), // ENHANCED identification
-            characters: safeGetLength(textFrame.characters),
-            words: safeGetLength(textFrame.words),
-            paragraphs: safeGetLength(textFrame.paragraphs),
-            lines: safeGetLength(textFrame.lines),
+            characters: safeGetLength(safeGetProperty(textFrame, 'characters')),
+            words: safeGetLength(safeGetProperty(textFrame, 'words')),
+            paragraphs: safeGetLength(safeGetProperty(textFrame, 'paragraphs')),
+            lines: safeGetLength(safeGetProperty(textFrame, 'lines')),
             // Additional properties for comprehensive style and positioning changes
-            appliedObjectStyle: safeGetProperty(textFrame.appliedObjectStyle, 'name'),
+            appliedObjectStyle: safeGetProperty(safeGetProperty(textFrame, 'appliedObjectStyle'), 'name'),
             rotation: safeGetProperty(textFrame, 'rotationAngle'),
             opacity: safeGetProperty(textFrame, 'transparencySettings.blendingSettings.opacity'),
             // Text threading information
-            previousTextFrame: safeGetProperty(textFrame.previousTextFrame, 'id'),
-            nextTextFrame: safeGetProperty(textFrame.nextTextFrame, 'id'),
-            // Content statistics for change detection
-            characterCount: textFrame.contents ? textFrame.contents.length : 0,
+            previousTextFrame: safeGetProperty(safeGetProperty(textFrame, 'previousTextFrame'), 'id'),
+            nextTextFrame: safeGetProperty(safeGetProperty(textFrame, 'nextTextFrame'), 'id'),
+            // Content statistics for change detection - FIXED
+            characterCount: (function() {
+                var content = safeGetProperty(textFrame, 'contents');
+                return content ? content.length : 0;
+            })(),
             wordCount: calculateWordCount(textFrame),
             // First paragraph style for change tracking
             firstParagraphStyle: getFirstParagraphStyle(textFrame)
@@ -339,10 +348,12 @@ function getTextFramesInfo(doc) {
     }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames");
 }
 
+// FIXED: Use safe property access
 function calculateWordCount(textFrame) {
     try {
-        if (textFrame.contents) {
-            return textFrame.contents.split(/\s+/).filter(function(word) { 
+        var content = safeGetProperty(textFrame, 'contents');
+        if (content) {
+            return content.split(/\s+/).filter(function(word) { 
                 return word.length > 0; 
             }).length;
         }
@@ -352,10 +363,15 @@ function calculateWordCount(textFrame) {
     return 0;
 }
 
+// FIXED: Use safe property access
 function getFirstParagraphStyle(textFrame) {
     try {
-        if (textFrame.paragraphs && textFrame.paragraphs.length > 0) {
-            return safeGetProperty(textFrame.paragraphs[0].appliedParagraphStyle, 'name');
+        var paragraphs = safeGetProperty(textFrame, 'paragraphs');
+        if (paragraphs && safeGetLength(paragraphs) > 0) {
+            var firstPara = paragraphs[0];
+            if (firstPara) {
+                return safeGetProperty(safeGetProperty(firstPara, 'appliedParagraphStyle'), 'name');
+            }
         }
     } catch (e) {
         debugLog("Failed to get first paragraph style: " + e.message, "WARN");
@@ -391,45 +407,63 @@ function getComprehensiveTextContent(doc) {
     
     // COMPREHENSIVE text frame analysis - ENHANCED IDENTIFICATION
     try {
-        textAnalysis.textFrameDetails = safeIterateCollection(doc.textFrames, function(textFrame, index) {
+        textAnalysis.textFrameDetails = safeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, index) {
             var frameAnalysis = {
                 index: index,
                 id: safeGetProperty(textFrame, 'id'),
                 path: "doc.textFrames[" + index + "]",
                 bounds: safeGetProperty(textFrame, 'bounds'),
                 overflows: safeGetProperty(textFrame, 'overflows', false),
-                layer: safeGetProperty(textFrame.itemLayer, 'name'),
+                layer: safeGetProperty(safeGetProperty(textFrame, 'itemLayer'), 'name'),
                 textPreview: safeTextCapture(textFrame), // ENHANCED identification
                 characterCount: 0,
                 wordCount: 0,
                 paragraphCount: 0,
                 // Enhanced properties for comprehensive change detection
-                appliedParagraphStyle: safeGetProperty(textFrame.paragraphs && textFrame.paragraphs[0] ? textFrame.paragraphs[0].appliedParagraphStyle : null, 'name'),
-                appliedCharacterStyle: safeGetProperty(textFrame.characters && textFrame.characters[0] ? textFrame.characters[0].appliedCharacterStyle : null, 'name'),
+                appliedParagraphStyle: (function() {
+                    var paragraphs = safeGetProperty(textFrame, 'paragraphs');
+                    if (paragraphs && safeGetLength(paragraphs) > 0) {
+                        var firstPara = paragraphs[0];
+                        return firstPara ? safeGetProperty(safeGetProperty(firstPara, 'appliedParagraphStyle'), 'name') : null;
+                    }
+                    return null;
+                })(),
+                appliedCharacterStyle: (function() {
+                    var characters = safeGetProperty(textFrame, 'characters');
+                    if (characters && safeGetLength(characters) > 0) {
+                        var firstChar = characters[0];
+                        return firstChar ? safeGetProperty(safeGetProperty(firstChar, 'appliedCharacterStyle'), 'name') : null;
+                    }
+                    return null;
+                })(),
                 fontFamily: null,
                 fontSize: null,
                 textColor: null,
                 // Threading information
-                isThreaded: !!(textFrame.previousTextFrame || textFrame.nextTextFrame),
+                isThreaded: !!(safeGetProperty(textFrame, 'previousTextFrame') || safeGetProperty(textFrame, 'nextTextFrame')),
                 threadPosition: getThreadPosition(textFrame)
             };
             
             // Enhanced character/word counting for comprehensive change detection
             try {
-                if (textFrame.contents) {
-                    var content = textFrame.contents;
+                var content = safeGetProperty(textFrame, 'contents');
+                if (content) {
                     frameAnalysis.characterCount = content.length;
                     frameAnalysis.wordCount = content.split(/\s+/).filter(function(word) { 
                         return word.length > 0; 
                     }).length;
-                    frameAnalysis.paragraphCount = safeGetLength(textFrame.paragraphs);
+                    frameAnalysis.paragraphCount = safeGetLength(safeGetProperty(textFrame, 'paragraphs'));
                     
                     // Try to get comprehensive font and color information for change detection
                     try {
-                        if (textFrame.characters && textFrame.characters[0]) {
-                            frameAnalysis.fontFamily = safeGetProperty(textFrame.characters[0].appliedFont, 'fontFamily');
-                            frameAnalysis.fontSize = safeGetProperty(textFrame.characters[0], 'pointSize');
-                            frameAnalysis.textColor = safeGetProperty(textFrame.characters[0].fillColor, 'name');
+                        var characters = safeGetProperty(textFrame, 'characters');
+                        if (characters && safeGetLength(characters) > 0) {
+                            var firstChar = characters[0];
+                            if (firstChar) {
+                                frameAnalysis.fontFamily = safeGetProperty(safeGetProperty(firstChar, 'appliedFont'), 'fontFamily');
+                                frameAnalysis.fontSize = safeGetProperty(firstChar, 'pointSize');
+                                frameAnalysis.textColor = safeGetProperty(safeGetProperty(firstChar, 'fillColor'), 'name');
+                            }
                         }
                     } catch (fontError) {
                         debugLog("Could not get font info for frame " + index, "WARN");
@@ -451,7 +485,7 @@ function getComprehensiveTextContent(doc) {
             ANALYSIS_CONFIG.textItemsProcessed++;
             
             return frameAnalysis;
-        }, 15, "textFrames"); // Increased limit for comprehensive coverage
+        }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames"); // Use config value for comprehensive coverage
     } catch (e) {
         textAnalysis.textFrameDetailsError = "Text frames analysis failed: " + e.message;
         debugLog("Text frames analysis failed: " + e.message, "ERROR");
@@ -461,33 +495,36 @@ function getComprehensiveTextContent(doc) {
     
     // COMPREHENSIVE story analysis  
     try {
-        textAnalysis.storyDetails = safeIterateCollection(doc.stories, function(story, index) {
+        textAnalysis.storyDetails = safeIterateCollection(safeGetProperty(doc, 'stories'), function(story, index) {
             var storyAnalysis = {
                 index: index,
                 id: safeGetProperty(story, 'id'),
                 path: "doc.stories[" + index + "]",
                 length: safeGetProperty(story, 'length', 0),
-                textFrameCount: safeGetLength(story.textFrames),
+                textFrameCount: safeGetLength(safeGetProperty(story, 'textFrames')),
                 overflows: safeGetProperty(story, 'overflows', false),
-                characterCount: safeGetLength(story.characters),
-                wordCount: safeGetLength(story.words),
-                paragraphCount: safeGetLength(story.paragraphs),
+                characterCount: safeGetLength(safeGetProperty(story, 'characters')),
+                wordCount: safeGetLength(safeGetProperty(story, 'words')),
+                paragraphCount: safeGetLength(safeGetProperty(story, 'paragraphs')),
                 // Enhanced threading information for change detection
-                isThreaded: safeGetLength(story.textFrames) > 1,
-                threadLength: safeGetLength(story.textFrames),
+                isThreaded: safeGetLength(safeGetProperty(story, 'textFrames')) > 1,
+                threadLength: safeGetLength(safeGetProperty(story, 'textFrames')),
                 // Content preview for change identification
-                contentPreview: story.contents ? story.contents.substring(0, 150) : "[NO CONTENT]",
+                contentPreview: (function() {
+                    var content = safeGetProperty(story, 'contents');
+                    return content ? content.substring(0, 150) : "[NO CONTENT]";
+                })(),
                 // Story-level statistics
                 averageWordsPerParagraph: calculateWordsPerParagraph(story),
-                hasFootnotes: story.footnotes ? safeGetLength(story.footnotes) > 0 : false,
-                footnoteCount: story.footnotes ? safeGetLength(story.footnotes) : 0
+                hasFootnotes: safeGetLength(safeGetProperty(story, 'footnotes')) > 0,
+                footnoteCount: safeGetLength(safeGetProperty(story, 'footnotes'))
             };
             
             textAnalysis.summary.totalStories++;
             ANALYSIS_CONFIG.textItemsProcessed++;
             
             return storyAnalysis;
-        }, 15, "stories"); // Increased limit for comprehensive coverage
+        }, ANALYSIS_CONFIG.maxCollectionSample, "stories"); // Use config value for comprehensive coverage
     } catch (e) {
         textAnalysis.storyDetailsError = "Stories analysis failed: " + e.message;
         debugLog("Stories analysis failed: " + e.message, "ERROR");
@@ -507,11 +544,14 @@ function getComprehensiveTextContent(doc) {
 
 function getThreadPosition(textFrame) {
     try {
-        if (textFrame.previousTextFrame && textFrame.nextTextFrame) {
+        var prevFrame = safeGetProperty(textFrame, 'previousTextFrame');
+        var nextFrame = safeGetProperty(textFrame, 'nextTextFrame');
+        
+        if (prevFrame && nextFrame) {
             return "middle";
-        } else if (textFrame.previousTextFrame) {
+        } else if (prevFrame) {
             return "end";
-        } else if (textFrame.nextTextFrame) {
+        } else if (nextFrame) {
             return "start";
         } else {
             return "single";
@@ -592,51 +632,51 @@ function getStylesInfo(doc) {
     debugLog("Analyzing styles", "STYLES");
     
     return {
-        paragraphStyles: safeIterateCollection(doc.paragraphStyles, function(style, index) {
+        paragraphStyles: safeIterateCollection(safeGetProperty(doc, 'paragraphStyles'), function(style, index) {
             return {
                 index: index,
                 id: safeGetProperty(style, 'id'),
                 name: safeGetProperty(style, 'name'),
-                basedOn: safeGetProperty(style.basedOn, 'name'),
+                basedOn: safeGetProperty(safeGetProperty(style, 'basedOn'), 'name'),
                 // Additional properties for comprehensive change detection
-                fontFamily: safeGetProperty(style, 'appliedFont.fontFamily'),
+                fontFamily: safeGetProperty(safeGetProperty(style, 'appliedFont'), 'fontFamily'),
                 fontSize: safeGetProperty(style, 'pointSize'),
-                color: safeGetProperty(style, 'fillColor.name'),
+                color: safeGetProperty(safeGetProperty(style, 'fillColor'), 'name'),
                 leading: safeGetProperty(style, 'leading'),
                 spaceAfter: safeGetProperty(style, 'spaceAfter'),
                 spaceBefore: safeGetProperty(style, 'spaceBefore')
             };
-        }, 15, "paragraphStyles"), // Increased for comprehensive coverage
+        }, ANALYSIS_CONFIG.maxCollectionSample, "paragraphStyles"),
         
-        characterStyles: safeIterateCollection(doc.characterStyles, function(style, index) {
+        characterStyles: safeIterateCollection(safeGetProperty(doc, 'characterStyles'), function(style, index) {
             return {
                 index: index,
                 id: safeGetProperty(style, 'id'),
                 name: safeGetProperty(style, 'name'),
-                basedOn: safeGetProperty(style.basedOn, 'name'),
+                basedOn: safeGetProperty(safeGetProperty(style, 'basedOn'), 'name'),
                 // Additional properties for comprehensive change detection
-                fontFamily: safeGetProperty(style, 'appliedFont.fontFamily'),
+                fontFamily: safeGetProperty(safeGetProperty(style, 'appliedFont'), 'fontFamily'),
                 fontSize: safeGetProperty(style, 'pointSize'),
-                color: safeGetProperty(style, 'fillColor.name'),
+                color: safeGetProperty(safeGetProperty(style, 'fillColor'), 'name'),
                 fontStyle: safeGetProperty(style, 'fontStyle')
             };
-        }, 15, "characterStyles") // Increased for comprehensive coverage
+        }, ANALYSIS_CONFIG.maxCollectionSample, "characterStyles")
     };
 }
 
 function getColorsInfo(doc) {
     debugLog("Analyzing colors", "COLORS");
     
-    return safeIterateCollection(doc.colors, function(color, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'colors'), function(color, index) {
         return {
             index: index,
             id: safeGetProperty(color, 'id'),
             name: safeGetProperty(color, 'name'),
-            model: safeGetProperty(color, 'model') ? color.model.toString() : 'unknown',
-            space: safeGetProperty(color, 'space') ? color.space.toString() : 'unknown',
+            model: safeGetProperty(color, 'model') ? safeGetProperty(color, 'model').toString() : 'unknown',
+            space: safeGetProperty(color, 'space') ? safeGetProperty(color, 'space').toString() : 'unknown',
             colorValue: safeGetProperty(color, 'colorValue'),
             // Additional properties for comprehensive change detection
-            colorType: safeGetProperty(color, 'colorType') ? color.colorType.toString() : 'unknown',
+            colorType: safeGetProperty(color, 'colorType') ? safeGetProperty(color, 'colorType').toString() : 'unknown',
             inkName: safeGetProperty(color, 'inkName'),
             tint: safeGetProperty(color, 'tint')
         };
@@ -646,7 +686,7 @@ function getColorsInfo(doc) {
 function getFontsInfo(doc) {
     debugLog("Analyzing fonts", "FONTS");
     
-    return safeIterateCollection(doc.fonts, function(font, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'fonts'), function(font, index) {
         return {
             index: index,
             id: safeGetProperty(font, 'id'),
@@ -654,11 +694,11 @@ function getFontsInfo(doc) {
             fontFamily: safeGetProperty(font, 'fontFamily'),
             fontStyleName: safeGetProperty(font, 'fontStyleName'),
             postScriptName: safeGetProperty(font, 'postScriptName'),
-            status: safeGetProperty(font, 'status') ? font.status.toString() : 'unknown',
+            status: safeGetProperty(font, 'status') ? safeGetProperty(font, 'status').toString() : 'unknown',
             // Additional properties for comprehensive change detection
             location: safeGetProperty(font, 'location'),
             version: safeGetProperty(font, 'version'),
-            fontType: safeGetProperty(font, 'fontType') ? font.fontType.toString() : 'unknown',
+            fontType: safeGetProperty(font, 'fontType') ? safeGetProperty(font, 'fontType').toString() : 'unknown',
             platform: safeGetProperty(font, 'platformName')
         };
     }, ANALYSIS_CONFIG.maxCollectionSample, "fonts");
@@ -668,22 +708,27 @@ function getFontsInfo(doc) {
 function getImagesInfo(doc) {
     debugLog("Analyzing images", "IMAGES");
     
-    return safeIterateCollection(doc.images, function(image, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'images'), function(image, index) {
+        var itemLink = safeGetProperty(image, 'itemLink');
         return {
             index: index,
             id: safeGetProperty(image, 'id'),
             bounds: safeGetProperty(image, 'bounds'),
             actualPpi: safeGetProperty(image, 'actualPpi'),
             effectivePpi: safeGetProperty(image, 'effectivePpi'),
-            itemLink: safeGetProperty(image, 'itemLink') ? {
-                name: safeGetProperty(image.itemLink, 'name'),
-                status: safeGetProperty(image.itemLink, 'status') ? image.itemLink.status.toString() : 'unknown',
-                filePath: safeGetProperty(image.itemLink, 'filePath'),
-                size: safeGetProperty(image.itemLink, 'size'),
-                date: safeGetProperty(image.itemLink, 'date'),
-                linkType: safeGetProperty(image.itemLink, 'linkType') ? image.itemLink.linkType.toString() : 'unknown'
+            itemLink: itemLink ? {
+                name: safeGetProperty(itemLink, 'name'),
+                status: safeGetProperty(itemLink, 'status') ? safeGetProperty(itemLink, 'status').toString() : 'unknown',
+                filePath: safeGetProperty(itemLink, 'filePath'),
+                size: safeGetProperty(itemLink, 'size'),
+                date: safeGetProperty(itemLink, 'date'),
+                linkType: safeGetProperty(itemLink, 'linkType') ? safeGetProperty(itemLink, 'linkType').toString() : 'unknown'
             } : null,
-            parent: safeGetProperty(image.parent, 'constructor') ? image.parent.constructor.name : 'unknown',
+            parent: (function() {
+                var parentObj = safeGetProperty(image, 'parent');
+                var constructor = safeGetProperty(parentObj, 'constructor');
+                return constructor ? safeGetProperty(constructor, 'name', 'unknown') : 'unknown';
+            })(),
             // Additional properties for comprehensive change detection
             imageTypeName: safeGetProperty(image, 'imageTypeName'),
             transparencySettings: safeGetProperty(image, 'transparencySettings.blendingSettings.opacity')
@@ -694,22 +739,22 @@ function getImagesInfo(doc) {
 function getLinksInfo(doc) {
     debugLog("Analyzing links", "LINKS");
     
-    return safeIterateCollection(doc.links, function(link, index) {
+    return safeIterateCollection(safeGetProperty(doc, 'links'), function(link, index) {
         return {
             index: index,
             id: safeGetProperty(link, 'id'),
             name: safeGetProperty(link, 'name'),
             filePath: safeGetProperty(link, 'filePath'),
-            status: safeGetProperty(link, 'status') ? link.status.toString() : 'unknown',
+            status: safeGetProperty(link, 'status') ? safeGetProperty(link, 'status').toString() : 'unknown',
             size: safeGetProperty(link, 'size'),
             date: safeGetProperty(link, 'date'),
-            linkType: safeGetProperty(link, 'linkType') ? link.linkType.toString() : 'unknown',
+            linkType: safeGetProperty(link, 'linkType') ? safeGetProperty(link, 'linkType').toString() : 'unknown',
             // Additional properties for comprehensive change detection
             needed: safeGetProperty(link, 'needed'),
             canEmbed: safeGetProperty(link, 'canEmbed'),
             canUnembed: safeGetProperty(link, 'canUnembed'),
             linkResourceURI: safeGetProperty(link, 'linkResourceURI'),
-            versionState: safeGetProperty(link, 'versionState') ? link.versionState.toString() : 'unknown'
+            versionState: safeGetProperty(link, 'versionState') ? safeGetProperty(link, 'versionState').toString() : 'unknown'
         };
     }, ANALYSIS_CONFIG.maxCollectionSample, "links");
 }
@@ -719,14 +764,15 @@ function getPageItemsInfo(doc) {
     debugLog("Analyzing page items", "PAGEITEMS");
     
     var pageItemsInfo = {
-        totalCount: safeGetLength(doc.pageItems),
+        totalCount: safeGetLength(safeGetProperty(doc, 'pageItems')),
         byType: {},
         sample: []
     };
     
     // Sample page items for detailed analysis
-    pageItemsInfo.sample = safeIterateCollection(doc.pageItems, function(item, index) {
-        var itemType = safeGetProperty(item, 'constructor') ? item.constructor.name : 'unknown';
+    pageItemsInfo.sample = safeIterateCollection(safeGetProperty(doc, 'pageItems'), function(item, index) {
+        var itemConstructor = safeGetProperty(item, 'constructor');
+        var itemType = itemConstructor ? safeGetProperty(itemConstructor, 'name', 'unknown') : 'unknown';
         
         // Count by type
         if (!pageItemsInfo.byType[itemType]) {
@@ -739,8 +785,12 @@ function getPageItemsInfo(doc) {
             id: safeGetProperty(item, 'id'),
             type: itemType,
             bounds: safeGetProperty(item, 'bounds'),
-            layer: safeGetProperty(item.itemLayer, 'name'),
-            parent: safeGetProperty(item.parent, 'constructor') ? item.parent.constructor.name : 'unknown',
+            layer: safeGetProperty(safeGetProperty(item, 'itemLayer'), 'name'),
+            parent: (function() {
+                var parentObj = safeGetProperty(item, 'parent');
+                var constructor = safeGetProperty(parentObj, 'constructor');
+                return constructor ? safeGetProperty(constructor, 'name', 'unknown') : 'unknown';
+            })(),
             visible: safeGetProperty(item, 'visible', true),
             locked: safeGetProperty(item, 'locked', false),
             // Additional properties for change detection

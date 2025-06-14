@@ -12,19 +12,20 @@ function quickCompare() {
     }
     
     var doc = app.activeDocument;
-    var docName = doc.name.replace(/\.[^\.]+$/, "");
-    var docPath = doc.filePath;
+    // FIXED: Use safe property access
+    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
+    var docPath = safeGetProperty(doc, 'filePath');
     
     // Ensure document is saved with enhanced validation
-    if (!doc.saved || !docPath) {
+    if (!safeGetProperty(doc, 'saved', false) || !docPath) {
         var shouldSave = confirm("Document must be saved for analysis. Save now?");
         if (shouldSave) {
             var saveFile = File.saveDialog("Save document for analysis", "*.indd");
             if (saveFile) {
                 try {
                     doc.save(saveFile);
-                    docPath = doc.filePath;
-                    docName = doc.name.replace(/\.[^\.]+$/, "");
+                    docPath = safeGetProperty(doc, 'filePath');
+                    docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
                     debugLog("Document saved to: " + docPath, "FILE");
                 } catch (e) {
                     alert("Failed to save document: " + e.message);
@@ -253,7 +254,7 @@ function validateAnalysisReport(report) {
     }
     
     // Enhanced validation for critical data
-    if (report.documentInfo && !report.documentInfo.name) {
+    if (report.documentInfo && !safeGetProperty(report.documentInfo, 'name')) {
         debugLog("Report validation warning: missing document name", "WARN");
     }
     
@@ -277,7 +278,7 @@ function validateComparisonResults(differences) {
     }
     
     // Validate summary structure
-    if (typeof differences.summary.hasChanges !== 'boolean') {
+    if (typeof safeGetProperty(differences.summary, 'hasChanges') !== 'boolean') {
         debugLog("Comparison validation warning: invalid hasChanges type", "WARN");
     }
     
@@ -385,13 +386,13 @@ function saveReportSafely(file, report, reportType) {
 // Create simplified report when size limits are exceeded
 function createSimplifiedReport(report, reportType) {
     return {
-        timestamp: report.timestamp,
-        analysisVersion: report.analysisVersion,
-        documentInfo: report.documentInfo,
+        timestamp: safeGetProperty(report, 'timestamp'),
+        analysisVersion: safeGetProperty(report, 'analysisVersion'),
+        documentInfo: safeGetProperty(report, 'documentInfo'),
         summary: "Report simplified due to size constraints",
-        originalProcessingTime: report.processingTime,
-        errors: report.errors || [],
-        discoveryStats: report.discoveryStats || {},
+        originalProcessingTime: safeGetProperty(report, 'processingTime'),
+        errors: safeGetProperty(report, 'errors', []),
+        discoveryStats: safeGetProperty(report, 'discoveryStats', {}),
         note: "Reduced content due to memory/size limits - use smaller collection samples for full analysis",
         simplificationReason: "Exceeded " + Math.round(ANALYSIS_CONFIG.maxReportSize / 1024 / 1024) + "MB limit"
     };
@@ -519,8 +520,8 @@ function showBaselineCreatedDialog() {
     
     viewFolderBtn.onClick = function() {
         try {
-            if (UTILITY_STATE.currentDocument && UTILITY_STATE.currentDocument.filePath) {
-                var folder = Folder(UTILITY_STATE.currentDocument.filePath);
+            if (UTILITY_STATE.currentDocument && safeGetProperty(UTILITY_STATE.currentDocument, 'filePath')) {
+                var folder = Folder(safeGetProperty(UTILITY_STATE.currentDocument, 'filePath'));
                 folder.execute();
             }
         } catch (e) {
@@ -602,23 +603,23 @@ function createEnhancedHumanReadableSummary(differences) {
     summary += "Analysis Version: 2.1-ESTK (Comprehensive Change Detection)\n";
     summary += repeatString("=", 70) + "\n\n";
     
-    if (!differences.summary.hasChanges) {
+    if (!safeGetProperty(differences.summary, 'hasChanges')) {
         summary += "STATUS: NO CHANGES DETECTED\n";
         summary += "The document appears identical to the baseline.\n\n";
         
         if (differences.discoveryInfo) {
             summary += "PROCESSING SUMMARY\n";
-            summary += "Text items processed: " + (differences.discoveryInfo.textItemsProcessed || 0) + "\n";
-            summary += "Properties analyzed: " + (differences.discoveryInfo.propertiesChanged || 0) + "\n";
+            summary += "Text items processed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsProcessed', 0)) + "\n";
+            summary += "Properties analyzed: " + (safeGetProperty(differences.discoveryInfo, 'propertiesChanged', 0)) + "\n";
             summary += "Sections analyzed: " + Object.keys(differences.changes).length + "\n";
         }
         return summary;
     }
     
     summary += "STATUS: CHANGES DETECTED\n";
-    summary += "Changed sections: " + differences.summary.changedSections.length + "\n";
-    summary += "Total changes: " + differences.summary.totalChanges + "\n";
-    summary += "Significant changes: " + differences.summary.significantChanges + "\n";
+    summary += "Changed sections: " + safeGetProperty(differences.summary, 'changedSections', []).length + "\n";
+    summary += "Total changes: " + safeGetProperty(differences.summary, 'totalChanges', 0) + "\n";
+    summary += "Significant changes: " + safeGetProperty(differences.summary, 'significantChanges', 0) + "\n";
     if (differences.errors && differences.errors.length > 0) {
         summary += "Errors handled: " + differences.errors.length + "\n";
     }
@@ -626,43 +627,53 @@ function createEnhancedHumanReadableSummary(differences) {
     // Enhanced discovery summary
     if (differences.discoveryInfo) {
         summary += "\nCOMPREHENSIVE ANALYSIS SUMMARY\n";
-        summary += "Text items processed: " + (differences.discoveryInfo.textItemsProcessed || 0) + "\n";
-        summary += "Text items changed: " + (differences.discoveryInfo.textItemsChanged || 0) + "\n";
-        summary += "Properties changed: " + (differences.discoveryInfo.propertiesChanged || 0) + "\n";
+        summary += "Text items processed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsProcessed', 0)) + "\n";
+        summary += "Text items changed: " + (safeGetProperty(differences.discoveryInfo, 'textItemsChanged', 0)) + "\n";
+        summary += "Properties changed: " + (safeGetProperty(differences.discoveryInfo, 'propertiesChanged', 0)) + "\n";
         
         // Text changes breakdown
-        if (differences.discoveryInfo.textChangesDetailed) {
-            var textChanges = differences.discoveryInfo.textChangesDetailed;
+        var textChangesDetailed = safeGetProperty(differences.discoveryInfo, 'textChangesDetailed');
+        if (textChangesDetailed) {
             summary += "\nTEXT CHANGES DETAILED\n";
-            if (textChanges.characterChanges > 0) {
-                summary += "Character count change: " + textChanges.characterChanges + "\n";
+            var charChanges = safeGetProperty(textChangesDetailed, 'characterChanges', 0);
+            var wordChanges = safeGetProperty(textChangesDetailed, 'wordChanges', 0);
+            var overflowChanges = safeGetProperty(textChangesDetailed, 'overflowChanges', 0);
+            var styleChanges = safeGetProperty(textChangesDetailed, 'styleChanges', 0);
+            
+            if (charChanges > 0) {
+                summary += "Character count change: " + charChanges + "\n";
             }
-            if (textChanges.wordChanges > 0) {
-                summary += "Word count change: " + textChanges.wordChanges + "\n";
+            if (wordChanges > 0) {
+                summary += "Word count change: " + wordChanges + "\n";
             }
-            if (textChanges.overflowChanges > 0) {
-                summary += "Overflow status changes: " + textChanges.overflowChanges + "\n";
+            if (overflowChanges > 0) {
+                summary += "Overflow status changes: " + overflowChanges + "\n";
             }
-            if (textChanges.styleChanges > 0) {
-                summary += "Style changes: " + textChanges.styleChanges + "\n";
+            if (styleChanges > 0) {
+                summary += "Style changes: " + styleChanges + "\n";
             }
         }
         
         // Structural changes
-        if (differences.discoveryInfo.structuralChanges) {
-            var structural = differences.discoveryInfo.structuralChanges;
+        var structuralChanges = safeGetProperty(differences.discoveryInfo, 'structuralChanges');
+        if (structuralChanges) {
             summary += "\nSTRUCTURAL CHANGES\n";
-            if (structural.pagesChanged > 0) {
-                summary += "Pages modified: " + structural.pagesChanged + "\n";
+            var pagesChanged = safeGetProperty(structuralChanges, 'pagesChanged', 0);
+            var layersChanged = safeGetProperty(structuralChanges, 'layersChanged', 0);
+            var itemsAdded = safeGetProperty(structuralChanges, 'itemsAdded', 0);
+            var itemsRemoved = safeGetProperty(structuralChanges, 'itemsRemoved', 0);
+            
+            if (pagesChanged > 0) {
+                summary += "Pages modified: " + pagesChanged + "\n";
             }
-            if (structural.layersChanged > 0) {
-                summary += "Layers modified: " + structural.layersChanged + "\n";
+            if (layersChanged > 0) {
+                summary += "Layers modified: " + layersChanged + "\n";
             }
-            if (structural.itemsAdded > 0) {
-                summary += "Items added: " + structural.itemsAdded + "\n";
+            if (itemsAdded > 0) {
+                summary += "Items added: " + itemsAdded + "\n";
             }
-            if (structural.itemsRemoved > 0) {
-                summary += "Items removed: " + structural.itemsRemoved + "\n";
+            if (itemsRemoved > 0) {
+                summary += "Items removed: " + itemsRemoved + "\n";
             }
         }
     }
@@ -728,7 +739,7 @@ function getSectionSummary(sectionName, changes) {
         
         // Show key modifications with significance priority
         var significantMods = categorized.modifications.filter(function(change) {
-            return change.significance === 'high';
+            return safeGetProperty(change, 'significance') === 'high';
         });
         var modsToShow = significantMods.length > 0 ? significantMods : categorized.modifications;
         
@@ -754,9 +765,10 @@ function categorizeChanges(changesList) {
     
     for (var i = 0; i < changesList.length; i++) {
         var change = changesList[i];
-        if (change.type === 'addition') {
+        var changeType = safeGetProperty(change, 'type');
+        if (changeType === 'addition') {
             categorized.additions.push(change);
-        } else if (change.type === 'deletion') {
+        } else if (changeType === 'deletion') {
             categorized.deletions.push(change);
         } else {
             categorized.modifications.push(change);
@@ -767,18 +779,21 @@ function categorizeChanges(changesList) {
 }
 
 function formatChangeExample(change) {
-    var example = change.path || 'unknown';
+    var example = safeGetProperty(change, 'path', 'unknown');
+    var changeType = safeGetProperty(change, 'type');
+    var oldValue = safeGetProperty(change, 'oldValue');
+    var newValue = safeGetProperty(change, 'newValue');
     
-    if (change.type === 'text_content_change' && change.oldValue && change.newValue) {
-        var oldPreview = String(change.oldValue).substring(0, 30);
-        var newPreview = String(change.newValue).substring(0, 30);
+    if (changeType === 'text_content_change' && oldValue && newValue) {
+        var oldPreview = String(oldValue).substring(0, 30);
+        var newPreview = String(newValue).substring(0, 30);
         example += ": \"" + oldPreview + "\" -> \"" + newPreview + "\"";
-    } else if (change.type === 'value_change' && change.oldValue !== undefined && change.newValue !== undefined) {
-        example += ": " + change.oldValue + " -> " + change.newValue;
-    } else if (change.type === 'addition') {
-        example += " (new: " + (change.newValue ? String(change.newValue).substring(0, 20) : 'added') + ")";
-    } else if (change.type === 'deletion') {
-        example += " (removed: " + (change.oldValue ? String(change.oldValue).substring(0, 20) : 'deleted') + ")";
+    } else if (changeType === 'value_change' && oldValue !== undefined && newValue !== undefined) {
+        example += ": " + oldValue + " -> " + newValue;
+    } else if (changeType === 'addition') {
+        example += " (new: " + (newValue ? String(newValue).substring(0, 20) : 'added') + ")";
+    } else if (changeType === 'deletion') {
+        example += " (removed: " + (oldValue ? String(oldValue).substring(0, 20) : 'deleted') + ")";
     }
     
     return example;
@@ -792,26 +807,27 @@ function createDetailedTextAnalysisSummary(differences) {
     analysis += repeatString("=", 65) + "\n\n";
     
     // Text content changes section
-    if (differences.changes.textContent && differences.changes.textContent.length > 0) {
+    var textContentChanges = safeGetProperty(differences.changes, 'textContent');
+    if (textContentChanges && textContentChanges.length > 0) {
         analysis += "TEXT CONTENT CHANGES DETECTED\n";
         analysis += repeatString("-", 30) + "\n\n";
         
-        var textChanges = differences.changes.textContent;
-        for (var i = 0; i < Math.min(textChanges.length, 10); i++) { // Limit for readability
-            var change = textChanges[i];
+        for (var i = 0; i < Math.min(textContentChanges.length, 10); i++) { // Limit for readability
+            var change = textContentChanges[i];
             
             analysis += "CHANGE " + (i + 1) + ":\n";
-            analysis += "Path: " + change.path + "\n";
-            analysis += "Type: " + change.type + "\n";
-            analysis += "Significance: " + (change.significance || 'medium') + "\n";
+            analysis += "Path: " + safeGetProperty(change, 'path', 'unknown') + "\n";
+            analysis += "Type: " + safeGetProperty(change, 'type', 'unknown') + "\n";
+            analysis += "Significance: " + safeGetProperty(change, 'significance', 'medium') + "\n";
             
-            if (change.accessPath) {
-                analysis += "Access: " + change.accessPath.primary + "\n";
+            var accessPath = safeGetProperty(change, 'accessPath');
+            if (accessPath) {
+                analysis += "Access: " + safeGetProperty(accessPath, 'primary', 'unknown') + "\n";
             }
             
-            if (change.type === "text_content_change") {
-                var oldText = change.oldValue || "";
-                var newText = change.newValue || "";
+            if (safeGetProperty(change, 'type') === "text_content_change") {
+                var oldText = safeGetProperty(change, 'oldValue', "");
+                var newText = safeGetProperty(change, 'newValue', "");
                 
                 analysis += "Old Text: \"" + oldText.substring(0, 100) + (oldText.length > 100 ? "..." : "") + "\"\n";
                 analysis += "New Text: \"" + newText.substring(0, 100) + (newText.length > 100 ? "..." : "") + "\"\n";
@@ -828,26 +844,28 @@ function createDetailedTextAnalysisSummary(differences) {
     }
     
     // Text frame changes
-    if (differences.changes.textFrames && differences.changes.textFrames.length > 0) {
+    var textFrameChanges = safeGetProperty(differences.changes, 'textFrames');
+    if (textFrameChanges && textFrameChanges.length > 0) {
         analysis += "TEXT FRAME CHANGES\n";
         analysis += repeatString("-", 18) + "\n\n";
         
-        var frameChanges = differences.changes.textFrames;
-        var textRelatedChanges = frameChanges.filter(function(change) {
-            return change.path.indexOf('textPreview') !== -1 || 
-                   change.path.indexOf('characterCount') !== -1 ||
-                   change.path.indexOf('wordCount') !== -1 ||
-                   change.path.indexOf('overflows') !== -1;
+        var textRelatedChanges = textFrameChanges.filter(function(change) {
+            var path = safeGetProperty(change, 'path', '');
+            return path.indexOf('textPreview') !== -1 || 
+                   path.indexOf('characterCount') !== -1 ||
+                   path.indexOf('wordCount') !== -1 ||
+                   path.indexOf('overflows') !== -1;
         });
         
         for (var i = 0; i < Math.min(textRelatedChanges.length, 8); i++) {
             var change = textRelatedChanges[i];
             analysis += "Frame Change " + (i + 1) + ":\n";
-            analysis += "Property: " + change.path + "\n";
+            analysis += "Property: " + safeGetProperty(change, 'path', 'unknown') + "\n";
             analysis += "Change: " + formatChangeExample(change) + "\n";
             
-            if (change.accessPath) {
-                analysis += "Access: " + change.accessPath.primary + "\n";
+            var accessPath = safeGetProperty(change, 'accessPath');
+            if (accessPath) {
+                analysis += "Access: " + safeGetProperty(accessPath, 'primary', 'unknown') + "\n";
             }
             analysis += "\n";
         }
@@ -856,13 +874,14 @@ function createDetailedTextAnalysisSummary(differences) {
     // Summary statistics
     analysis += "\nTEXT ANALYSIS SUMMARY\n";
     analysis += repeatString("-", 21) + "\n";
-    if (differences.discoveryInfo && differences.discoveryInfo.textChangesDetailed) {
-        var textStats = differences.discoveryInfo.textChangesDetailed;
+    var discoveryInfo = safeGetProperty(differences, 'discoveryInfo');
+    var textChangesDetailed = discoveryInfo ? safeGetProperty(discoveryInfo, 'textChangesDetailed') : null;
+    if (textChangesDetailed) {
         analysis += "Total text-related changes detected across document\n";
-        analysis += "Character changes: " + (textStats.characterChanges || 0) + "\n";
-        analysis += "Word changes: " + (textStats.wordChanges || 0) + "\n";
-        analysis += "Style changes: " + (textStats.styleChanges || 0) + "\n";
-        analysis += "Overflow changes: " + (textStats.overflowChanges || 0) + "\n";
+        analysis += "Character changes: " + safeGetProperty(textChangesDetailed, 'characterChanges', 0) + "\n";
+        analysis += "Word changes: " + safeGetProperty(textChangesDetailed, 'wordChanges', 0) + "\n";
+        analysis += "Style changes: " + safeGetProperty(textChangesDetailed, 'styleChanges', 0) + "\n";
+        analysis += "Overflow changes: " + safeGetProperty(textChangesDetailed, 'overflowChanges', 0) + "\n";
     }
     analysis += "Enhanced analysis includes character counts, word counts, and style tracking\n";
     analysis += "All text changes include safe access paths and usage guidance\n\n";
@@ -880,15 +899,17 @@ function createTechnicalSummary(differences) {
     // Analysis statistics
     technical += "ANALYSIS STATISTICS\n";
     technical += repeatString("-", 19) + "\n";
-    technical += "Sections analyzed: " + (differences.summary.changedSections ? differences.summary.changedSections.length : 0) + "\n";
-    technical += "Changes detected: " + (differences.summary.hasChanges ? "Yes" : "No") + "\n";
-    technical += "Total changes: " + (differences.summary.totalChanges || 0) + "\n";
-    technical += "Significant changes: " + (differences.summary.significantChanges || 0) + "\n";
+    var changedSections = safeGetProperty(differences.summary, 'changedSections', []);
+    technical += "Sections analyzed: " + changedSections.length + "\n";
+    technical += "Changes detected: " + (safeGetProperty(differences.summary, 'hasChanges') ? "Yes" : "No") + "\n";
+    technical += "Total changes: " + safeGetProperty(differences.summary, 'totalChanges', 0) + "\n";
+    technical += "Significant changes: " + safeGetProperty(differences.summary, 'significantChanges', 0) + "\n";
     technical += "Errors encountered: " + (differences.errors ? differences.errors.length : 0) + "\n";
     
-    if (differences.discoveryInfo) {
-        technical += "Text elements processed: " + (differences.discoveryInfo.textItemsProcessed || 0) + "\n";
-        technical += "Properties analyzed: " + (differences.discoveryInfo.propertiesChanged || 0) + "\n";
+    var discoveryInfo = safeGetProperty(differences, 'discoveryInfo');
+    if (discoveryInfo) {
+        technical += "Text elements processed: " + safeGetProperty(discoveryInfo, 'textItemsProcessed', 0) + "\n";
+        technical += "Properties analyzed: " + safeGetProperty(discoveryInfo, 'propertiesChanged', 0) + "\n";
     }
     
     technical += "\n";
@@ -904,11 +925,14 @@ function createTechnicalSummary(differences) {
     }
     
     // Change types distribution
-    if (differences.discoveryInfo && differences.discoveryInfo.changesByType) {
-        technical += "\nCHANGE DISTRIBUTION BY TYPE\n";
-        technical += repeatString("-", 27) + "\n";
-        for (var changeType in differences.discoveryInfo.changesByType) {
-            technical += changeType + ": " + differences.discoveryInfo.changesByType[changeType] + "\n";
+    if (discoveryInfo) {
+        var changesByType = safeGetProperty(discoveryInfo, 'changesByType');
+        if (changesByType) {
+            technical += "\nCHANGE DISTRIBUTION BY TYPE\n";
+            technical += repeatString("-", 27) + "\n";
+            for (var changeType in changesByType) {
+                technical += changeType + ": " + changesByType[changeType] + "\n";
+            }
         }
     }
     
@@ -919,9 +943,9 @@ function createTechnicalSummary(differences) {
     technical += repeatString("-", 34) + "\n";
     technical += "Analysis mode: Comprehensive with ESTK debugging\n";
     technical += "Memory management: Active cleanup enabled\n";
-    technical += "Timeout protection: 8-second limits enforced\n";
-    technical += "Collection sampling: Up to 20 items per collection\n";
-    technical += "Text capture: 60-character identification previews\n";
+    technical += "Timeout protection: " + (ANALYSIS_CONFIG.timeoutThreshold / 1000) + "-second limits enforced\n";
+    technical += "Collection sampling: Up to " + ANALYSIS_CONFIG.maxCollectionSample + " items per collection\n";
+    technical += "Text capture: " + ANALYSIS_CONFIG.maxTextPreviewLength + "-character identification previews\n";
     technical += "Error handling: Comprehensive with retry logic\n";
     technical += "API access: Multiple fallback methods for robustness\n\n";
     
@@ -941,21 +965,22 @@ function createAccessPathGuide(differences) {
     
     // Collect unique access patterns from changes
     var accessPatterns = {};
-    var sections = differences.summary.changedSections || [];
+    var changedSections = safeGetProperty(differences.summary, 'changedSections', []);
     
-    for (var s = 0; s < sections.length; s++) {
-        var sectionName = sections[s];
-        var sectionChanges = differences.changes[sectionName] || [];
+    for (var s = 0; s < changedSections.length; s++) {
+        var sectionName = changedSections[s];
+        var sectionChanges = safeGetProperty(differences.changes, sectionName, []);
         
         for (var i = 0; i < Math.min(sectionChanges.length, 10); i++) { // Limit for readability
             var change = sectionChanges[i];
-            if (change.accessPath && change.accessPath.primary) {
-                var pattern = change.accessPath.primary;
-                if (!accessPatterns[pattern] && pattern.indexOf('Error') === -1) {
-                    accessPatterns[pattern] = {
-                        path: change.path,
-                        accessPath: change.accessPath,
-                        safetyNotes: change.safetyNotes || [],
+            var accessPath = safeGetProperty(change, 'accessPath');
+            if (accessPath) {
+                var primaryPath = safeGetProperty(accessPath, 'primary');
+                if (primaryPath && !accessPatterns[primaryPath] && primaryPath.indexOf('Error') === -1) {
+                    accessPatterns[primaryPath] = {
+                        path: safeGetProperty(change, 'path'),
+                        accessPath: accessPath,
+                        safetyNotes: safeGetProperty(change, 'safetyNotes', []),
                         section: sectionName
                     };
                 }
@@ -971,17 +996,19 @@ function createAccessPathGuide(differences) {
         guide += "Section: " + info.section + "\n";
         guide += "Primary Access: " + pattern + "\n";
         
-        if (info.accessPath.alternatives && info.accessPath.alternatives.length > 0) {
+        var alternatives = safeGetProperty(info.accessPath, 'alternatives', []);
+        if (alternatives.length > 0) {
             guide += "Alternative Methods:\n";
-            for (var j = 0; j < Math.min(info.accessPath.alternatives.length, 3); j++) {
-                if (info.accessPath.alternatives[j].indexOf('Error') === -1) {
-                    guide += "  * " + info.accessPath.alternatives[j] + "\n";
+            for (var j = 0; j < Math.min(alternatives.length, 3); j++) {
+                if (alternatives[j].indexOf('Error') === -1) {
+                    guide += "  * " + alternatives[j] + "\n";
                 }
             }
         }
         
-        if (info.accessPath.safetyLevel) {
-            guide += "Safety Level: " + info.accessPath.safetyLevel + "\n";
+        var safetyLevel = safeGetProperty(info.accessPath, 'safetyLevel');
+        if (safetyLevel) {
+            guide += "Safety Level: " + safetyLevel + "\n";
         }
         
         if (info.safetyNotes && info.safetyNotes.length > 0) {

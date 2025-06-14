@@ -41,7 +41,9 @@ function compareDocumentReports(report1, report2) {
             
             try {
                 debugLog("Comparing section: " + section, "COMPARE");
-                var changes = compareSection(report1[section], report2[section], section);
+                var sectionReport1 = safeGetProperty(report1, section);
+                var sectionReport2 = safeGetProperty(report2, section);
+                var changes = compareSection(sectionReport1, sectionReport2, section);
                 if (changes.length > 0) {
                     differences.summary.hasChanges = true;
                     differences.summary.changedSections.push(section);
@@ -59,7 +61,7 @@ function compareDocumentReports(report1, report2) {
         
         // Calculate enhanced discovery info
         differences.discoveryInfo = calculateEnhancedDiscoveryInfo(report1, report2, differences.changes);
-        differences.summary.significantChanges = differences.discoveryInfo.significantChanges;
+        differences.summary.significantChanges = safeGetProperty(differences.discoveryInfo, 'significantChanges', 0);
         
         statusLog("Document Comparison", "Completed", 100);
         debugLog("Comparison completed. Changes found: " + differences.summary.hasChanges + 
@@ -97,28 +99,41 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
     };
     
     try {
-        // Enhanced text analysis changes
-        var text1 = report1.textContent ? report1.textContent.summary : null;
-        var text2 = report2.textContent ? report2.textContent.summary : null;
+        // Enhanced text analysis changes using safe access
+        var textContent1 = safeGetProperty(report1, 'textContent');
+        var textContent2 = safeGetProperty(report2, 'textContent');
+        var text1 = textContent1 ? safeGetProperty(textContent1, 'summary') : null;
+        var text2 = textContent2 ? safeGetProperty(textContent2, 'summary') : null;
         
         if (text1 && text2) {
-            info.textItemsProcessed = text2.totalTextFrames || 0;
+            info.textItemsProcessed = safeGetProperty(text2, 'totalTextFrames', 0);
             
-            // Detailed text change analysis
-            if ((text2.totalCharacters || 0) !== (text1.totalCharacters || 0)) {
+            // Detailed text change analysis using safe access
+            var chars1 = safeGetProperty(text1, 'totalCharacters', 0);
+            var chars2 = safeGetProperty(text2, 'totalCharacters', 0);
+            if (chars2 !== chars1) {
                 info.textItemsChanged++;
                 info.significantChanges++;
-                info.textChangesDetailed.characterChanges = Math.abs((text2.totalCharacters || 0) - (text1.totalCharacters || 0));
+                info.textChangesDetailed.characterChanges = Math.abs(chars2 - chars1);
             }
-            if ((text2.totalWords || 0) !== (text1.totalWords || 0)) {
+            
+            var words1 = safeGetProperty(text1, 'totalWords', 0);
+            var words2 = safeGetProperty(text2, 'totalWords', 0);
+            if (words2 !== words1) {
                 info.textItemsChanged++;
-                info.textChangesDetailed.wordChanges = Math.abs((text2.totalWords || 0) - (text1.totalWords || 0));
+                info.textChangesDetailed.wordChanges = Math.abs(words2 - words1);
             }
-            if ((text2.totalParagraphs || 0) !== (text1.totalParagraphs || 0)) {
-                info.textChangesDetailed.paragraphChanges = Math.abs((text2.totalParagraphs || 0) - (text1.totalParagraphs || 0));
+            
+            var paras1 = safeGetProperty(text1, 'totalParagraphs', 0);
+            var paras2 = safeGetProperty(text2, 'totalParagraphs', 0);
+            if (paras2 !== paras1) {
+                info.textChangesDetailed.paragraphChanges = Math.abs(paras2 - paras1);
             }
-            if ((text2.overflowingFrames || 0) !== (text1.overflowingFrames || 0)) {
-                info.textChangesDetailed.overflowChanges = Math.abs((text2.overflowingFrames || 0) - (text1.overflowingFrames || 0));
+            
+            var overflow1 = safeGetProperty(text1, 'overflowingFrames', 0);
+            var overflow2 = safeGetProperty(text2, 'overflowingFrames', 0);
+            if (overflow2 !== overflow1) {
+                info.textChangesDetailed.overflowChanges = Math.abs(overflow2 - overflow1);
                 info.significantChanges++;
             }
         }
@@ -133,11 +148,12 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
             
             for (var i = 0; i < changes[section].length; i++) {
                 var change = changes[section][i];
-                var changeType = change.type || 'unknown';
+                var changeType = safeGetProperty(change, 'type', 'unknown');
                 info.changesByType[changeType] = (info.changesByType[changeType] || 0) + 1;
                 
                 // Count style changes specifically
-                if (section === 'styles' || change.path.indexOf('Style') !== -1) {
+                var changePath = safeGetProperty(change, 'path', '');
+                if (section === 'styles' || changePath.indexOf('Style') !== -1) {
                     info.textChangesDetailed.styleChanges++;
                 }
                 
@@ -148,9 +164,10 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
             }
         }
         
-        // Get processing stats from reports
-        if (report2.discoveryStats) {
-            info.textItemsProcessed = report2.discoveryStats.textItemsProcessed || 0;
+        // Get processing stats from reports using safe access
+        var discoveryStats2 = safeGetProperty(report2, 'discoveryStats');
+        if (discoveryStats2) {
+            info.textItemsProcessed = safeGetProperty(discoveryStats2, 'textItemsProcessed', 0);
         }
         
         debugLog("Discovery info calculated. Properties changed: " + info.propertiesChanged + 
@@ -165,25 +182,27 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
 
 function analyzeStructuralChanges(report1, report2, info) {
     try {
-        // Page changes
-        var pages1 = report1.pages ? report1.pages.length : 0;
-        var pages2 = report2.pages ? report2.pages.length : 0;
+        // Page changes using safe access
+        var pages1 = safeGetLength(safeGetProperty(report1, 'pages', []));
+        var pages2 = safeGetLength(safeGetProperty(report2, 'pages', []));
         if (pages1 !== pages2) {
             info.structuralChanges.pagesChanged = Math.abs(pages2 - pages1);
             info.significantChanges++;
         }
         
-        // Layer changes
-        var layers1 = report1.layers ? report1.layers.length : 0;
-        var layers2 = report2.layers ? report2.layers.length : 0;
+        // Layer changes using safe access
+        var layers1 = safeGetLength(safeGetProperty(report1, 'layers', []));
+        var layers2 = safeGetLength(safeGetProperty(report2, 'layers', []));
         if (layers1 !== layers2) {
             info.structuralChanges.layersChanged = Math.abs(layers2 - layers1);
             info.significantChanges++;
         }
         
-        // Page item changes
-        var items1 = report1.pageItems ? report1.pageItems.totalCount : 0;
-        var items2 = report2.pageItems ? report2.pageItems.totalCount : 0;
+        // Page item changes using safe access
+        var pageItems1 = safeGetProperty(report1, 'pageItems', {});
+        var pageItems2 = safeGetProperty(report2, 'pageItems', {});
+        var items1 = safeGetProperty(pageItems1, 'totalCount', 0);
+        var items2 = safeGetProperty(pageItems2, 'totalCount', 0);
         if (items1 !== items2) {
             var itemDiff = items2 - items1;
             if (itemDiff > 0) {
@@ -202,37 +221,40 @@ function analyzeStructuralChanges(report1, report2, info) {
 // Determine if a change is significant for reporting
 function isSignificantChange(change, section) {
     var significantTypes = ['addition', 'deletion', 'text_content_change', 'overflow_change'];
+    var changeType = safeGetProperty(change, 'type');
     
-    if (significantTypes.indexOf(change.type) !== -1) {
+    if (significantTypes.indexOf(changeType) !== -1) {
         return true;
     }
     
     // Section-specific significance rules
+    var changePath = safeGetProperty(change, 'path', '');
+    
     if (section === 'documentInfo') {
         var significantProps = ['saved', 'modified', 'readonly', 'pagesPerDocument'];
         return significantProps.some(function(prop) {
-            return change.path.indexOf(prop) !== -1;
+            return changePath.indexOf(prop) !== -1;
         });
     }
     
     if (section === 'textFrames' || section === 'textContent') {
         var textSignificantProps = ['overflows', 'characterCount', 'wordCount', 'appliedParagraphStyle', 'fontFamily', 'fontSize'];
         return textSignificantProps.some(function(prop) {
-            return change.path.indexOf(prop) !== -1;
+            return changePath.indexOf(prop) !== -1;
         });
     }
     
     if (section === 'pages') {
         var pageSignificantProps = ['bounds', 'appliedMaster', 'textFrameCount', 'imageCount'];
         return pageSignificantProps.some(function(prop) {
-            return change.path.indexOf(prop) !== -1;
+            return changePath.indexOf(prop) !== -1;
         });
     }
     
     if (section === 'images' || section === 'links') {
         var linkSignificantProps = ['status', 'filePath', 'size', 'date'];
         return linkSignificantProps.some(function(prop) {
-            return change.path.indexOf(prop) !== -1;
+            return changePath.indexOf(prop) !== -1;
         });
     }
     
