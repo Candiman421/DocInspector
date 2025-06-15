@@ -1,7 +1,7 @@
 //
 // Enhanced InDesign Document Inspector & Comparison Tool v2.1-ESTK
 // COMPLETE ASSEMBLED VERSION - All Chunks Combined
-// Generated: 2025-06-15T00:13:20.511Z
+// Generated: 2025-06-15T00:23:14.837Z
 // 
 // This file contains all 7 chunks assembled in proper order:
 // Chunk 1 (v1): InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx
