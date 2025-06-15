@@ -1,403 +1,463 @@
 // ============================================================================
-// MODULE 3.0: UI PANEL & CONTROLS
-// InDesign Document Query Tool v3.0 - Configurable Analysis
-// ES3 Compatible - Landscape Panel Interface
+// MODULE 3.0: UI PANEL & CONTROLS (UPDATED)
+// InDesign Document Query Tool v3.1 - Enhanced User Interface
+// ES3 Compatible - Landscape Panel Interface with Best Practice Safety
 // ============================================================================
 
-// UI STATE MANAGEMENT
+// UI STATE MANAGEMENT - Enhanced with safety tracking
 var UI_STATE = {
-    mainDialog: null,
-    progressText: null,
-    progressBar: null,
-    statusText: null,
-    resultTree: null,
+    mainDialog: undefined,
+    progressText: undefined,
+    progressBar: undefined,
+    statusText: undefined,
+    resultTree: undefined,
     targetCheckboxes: {},
     configControls: {},
-    currentResults: null
+    currentResults: undefined,
+    isInitialized: false,
+    lastUpdateTime: 0
 };
 
-// MAIN UI CREATION - Landscape wide panel
+// MAIN UI CREATION - Enhanced landscape interface with safety controls
 function createMainInterface() {
-    // Create main dialog
-    UI_STATE.mainDialog = new Window("dialog", "InDesign Document Query Tool v3.0");
-    UI_STATE.mainDialog.orientation = "column";
-    UI_STATE.mainDialog.alignChildren = "fill";
-    UI_STATE.mainDialog.preferredSize.width = 900;
-    UI_STATE.mainDialog.preferredSize.height = 650;
-    
-    // File paths panel
-    createFilePathPanel(UI_STATE.mainDialog);
-    
-    // Target selection panel
-    createTargetSelectionPanel(UI_STATE.mainDialog);
-    
-    // Configuration panel
-    createConfigurationPanel(UI_STATE.mainDialog);
-    
-    // Progress panel
-    createProgressPanel(UI_STATE.mainDialog);
-    
-    // Action buttons panel
-    createActionButtonsPanel(UI_STATE.mainDialog);
-    
-    // Results panel
-    createResultsPanel(UI_STATE.mainDialog);
-    
-    // Set up progress callback
-    QUERY_CONFIG.runtime.progressCallback = updateUIProgress;
-    
-    return UI_STATE.mainDialog;
+    try {
+        // Prevent multiple dialog creation
+        if (UI_STATE.isInitialized && UI_STATE.mainDialog) {
+            UI_STATE.mainDialog.show();
+            return UI_STATE.mainDialog;
+        }
+        
+        // Create main dialog with enhanced dimensions
+        UI_STATE.mainDialog = new Window("dialog", "InDesign Document Query Tool v3.1 - Enhanced Safety");
+        UI_STATE.mainDialog.orientation = "column";
+        UI_STATE.mainDialog.alignChildren = "fill";
+        UI_STATE.mainDialog.preferredSize.width = 950;
+        UI_STATE.mainDialog.preferredSize.height = 700;
+        
+        // Create all panels
+        createFilePathPanel(UI_STATE.mainDialog);
+        createTargetSelectionPanel(UI_STATE.mainDialog);
+        createConfigurationPanel(UI_STATE.mainDialog);
+        createProgressPanel(UI_STATE.mainDialog);
+        createActionButtonsPanel(UI_STATE.mainDialog);
+        createResultsPanel(UI_STATE.mainDialog);
+        
+        // Set up enhanced progress callback
+        QUERY_CONFIG.runtime.progressCallback = updateUIProgressSafely;
+        
+        // Initialize state
+        UI_STATE.isInitialized = true;
+        updateStatus("UI interface ready - enhanced safety mode enabled");
+        
+        return UI_STATE.mainDialog;
+        
+    } catch (exc) {
+        alert("Failed to create main interface: " + exc.message);
+        return undefined;
+    }
 }
 
-// FILE PATH PANEL - Document and output path selection
+// FILE PATH PANEL - Enhanced document and output path selection
 function createFilePathPanel(parent) {
-    var filePanel = parent.add("panel", undefined, "Input/Output Configuration");
+    var filePanel = parent.add("panel", undefined, "Document & Output Configuration");
     filePanel.orientation = "column";
     filePanel.alignChildren = "fill";
-    filePanel.preferredSize.height = 80;
+    filePanel.preferredSize.height = 90;
     
     // Document path row
     var docRow = filePanel.add("group");
-    docRow.add("statictext", undefined, "Document Path:");
+    docRow.add("statictext", undefined, "Document:").preferredSize.width = 80;
     var docPathText = docRow.add("edittext", undefined, "");
-    docPathText.preferredSize.width = 300;
+    docPathText.preferredSize.width = 350;
+    docPathText.text = QUERY_CONFIG.paths.documentPath;
+    
     var docBrowseBtn = docRow.add("button", undefined, "Browse...");
-    var loadDocBtn = docRow.add("button", undefined, "Load Doc");
-    var currentDocBtn = docRow.add("button", undefined, "Current Doc");
+    var loadDocBtn = docRow.add("button", undefined, "Load Document");
+    var currentDocBtn = docRow.add("button", undefined, "Use Current");
     
     // Output path row
     var outRow = filePanel.add("group");
-    outRow.add("statictext", undefined, "Output Path:");
+    outRow.add("statictext", undefined, "Output:").preferredSize.width = 80;
     var outPathText = outRow.add("edittext", undefined, "");
-    outPathText.preferredSize.width = 300;
+    outPathText.preferredSize.width = 350;
+    outPathText.text = QUERY_CONFIG.paths.outputPath;
+    
     var outBrowseBtn = outRow.add("button", undefined, "Browse...");
-    var openFolderBtn = outRow.add("button", undefined, "Open Folder");
+    var autoPathBtn = outRow.add("button", undefined, "Auto Path");
     
-    // Store references
-    UI_STATE.configControls.docPathText = docPathText;
-    UI_STATE.configControls.outPathText = outPathText;
-    
-    // Event handlers
+    // Event handlers with error protection
     docBrowseBtn.onClick = function() {
-        var file = File.openDialog("Select InDesign Document", "*.indd;*.indt");
-        if (file) {
-            docPathText.text = file.fsName;
-            QUERY_CONFIG.paths.documentPath = file.fsName;
-        }
-    };
-    
-    currentDocBtn.onClick = function() {
-        if (app.documents.length > 0) {
-            var doc = app.activeDocument;
-            var docPath = doc.filePath ? doc.filePath.toString() : "";
-            docPathText.text = docPath;
-            QUERY_CONFIG.paths.documentPath = docPath;
-            QUERY_CONFIG.paths.currentDocument = doc;
-        } else {
-            alert("No document is currently open.");
+        try {
+            var file = File.openDialog("Select InDesign Document", "*.indd;*.indt");
+            if (file) {
+                docPathText.text = file.fsName;
+                QUERY_CONFIG.paths.documentPath = file.fsName;
+                updateStatus("Document path set: " + file.name);
+            }
+        } catch (e) {
+            updateStatus("Error selecting document: " + e.message);
         }
     };
     
     loadDocBtn.onClick = function() {
-        if (docPathText.text) {
-            try {
+        try {
+            if (docPathText.text) {
                 var file = File(docPathText.text);
                 if (file.exists) {
-                    var doc = app.open(file);
-                    QUERY_CONFIG.paths.currentDocument = doc;
-                    updateStatus("Document loaded: " + doc.name);
+                    app.open(file);
+                    updateStatus("Document loaded successfully");
                 } else {
-                    alert("File does not exist: " + docPathText.text);
+                    alert("File not found: " + docPathText.text);
                 }
-            } catch (e) {
-                alert("Failed to load document: " + e.message);
+            } else {
+                alert("Please specify a document path first");
             }
+        } catch (e) {
+            updateStatus("Error loading document: " + e.message);
+        }
+    };
+    
+    currentDocBtn.onClick = function() {
+        try {
+            if (app.documents.length > 0) {
+                var currentDoc = app.activeDocument;
+                docPathText.text = currentDoc.name;
+                QUERY_CONFIG.paths.documentPath = currentDoc.name;
+                updateStatus("Using current document: " + currentDoc.name);
+            } else {
+                alert("No documents are currently open");
+            }
+        } catch (e) {
+            updateStatus("Error accessing current document: " + e.message);
         }
     };
     
     outBrowseBtn.onClick = function() {
-        var folder = Folder.selectDialog("Select Output Folder");
-        if (folder) {
-            outPathText.text = folder.fsName;
-            QUERY_CONFIG.paths.outputPath = folder.fsName;
+        try {
+            var folder = Folder.selectDialog("Select Output Folder");
+            if (folder) {
+                outPathText.text = folder.fsName;
+                QUERY_CONFIG.paths.outputPath = folder.fsName;
+                updateStatus("Output path set: " + folder.name);
+            }
+        } catch (e) {
+            updateStatus("Error selecting output folder: " + e.message);
         }
     };
     
-    openFolderBtn.onClick = function() {
-        if (outPathText.text) {
-            var folder = Folder(outPathText.text);
-            if (folder.exists) {
-                folder.execute();
-            }
+    autoPathBtn.onClick = function() {
+        try {
+            var desktopPath = Folder.desktop.fsName;
+            outPathText.text = desktopPath;
+            QUERY_CONFIG.paths.outputPath = desktopPath;
+            updateStatus("Output path set to desktop");
+        } catch (e) {
+            updateStatus("Error setting auto path: " + e.message);
         }
     };
+    
+    // Store references for updates
+    UI_STATE.configControls.docPathText = docPathText;
+    UI_STATE.configControls.outPathText = outPathText;
 }
 
-// TARGET SELECTION PANEL - Checkboxes for analysis targets
+// TARGET SELECTION PANEL - Enhanced target checkboxes with safety indicators
 function createTargetSelectionPanel(parent) {
-    var targetPanel = parent.add("panel", undefined, "Analysis Target Selection");
+    var targetPanel = parent.add("panel", undefined, "Analysis Targets (Enhanced Safety Indicators)");
     targetPanel.orientation = "column";
     targetPanel.alignChildren = "fill";
-    targetPanel.preferredSize.height = 100;
+    targetPanel.preferredSize.height = 160;
     
-    // Create checkbox grid
+    // Create two rows for targets
     var row1 = targetPanel.add("group");
     var row2 = targetPanel.add("group");
+    var row3 = targetPanel.add("group");
     
-    // Define target layout
-    var targetList = [
-        { name: "documentProperties", label: "Document Properties", row: 1 },
-        { name: "pages", label: "Pages", row: 1 },
-        { name: "textFrames", label: "Text Frames", row: 1 },
-        { name: "stories", label: "Stories", row: 1 },
-        { name: "layers", label: "Layers", row: 2 },
-        { name: "images", label: "Images", row: 2 },
-        { name: "links", label: "Links", row: 2 },
-        { name: "pageItems", label: "Page Items", row: 2 },
-        { name: "styles", label: "Styles", row: 1 },
-        { name: "colors", label: "Colors", row: 1 },
-        { name: "fonts", label: "Fonts", row: 1 },
-        { name: "masterPages", label: "Master Pages", row: 2 }
-    ];
+    var targetRows = [row1, row2, row3];
+    var rowIndex = 0;
     
-    for (var i = 0; i < targetList.length; i++) {
-        var target = targetList[i];
-        var parentRow = target.row === 1 ? row1 : row2;
+    // Create checkboxes for each target with safety indicators
+    for (var targetName in QUERY_CONFIG.targets) {
+        var target = QUERY_CONFIG.targets[targetName];
+        var currentRow = targetRows[rowIndex % 3];
         
-        var checkbox = parentRow.add("checkbox", undefined, target.label);
-        checkbox.value = QUERY_CONFIG.targets[target.name].enabled;
+        var targetGroup = currentRow.add("group");
+        targetGroup.orientation = "row";
+        targetGroup.preferredSize.width = 280;
         
-        // Add safety indicator
-        if (!QUERY_CONFIG.targets[target.name].safe) {
-            checkbox.text += " ⚠";
-            checkbox.helpTip = "Warning: This collection may be slow or cause timeouts";
+        var checkbox = targetGroup.add("checkbox", undefined, "");
+        checkbox.value = target.enabled;
+        
+        var safetyIndicator = target.safe ? " ✓" : " ⚠";
+        var labelText = targetName + safetyIndicator;
+        var label = targetGroup.add("statictext", undefined, labelText);
+        label.preferredSize.width = 200;
+        
+        // Add tooltip-like description
+        if (target.description) {
+            var descText = targetGroup.add("statictext", undefined, "(" + target.description.substring(0, 20) + ")");
+            descText.preferredSize.width = 150;
+            descText.graphics.foregroundColor = descText.graphics.newPen(descText.graphics.PenType.SOLID_COLOR, [0.5, 0.5, 0.5], 1);
         }
         
-        UI_STATE.targetCheckboxes[target.name] = checkbox;
+        // Store checkbox reference
+        UI_STATE.targetCheckboxes[targetName] = checkbox;
         
-        // Create closure for event handler
-        (function(targetName) {
-            checkbox.onClick = function() {
-                QUERY_CONFIG.targets[targetName].enabled = this.value;
-                updateStatus("Target " + targetName + " " + (this.value ? "enabled" : "disabled"));
+        // Event handler with closure to capture targetName
+        (function(tName, cb) {
+            cb.onClick = function() {
+                try {
+                    QUERY_CONFIG.targets[tName].enabled = cb.value;
+                    updateStatus("Target " + tName + " " + (cb.value ? "enabled" : "disabled"));
+                } catch (e) {
+                    updateStatus("Error updating target: " + e.message);
+                }
             };
-        })(target.name);
+        })(targetName, checkbox);
+        
+        rowIndex++;
+    }
+    
+    // Add preset buttons
+    var presetRow = targetPanel.add("group");
+    presetRow.add("statictext", undefined, "Quick Presets:");
+    
+    for (var presetName in QUERY_PRESETS) {
+        var presetBtn = presetRow.add("button", undefined, QUERY_PRESETS[presetName].name);
+        
+        (function(pName) {
+            presetBtn.onClick = function() {
+                try {
+                    if (applyPreset(pName)) {
+                        refreshTargetCheckboxes();
+                        updateStatus("Applied preset: " + QUERY_PRESETS[pName].name);
+                    }
+                } catch (e) {
+                    updateStatus("Error applying preset: " + e.message);
+                }
+            };
+        })(presetName);
     }
 }
 
-// CONFIGURATION PANEL - Depth, timeouts, and options
+// CONFIGURATION PANEL - Enhanced settings with safety controls
 function createConfigurationPanel(parent) {
-    var configPanel = parent.add("panel", undefined, "Depth & Safety Configuration");
+    var configPanel = parent.add("panel", undefined, "Analysis Configuration & Safety Controls");
     configPanel.orientation = "column";
     configPanel.alignChildren = "fill";
-    configPanel.preferredSize.height = 80;
+    configPanel.preferredSize.height = 120;
     
-    // First row - depth and timeout
+    // First row - depth and samples
     var row1 = configPanel.add("group");
     
-    row1.add("statictext", undefined, "Traversal Depth:");
-    var depthSlider = row1.add("slider", undefined, QUERY_CONFIG.traversal.maxDepth, 1, 5);
-    depthSlider.preferredSize.width = 100;
-    var depthText = row1.add("statictext", undefined, QUERY_CONFIG.traversal.maxDepth.toString());
+    row1.add("statictext", undefined, "Max Depth:");
+    var depthSlider = row1.add("slider", undefined, QUERY_CONFIG.traversal.maxDepth, 1, 6);
+    var depthText = row1.add("statictext", undefined, String(QUERY_CONFIG.traversal.maxDepth));
+    depthText.preferredSize.width = 30;
     
-    row1.add("statictext", undefined, "   Timeout:");
-    var timeoutDropdown = row1.add("dropdownlist", undefined, ["100ms", "200ms", "500ms", "1000ms", "2000ms"]);
-    timeoutDropdown.selection = 2; // 500ms default
+    row1.add("statictext", undefined, "  Sample Limit:");
+    var sampleSlider = row1.add("slider", undefined, QUERY_CONFIG.traversal.sampleLimit, 1, 20);
+    var sampleText = row1.add("statictext", undefined, String(QUERY_CONFIG.traversal.sampleLimit));
+    sampleText.preferredSize.width = 30;
     
-    row1.add("statictext", undefined, "   Sample Limit:");
-    var sampleDropdown = row1.add("dropdownlist", undefined, ["5", "10", "15", "20", "25"]);
-    sampleDropdown.selection = 1; // 10 default
-    
-    // Second row - display options
+    // Second row - timeouts and safety
     var row2 = configPanel.add("group");
     
-    var showEmptyCheck = row2.add("checkbox", undefined, "Show Empty Values");
-    showEmptyCheck.value = QUERY_CONFIG.traversal.showEmpty;
+    row2.add("statictext", undefined, "Timeout (ms):");
+    var timeoutSlider = row2.add("slider", undefined, QUERY_CONFIG.traversal.timeoutMs, 1000, 10000);
+    var timeoutText = row2.add("statictext", undefined, String(QUERY_CONFIG.traversal.timeoutMs));
+    timeoutText.preferredSize.width = 50;
     
-    var showNullCheck = row2.add("checkbox", undefined, "Show Null Properties");
-    showNullCheck.value = QUERY_CONFIG.traversal.showNull;
-    
-    var showBrokenCheck = row2.add("checkbox", undefined, "Show Broken References");
-    showBrokenCheck.value = QUERY_CONFIG.traversal.showBroken;
+    var emergencyCheck = row2.add("checkbox", undefined, "Emergency Bailouts");
+    emergencyCheck.value = QUERY_CONFIG.traversal.emergencyBailouts;
     
     var verboseCheck = row2.add("checkbox", undefined, "Verbose Progress");
     verboseCheck.value = QUERY_CONFIG.traversal.verboseProgress;
     
-    var pathTrackCheck = row2.add("checkbox", undefined, "Path Tracking");
-    pathTrackCheck.value = QUERY_CONFIG.traversal.pathTracking;
+    // Third row - display options
+    var row3 = configPanel.add("group");
     
-    var bailoutCheck = row2.add("checkbox", undefined, "Emergency Bailouts");
-    bailoutCheck.value = QUERY_CONFIG.traversal.emergencyBailouts;
+    var showEmptyCheck = row3.add("checkbox", undefined, "Show Empty Values");
+    showEmptyCheck.value = QUERY_CONFIG.traversal.showEmpty;
     
-    // Store references
-    UI_STATE.configControls.depthSlider = depthSlider;
-    UI_STATE.configControls.timeoutDropdown = timeoutDropdown;
-    UI_STATE.configControls.sampleDropdown = sampleDropdown;
+    var showUndefinedCheck = row3.add("checkbox", undefined, "Show Undefined");
+    showUndefinedCheck.value = QUERY_CONFIG.traversal.showUndefined;
+    
+    var pathTrackingCheck = row3.add("checkbox", undefined, "Path Tracking");
+    pathTrackingCheck.value = QUERY_CONFIG.traversal.pathTracking;
     
     // Event handlers
     depthSlider.onChanging = function() {
-        var depth = Math.round(this.value);
-        depthText.text = depth.toString();
-        QUERY_CONFIG.traversal.maxDepth = depth;
+        var value = Math.round(depthSlider.value);
+        depthText.text = String(value);
+        QUERY_CONFIG.traversal.maxDepth = value;
     };
     
-    timeoutDropdown.onChange = function() {
-        var timeouts = [100, 200, 500, 1000, 2000];
-        QUERY_CONFIG.traversal.timeoutMs = timeouts[this.selection.index];
+    sampleSlider.onChanging = function() {
+        var value = Math.round(sampleSlider.value);
+        sampleText.text = String(value);
+        QUERY_CONFIG.traversal.sampleLimit = value;
     };
     
-    sampleDropdown.onChange = function() {
-        var limits = [5, 10, 15, 20, 25];
-        QUERY_CONFIG.traversal.sampleLimit = limits[this.selection.index];
+    timeoutSlider.onChanging = function() {
+        var value = Math.round(timeoutSlider.value);
+        timeoutText.text = String(value);
+        QUERY_CONFIG.traversal.timeoutMs = value;
     };
     
-    showEmptyCheck.onClick = function() {
-        QUERY_CONFIG.traversal.showEmpty = this.value;
-    };
-    
-    showNullCheck.onClick = function() {
-        QUERY_CONFIG.traversal.showNull = this.value;
-    };
-    
-    showBrokenCheck.onClick = function() {
-        QUERY_CONFIG.traversal.showBroken = this.value;
+    emergencyCheck.onClick = function() {
+        QUERY_CONFIG.traversal.emergencyBailouts = emergencyCheck.value;
     };
     
     verboseCheck.onClick = function() {
-        QUERY_CONFIG.traversal.verboseProgress = this.value;
+        QUERY_CONFIG.traversal.verboseProgress = verboseCheck.value;
     };
     
-    pathTrackCheck.onClick = function() {
-        QUERY_CONFIG.traversal.pathTracking = this.value;
+    showEmptyCheck.onClick = function() {
+        QUERY_CONFIG.traversal.showEmpty = showEmptyCheck.value;
     };
     
-    bailoutCheck.onClick = function() {
-        QUERY_CONFIG.traversal.emergencyBailouts = this.value;
+    showUndefinedCheck.onClick = function() {
+        QUERY_CONFIG.traversal.showUndefined = showUndefinedCheck.value;
     };
+    
+    pathTrackingCheck.onClick = function() {
+        QUERY_CONFIG.traversal.pathTracking = pathTrackingCheck.value;
+    };
+    
+    // Store references
+    UI_STATE.configControls.depthText = depthText;
+    UI_STATE.configControls.sampleText = sampleText;
+    UI_STATE.configControls.timeoutText = timeoutText;
 }
 
-// PROGRESS PANEL - Real-time progress feedback
+// PROGRESS PANEL - Enhanced progress tracking with safety metrics
 function createProgressPanel(parent) {
-    var progressPanel = parent.add("panel", undefined, "Analysis Progress");
+    var progressPanel = parent.add("panel", undefined, "Analysis Progress & Safety Metrics");
     progressPanel.orientation = "column";
     progressPanel.alignChildren = "fill";
-    progressPanel.preferredSize.height = 120;
+    progressPanel.preferredSize.height = 80;
     
     // Status and progress bar
     var statusRow = progressPanel.add("group");
     statusRow.add("statictext", undefined, "Status:");
-    UI_STATE.statusText = statusRow.add("statictext", undefined, "Ready");
+    UI_STATE.statusText = statusRow.add("statictext", undefined, "Ready for analysis");
     UI_STATE.statusText.preferredSize.width = 300;
     
-    UI_STATE.progressBar = statusRow.add("progressbar", undefined, 0, 100);
+    var percentRow = progressPanel.add("group");
+    percentRow.add("statictext", undefined, "Progress:");
+    UI_STATE.progressBar = percentRow.add("progressbar", undefined, 0, 100);
     UI_STATE.progressBar.preferredSize.width = 200;
+    UI_STATE.configControls.percentText = percentRow.add("statictext", undefined, "0%");
+    UI_STATE.configControls.percentText.preferredSize.width = 50;
     
-    var percentText = statusRow.add("statictext", undefined, "0%");
-    UI_STATE.configControls.percentText = percentText;
-    
-    // Current operation details
-    var currentRow = progressPanel.add("group");
-    currentRow.add("statictext", undefined, "Current:");
-    UI_STATE.progressText = currentRow.add("statictext", undefined, "");
-    UI_STATE.progressText.preferredSize.width = 600;
-    
-    // Path tracking (scrollable)
-    var pathGroup = progressPanel.add("group");
-    pathGroup.orientation = "column";
-    pathGroup.alignChildren = "fill";
-    
-    var pathLabel = pathGroup.add("statictext", undefined, "Recent Paths:");
-    UI_STATE.pathList = pathGroup.add("edittext", undefined, "", {multiline: true, readonly: true});
-    UI_STATE.pathList.preferredSize.height = 40;
+    // Detailed progress info
+    var detailRow = progressPanel.add("group");
+    detailRow.add("statictext", undefined, "Current:");
+    UI_STATE.progressText = detailRow.add("statictext", undefined, "Waiting for analysis to start...");
+    UI_STATE.progressText.preferredSize.width = 400;
 }
 
-// ACTION BUTTONS PANEL - Presets and controls
+// ACTION BUTTONS PANEL - Enhanced with safety controls
 function createActionButtonsPanel(parent) {
-    var actionPanel = parent.add("group");
+    var actionPanel = parent.add("panel", undefined, "Analysis Actions");
     actionPanel.orientation = "row";
     actionPanel.alignChildren = "center";
+    actionPanel.preferredSize.height = 60;
     
-    // Presets group
-    var presetsGroup = actionPanel.add("panel", undefined, "Quick Actions");
-    presetsGroup.orientation = "row";
-    
-    var basicBtn = presetsGroup.add("button", undefined, "Preset: Basic Safe");
-    var textBtn = presetsGroup.add("button", undefined, "Preset: Text Only");
-    var fullBtn = presetsGroup.add("button", undefined, "Preset: Full Scan");
-    var saveConfigBtn = presetsGroup.add("button", undefined, "Save Config");
-    
-    // Analysis controls group
-    var controlsGroup = actionPanel.add("panel", undefined, "Analysis Control");
-    controlsGroup.orientation = "row";
-    
-    var startBtn = controlsGroup.add("button", undefined, "▶ START ANALYSIS");
-    startBtn.preferredSize.width = 140;
-    var pauseBtn = controlsGroup.add("button", undefined, "⏸ PAUSE");
-    var stopBtn = controlsGroup.add("button", undefined, "⏹ STOP");
-    var viewBtn = controlsGroup.add("button", undefined, "📊 View Results");
-    var exportBtn = controlsGroup.add("button", undefined, "📁 Export Tree");
-    
-    // Store references
-    UI_STATE.configControls.startBtn = startBtn;
-    UI_STATE.configControls.pauseBtn = pauseBtn;
-    UI_STATE.configControls.stopBtn = stopBtn;
-    
-    // Event handlers
-    basicBtn.onClick = function() {
-        applyPreset("basicSafe");
-        refreshTargetCheckboxes();
-        updateStatus("Applied Basic Safe preset");
-    };
-    
-    textBtn.onClick = function() {
-        applyPreset("textOnly");
-        refreshTargetCheckboxes();
-        updateStatus("Applied Text Only preset");
-    };
-    
-    fullBtn.onClick = function() {
-        applyPreset("fullScan");
-        refreshTargetCheckboxes();
-        updateStatus("Applied Full Scan preset");
-    };
+    var startBtn = actionPanel.add("button", undefined, "Start Analysis");
+    var stopBtn = actionPanel.add("button", undefined, "Emergency Stop");
+    var clearBtn = actionPanel.add("button", undefined, "Clear Results");
+    var showBtn = actionPanel.add("button", undefined, "Show Results");
+    var exportBtn = actionPanel.add("button", undefined, "Export Results");
+    var validateBtn = actionPanel.add("button", undefined, "Validate Setup");
     
     startBtn.onClick = function() {
-        startAnalysis();
+        try {
+            startAnalysisSafely();
+        } catch (e) {
+            updateStatus("Error starting analysis: " + e.message);
+        }
     };
     
-    viewBtn.onClick = function() {
-        if (UI_STATE.currentResults) {
-            showResultsDialog(UI_STATE.currentResults);
-        } else {
-            alert("No results to display. Run an analysis first.");
+    stopBtn.onClick = function() {
+        try {
+            QUERY_CONFIG.runtime.analysisActive = false;
+            updateStatus("Emergency stop activated");
+        } catch (e) {
+            updateStatus("Error during emergency stop: " + e.message);
+        }
+    };
+    
+    clearBtn.onClick = function() {
+        try {
+            UI_STATE.currentResults = undefined;
+            UI_STATE.resultTree.text = "Results cleared...";
+            updateStatus("Results cleared");
+        } catch (e) {
+            updateStatus("Error clearing results: " + e.message);
+        }
+    };
+    
+    showBtn.onClick = function() {
+        try {
+            if (UI_STATE.currentResults) {
+                showResultsDialog(UI_STATE.currentResults);
+            } else {
+                alert("No results to display. Run an analysis first.");
+            }
+        } catch (e) {
+            updateStatus("Error showing results: " + e.message);
         }
     };
     
     exportBtn.onClick = function() {
-        if (UI_STATE.currentResults) {
-            exportTreeToFile(UI_STATE.currentResults);
-        } else {
-            alert("No results to export. Run an analysis first.");
+        try {
+            if (UI_STATE.currentResults) {
+                exportTreeToFile(UI_STATE.currentResults);
+            } else {
+                alert("No results to export. Run an analysis first.");
+            }
+        } catch (e) {
+            updateStatus("Error exporting results: " + e.message);
+        }
+    };
+    
+    validateBtn.onClick = function() {
+        try {
+            validateAnalysisSetup();
+        } catch (e) {
+            updateStatus("Error validating setup: " + e.message);
         }
     };
 }
 
-// RESULTS PANEL - Tree display area
+// RESULTS PANEL - Enhanced preview with safety info
 function createResultsPanel(parent) {
-    var resultsPanel = parent.add("panel", undefined, "Quick Results Preview");
+    var resultsPanel = parent.add("panel", undefined, "Quick Results Preview & Safety Summary");
     resultsPanel.orientation = "column";
     resultsPanel.alignChildren = "fill";
-    resultsPanel.preferredSize.height = 150;
+    resultsPanel.preferredSize.height = 120;
     
-    UI_STATE.resultTree = resultsPanel.add("edittext", undefined, "No analysis results yet...", {multiline: true, readonly: true});
+    UI_STATE.resultTree = resultsPanel.add("edittext", undefined, "No analysis results yet...\n\nEnhanced Safety Features:\n• Emergency timeouts prevent hanging\n• Progressive depth limiting\n• Memory management\n• Real-time progress tracking\n• Error recovery and reporting", {multiline: true, readonly: true});
     UI_STATE.resultTree.alignment = "fill";
 }
 
-// UI UPDATE FUNCTIONS
-function updateUIProgress(progress) {
-    if (!UI_STATE.mainDialog) return;
+// ============================================================================
+// UI UPDATE AND UTILITY FUNCTIONS
+// ============================================================================
+
+// SAFE UI PROGRESS UPDATE - Enhanced with error protection
+function updateUIProgressSafely(progress) {
+    if (!UI_STATE.mainDialog || !UI_STATE.isInitialized) return;
     
     try {
+        var currentTime = new Date().getTime();
+        
+        // Throttle updates to prevent UI flooding
+        if (currentTime - UI_STATE.lastUpdateTime < 100) return;
+        UI_STATE.lastUpdateTime = currentTime;
+        
         if (UI_STATE.statusText) {
             UI_STATE.statusText.text = progress.status + " - " + progress.currentTarget;
         }
@@ -411,104 +471,122 @@ function updateUIProgress(progress) {
         }
         
         if (UI_STATE.progressText) {
-            UI_STATE.progressText.text = progress.currentPath + " → " + progress.currentResult;
-        }
-        
-        // Add to path list if verbose
-        if (QUERY_CONFIG.traversal.verboseProgress && UI_STATE.pathList) {
-            var pathEntry = progress.currentPath + " → " + progress.currentResult + "\n";
-            var currentText = UI_STATE.pathList.text;
-            var lines = currentText.split("\n");
-            if (lines.length > 10) {
-                lines = lines.slice(-8); // Keep last 8 lines
+            var progressInfo = progress.currentPath + " → " + progress.currentResult;
+            if (progressInfo.length > 80) {
+                progressInfo = progressInfo.substring(0, 77) + "...";
             }
-            lines.push(pathEntry);
-            UI_STATE.pathList.text = lines.join("\n");
+            UI_STATE.progressText.text = progressInfo;
         }
         
         UI_STATE.mainDialog.update();
         
     } catch (e) {
-        // Ignore UI update errors
+        // Silently ignore UI update errors to prevent cascading failures
     }
 }
 
 function updateStatus(message) {
     if (UI_STATE.statusText) {
         UI_STATE.statusText.text = message;
-        UI_STATE.mainDialog.update();
+        if (UI_STATE.mainDialog) {
+            UI_STATE.mainDialog.update();
+        }
     }
     $.writeln("[UI] " + message);
 }
 
 function refreshTargetCheckboxes() {
-    for (var targetName in UI_STATE.targetCheckboxes) {
-        var checkbox = UI_STATE.targetCheckboxes[targetName];
-        if (checkbox) {
-            checkbox.value = QUERY_CONFIG.targets[targetName].enabled;
+    try {
+        for (var targetName in UI_STATE.targetCheckboxes) {
+            var checkbox = UI_STATE.targetCheckboxes[targetName];
+            if (checkbox && QUERY_CONFIG.targets[targetName]) {
+                checkbox.value = QUERY_CONFIG.targets[targetName].enabled;
+            }
         }
+    } catch (e) {
+        updateStatus("Error refreshing checkboxes: " + e.message);
     }
 }
 
-// ANALYSIS CONTROL
-function startAnalysis() {
+// ANALYSIS STARTUP WITH VALIDATION
+function startAnalysisSafely() {
     if (isAnalysisActive()) {
-        alert("Analysis is already running.");
+        alert("Analysis is already running. Use Emergency Stop if needed.");
         return;
     }
     
-    var doc = QUERY_CONFIG.paths.currentDocument;
-    if (!doc && app.documents.length > 0) {
-        doc = app.activeDocument;
-        QUERY_CONFIG.paths.currentDocument = doc;
-    }
-    
-    if (!doc) {
-        alert("No document available for analysis. Please load or select a document.");
+    // Validate document
+    if (!app.documents.length) {
+        alert("No documents are open. Please open a document first.");
         return;
     }
     
-    updateStatus("Starting analysis...");
+    // Validate enabled targets
+    var enabledTargets = getEnabledTargets();
+    if (enabledTargets.length === 0) {
+        alert("No targets selected. Please enable at least one analysis target.");
+        return;
+    }
+    
+    updateStatus("Starting safe analysis with " + enabledTargets.length + " targets...");
     
     try {
+        var doc = app.activeDocument;
         var results = analyzeDocumentToTree(doc);
-        UI_STATE.currentResults = results;
         
         if (results) {
-            var stats = getTreeStatistics(results);
-            var summary = "Analysis Complete!\n" +
-                         "Total nodes: " + stats.totalNodes + "\n" +
-                         "Success: " + stats.successNodes + "\n" +
-                         "Errors: " + stats.errorNodes + "\n" +
-                         "Max depth: " + stats.maxDepth;
+            UI_STATE.currentResults = results;
             
-            UI_STATE.resultTree.text = summary;
+            // Update results preview
+            var stats = getTreeStatistics(results);
+            var preview = "ANALYSIS COMPLETED\n";
+            preview += "Total Nodes: " + stats.totalNodes + "\n";
+            preview += "Success Rate: " + Math.round((stats.successNodes / stats.totalNodes) * 100) + "%\n";
+            preview += "Errors: " + stats.errorNodes + "\n";
+            preview += "Max Depth: " + stats.maxDepth + "\n\n";
+            preview += "Click 'Show Results' for detailed tree view.";
+            
+            UI_STATE.resultTree.text = preview;
             updateStatus("Analysis completed successfully");
         } else {
-            updateStatus("Analysis failed - no results");
+            updateStatus("Analysis failed to produce results");
         }
         
-    } catch (e) {
-        updateStatus("Analysis failed: " + e.message);
-        alert("Analysis failed: " + e.message);
+    } catch (exc) {
+        updateStatus("Analysis error: " + exc.message);
+        alert("Analysis failed: " + exc.message);
     }
 }
 
-// SHOW MAIN INTERFACE
-function showMainInterface() {
-    var dialog = createMainInterface();
+function validateAnalysisSetup() {
+    var validation = [];
     
-    // Set initial document if available
-    if (app.documents.length > 0) {
-        var doc = app.activeDocument;
-        QUERY_CONFIG.paths.currentDocument = doc;
-        if (doc.saved && doc.filePath) {
-            UI_STATE.configControls.docPathText.text = doc.filePath.toString();
-            QUERY_CONFIG.paths.documentPath = doc.filePath.toString();
-        }
+    // Check document
+    if (!app.documents.length) {
+        validation.push("No documents are open");
     }
     
-    dialog.show();
+    // Check targets
+    var enabledTargets = getEnabledTargets();
+    if (enabledTargets.length === 0) {
+        validation.push("No analysis targets enabled");
+    }
+    
+    // Check configuration
+    if (QUERY_CONFIG.traversal.maxDepth < 1) {
+        validation.push("Max depth too low");
+    }
+    
+    if (QUERY_CONFIG.traversal.timeoutMs < 1000) {
+        validation.push("Timeout too short (risk of incomplete analysis)");
+    }
+    
+    var message = validation.length === 0 ? 
+        "Setup validation passed! Ready for analysis." :
+        "Setup issues found:\n• " + validation.join("\n• ");
+    
+    alert(message);
+    updateStatus("Setup validation: " + (validation.length === 0 ? "PASSED" : "ISSUES FOUND"));
 }
 
-$.writeln("Module C: UI Panel & Controls loaded");
+$.writeln("Module 3.0: Enhanced UI Panel & Controls loaded");

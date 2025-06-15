@@ -1,156 +1,248 @@
 // ============================================================================
-// MODULE 4.0: EXPORT & RESULTS DISPLAY
-// InDesign Document Query Tool v3.0 - Configurable Analysis
-// ES3 Compatible - Tree Export and Results Viewer
+// MODULE 4.0: EXPORT & RESULTS DISPLAY (UPDATED)
+// InDesign Document Query Tool v3.1 - Enhanced Export and Visualization
+// ES3 Compatible - Tree Export and Results Viewer with Best Practice Safety
 // ============================================================================
 
-// RESULTS DISPLAY DIALOG - Expandable tree view
+// RESULTS DISPLAY DIALOG - Enhanced expandable tree view with safety
 function showResultsDialog(treeResults) {
     if (!treeResults) {
         alert("No results to display.");
         return;
     }
     
-    var resultsDialog = new Window("dialog", "Analysis Results - DOM Tree View");
-    resultsDialog.orientation = "column";
-    resultsDialog.alignChildren = "fill";
-    resultsDialog.preferredSize.width = 800;
-    resultsDialog.preferredSize.height = 600;
-    
-    // Header with statistics
-    var headerPanel = resultsDialog.add("panel", undefined, "Results Summary");
-    headerPanel.orientation = "row";
-    headerPanel.alignChildren = "center";
-    
-    var stats = getTreeStatistics(treeResults);
-    var statsText = "Total Nodes: " + stats.totalNodes + 
-                   " | Success: " + stats.successNodes + 
-                   " | Errors: " + stats.errorNodes + 
-                   " | Null: " + stats.nullNodes + 
-                   " | Empty: " + stats.emptyNodes + 
-                   " | Max Depth: " + stats.maxDepth;
-    
-    headerPanel.add("statictext", undefined, statsText);
-    
-    // Tree display area
-    var treePanel = resultsDialog.add("panel", undefined, "Document Tree");
-    treePanel.orientation = "column";
-    treePanel.alignChildren = "fill";
-    
-    var treeText = treePanel.add("edittext", undefined, "", {multiline: true, readonly: true});
-    treeText.alignment = "fill";
-    
-    // Convert tree to display format
-    var treeDisplay = formatTreeForDisplay(treeResults, 0, true);
-    treeText.text = treeDisplay;
-    
-    // Controls
-    var controlsPanel = resultsDialog.add("group");
-    controlsPanel.orientation = "row";
-    controlsPanel.alignment = "center";
-    
-    var expandBtn = controlsPanel.add("button", undefined, "Expand All");
-    var collapseBtn = controlsPanel.add("button", undefined, "Collapse All");
-    var exportBtn = controlsPanel.add("button", undefined, "Export to File");
-    var copyBtn = controlsPanel.add("button", undefined, "Copy to Clipboard");
-    var closeBtn = controlsPanel.add("button", undefined, "Close");
-    
-    // Event handlers
-    expandBtn.onClick = function() {
-        var expandedDisplay = formatTreeForDisplay(treeResults, 0, true, true);
-        treeText.text = expandedDisplay;
-    };
-    
-    collapseBtn.onClick = function() {
-        var collapsedDisplay = formatTreeForDisplay(treeResults, 0, false, false);
-        treeText.text = collapsedDisplay;
-    };
-    
-    exportBtn.onClick = function() {
-        exportTreeToFile(treeResults);
-    };
-    
-    copyBtn.onClick = function() {
-        copyTreeToClipboard(treeResults);
-    };
-    
-    closeBtn.onClick = function() {
-        resultsDialog.close();
-    };
-    
-    resultsDialog.show();
+    try {
+        var resultsDialog = new Window("dialog", "Analysis Results - Enhanced DOM Tree View");
+        resultsDialog.orientation = "column";
+        resultsDialog.alignChildren = "fill";
+        resultsDialog.preferredSize.width = 850;
+        resultsDialog.preferredSize.height = 650;
+        
+        // Enhanced header with comprehensive statistics
+        var headerPanel = resultsDialog.add("panel", undefined, "Analysis Summary & Safety Metrics");
+        headerPanel.orientation = "column";
+        headerPanel.alignChildren = "fill";
+        
+        var stats = getTreeStatistics(treeResults);
+        var headerLine1 = "Total Nodes: " + stats.totalNodes + 
+                         " | Success: " + stats.successNodes + 
+                         " | Errors: " + stats.errorNodes + 
+                         " | Max Depth: " + stats.maxDepth;
+        
+        var headerLine2 = "Undefined: " + stats.undefinedNodes + 
+                         " | Empty: " + stats.emptyNodes + 
+                         " | Timeouts: " + stats.timeoutNodes + 
+                         " | Avg Depth: " + stats.avgDepth;
+        
+        headerPanel.add("statictext", undefined, headerLine1);
+        headerPanel.add("statictext", undefined, headerLine2);
+        
+        // Tree display area with enhanced formatting
+        var treePanel = resultsDialog.add("panel", undefined, "Document Tree Structure");
+        treePanel.orientation = "column";
+        treePanel.alignChildren = "fill";
+        
+        var treeText = treePanel.add("edittext", undefined, "", {multiline: true, readonly: true});
+        treeText.alignment = "fill";
+        
+        // Convert tree to enhanced display format
+        var treeDisplay = formatTreeForDisplayEnhanced(treeResults, 0, true, false);
+        treeText.text = treeDisplay;
+        
+        // Enhanced controls panel
+        var controlsPanel = resultsDialog.add("group");
+        controlsPanel.orientation = "row";
+        controlsPanel.alignment = "center";
+        
+        var expandBtn = controlsPanel.add("button", undefined, "Expand All");
+        var collapseBtn = controlsPanel.add("button", undefined, "Collapse All");
+        var filterBtn = controlsPanel.add("button", undefined, "Filter Errors");
+        var exportBtn = controlsPanel.add("button", undefined, "Export Full");
+        var copyBtn = controlsPanel.add("button", undefined, "Copy Summary");
+        var validateBtn = controlsPanel.add("button", undefined, "Validate Tree");
+        var closeBtn = controlsPanel.add("button", undefined, "Close");
+        
+        // Enhanced event handlers
+        expandBtn.onClick = function() {
+            try {
+                var expandedDisplay = formatTreeForDisplayEnhanced(treeResults, 0, true, true);
+                treeText.text = expandedDisplay;
+            } catch (e) {
+                alert("Error expanding tree: " + e.message);
+            }
+        };
+        
+        collapseBtn.onClick = function() {
+            try {
+                var collapsedDisplay = formatTreeForDisplayEnhanced(treeResults, 0, false, false);
+                treeText.text = collapsedDisplay;
+            } catch (e) {
+                alert("Error collapsing tree: " + e.message);
+            }
+        };
+        
+        filterBtn.onClick = function() {
+            try {
+                var filteredTree = filterTreeByStatus(treeResults, ["error", "timeout"]);
+                if (filteredTree) {
+                    var filteredDisplay = formatTreeForDisplayEnhanced(filteredTree, 0, true, true);
+                    treeText.text = filteredDisplay;
+                } else {
+                    treeText.text = "No errors or timeouts found in the analysis results.";
+                }
+            } catch (e) {
+                alert("Error filtering tree: " + e.message);
+            }
+        };
+        
+        exportBtn.onClick = function() {
+            try {
+                exportTreeToFileEnhanced(treeResults);
+            } catch (e) {
+                alert("Error exporting: " + e.message);
+            }
+        };
+        
+        copyBtn.onClick = function() {
+            try {
+                copyTreeSummaryToClipboard(treeResults);
+            } catch (e) {
+                alert("Error copying: " + e.message);
+            }
+        };
+        
+        validateBtn.onClick = function() {
+            try {
+                var validation = validateTreeStructure(treeResults);
+                var message = "Tree Validation Results:\n\n";
+                message += "Nodes Checked: " + validation.nodesChecked + "\n";
+                message += "Valid: " + (validation.isValid ? "YES" : "NO") + "\n";
+                message += "Errors: " + validation.errors.length + "\n";
+                message += "Warnings: " + validation.warnings.length + "\n\n";
+                
+                if (validation.errors.length > 0) {
+                    message += "Errors:\n" + validation.errors.join("\n") + "\n\n";
+                }
+                
+                if (validation.warnings.length > 0) {
+                    message += "Warnings:\n" + validation.warnings.join("\n");
+                }
+                
+                alert(message);
+            } catch (e) {
+                alert("Error validating tree: " + e.message);
+            }
+        };
+        
+        closeBtn.onClick = function() {
+            resultsDialog.close();
+        };
+        
+        resultsDialog.show();
+        
+    } catch (exc) {
+        alert("Failed to show results dialog: " + exc.message);
+    }
 }
 
-// FORMAT TREE FOR DISPLAY - Convert tree to readable text format
-function formatTreeForDisplay(node, depth, showChildren, expandAll) {
+// ENHANCED TREE FORMATTING - Improved display with safety indicators
+function formatTreeForDisplayEnhanced(node, depth, showChildren, expandAll) {
     if (!node) return "";
     
     var output = "";
     var indent = "";
     
-    // Create indentation
+    // Create enhanced indentation
     for (var i = 0; i < depth; i++) {
-        indent += "  ";
+        indent += i === depth - 1 ? "├─ " : "│  ";
     }
     
-    // Format current node
-    var nodeSymbol = getDisplaySymbol(node.status);
+    // Enhanced status symbols with safety context
+    var nodeSymbol = getDisplaySymbolEnhanced(node.status);
     var nodeDisplay = indent + nodeSymbol + " " + node.name;
     
-    // Add type and value info
+    // Add enhanced type and value information
     if (node.type && node.type !== "unknown") {
-        nodeDisplay += " (" + node.type + ")";
+        nodeDisplay += " [" + node.type + "]";
     }
     
-    if (node.value && node.value !== node.name) {
+    if (node.value && node.value !== node.name && String(node.value).length > 0) {
         var valueDisplay = String(node.value);
-        if (valueDisplay.length > 60) {
-            valueDisplay = valueDisplay.substring(0, 60) + "...";
+        if (valueDisplay.length > 80) {
+            valueDisplay = valueDisplay.substring(0, 77) + "...";
         }
         nodeDisplay += ": " + valueDisplay;
     }
     
-    // Add path for debugging
-    if (QUERY_CONFIG.traversal.pathTracking && node.path) {
-        nodeDisplay += " [" + node.path + "]";
+    // Add safety and performance indicators
+    if (node.status === "timeout") {
+        nodeDisplay += " [TIMEOUT]";
+    } else if (node.status === "error") {
+        nodeDisplay += " [ERROR]";
+    } else if (node.status === "emergency_timeout") {
+        nodeDisplay += " [EMERGENCY]";
+    }
+    
+    // Add path for debugging if enabled
+    if (QUERY_CONFIG.traversal.pathTracking && node.path && depth < 3) {
+        nodeDisplay += " (" + node.path + ")";
     }
     
     output += nodeDisplay + "\n";
     
-    // Add children if requested
+    // Enhanced children handling
     if (showChildren && node.children && node.children.length > 0) {
-        var shouldShowChildren = expandAll || depth < 2; // Auto-expand first 2 levels
+        var shouldShowChildren = expandAll || depth < 2;
         
         if (shouldShowChildren) {
             for (var i = 0; i < node.children.length; i++) {
-                output += formatTreeForDisplay(node.children[i], depth + 1, true, expandAll);
+                output += formatTreeForDisplayEnhanced(node.children[i], depth + 1, true, expandAll);
             }
         } else {
-            output += indent + "  [...] " + node.children.length + " children (click Expand All to show)\n";
+            var childSummary = indent + "│  ▼ " + node.children.length + " children ";
+            
+            // Add child status summary
+            var childStats = { success: 0, error: 0, other: 0 };
+            for (var i = 0; i < node.children.length; i++) {
+                var childStatus = node.children[i].status;
+                if (childStatus === "success") {
+                    childStats.success++;
+                } else if (childStatus === "error" || childStatus === "timeout") {
+                    childStats.error++;
+                } else {
+                    childStats.other++;
+                }
+            }
+            
+            childSummary += "(✓" + childStats.success + " ✗" + childStats.error + " ?" + childStats.other + ")";
+            childSummary += " - expand to view\n";
+            output += childSummary;
         }
     }
     
     return output;
 }
 
-function getDisplaySymbol(status) {
+function getDisplaySymbolEnhanced(status) {
     var symbols = {
         success: "✓",
         error: "✗",
         timeout: "⏱",
-        null: "∅",
+        emergency_timeout: "🚨",
+        undefined: "∅",
         empty: "○",
         skipped: "⏭",
         disabled: "⏸",
         truncated: "…",
+        optimized: "⚡",
         unknown: "?"
     };
     
     return symbols[status] || "?";
 }
 
-// EXPORT TREE TO FILE - Save complete tree structure
-function exportTreeToFile(treeResults) {
+// ENHANCED FILE EXPORT - Complete tree with metadata and safety info
+function exportTreeToFileEnhanced(treeResults) {
     if (!treeResults) {
         alert("No results to export.");
         return;
@@ -158,7 +250,7 @@ function exportTreeToFile(treeResults) {
     
     var outputPath = QUERY_CONFIG.paths.outputPath;
     if (!outputPath) {
-        var folder = Folder.selectDialog("Select folder to save tree export");
+        var folder = Folder.selectDialog("Select folder to save enhanced tree export");
         if (!folder) return;
         outputPath = folder.fsName;
         QUERY_CONFIG.paths.outputPath = outputPath;
@@ -167,99 +259,103 @@ function exportTreeToFile(treeResults) {
     try {
         var timestamp = new Date();
         var dateStr = timestamp.getFullYear() + 
-                     pad(timestamp.getMonth() + 1) + 
-                     pad(timestamp.getDate()) + "_" + 
-                     pad(timestamp.getHours()) + 
-                     pad(timestamp.getMinutes()) + 
-                     pad(timestamp.getSeconds());
+                     padNumber(timestamp.getMonth() + 1) + 
+                     padNumber(timestamp.getDate()) + "_" + 
+                     padNumber(timestamp.getHours()) + 
+                     padNumber(timestamp.getMinutes()) + 
+                     padNumber(timestamp.getSeconds());
         
-        var filename = "InDesign_QueryResults_" + dateStr + ".txt";
+        var filename = "InDesign_QueryResults_Enhanced_" + dateStr + ".txt";
         var filepath = outputPath + "/" + filename;
         var file = File(filepath);
         
         file.open("w");
         
-        // Write header
-        file.writeln("InDesign Document Query Tool v3.0 - Analysis Results");
+        // Enhanced header with comprehensive information
+        file.writeln("InDesign Document Query Tool v3.1 - Enhanced Analysis Results");
+        file.writeln("========================================================");
         file.writeln("Generated: " + timestamp.toString());
         file.writeln("Document: " + (QUERY_CONFIG.paths.documentPath || "Unknown"));
-        file.writeln("Analysis Configuration:");
+        file.writeln("");
+        
+        // Configuration details
+        file.writeln("ANALYSIS CONFIGURATION:");
         file.writeln("  Traversal Depth: " + QUERY_CONFIG.traversal.maxDepth);
         file.writeln("  Sample Limit: " + QUERY_CONFIG.traversal.sampleLimit);
         file.writeln("  Timeout: " + QUERY_CONFIG.traversal.timeoutMs + "ms");
-        file.writeln("  Show Empty: " + QUERY_CONFIG.traversal.showEmpty);
-        file.writeln("  Show Null: " + QUERY_CONFIG.traversal.showNull);
         file.writeln("  Emergency Bailouts: " + QUERY_CONFIG.traversal.emergencyBailouts);
-        
-        // Write enabled targets
-        file.writeln("Enabled Targets:");
-        var enabledTargets = getEnabledTargets();
-        for (var i = 0; i < enabledTargets.length; i++) {
-            file.writeln("  - " + enabledTargets[i]);
-        }
+        file.writeln("  Show Empty Values: " + QUERY_CONFIG.traversal.showEmpty);
+        file.writeln("  Show Undefined: " + QUERY_CONFIG.traversal.showUndefined);
+        file.writeln("  Path Tracking: " + QUERY_CONFIG.traversal.pathTracking);
         file.writeln("");
         
-        // Write statistics
+        // Enhanced statistics
         var stats = getTreeStatistics(treeResults);
         file.writeln("ANALYSIS STATISTICS:");
         file.writeln("  Total Nodes: " + stats.totalNodes);
-        file.writeln("  Success Nodes: " + stats.successNodes);
-        file.writeln("  Error Nodes: " + stats.errorNodes);
-        file.writeln("  Null Nodes: " + stats.nullNodes);
-        file.writeln("  Empty Nodes: " + stats.emptyNodes);
-        file.writeln("  Timeout Nodes: " + stats.timeoutNodes);
-        file.writeln("  Maximum Depth Reached: " + stats.maxDepth);
+        file.writeln("  Successful: " + stats.successNodes + " (" + Math.round((stats.successNodes/stats.totalNodes)*100) + "%)");
+        file.writeln("  Errors: " + stats.errorNodes);
+        file.writeln("  Undefined: " + stats.undefinedNodes);
+        file.writeln("  Empty: " + stats.emptyNodes);
+        file.writeln("  Timeouts: " + stats.timeoutNodes);
+        file.writeln("  Truncated: " + stats.truncatedNodes);
+        file.writeln("  Maximum Depth: " + stats.maxDepth);
+        file.writeln("  Average Depth: " + stats.avgDepth);
         file.writeln("");
         
-        // Write tree structure
+        // Safety metrics
+        file.writeln("SAFETY METRICS:");
+        file.writeln("  Runtime Errors: " + QUERY_CONFIG.runtime.errorCount);
+        file.writeln("  Success Count: " + QUERY_CONFIG.runtime.successCount);
+        file.writeln("  Success Rate: " + Math.round((QUERY_CONFIG.runtime.successCount/(QUERY_CONFIG.runtime.successCount + QUERY_CONFIG.runtime.errorCount))*100) + "%");
+        file.writeln("");
+        
+        // Enabled targets list
+        var enabledTargets = getEnabledTargets();
+        file.writeln("ENABLED TARGETS:");
+        for (var i = 0; i < enabledTargets.length; i++) {
+            var target = QUERY_CONFIG.targets[enabledTargets[i]];
+            file.writeln("  " + enabledTargets[i] + " - " + target.description + " (Safe: " + target.safe + ")");
+        }
+        file.writeln("");
+        
         file.writeln("DOCUMENT TREE STRUCTURE:");
         file.writeln("========================");
-        file.writeln("");
         
-        var treeText = formatTreeForExport(treeResults, 0);
-        file.write(treeText);
-        
-        // Write JSON export
-        file.writeln("");
-        file.writeln("JSON EXPORT (for programmatic use):");
-        file.writeln("===================================");
-        try {
-            var jsonExport = createJSONExport(treeResults);
-            file.write(JSON.stringify(jsonExport, null, 2));
-        } catch (jsonError) {
-            file.writeln("JSON export failed: " + jsonError.message);
-        }
+        // Export the complete tree structure
+        var treeContent = formatTreeForExportEnhanced(treeResults, 0);
+        file.write(treeContent);
         
         file.close();
         
-        alert("Results exported successfully to:\n" + filepath);
+        alert("Enhanced results exported successfully to:\n" + filepath + "\n\nFile includes comprehensive statistics and safety metrics.");
         
     } catch (e) {
-        alert("Export failed: " + e.message);
+        alert("Enhanced export failed: " + e.message);
     }
 }
 
-// FORMAT TREE FOR EXPORT - Complete tree with all details
-function formatTreeForExport(node, depth) {
+// ENHANCED TREE EXPORT FORMATTING
+function formatTreeForExportEnhanced(node, depth) {
     if (!node) return "";
     
     var output = "";
     var indent = "";
     
-    // Create indentation
+    // Create detailed indentation
     for (var i = 0; i < depth; i++) {
         indent += "  ";
     }
     
-    // Format node with complete information
+    // Enhanced node information
     output += indent + "├─ " + node.name + "\n";
     output += indent + "│  Type: " + (node.type || "unknown") + "\n";
     output += indent + "│  Status: " + (node.status || "unknown") + "\n";
     
-    if (node.value !== undefined && node.value !== null) {
+    if (node.value !== undefined && String(node.value).length > 0) {
         var valueStr = String(node.value);
-        if (valueStr.length > 200) {
-            valueStr = valueStr.substring(0, 200) + "... [truncated]";
+        if (valueStr.length > 500) {
+            valueStr = valueStr.substring(0, 500) + "... [truncated for export]";
         }
         output += indent + "│  Value: " + valueStr + "\n";
     }
@@ -268,21 +364,71 @@ function formatTreeForExport(node, depth) {
         output += indent + "│  Path: " + node.path + "\n";
     }
     
+    if (node.timestamp) {
+        output += indent + "│  Timestamp: " + node.timestamp + "\n";
+    }
+    
     output += indent + "│\n";
     
-    // Add children
+    // Enhanced children processing
     if (node.children && node.children.length > 0) {
         for (var i = 0; i < node.children.length; i++) {
-            output += formatTreeForExport(node.children[i], depth + 1);
+            output += formatTreeForExportEnhanced(node.children[i], depth + 1);
         }
     }
     
     return output;
 }
 
-// CREATE JSON EXPORT - Structured data for programmatic use
-function createJSONExport(treeResults) {
-    var export_data = {
+// ENHANCED CLIPBOARD COPY - Summary with key metrics
+function copyTreeSummaryToClipboard(treeResults) {
+    if (!treeResults) {
+        alert("No results to copy.");
+        return;
+    }
+    
+    try {
+        var stats = getTreeStatistics(treeResults);
+        var summary = "InDesign Document Analysis Summary\n";
+        summary += "==================================\n\n";
+        summary += "Total Nodes: " + stats.totalNodes + "\n";
+        summary += "Success Rate: " + Math.round((stats.successNodes/stats.totalNodes)*100) + "%\n";
+        summary += "Errors: " + stats.errorNodes + "\n";
+        summary += "Max Depth: " + stats.maxDepth + "\n";
+        summary += "Avg Depth: " + stats.avgDepth + "\n\n";
+        
+        summary += "Top-Level Structure:\n";
+        summary += "===================\n";
+        
+        // Add top-level nodes summary
+        if (treeResults.children && treeResults.children.length > 0) {
+            for (var i = 0; i < treeResults.children.length; i++) {
+                var child = treeResults.children[i];
+                summary += "• " + child.name + " [" + child.status + "]";
+                if (child.children && child.children.length > 0) {
+                    summary += " (" + child.children.length + " children)";
+                }
+                summary += "\n";
+            }
+        }
+        
+        // Create temporary file for clipboard access
+        var tempFile = File(Folder.temp + "/indesign_query_summary.txt");
+        tempFile.open("w");
+        tempFile.write(summary);
+        tempFile.close();
+        
+        alert("Summary prepared for copying.\nFile location: " + tempFile.fsName + "\n\nOpen this file and copy its contents to your clipboard.");
+        tempFile.execute();
+        
+    } catch (e) {
+        alert("Copy summary failed: " + e.message);
+    }
+}
+
+// JSON EXPORT UTILITIES - Enhanced structured data export
+function createJSONExportEnhanced(treeResults) {
+    var exportData = {
         metadata: {
             version: QUERY_CONFIG.version,
             timestamp: new Date().toISOString ? new Date().toISOString() : new Date().toString(),
@@ -292,20 +438,25 @@ function createJSONExport(treeResults) {
                 sampleLimit: QUERY_CONFIG.traversal.sampleLimit,
                 timeoutMs: QUERY_CONFIG.traversal.timeoutMs,
                 showEmpty: QUERY_CONFIG.traversal.showEmpty,
-                showNull: QUERY_CONFIG.traversal.showNull,
-                emergencyBailouts: QUERY_CONFIG.traversal.emergencyBailouts
+                showUndefined: QUERY_CONFIG.traversal.showUndefined,
+                emergencyBailouts: QUERY_CONFIG.traversal.emergencyBailouts,
+                pathTracking: QUERY_CONFIG.traversal.pathTracking
             },
             enabledTargets: getEnabledTargets(),
-            statistics: getTreeStatistics(treeResults)
+            statistics: getTreeStatistics(treeResults),
+            safetyMetrics: {
+                runtimeErrors: QUERY_CONFIG.runtime.errorCount,
+                successCount: QUERY_CONFIG.runtime.successCount
+            }
         },
-        tree: convertTreeToJSON(treeResults)
+        tree: convertTreeToJSONEnhanced(treeResults)
     };
     
-    return export_data;
+    return exportData;
 }
 
-function convertTreeToJSON(node) {
-    if (!node) return null;
+function convertTreeToJSONEnhanced(node) {
+    if (!node) return undefined;
     
     var jsonNode = {
         name: node.name,
@@ -314,16 +465,27 @@ function convertTreeToJSON(node) {
         path: node.path
     };
     
-    // Only include value if it's meaningful
-    if (node.value !== undefined && node.value !== null && node.value !== node.name) {
+    // Enhanced value handling
+    if (node.value !== undefined && String(node.value).length > 0 && node.value !== node.name) {
         jsonNode.value = node.value;
     }
     
-    // Include children if present
+    // Add metadata
+    if (node.timestamp) {
+        jsonNode.timestamp = node.timestamp;
+    }
+    
+    if (node.depth !== undefined) {
+        jsonNode.depth = node.depth;
+    }
+    
+    // Enhanced children processing
     if (node.children && node.children.length > 0) {
         jsonNode.children = [];
+        jsonNode.childCount = node.children.length;
+        
         for (var i = 0; i < node.children.length; i++) {
-            var childJSON = convertTreeToJSON(node.children[i]);
+            var childJSON = convertTreeToJSONEnhanced(node.children[i]);
             if (childJSON) {
                 jsonNode.children.push(childJSON);
             }
@@ -333,172 +495,39 @@ function convertTreeToJSON(node) {
     return jsonNode;
 }
 
-// COPY TO CLIPBOARD - Simple text copy
-function copyTreeToClipboard(treeResults) {
-    if (!treeResults) {
-        alert("No results to copy.");
-        return;
-    }
-    
-    try {
-        var treeText = formatTreeForDisplay(treeResults, 0, true, true);
-        
-        // Create temporary text file for clipboard
-        var tempFile = File(Folder.temp + "/indesign_query_temp.txt");
-        tempFile.open("w");
-        tempFile.write(treeText);
-        tempFile.close();
-        
-        alert("Tree structure has been prepared for copying.\nTemporary file created at: " + tempFile.fsName + "\n\nOpen this file and copy its contents to your clipboard.");
-        
-        // Try to open the file
-        tempFile.execute();
-        
-    } catch (e) {
-        alert("Copy to clipboard failed: " + e.message);
-    }
-}
-
-// COMPARISON UTILITIES - For comparing two tree results
-function compareTreeResults(tree1, tree2) {
-    var comparison = {
-        timestamp: new Date().toString(),
-        tree1Stats: getTreeStatistics(tree1),
-        tree2Stats: getTreeStatistics(tree2),
-        differences: [],
-        summary: {
-            nodeCountChanged: false,
-            structureChanged: false,
-            valuesChanged: false
-        }
-    };
-    
-    // Basic statistical comparison
-    if (comparison.tree1Stats.totalNodes !== comparison.tree2Stats.totalNodes) {
-        comparison.summary.nodeCountChanged = true;
-        comparison.differences.push({
-            type: "node_count_change",
-            from: comparison.tree1Stats.totalNodes,
-            to: comparison.tree2Stats.totalNodes
-        });
-    }
-    
-    // Deep comparison would go here
-    // For now, just provide structure for future implementation
-    comparison.differences.push({
-        type: "info",
-        message: "Deep tree comparison not yet implemented. Use manual comparison of exported files."
-    });
-    
-    return comparison;
-}
-
 // UTILITY FUNCTIONS
-function pad(number) {
-    return number < 10 ? "0" + number : number.toString();
+function padNumber(number) {
+    return number < 10 ? "0" + number.toString() : number.toString();
 }
 
-function createResultsSummary(treeResults) {
+function createResultsSummaryEnhanced(treeResults) {
     if (!treeResults) return "No results available";
     
     var stats = getTreeStatistics(treeResults);
-    var summary = "ANALYSIS SUMMARY\n";
-    summary += "================\n\n";
+    var summary = "ENHANCED ANALYSIS SUMMARY\n";
+    summary += "========================\n\n";
     summary += "Total Nodes Analyzed: " + stats.totalNodes + "\n";
     summary += "Successful Accesses: " + stats.successNodes + "\n";
     summary += "Errors Encountered: " + stats.errorNodes + "\n";
-    summary += "Null Values Found: " + stats.nullNodes + "\n";
-    summary += "Empty Values Found: " + stats.emptyNodes + "\n";
+    summary += "Undefined Values: " + stats.undefinedNodes + "\n";
+    summary += "Empty Values: " + stats.emptyNodes + "\n";
     summary += "Timeouts Occurred: " + stats.timeoutNodes + "\n";
-    summary += "Maximum Depth Reached: " + stats.maxDepth + "\n\n";
+    summary += "Truncated Nodes: " + stats.truncatedNodes + "\n";
+    summary += "Maximum Depth: " + stats.maxDepth + "\n";
+    summary += "Average Depth: " + stats.avgDepth + "\n\n";
     
-    var successRate = stats.totalNodes > 0 ? Math.round((stats.successNodes / stats.totalNodes) * 100) : 0;
-    summary += "Success Rate: " + successRate + "%\n\n";
+    var successRate = stats.totalNodes > 0 ? 
+        Math.round((stats.successNodes / stats.totalNodes) * 100) : 0;
     
-    // Analysis recommendations
-    summary += "RECOMMENDATIONS:\n";
-    if (stats.errorNodes > stats.successNodes) {
-        summary += "• High error rate detected - consider using emergency bailouts\n";
-        summary += "• Try reducing traversal depth or sample limits\n";
-    } else if (stats.timeoutNodes > 5) {
-        summary += "• Multiple timeouts detected - consider increasing timeout values\n";
-        summary += "• Some collections may be slow - disable risky collections\n";
-    } else if (successRate > 90) {
-        summary += "• Excellent success rate - document is healthy for analysis\n";
-        summary += "• Consider enabling more targets for deeper analysis\n";
-    }
+    summary += "Success Rate: " + successRate + "%\n";
+    summary += "Analysis Quality: " + (successRate > 80 ? "Excellent" : 
+                                       successRate > 60 ? "Good" : 
+                                       successRate > 40 ? "Fair" : "Poor") + "\n\n";
     
-    if (stats.maxDepth < QUERY_CONFIG.traversal.maxDepth) {
-        summary += "• Analysis stopped before reaching maximum depth\n";
-        summary += "• Consider increasing timeout or reducing sample size\n";
-    }
+    summary += "Safety Status: " + (stats.timeoutNodes === 0 ? "No timeouts" : 
+                                    stats.timeoutNodes + " timeouts occurred") + "\n";
     
     return summary;
 }
 
-// EXPORT CONFIGURATION - Save current settings
-function exportConfiguration() {
-    var configExport = {
-        version: QUERY_CONFIG.version,
-        timestamp: new Date().toString(),
-        targets: {},
-        traversal: QUERY_CONFIG.traversal
-    };
-    
-    // Export enabled targets
-    for (var target in QUERY_CONFIG.targets) {
-        configExport.targets[target] = QUERY_CONFIG.targets[target].enabled;
-    }
-    
-    try {
-        var configFile = File.saveDialog("Save Query Configuration", "*.json");
-        if (configFile) {
-            configFile.open("w");
-            configFile.write(JSON.stringify(configExport, null, 2));
-            configFile.close();
-            alert("Configuration saved to: " + configFile.name);
-        }
-    } catch (e) {
-        alert("Failed to save configuration: " + e.message);
-    }
-}
-
-// IMPORT CONFIGURATION - Load saved settings
-function importConfiguration() {
-    try {
-        var configFile = File.openDialog("Load Query Configuration", "*.json");
-        if (configFile) {
-            configFile.open("r");
-            var configData = configFile.read();
-            configFile.close();
-            
-            var config = JSON.parse(configData);
-            
-            // Apply loaded configuration
-            if (config.targets) {
-                for (var target in config.targets) {
-                    if (QUERY_CONFIG.targets[target]) {
-                        QUERY_CONFIG.targets[target].enabled = config.targets[target];
-                    }
-                }
-            }
-            
-            if (config.traversal) {
-                QUERY_CONFIG.traversal.maxDepth = config.traversal.maxDepth || QUERY_CONFIG.traversal.maxDepth;
-                QUERY_CONFIG.traversal.sampleLimit = config.traversal.sampleLimit || QUERY_CONFIG.traversal.sampleLimit;
-                QUERY_CONFIG.traversal.timeoutMs = config.traversal.timeoutMs || QUERY_CONFIG.traversal.timeoutMs;
-                QUERY_CONFIG.traversal.showEmpty = config.traversal.showEmpty !== undefined ? config.traversal.showEmpty : QUERY_CONFIG.traversal.showEmpty;
-                QUERY_CONFIG.traversal.showNull = config.traversal.showNull !== undefined ? config.traversal.showNull : QUERY_CONFIG.traversal.showNull;
-            }
-            
-            alert("Configuration loaded successfully!");
-            return true;
-        }
-    } catch (e) {
-        alert("Failed to load configuration: " + e.message);
-    }
-    
-    return false;
-}
-
-$.writeln("Module D: Export & Results Display loaded");
+$.writeln("Module 4.0: Enhanced Export & Results Display loaded");

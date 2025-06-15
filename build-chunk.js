@@ -7,8 +7,8 @@ const path = require('path');
 // BUILD MODE SELECTION - Comment/uncomment ONE of these lines
 // ============================================================================
 
-//const BUILD_OLD_CHUNKS = true;   // Build original chunk-based system
-const BUILD_NEW_MODULES = true; // Build new modular system
+const BUILD_OLD_CHUNKS = true;   // Build original chunk-based system
+//const BUILD_NEW_MODULES = true; // Build new modular system
 
 // ============================================================================
 // CONFIGURATION 
@@ -20,18 +20,9 @@ const BUILD_CONFIG = {
         TARGET_FOLDER: './scripts',
         OUTPUT_FILE: 'InDesignDocInspectorAndComparer_ChunkBuilt.jsx',
         PATTERN: /^InDesignDocInspectorAndComparer_Chunk_([0-9]+(?:\.[0-9]+)*)_.*\.jsx$/,
-        FILES_TO_INCLUDE: [
-            'InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_2.0_EmergencyAnalysis.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_2.1_MinimalAnalysis.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_2.2_StandardAnalysis.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_2.3_AdvancedAnalysis.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_3_ComparisonFunctions.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_4_ReportGeneration.jsx',
-            'InDesignDocInspectorAndComparer_Chunk_5_MainInterfaceEntry.jsx',
-            
-            // Comment out chunks you don't want:
-            // 'InDesignDocInspectorAndComparer_Chunk_6_ExperimentalFeatures.jsx',
+        FILES_TO_EXCLUDE: [
+            // Uncomment any chunks you want to exclude from the build:
+            'InDesignDocInspectorAndComparer_ChunkBuilt.jsx'
         ]
     },
     
@@ -40,16 +31,9 @@ const BUILD_CONFIG = {
         TARGET_FOLDER: './Modules',
         OUTPUT_FILE: 'InDesignQueryTool_v3.0_Complete.jsx',
         PATTERN: /^Module_([0-9]+\.[0-9]+)_.*\.jsx$/,
-        FILES_TO_INCLUDE: [
-            'Module_1.0_ConfigAndSafety.jsx',
-            'Module_2.0_DocumentAnalysisAndTreeBuilder.jsx', 
-            'Module_3.0_UIPanelAndControls.jsx',
-            'Module_4.0_ExportAndResultsDisplay.jsx',
-            'Module_5.0_MainEntryPoint.jsx',
-            
-            // Comment out modules you don't want:
-            // 'Module_6.0_ExperimentalFeatures.jsx',
-            // 'Module_7.0_DebugMode.jsx',
+        FILES_TO_EXCLUDE: [
+            // Uncomment any modules you want to exclude from the build:
+            'InDesignQueryTool_v3.0_Complete.jsx'
         ]
     },
     
@@ -78,70 +62,123 @@ if (!isChunkBuild && !isModuleBuild) {
 const CURRENT_CONFIG = isChunkBuild ? BUILD_CONFIG.chunks : BUILD_CONFIG.modules;
 const BUILD_TYPE = isChunkBuild ? 'CHUNKS' : 'MODULES';
 
-console.log(`🔧 InDesign ${BUILD_TYPE} Builder v2.0`);
-console.log('================================');
+console.log(`🔧 InDesign ${BUILD_TYPE} Builder v2.1 (Auto-Discovery)`);
+console.log('===============================================');
 console.log(`📂 Target folder: ${CURRENT_CONFIG.TARGET_FOLDER}`);
 console.log(`📄 Output file: ${CURRENT_CONFIG.OUTPUT_FILE}`);
 console.log(`🔨 Build type: ${BUILD_TYPE} System`);
+console.log(`🔍 Auto-discovery: All matching files included by default`);
 
-function parseConfiguredFiles() {
-    console.log(`\n📋 Processing configured ${BUILD_TYPE.toLowerCase()} list...`);
+function discoverAndFilterFiles() {
+    console.log(`\n🔍 Discovering ${BUILD_TYPE.toLowerCase()} files in target folder...`);
     
-    const configuredFiles = [];
-    
-    CURRENT_CONFIG.FILES_TO_INCLUDE.forEach((filename, index) => {
-        // Skip empty lines and comments
-        const trimmed = filename.trim();
-        if (!trimmed || trimmed.startsWith('//')) {
-            console.log(`⏭️  Skipped: ${trimmed || '(empty line)'}`);
-            return;
-        }
-        
-        // Validate file matches pattern
-        const match = trimmed.match(CURRENT_CONFIG.PATTERN);
-        if (!match) {
-            const expectedPattern = isChunkBuild ? 
-                'InDesignDocInspectorAndComparer_Chunk_X.X_Name.jsx' : 
-                'Module_X.X_Name.jsx';
-            console.error(`❌ Invalid filename format: ${trimmed}`);
-            console.error(`   Expected pattern: ${expectedPattern}`);
-            process.exit(1);
-        }
-        
-        const versionString = match[1]; // e.g., "1.0", "2.1"
-        const fullPath = path.join(CURRENT_CONFIG.TARGET_FOLDER, trimmed);
-        
-        // Check if file exists
-        if (BUILD_CONFIG.VALIDATE_FILES && !fs.existsSync(fullPath)) {
-            console.error(`❌ File not found: ${fullPath}`);
-            process.exit(1);
-        }
-        
-        configuredFiles.push({
-            filename: trimmed,
-            path: fullPath,
-            versionString: versionString,
-            versionArray: parseVersionNumber(versionString),
-            order: index // Preserve configuration order
-        });
-        
-        console.log(`✅ Included: ${trimmed} (Version ${versionString})`);
-    });
-    
-    if (configuredFiles.length === 0) {
-        console.error(`❌ No ${BUILD_TYPE.toLowerCase()} configured for build!`);
-        console.error('   Uncomment files in FILES_TO_INCLUDE array');
+    // Check if target folder exists
+    if (!fs.existsSync(CURRENT_CONFIG.TARGET_FOLDER)) {
+        console.error(`❌ Target folder does not exist: ${CURRENT_CONFIG.TARGET_FOLDER}`);
         process.exit(1);
     }
     
-    // Sort by version number, but preserve explicit order if versions are same
-    configuredFiles.sort((a, b) => {
-        const versionCompare = compareVersions(a.versionArray, b.versionArray);
-        if (versionCompare !== 0) return versionCompare;
-        return a.order - b.order; // Preserve configuration order for same versions
+    // Get all files in target folder that match the pattern
+    const allFiles = fs.readdirSync(CURRENT_CONFIG.TARGET_FOLDER);
+    const matchingFiles = allFiles.filter(filename => {
+        return filename.match(CURRENT_CONFIG.PATTERN);
     });
     
-    return configuredFiles;
+    console.log(`📁 Found ${matchingFiles.length} ${BUILD_TYPE.toLowerCase()} files matching pattern:`);
+    
+    if (matchingFiles.length === 0) {
+        console.error(`❌ No ${BUILD_TYPE.toLowerCase()} files found matching pattern in: ${CURRENT_CONFIG.TARGET_FOLDER}`);
+        const expectedPattern = isChunkBuild ? 
+            'InDesignDocInspectorAndComparer_Chunk_X.X_Name.jsx' : 
+            'Module_X.X_Name.jsx';
+        console.error(`   Expected pattern: ${expectedPattern}`);
+        process.exit(1);
+    }
+    
+    // Process each matching file
+    const discoveredFiles = [];
+    matchingFiles.forEach(filename => {
+        const match = filename.match(CURRENT_CONFIG.PATTERN);
+        if (match) {
+            const versionString = match[1]; // e.g., "1.0", "2.1"
+            const fullPath = path.join(CURRENT_CONFIG.TARGET_FOLDER, filename);
+            
+            // Validate file exists and is readable
+            if (BUILD_CONFIG.VALIDATE_FILES) {
+                try {
+                    fs.accessSync(fullPath, fs.constants.R_OK);
+                } catch (error) {
+                    console.error(`❌ Cannot read file: ${fullPath}`);
+                    console.error(`   Error: ${error.message}`);
+                    process.exit(1);
+                }
+            }
+            
+            discoveredFiles.push({
+                filename: filename,
+                path: fullPath,
+                versionString: versionString,
+                versionArray: parseVersionNumber(versionString)
+            });
+            
+            console.log(`   📄 ${filename} (Version ${versionString})`);
+        }
+    });
+    
+    // Apply exclusion filter
+    console.log(`\n🚫 Applying exclusion filter...`);
+    const excludeList = CURRENT_CONFIG.FILES_TO_EXCLUDE || [];
+    
+    if (excludeList.length === 0) {
+        console.log(`   ✅ No files excluded - all ${discoveredFiles.length} files will be included`);
+    } else {
+        console.log(`   📋 Exclusion list contains ${excludeList.length} entries:`);
+        excludeList.forEach(excludeFile => {
+            const trimmed = excludeFile.trim();
+            if (trimmed && !trimmed.startsWith('//')) {
+                console.log(`      🚫 ${trimmed}`);
+            }
+        });
+    }
+    
+    const filteredFiles = discoveredFiles.filter(fileInfo => {
+        // Check if this file is in the exclusion list
+        const isExcluded = excludeList.some(excludeFile => {
+            const trimmed = excludeFile.trim();
+            // Skip empty lines and comments
+            if (!trimmed || trimmed.startsWith('//')) {
+                return false;
+            }
+            return trimmed === fileInfo.filename;
+        });
+        
+        if (isExcluded) {
+            console.log(`   🚫 Excluded: ${fileInfo.filename}`);
+            return false;
+        } else {
+            console.log(`   ✅ Included: ${fileInfo.filename} (v${fileInfo.versionString})`);
+            return true;
+        }
+    });
+    
+    if (filteredFiles.length === 0) {
+        console.error(`❌ No ${BUILD_TYPE.toLowerCase()} files remain after exclusion filter!`);
+        console.error('   Check your FILES_TO_EXCLUDE configuration');
+        process.exit(1);
+    }
+    
+    // Sort by version number
+    console.log(`\n📊 Sorting ${filteredFiles.length} files by version number...`);
+    filteredFiles.sort((a, b) => {
+        return compareVersions(a.versionArray, b.versionArray);
+    });
+    
+    console.log(`   📋 Final build order:`);
+    filteredFiles.forEach((fileInfo, index) => {
+        console.log(`      ${index + 1}. ${fileInfo.filename} (v${fileInfo.versionString})`);
+    });
+    
+    return filteredFiles;
 }
 
 // Parse version string into array for proper comparison
@@ -173,7 +210,7 @@ function buildCombinedFile(files, outputPath) {
     if (isChunkBuild) {
         combinedContent += '//\n';
         combinedContent += '// Enhanced InDesign Document Inspector & Comparison Tool v2.1-ESTK\n';
-        combinedContent += '// COMPLETE ASSEMBLED VERSION - All Chunks Combined\n';
+        combinedContent += '// COMPLETE ASSEMBLED VERSION - All Chunks Combined (Auto-Discovery Build)\n';
         if (BUILD_CONFIG.ADD_TIMESTAMPS) {
             combinedContent += '// Generated: ' + new Date().toISOString() + '\n';
         }
@@ -182,7 +219,7 @@ function buildCombinedFile(files, outputPath) {
     } else {
         combinedContent += '//\n';
         combinedContent += '// InDesign Document Query Tool v3.0 - Complete Combined Build\n';
-        combinedContent += '// Modular Architecture - All Modules Assembled\n';
+        combinedContent += '// Modular Architecture - All Modules Assembled (Auto-Discovery Build)\n';
         if (BUILD_CONFIG.ADD_TIMESTAMPS) {
             combinedContent += '// Generated: ' + new Date().toISOString() + '\n';
         }
@@ -204,13 +241,16 @@ function buildCombinedFile(files, outputPath) {
         combinedContent += '// All modules are self-contained and execute in proper order\n';
     }
     combinedContent += '//\n';
+    combinedContent += '// AUTO-DISCOVERY BUILD: All matching files included automatically\n';
+    combinedContent += '// To exclude files, add them to FILES_TO_EXCLUDE in build script\n';
+    combinedContent += '//\n';
     combinedContent += '// DO NOT EDIT THIS FILE DIRECTLY - Edit individual ' + (isChunkBuild ? 'chunk' : 'module') + ' files instead\n';
     combinedContent += '//\n\n';
     
     // Add verification code if debug enabled
     if (BUILD_CONFIG.ADD_DEBUG_COMMENTS) {
         const itemType = isChunkBuild ? 'Chunk' : 'Module';
-        combinedContent += '// ' + itemType + ' Loading Verification\n';
+        combinedContent += '// ' + itemType + ' Loading Verification (Auto-Discovery Build)\n';
         combinedContent += 'var ' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED = [];\n';
         combinedContent += 'function verify' + itemType + 'Load(itemName) {\n';
         combinedContent += '    ' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED.push(itemName);\n';
@@ -256,14 +296,16 @@ function buildCombinedFile(files, outputPath) {
         const itemType = isChunkBuild ? 'Chunk' : 'Module';
         const systemName = isChunkBuild ? 'InDesign Inspector v2.1-ESTK' : 'InDesign Query Tool v3.0';
         combinedContent += '\n\n// ' + '='.repeat(78) + '\n';
-        combinedContent += '// BUILD VERIFICATION\n';
+        combinedContent += '// BUILD VERIFICATION (AUTO-DISCOVERY)\n';
         combinedContent += '// ' + '='.repeat(78) + '\n\n';
         combinedContent += '$.writeln("🎉 ' + systemName + ' - All " + ' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED.length + " ' + itemType.toLowerCase() + 's loaded successfully!");\n';
         combinedContent += 'if (' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED.length === ' + files.length + ') {\n';
-        combinedContent += '    $.writeln("✅ Build verification passed - ready for use");\n';
+        combinedContent += '    $.writeln("✅ Auto-discovery build verification passed - ready for use");\n';
         combinedContent += '} else {\n';
         combinedContent += '    $.writeln("⚠️  ' + itemType + ' count mismatch - check for loading errors");\n';
         combinedContent += '}\n';
+        combinedContent += '$.writeln("📁 Source folder: ' + CURRENT_CONFIG.TARGET_FOLDER + '");\n';
+        combinedContent += '$.writeln("🔍 Auto-discovery: ' + files.length + ' files included, ' + (CURRENT_CONFIG.FILES_TO_EXCLUDE?.length || 0) + ' excluded");\n';
     }
     
     // Write the combined file to the same directory as source files
@@ -284,6 +326,12 @@ function buildCombinedFile(files, outputPath) {
         const uniqueVersions = [...new Set(versions)];
         console.log(`📊 ${isChunkBuild ? 'Chunk' : 'Module'} versions: ${uniqueVersions.join(', ')}`);
         
+        // Show exclusions if any
+        const excludeCount = CURRENT_CONFIG.FILES_TO_EXCLUDE?.filter(f => f.trim() && !f.trim().startsWith('//')).length || 0;
+        if (excludeCount > 0) {
+            console.log(`📊 Files excluded: ${excludeCount}`);
+        }
+        
         return outputInSourceDir;
         
     } catch (error) {
@@ -302,14 +350,14 @@ function validateBuildConfig() {
         process.exit(1);
     }
     
+    // Show pattern being used
+    console.log(`🔍 Using pattern: ${CURRENT_CONFIG.PATTERN}`);
+    
     // Check for files in target folder
     const filesInFolder = fs.readdirSync(CURRENT_CONFIG.TARGET_FOLDER)
         .filter(f => f.match(CURRENT_CONFIG.PATTERN));
     
-    console.log(`📁 Found ${filesInFolder.length} ${BUILD_TYPE.toLowerCase()} files in target folder:`);
-    filesInFolder.forEach(file => {
-        console.log(`   ${file}`);
-    });
+    console.log(`📁 Found ${filesInFolder.length} potential ${BUILD_TYPE.toLowerCase()} files in target folder`);
     
     // Check if output file would overwrite an existing important file
     const outputPath = path.join(CURRENT_CONFIG.TARGET_FOLDER, CURRENT_CONFIG.OUTPUT_FILE);
@@ -330,53 +378,69 @@ function showConfigInstructions() {
     console.log('- To build NEW MODULES: Uncomment "const BUILD_NEW_MODULES = true;"');
     console.log('- Only ONE can be enabled at a time');
     console.log('');
-    console.log('FILE INCLUSION/EXCLUSION:');
-    console.log('- To exclude files: Add // before filename in FILES_TO_INCLUDE');
-    console.log('- To include files: Remove // from beginning of line');
+    console.log('AUTO-DISCOVERY SYSTEM:');
+    console.log('- All matching files in target folder are included by default');
+    console.log('- Files are automatically sorted by version number');
+    console.log('- To exclude files: Add filename to FILES_TO_EXCLUDE array');
+    console.log('- To re-include files: Remove filename from FILES_TO_EXCLUDE or comment out');
     console.log('');
     if (isChunkBuild) {
         console.log('CHUNK SYSTEM:');
         console.log('- Pattern: InDesignDocInspectorAndComparer_Chunk_X.X_Name.jsx');
         console.log('- Output: InDesignDocInspectorAndComparer_ChunkBuilt.jsx');
         console.log('- Location: ./scripts/ folder');
+        console.log('- Exclusions: Add to BUILD_CONFIG.chunks.FILES_TO_EXCLUDE');
     } else {
         console.log('MODULE SYSTEM:');
         console.log('- Pattern: Module_X.X_Name.jsx');
         console.log('- Output: InDesignQueryTool_v3.0_Complete.jsx');
         console.log('- Location: ./Modules/ folder');
+        console.log('- Exclusions: Add to BUILD_CONFIG.modules.FILES_TO_EXCLUDE');
     }
     console.log('');
-    console.log('File order: Files are sorted by version number, then config order');
+    console.log('EXAMPLE EXCLUSION:');
+    console.log('FILES_TO_EXCLUDE: [');
+    console.log('    "Module_6.0_ExperimentalFeatures.jsx",  // Exclude this file');
+    console.log('    // "Module_7.0_DebugMode.jsx",          // Commented = included');
+    console.log(']');
 }
 
 function showSystemInfo() {
-    console.log('\n📋 Build System Information:');
-    console.log('============================');
-    console.log('DUAL SYSTEM SUPPORT:');
-    console.log('This script can build either:');
+    console.log('\n📋 Auto-Discovery Build System Information:');
+    console.log('===========================================');
+    console.log('DUAL SYSTEM SUPPORT WITH AUTO-DISCOVERY:');
+    console.log('This script automatically discovers and builds either:');
+    console.log('');
     console.log('1. OLD CHUNK SYSTEM (v2.1-ESTK)');
     console.log('   - Original comprehensive inspector with progressive modes');
-    console.log('   - Files: InDesignDocInspectorAndComparer_Chunk_*.jsx');
+    console.log('   - Auto-discovers: InDesignDocInspectorAndComparer_Chunk_*.jsx');
     console.log('   - Output: InDesignDocInspectorAndComparer_ChunkBuilt.jsx');
     console.log('');
     console.log('2. NEW MODULE SYSTEM (v3.0)');
     console.log('   - Lightweight configurable query tool');
-    console.log('   - Files: Module_*.jsx');
+    console.log('   - Auto-discovers: Module_*.jsx');
     console.log('   - Output: InDesignQueryTool_v3.0_Complete.jsx');
+    console.log('');
+    console.log('AUTO-DISCOVERY FEATURES:');
+    console.log('✅ Automatically finds all matching files in target folder');
+    console.log('✅ Sorts files by version number (1.0, 1.1, 2.0, etc.)');
+    console.log('✅ Includes all files by default - no manual list maintenance');
+    console.log('✅ Simple exclusion system for files you don\'t want');
+    console.log('✅ Validates file accessibility before build');
     console.log('');
     console.log('SCRIPT LOCATION:');
     console.log('Save this script (build-scripts.js) in your project root:');
     console.log('');
     console.log('PROJECT_ROOT/');
     console.log('├── build-scripts.js  (this file)');
-    console.log('├── scripts/          (old chunk files)');
+    console.log('├── scripts/          (old chunk files - auto-discovered)');
     console.log('│   ├── InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx');
     console.log('│   ├── InDesignDocInspectorAndComparer_Chunk_2.0_EmergencyAnalysis.jsx');
-    console.log('│   └── ...');
-    console.log('└── Modules/          (new module files)');
+    console.log('│   └── ... (all matching files included automatically)');
+    console.log('└── Modules/          (new module files - auto-discovered)');
     console.log('    ├── Module_1.0_ConfigAndSafety.jsx');
     console.log('    ├── Module_2.0_DocumentAnalysisAndTreeBuilder.jsx');
-    console.log('    └── ...');
+    console.log('    └── ... (all matching files included automatically)');
 }
 
 // Main execution
@@ -401,13 +465,13 @@ function main() {
     // Validate configuration
     validateBuildConfig();
     
-    // Parse configured files
-    const files = parseConfiguredFiles();
+    // Discover and filter files
+    const files = discoverAndFilterFiles();
     
     // Build combined file
     const outputPath = buildCombinedFile(files, CURRENT_CONFIG.OUTPUT_FILE);
     
-    console.log('\n🎉 Build complete!');
+    console.log('\n🎉 Auto-Discovery Build Complete!');
     console.log('\nGenerated file:');
     console.log(`📄 ${outputPath}`);
     console.log('\nNext steps:');
@@ -418,6 +482,12 @@ function main() {
     if (BUILD_CONFIG.ADD_DEBUG_COMMENTS) {
         console.log('\n💡 Debug mode enabled - check console for loading verification');
     }
+    
+    console.log('\n🔍 Auto-Discovery Benefits:');
+    console.log('- No need to manually maintain file lists');
+    console.log('- New files are automatically included');
+    console.log('- Version-based sorting ensures proper load order');
+    console.log('- Simple exclusion system for unwanted files');
     
     showConfigInstructions();
 }

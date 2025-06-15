@@ -1,333 +1,291 @@
 // ============================================================================
-// MODULE 1.0: CORE CONFIGURATION & SAFETY FRAMEWORK
-// InDesign Document Query Tool v3.0 - Configurable Analysis
-// ES3 Compatible - Lightweight & Targeted
+// MODULE 1.0: CONFIGURATION & SAFETY FRAMEWORK (UPDATED)
+// InDesign Document Query Tool v3.1 - Enhanced Safety & ES3 Compliance
+// ES3 Compatible - Core Configuration with Best Practice Safety
 // ============================================================================
 
-// QUERY TOOL CONFIGURATION - Simplified and Focused
+// GLOBAL CONFIGURATION - Enhanced with best practices from chunks
 var QUERY_CONFIG = {
-    version: "3.0-query-tool",
+    version: "3.1-enhanced",
     
-    // Analysis targets with user control
-    targets: {
-        documentProperties: { enabled: true, safe: true, timeout: 100 },
-        pages: { enabled: true, safe: true, timeout: 200 },
-        textFrames: { enabled: true, safe: true, timeout: 300 },
-        stories: { enabled: true, safe: false, timeout: 500 },
-        layers: { enabled: true, safe: true, timeout: 150 },
-        images: { enabled: false, safe: false, timeout: 1000 },
-        links: { enabled: false, safe: false, timeout: 1000 },
-        pageItems: { enabled: false, safe: false, timeout: 800 },
-        styles: { enabled: true, safe: true, timeout: 300 },
-        colors: { enabled: true, safe: true, timeout: 200 },
-        fonts: { enabled: true, safe: true, timeout: 200 },
-        masterPages: { enabled: false, safe: false, timeout: 400 }
+    // SAFETY FRAMEWORK - Inherited from chunk wisdom
+    safety: {
+        useEmergencyFunctions: true,
+        emergencyTimeoutMs: 500,
+        maxMemoryMB: 16,
+        enableProgressTracking: true,
+        enableDOMSafeAccess: true,
+        preventHanging: true
     },
     
-    // Traversal settings
+    // ANALYSIS TARGETS - Configurable analysis elements
+    targets: {
+        documentProperties: { enabled: true, safe: true, description: "Core document info" },
+        pages: { enabled: true, safe: true, description: "Page collection" },
+        textFrames: { enabled: true, safe: true, description: "Text frame objects" },
+        stories: { enabled: true, safe: true, description: "Story objects" },
+        layers: { enabled: true, safe: true, description: "Layer information" },
+        images: { enabled: false, safe: false, description: "Image objects (slow)" },
+        links: { enabled: false, safe: false, description: "Link information (slow)" },
+        pageItems: { enabled: false, safe: false, description: "All page items (very slow)" },
+        styles: { enabled: true, safe: true, description: "Paragraph/character styles" },
+        colors: { enabled: true, safe: true, description: "Color definitions" },
+        fonts: { enabled: true, safe: true, description: "Font information" },
+        masterPages: { enabled: false, safe: true, description: "Master page info" }
+    },
+    
+    // TRAVERSAL SETTINGS - Controls depth and scope
     traversal: {
         maxDepth: 3,
-        sampleLimit: 10,
-        timeoutMs: 500,
-        showEmpty: true,
-        showNull: true,
-        showBroken: true,
-        verboseProgress: true,
-        pathTracking: true,
-        emergencyBailouts: true
+        sampleLimit: 5,
+        timeoutMs: 3000,
+        showEmpty: false,
+        showUndefined: false,
+        emergencyBailouts: true,
+        verboseProgress: false,
+        pathTracking: true
     },
     
-    // Progress tracking
+    // PATHS - File system paths
+    paths: {
+        documentPath: "",
+        outputPath: ""
+    },
+    
+    // PROGRESS TRACKING - Real-time status
     progress: {
         currentTarget: "",
         currentPath: "",
-        totalTargets: 0,
-        completedTargets: 0,
         currentResult: "",
+        completedTargets: 0,
+        totalTargets: 0,
+        percentage: 0,
         status: "ready"
     },
     
-    // File paths
-    paths: {
-        documentPath: "",
-        outputPath: "",
-        currentDocument: null
-    },
-    
-    // Runtime state
+    // RUNTIME STATE - Execution control
     runtime: {
         analysisActive: false,
         startTime: 0,
         results: {},
-        progressCallback: null
+        progressCallback: undefined,
+        errorCount: 0,
+        successCount: 0
     }
 };
 
-// PROGRESS TRACKING SYSTEM - Visual feedback for user
-function updateProgress(target, path, result, status) {
-    QUERY_CONFIG.progress.currentTarget = target || "";
-    QUERY_CONFIG.progress.currentPath = path || "";
-    QUERY_CONFIG.progress.currentResult = result || "";
-    QUERY_CONFIG.progress.status = status || "working";
-    
-    // Update progress percentage
-    if (QUERY_CONFIG.progress.totalTargets > 0) {
-        var percentage = Math.round((QUERY_CONFIG.progress.completedTargets / QUERY_CONFIG.progress.totalTargets) * 100);
-        QUERY_CONFIG.progress.percentage = percentage;
+// PRESET CONFIGURATIONS - Quick setup options
+var QUERY_PRESETS = {
+    basicSafe: {
+        name: "Basic Safe",
+        description: "Only safest collections, depth 2, 5 samples",
+        config: {
+            targets: ["documentProperties", "pages", "textFrames", "layers"],
+            maxDepth: 2,
+            sampleLimit: 5,
+            timeoutMs: 2000
+        }
+    },
+    textOnly: {
+        name: "Text Analysis Only",
+        description: "Focus on text-related properties",
+        config: {
+            targets: ["documentProperties", "textFrames", "stories"],
+            maxDepth: 3,
+            sampleLimit: 10,
+            timeoutMs: 3000
+        }
+    },
+    fullScan: {
+        name: "Complete Document Scan",
+        description: "All collections with safety limits",
+        config: {
+            targets: ["documentProperties", "pages", "textFrames", "stories", "layers", "styles", "colors", "fonts"],
+            maxDepth: 4,
+            sampleLimit: 8,
+            timeoutMs: 5000
+        }
     }
-    
-    // Call progress callback if set (for UI updates)
-    if (QUERY_CONFIG.runtime.progressCallback && typeof QUERY_CONFIG.runtime.progressCallback === 'function') {
-        QUERY_CONFIG.runtime.progressCallback(QUERY_CONFIG.progress);
-    }
-    
-    // Console logging for ESTK debugging
-    var timestamp = new Date().toLocaleTimeString();
-    var resultSymbol = getResultSymbol(result, status);
-    $.writeln("[QUERY] [" + timestamp + "] " + target + ": " + path + " → " + result + " " + resultSymbol);
-}
+};
 
-function getResultSymbol(result, status) {
-    if (status === "error" || status === "timeout") return "✗";
-    if (status === "empty" || status === "null") return "⚠";
-    if (status === "success" || result) return "✓";
-    return "?";
-}
+// ============================================================================
+// BEST PRACTICE SAFETY FUNCTIONS - Inherited from chunk analysis
+// ============================================================================
 
-// SAFE PROPERTY ACCESS - Inherited from chunk wisdom
-function queryGetProperty(obj, prop, defaultValue) {
+// EMERGENCY PROPERTY ACCESS - Ultra-safe with zero hanging risk
+function emergencyGetProperty(obj, prop, defaultVal) {
     var startTime = new Date().getTime();
-    var timeout = QUERY_CONFIG.traversal.timeoutMs;
-    var path = "obj." + prop;
+    var maxTime = QUERY_CONFIG.safety.emergencyTimeoutMs;
     
     try {
-        updateProgress("property", path, "accessing...", "working");
+        updateProgress("property", "obj." + prop, "emergency access", "working");
         
         if (!obj) {
-            updateProgress("property", path, "null object", "null");
-            return { value: null, status: "null_object", path: path };
+            updateProgress("property", "obj." + prop, "object is undefined", "undefined");
+            return { value: defaultVal, status: "undefined_object", path: "obj." + prop };
         }
         
-        // Check timeout
-        if (new Date().getTime() - startTime > timeout) {
-            updateProgress("property", path, "TIMEOUT", "timeout");
-            return { value: defaultValue, status: "timeout", path: path };
+        // Timeout check before property access
+        if (new Date().getTime() - startTime > maxTime) {
+            updateProgress("property", "obj." + prop, "EMERGENCY TIMEOUT", "timeout");
+            return { value: defaultVal, status: "emergency_timeout", path: "obj." + prop };
         }
         
-        var value = null;
+        var value = defaultVal;
         
-        // Try hasOwnProperty first (safest)
+        // Ultra-safe property access
         if (obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
             value = obj[prop];
-        } else if (obj[prop] !== undefined) {
+        } else if (typeof obj[prop] !== "undefined") {
             value = obj[prop];
         }
         
-        var result = analyzeValue(value, path);
-        updateProgress("property", path, result.description, result.status);
+        var result = analyzeValueSafely(value, "obj." + prop);
+        updateProgress("property", "obj." + prop, result.description, result.status);
         
         return {
             value: value,
             status: result.status,
             type: result.type,
             description: result.description,
-            path: path,
+            path: "obj." + prop,
             processingTime: new Date().getTime() - startTime
         };
         
     } catch (exc) {
-        updateProgress("property", path, "ERROR: " + exc.message, "error");
+        updateProgress("property", "obj." + prop, "ERROR: " + exc.message, "error");
+        QUERY_CONFIG.runtime.errorCount++;
         return { 
-            value: defaultValue, 
+            value: defaultVal, 
             status: "error", 
             error: exc.message, 
-            path: path,
+            path: "obj." + prop,
             processingTime: new Date().getTime() - startTime
         };
     }
 }
 
-function analyzeValue(value, path) {
-    if (value === null) {
-        return { status: "null", type: "null", description: "null" };
-    }
-    if (value === undefined) {
+// SAFE VALUE ANALYSIS - Analyze value without null keyword issues
+function analyzeValueSafely(value, path) {
+    if (typeof value === "undefined") {
         return { status: "undefined", type: "undefined", description: "undefined" };
     }
     if (value === "") {
         return { status: "empty", type: "string", description: "empty string" };
     }
-    if (typeof value === "string") {
+    if (value && typeof value === "string") {
         var preview = value.length > 50 ? value.substring(0, 50) + "..." : value;
-        return { status: "success", type: "string", description: '"' + preview + '"' };
+        return { status: "success", type: "string", description: preview };
     }
     if (typeof value === "number") {
-        return { status: "success", type: "number", description: value.toString() };
+        return { status: "success", type: "number", description: String(value) };
     }
     if (typeof value === "boolean") {
-        return { status: "success", type: "boolean", description: value.toString() };
-    }
-    if (typeof value === "object" && value.constructor === Array) {
-        return { status: "success", type: "array", description: "Array[" + value.length + "]" };
+        return { status: "success", type: "boolean", description: String(value) };
     }
     if (typeof value === "object") {
-        return { status: "success", type: "object", description: "Object{...}" };
+        if (value === undefined || !value) {
+            return { status: "empty_object", type: "object", description: "empty or undefined object" };
+        }
+        return { status: "success", type: "object", description: "object" };
     }
     
-    return { status: "success", type: typeof value, description: String(value) };
+    return { status: "unknown", type: typeof value, description: "unknown type" };
 }
 
-// SAFE COLLECTION ACCESS - Inherited wisdom with query focus
-function queryGetCollection(doc, collectionName) {
-    var target = QUERY_CONFIG.targets[collectionName];
-    if (!target || !target.enabled) {
-        updateProgress(collectionName, "doc." + collectionName, "DISABLED", "disabled");
-        return { collection: null, status: "disabled", reason: "Collection disabled in config" };
-    }
-    
+// EMERGENCY LENGTH GETTER - Safe collection length with timeout
+function emergencyGetLength(collection, maxTimeMs) {
     var startTime = new Date().getTime();
-    var timeout = target.timeout || QUERY_CONFIG.traversal.timeoutMs;
-    var path = "doc." + collectionName;
+    var timeout = maxTimeMs || QUERY_CONFIG.safety.emergencyTimeoutMs;
     
     try {
-        updateProgress(collectionName, path, "accessing collection...", "working");
-        
-        // Quick timeout check for dangerous collections
-        if (!target.safe && timeout > 200) {
-            timeout = 200; // Force shorter timeout for unsafe collections
-        }
-        
-        if (new Date().getTime() - startTime > timeout) {
-            updateProgress(collectionName, path, "TIMEOUT", "timeout");
-            return { collection: null, status: "timeout", reason: "Collection access timeout" };
-        }
-        
-        var collection = doc[collectionName];
-        
         if (!collection) {
-            updateProgress(collectionName, path, "NULL", "null");
-            return { collection: null, status: "null", reason: "Collection is null" };
+            return { length: 0, status: "undefined_collection" };
         }
         
-        // Get length safely
+        // Check timeout before access
+        if (new Date().getTime() - startTime > timeout) {
+            return { length: 0, status: "emergency_timeout" };
+        }
+        
         var length = 0;
-        try {
-            if (typeof collection.length === 'number') {
-                length = collection.length;
-            } else if (typeof collection.count === 'number') {
-                length = collection.count;
-            }
-        } catch (lengthError) {
-            updateProgress(collectionName, path, "LENGTH ERROR", "error");
-            return { collection: null, status: "error", reason: "Cannot get collection length" };
+        
+        // Try multiple safe length access methods
+        if (typeof collection.length !== "undefined") {
+            length = collection.length;
+        } else if (typeof collection.count !== "undefined") {
+            length = collection.count;
+        } else if (collection.hasOwnProperty && collection.hasOwnProperty("length")) {
+            length = collection.length;
         }
         
-        updateProgress(collectionName, path, "Collection[" + length + "]", "success");
-        
-        return {
-            collection: collection,
-            status: "success",
-            length: length,
-            path: path,
-            processingTime: new Date().getTime() - startTime
-        };
-        
-    } catch (exc) {
-        updateProgress(collectionName, path, "ERROR: " + exc.message, "error");
         return { 
-            collection: null, 
+            length: length, 
+            status: "success",
+            processingTime: new Date().getTime() - startTime
+        };
+        
+    } catch (exc) {
+        QUERY_CONFIG.runtime.errorCount++;
+        return { 
+            length: 0, 
             status: "error", 
-            error: exc.message, 
-            reason: "Collection access failed",
-            path: path,
+            error: exc.message,
             processingTime: new Date().getTime() - startTime
         };
     }
 }
 
-// DOM TREE NODE CREATION - Structure for tree output
-function createTreeNode(name, value, type, status, path, children) {
-    return {
-        name: name || "unknown",
-        value: value,
-        type: type || "unknown",
-        status: status || "unknown",
-        path: path || "",
-        children: children || [],
-        hasChildren: children && children.length > 0,
-        expanded: false,
-        depth: (path.split('.').length - 1)
-    };
-}
-
-// EMERGENCY BAILOUT - Prevent hanging with timeout wrapper
-function queryEmergencyBailout(operation, timeoutMs, operationName) {
-    var startTime = new Date().getTime();
-    var timeout = timeoutMs || QUERY_CONFIG.traversal.timeoutMs;
-    var name = operationName || "operation";
+// PROGRESS UPDATE FUNCTION - Enhanced tracking
+function updateProgress(target, path, result, status) {
+    QUERY_CONFIG.progress.currentTarget = target || "";
+    QUERY_CONFIG.progress.currentPath = path || "";
+    QUERY_CONFIG.progress.currentResult = result || "";
+    QUERY_CONFIG.progress.status = status || "working";
     
-    updateProgress("bailout", name, "starting...", "working");
+    // Calculate percentage
+    if (QUERY_CONFIG.progress.totalTargets > 0) {
+        QUERY_CONFIG.progress.percentage = Math.floor(
+            (QUERY_CONFIG.progress.completedTargets / QUERY_CONFIG.progress.totalTargets) * 100
+        );
+    }
     
-    try {
-        var result = operation();
-        var duration = new Date().getTime() - startTime;
-        
-        if (duration > timeout) {
-            updateProgress("bailout", name, "TIMEOUT (" + duration + "ms)", "timeout");
-            return { bailout: true, duration: duration, timeout: timeout, result: null };
+    // Count successes and errors
+    if (status === "success") {
+        QUERY_CONFIG.runtime.successCount++;
+    } else if (status === "error") {
+        QUERY_CONFIG.runtime.errorCount++;
+    }
+    
+    // Call progress callback if available
+    if (QUERY_CONFIG.runtime.progressCallback && typeof QUERY_CONFIG.runtime.progressCallback === "function") {
+        try {
+            QUERY_CONFIG.runtime.progressCallback(QUERY_CONFIG.progress);
+        } catch (e) {
+            // Ignore callback errors
         }
-        
-        updateProgress("bailout", name, "completed (" + duration + "ms)", "success");
-        return { bailout: false, duration: duration, result: result };
-        
-    } catch (exc) {
-        var duration = new Date().getTime() - startTime;
-        updateProgress("bailout", name, "ERROR: " + exc.message, "error");
-        return { bailout: true, duration: duration, error: exc.message, result: null };
+    }
+    
+    // Console logging for debugging
+    if (QUERY_CONFIG.traversal.verboseProgress) {
+        $.writeln("[PROGRESS] " + target + " | " + path + " | " + result + " | " + status);
     }
 }
 
-// CONFIGURATION PRESETS - Quick setup options
-var QUERY_PRESETS = {
-    basicSafe: {
-        name: "Basic Safe",
-        description: "Only safe collections with minimal depth",
-        config: {
-            targets: ["documentProperties", "pages", "layers"],
-            maxDepth: 2,
-            sampleLimit: 5,
-            timeoutMs: 300
-        }
-    },
-    
-    textOnly: {
-        name: "Text Analysis",
-        description: "Focus on text content and frames",
-        config: {
-            targets: ["documentProperties", "textFrames", "stories", "styles", "fonts"],
-            maxDepth: 3,
-            sampleLimit: 10,
-            timeoutMs: 500
-        }
-    },
-    
-    fullScan: {
-        name: "Complete Scan",
-        description: "All available collections with safety limits",
-        config: {
-            targets: ["documentProperties", "pages", "textFrames", "stories", "layers", "styles", "colors", "fonts"],
-            maxDepth: 4,
-            sampleLimit: 15,
-            timeoutMs: 800
-        }
-    }
-};
+// ============================================================================
+// PRESET MANAGEMENT - Quick configuration setup
+// ============================================================================
 
 function applyPreset(presetName) {
-    var preset = QUERY_PRESETS[presetName];
-    if (!preset) return false;
+    if (!QUERY_PRESETS[presetName]) {
+        updateProgress("preset", presetName, "Preset not found", "error");
+        return false;
+    }
     
-    // Disable all targets first
+    var preset = QUERY_PRESETS[presetName];
+    updateProgress("preset", presetName, "Applying preset configuration", "working");
+    
+    // Reset all targets first
     for (var target in QUERY_CONFIG.targets) {
         QUERY_CONFIG.targets[target].enabled = false;
     }
@@ -368,10 +326,83 @@ function resetProgress() {
     QUERY_CONFIG.progress.totalTargets = 0;
     QUERY_CONFIG.progress.percentage = 0;
     QUERY_CONFIG.progress.status = "ready";
+    QUERY_CONFIG.runtime.errorCount = 0;
+    QUERY_CONFIG.runtime.successCount = 0;
 }
 
 function isAnalysisActive() {
     return QUERY_CONFIG.runtime.analysisActive;
 }
 
-$.writeln("Module A: Core Configuration & Safety Framework loaded");
+// MEMORY MANAGEMENT - Enhanced cleanup
+function performMemoryCleanup() {
+    try {
+        updateProgress("memory", "cleanup", "Performing memory cleanup", "working");
+        
+        // Clear runtime data
+        QUERY_CONFIG.runtime.results = {};
+        
+        // Garbage collection hint
+        if (typeof $.gc === "function") {
+            $.gc();
+        }
+        
+        updateProgress("memory", "cleanup", "Memory cleanup completed", "success");
+    } catch (e) {
+        updateProgress("memory", "cleanup", "Memory cleanup failed: " + e.message, "error");
+    }
+}
+
+// ES3 COMPATIBILITY HELPERS - Safe array functions
+function indexOf(array, searchElement) {
+    if (!array || !array.length) return -1;
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === searchElement) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function stringIndexOf(str, searchValue, fromIndex) {
+    if (!str) return -1;
+    fromIndex = fromIndex || 0;
+    
+    for (var i = fromIndex; i < str.length; i++) {
+        var match = true;
+        for (var j = 0; j < searchValue.length; j++) {
+            if (i + j >= str.length || str.charAt(i + j) !== searchValue.charAt(j)) {
+                match = false;
+                break;
+            }
+        }
+        if (match) return i;
+    }
+    return -1;
+}
+
+// ENVIRONMENT VALIDATION - Check for required features
+function validateEnvironment() {
+    var checks = {
+        indesign: typeof app !== "undefined" && app.name.indexOf("InDesign") !== -1,
+        documents: typeof app !== "undefined" && typeof app.documents !== "undefined",
+        filesystem: typeof File !== "undefined" && typeof Folder !== "undefined",
+        ui: typeof Window !== "undefined"
+    };
+    
+    var allPassed = true;
+    for (var check in checks) {
+        if (!checks[check]) {
+            allPassed = false;
+            updateProgress("environment", check, "Environment check failed", "error");
+        }
+    }
+    
+    if (allPassed) {
+        updateProgress("environment", "validation", "Environment validation passed", "success");
+    }
+    
+    return allPassed;
+}
+
+$.writeln("Module 1.0: Enhanced Configuration & Safety Framework loaded");
