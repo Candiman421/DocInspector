@@ -1,7 +1,7 @@
 //
 // Enhanced InDesign Document Inspector & Comparison Tool v2.1-ESTK
 // COMPLETE ASSEMBLED VERSION - All Chunks Combined
-// Generated: 2025-06-14T23:23:45.652Z
+// Generated: 2025-06-15T00:13:20.511Z
 // 
 // This file contains all 7 chunks assembled in proper order:
 // Chunk 1 (v1): InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx
@@ -897,12 +897,12 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
     
     var results = [];
     var startTime = new Date().getTime();
-    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit); // FIXED: Use config
+    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit);
     
     debugLog("Starting enhanced collection iteration: " + (collectionName || "unknown"), "ITER");
     
     try {
-        var collectionLength = safeGetLength(collection); // FIXED: length -> collectionLength
+        var collectionLength = safeGetLength(collection);
         debugLog("Collection length determined: " + collectionLength, "ITER");
         
         if (collectionLength === 0) {
@@ -1126,7 +1126,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
             
             return result;
             
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             var duration = new Date().getTime() - attemptStartTime;
             debugLog("Section " + sectionName + " failed: " + exc.message + " (attempt " + (sectionConfig.retryCount + 1) + ")", "ERROR");
             
@@ -1238,7 +1238,7 @@ function checkMemoryLimits(dataSize, operation) {
 // ============================================================================
 
 // ============================================================================
-// CHUNK 2.1: BASIC DOCUMENT ANALYSIS - MINIMAL/SAFE OPERATIONS
+// CHUNK 2.1: BASIC DOCUMENT ANALYSIS - MINIMAL/SAFE OPERATIONS + MODE MANAGEMENT
 // ES3 COMPATIBLE VERSION - EMERGENCY BAILOUTS INTEGRATED
 // ============================================================================
 
@@ -1260,6 +1260,88 @@ var MODE_TIMEOUTS = {
     standard: 8000,       // 8 seconds
     comprehensive: 15000  // 15 seconds
 };
+
+// ============================================================================
+// MODE MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function setAnalysisMode(mode) {
+    if (ANALYSIS_MODES[mode.toUpperCase()]) {
+        CURRENT_ANALYSIS_MODE = ANALYSIS_MODES[mode.toUpperCase()];
+        enhancedStatusLog("MODE", "Analysis mode set", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
+        return true;
+    } else {
+        enhancedStatusLog("MODE", "Invalid analysis mode", 0, 1, "Unknown mode: " + mode);
+        return false;
+    }
+}
+
+function getCurrentAnalysisMode() {
+    return CURRENT_ANALYSIS_MODE;
+}
+
+// Get mode description for UI display
+function getModeDescription(mode) {
+    var descriptions = {
+        minimal: "MINIMAL MODE (Safest)\n" +
+                "• Property exploration only\n" +
+                "• No collection iteration\n" +
+                "• 1-second timeout\n" +
+                "• Perfect for problematic documents\n" +
+                "• Compatibility testing mode",
+                
+        basic: "BASIC MODE (Safe)\n" +
+              "• Document info + counts\n" +
+              "• No text content processing\n" +
+              "• 3-second timeout\n" +
+              "• Essential information only\n" +
+              "• Good performance",
+              
+        standard: "STANDARD MODE (Balanced)\n" +
+                 "• Text content sampling\n" +
+                 "• Limited collection analysis\n" +
+                 "• 8-second timeout\n" +
+                 "• Comprehensive text tracking\n" +
+                 "• Moderate resources",
+                 
+        comprehensive: "COMPREHENSIVE MODE (Complete)\n" +
+                      "• Full feature analysis\n" +
+                      "• All collections processed\n" +
+                      "• 15-second timeout\n" +
+                      "• Images, links, styles\n" +
+                      "• Maximum detail"
+    };
+    
+    return descriptions[mode] || "Unknown analysis mode - using basic mode descriptions";
+}
+
+// Mode-based report creation
+function createModeBasedReport(doc) {
+    enhancedStatusLog("MODE", "Creating report for mode", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
+    
+    switch (CURRENT_ANALYSIS_MODE) {
+        case ANALYSIS_MODES.MINIMAL:
+            return createMinimalPropertyDump(doc);
+            
+        case ANALYSIS_MODES.BASIC:
+            return createBasicDocumentReport(doc);
+            
+        case ANALYSIS_MODES.STANDARD:
+            return createStandardDocumentReport(doc);
+            
+        case ANALYSIS_MODES.COMPREHENSIVE:
+            return createComprehensiveDocumentReport(doc);
+            
+        default:
+            enhancedStatusLog("MODE", "Unknown mode - using basic", 0, 1, "Fallback to basic mode");
+            return createBasicDocumentReport(doc);
+    }
+}
+
+// Replace the main document analysis function
+function createValidatedDocumentReport(doc) {
+    return createModeBasedReport(doc);
+}
 
 // ============================================================================
 // MINIMAL MODE: DOM PROPERTY EXPLORER
@@ -1581,55 +1663,6 @@ function getBasicLayerInfo(doc) {
         analysisMode: "basic",
         note: "Layer count only - no detailed layer analysis in basic mode"
     };
-}
-
-// ============================================================================
-// MODE SELECTION AND VALIDATION
-// ============================================================================
-
-function setAnalysisMode(mode) {
-    if (ANALYSIS_MODES[mode.toUpperCase()]) {
-        CURRENT_ANALYSIS_MODE = ANALYSIS_MODES[mode.toUpperCase()];
-        enhancedStatusLog("MODE", "Analysis mode set", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
-        return true;
-    } else {
-        enhancedStatusLog("MODE", "Invalid analysis mode", 0, 1, "Unknown mode: " + mode);
-        return false;
-    }
-}
-
-function getCurrentAnalysisMode() {
-    return CURRENT_ANALYSIS_MODE;
-}
-
-// Mode-based report creation
-function createModeBasedReport(doc) {
-    enhancedStatusLog("MODE", "Creating report for mode", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
-    
-    switch (CURRENT_ANALYSIS_MODE) {
-        case ANALYSIS_MODES.MINIMAL:
-            return createMinimalPropertyDump(doc);
-            
-        case ANALYSIS_MODES.BASIC:
-            return createBasicDocumentReport(doc);
-            
-        case ANALYSIS_MODES.STANDARD:
-            // Will be implemented in Chunk 2B
-            return createStandardDocumentReport(doc);
-            
-        case ANALYSIS_MODES.COMPREHENSIVE:
-            // Will be implemented in Chunk 2C
-            return createComprehensiveDocumentReport(doc);
-            
-        default:
-            enhancedStatusLog("MODE", "Unknown mode - using basic", 0, 1, "Fallback to basic mode");
-            return createBasicDocumentReport(doc);
-    }
-}
-
-// Replace the main document analysis function
-function createValidatedDocumentReport(doc) {
-    return createModeBasedReport(doc);
 }
 
 // ============================================================================
@@ -2068,7 +2101,7 @@ function getBasicTextStatistics(textFrames) {
 // ============================================================================
 
 // ============================================================================
-// CHUNK 2.3: COMPREHENSIVE ANALYSIS - ADVANCED MODE WITH FULL FEATURES
+// CHUNK 2.3: COMPREHENSIVE ANALYSIS - CORE INSPECTOR FUNCTIONS
 // ES3 COMPATIBLE VERSION - COMPLETE FEATURE SET WITH BAILOUTS
 // ============================================================================
 
@@ -2156,6 +2189,177 @@ function createComprehensiveDocumentReport(doc) {
 }
 
 // ============================================================================
+// CORE INSPECTOR ANALYSIS FUNCTIONS - ROBUST PROPERTY CHANGE DETECTION
+// ============================================================================
+
+// Main document report creation - COMPREHENSIVE FOR THOROUGH CHANGE DETECTION
+function createDocumentReport(doc) {
+    // Initialize runtime tracking
+    ANALYSIS_CONFIG.processingStartTime = new Date().getTime();
+    ANALYSIS_CONFIG.errors = [];
+    ANALYSIS_CONFIG.textItemsProcessed = 0;
+    ANALYSIS_CONFIG.brokenPropertiesFound = [];
+    
+    debugLog("Starting comprehensive document analysis", "MAIN");
+    statusLog("Document Analysis", "Initializing", 0);
+    
+    // Clear memory before starting
+    clearLargeObjects();
+    
+    var report = {
+        timestamp: toISOString(new Date()),
+        analysisVersion: "2.1-estk",
+        performanceMode: "comprehensive", // Full analysis for proper change detection
+        
+        // COMPREHENSIVE ANALYSIS - focused on property changes with thorough coverage
+        documentInfo: safeAnalyzeSection("documentInfo", function() { return getDocumentInfo(doc); }),
+        pages: safeAnalyzeSection("pages", function() { return getPagesInfo(doc); }),
+        layers: safeAnalyzeSection("layers", function() { return getLayersInfo(doc); }),
+        stories: safeAnalyzeSection("stories", function() { return getStoriesInfo(doc); }),
+        textFrames: safeAnalyzeSection("textFrames", function() { return getTextFramesInfo(doc); }),
+        textContent: safeAnalyzeSection("textContent", function() { return getComprehensiveTextContent(doc); }),
+        styles: safeAnalyzeSection("styles", function() { return getStylesInfo(doc); }),
+        colors: safeAnalyzeSection("colors", function() { return getColorsInfo(doc); }),
+        fonts: safeAnalyzeSection("fonts", function() { return getFontsInfo(doc); }),
+        
+        // ESSENTIAL for change detection - RESTORED
+        images: safeAnalyzeSection("images", function() { return getImagesInfo(doc); }),
+        links: safeAnalyzeSection("links", function() { return getLinksInfo(doc); }),
+        pageItems: safeAnalyzeSection("pageItems", function() { return getPageItemsInfo(doc); }),
+        
+        // Analysis metadata
+        processingTime: 0,
+        discoveryStats: {
+            textItemsProcessed: 0,
+            errorsEncountered: 0,
+            brokenPropertiesFound: 0,
+            collectionsAnalyzed: 0
+        },
+        errors: [],
+        apiGuidance: {}
+    };
+    
+    // Add processing time and stats
+    var totalTime = new Date().getTime() - ANALYSIS_CONFIG.processingStartTime;
+    report.processingTime = totalTime;
+    report.discoveryStats = {
+        textItemsProcessed: ANALYSIS_CONFIG.textItemsProcessed,
+        errorsEncountered: ANALYSIS_CONFIG.errors.length,
+        brokenPropertiesFound: ANALYSIS_CONFIG.brokenPropertiesFound.length,
+        collectionsAnalyzed: countAnalyzedCollections(report)
+    };
+    report.errors = ANALYSIS_CONFIG.errors;
+    report.apiGuidance = generateAPIGuidance();
+    
+    debugLog("Document analysis completed in " + totalTime + "ms", "MAIN");
+    statusLog("Document Analysis", "Completed", 100);
+    
+    // Final memory cleanup
+    clearLargeObjects();
+    
+    return report;
+}
+
+// Count analyzed collections for stats
+function countAnalyzedCollections(report) {
+    var count = 0;
+    var sections = ['pages', 'layers', 'stories', 'textFrames', 'styles', 'colors', 'fonts', 'images', 'links', 'pageItems'];
+    for (var i = 0; i < sections.length; i++) {
+        if (report[sections[i]] && safeGetLength(report[sections[i]])) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Generate API guidance based on encountered errors
+function generateAPIGuidance() {
+    var guidance = {
+        commonIssues: [],
+        alternativeAccess: {},
+        troubleshooting: [],
+        successfulAlternatives: ANALYSIS_CONFIG.discoveredAlternatives
+    };
+    
+    try {
+        // Analyze error patterns
+        var errorTypes = {};
+        for (var i = 0; i < ANALYSIS_CONFIG.errors.length; i++) {
+            var err = ANALYSIS_CONFIG.errors[i];
+            if (safeGetProperty(err, 'apiCategory')) {
+                var apiCategory = safeGetProperty(err, 'apiCategory');
+                errorTypes[apiCategory] = (errorTypes[apiCategory] || 0) + 1;
+            }
+        }
+        
+        // Generate guidance based on error patterns
+        for (var errorType in errorTypes) {
+            if (errorTypes[errorType] > 2) { // If we see this error multiple times
+                guidance.commonIssues.push({
+                    issue: errorType,
+                    frequency: errorTypes[errorType],
+                    recommendation: getErrorRecommendation(errorType)
+                });
+            }
+        }
+        
+        // Add specific troubleshooting based on what we found
+        guidance.troubleshooting = generateTroubleshootingSteps(errorTypes);
+        
+    } catch (e) {
+        debugLog("Failed to generate API guidance: " + e.message, "ERROR");
+    }
+    
+    return guidance;
+}
+
+// Generate troubleshooting steps based on error patterns
+function generateTroubleshootingSteps(errorTypes) {
+    var steps = [];
+    
+    if (errorTypes.unsupported_property) {
+        steps.push("Use hasOwnProperty() checks before accessing properties");
+        steps.push("Test property access with try-catch blocks");
+    }
+    
+    if (errorTypes.access_denied) {
+        steps.push("Verify document is not locked or read-only");
+        steps.push("Check user permissions for document access");
+    }
+    
+    if (errorTypes.invalid_index) {
+        steps.push("Always verify collection length before item access");
+        steps.push("Use both array[index] and collection.item(index) methods");
+    }
+    
+    if (errorTypes.timeout) {
+        steps.push("Process large collections in smaller batches");
+        steps.push("Increase timeout thresholds for complex documents");
+    }
+    
+    if (steps.length === 0) {
+        steps.push("Use comprehensive error handling patterns");
+        steps.push("Test with various document types and sizes");
+    }
+    
+    return steps;
+}
+
+// Get recommendation for specific error types
+function getErrorRecommendation(errorType) {
+    var recommendations = {
+        'unsupported_property': 'Use try-catch and check hasOwnProperty() before accessing',
+        'access_denied': 'Property may be read-only or require different document state',
+        'invalid_index': 'Always check collection length before accessing items',
+        'timeout': 'Consider processing in smaller batches or increasing timeout',
+        'permission_error': 'Check document permissions and user access level',
+        'not_found': 'Property may not exist in this InDesign version or document type'
+    };
+    
+    return recommendations[errorType] || 'Use comprehensive error handling and alternative access methods';
+}
+
+// ============================================================================
 // COMPREHENSIVE ANALYSIS FUNCTIONS - FULL FEATURE SET
 // ============================================================================
 
@@ -2198,6 +2402,67 @@ function getComprehensivePagesInfo(doc) {
     }, ANALYSIS_CONFIG.maxCollectionSample, "pages");
 }
 
+function getDocumentInfo(doc) {
+    debugLog("Analyzing document info", "DOC");
+    
+    // OPTIMIZED: Cache viewPreferences to avoid duplicate calls (Bug #3 fix)
+    var viewPrefs = safeGetProperty(doc, 'viewPreferences');
+    var docPrefs = safeGetProperty(doc, 'documentPreferences');
+    var docFilePath = safeGetProperty(doc, 'filePath');
+    
+    return {
+        name: safeGetProperty(doc, 'name'),
+        id: safeGetProperty(doc, 'id'),
+        filePath: docFilePath ? docFilePath.toString() : null,
+        saved: safeGetProperty(doc, 'saved', false),
+        modified: safeGetProperty(doc, 'modified', false),
+        readonly: safeGetProperty(doc, 'readonly', false),
+        visible: safeGetProperty(doc, 'visible', true),
+        selection: safeGetProperty(doc, 'selection') ? safeGetLength(safeGetProperty(doc, 'selection')) : 0,
+        activeLayer: safeGetProperty(safeGetProperty(doc, 'activeLayer'), 'name'),
+        zeroPoint: safeGetProperty(doc, 'zeroPoint'),
+        // OPTIMIZED: Single viewPreferences access
+        rulers: {
+            horizontal: safeGetProperty(viewPrefs, 'horizontalMeasurementUnits'),
+            vertical: safeGetProperty(viewPrefs, 'verticalMeasurementUnits')
+        },
+        units: {
+            ruler: safeGetProperty(viewPrefs, 'rulerOrigin'),
+            measurement: safeGetProperty(viewPrefs, 'measurementUnit')
+        },
+        // Additional properties for comprehensive change detection using cached docPrefs
+        documentOffset: safeGetProperty(doc, 'documentOffset'),
+        pageHeight: safeGetProperty(docPrefs, 'pageHeight'),
+        pageWidth: safeGetProperty(docPrefs, 'pageWidth'),
+        facingPages: safeGetProperty(docPrefs, 'facingPages'),
+        pagesPerDocument: safeGetLength(safeGetProperty(doc, 'pages'))
+    };
+}
+
+function getPagesInfo(doc) {
+    debugLog("Analyzing pages", "PAGES");
+    
+    return safeIterateCollection(safeGetProperty(doc, 'pages'), function(page, itemIndex) {
+        return {
+            index: itemIndex,
+            id: safeGetProperty(page, 'id'),
+            name: safeGetProperty(page, 'name'),
+            bounds: safeGetProperty(page, 'bounds'),
+            side: safeGetProperty(page, 'side'),
+            documentOffset: safeGetProperty(page, 'documentOffset'),
+            appliedMaster: safeGetProperty(safeGetProperty(page, 'appliedMaster'), 'name'),
+            pageItems: safeGetLength(safeGetProperty(page, 'pageItems')),
+            // Additional properties for comprehensive change detection
+            margins: extractMarginInfo(page),
+            orientation: safeGetProperty(page, 'orientation'),
+            // Text frame count on this page
+            textFrameCount: safeGetLength(safeGetProperty(page, 'textFrames')),
+            // Image count on this page
+            imageCount: safeGetLength(safeGetProperty(page, 'images'))
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "pages");
+}
+
 function extractMarginInfo(page) {
     try {
         var margins = safeGetProperty(page, 'marginPreferences');
@@ -2207,12 +2472,13 @@ function extractMarginInfo(page) {
                 left: safeGetProperty(margins, 'left'),
                 bottom: safeGetProperty(margins, 'bottom'),
                 right: safeGetProperty(margins, 'right'),
+                // Additional margin properties
                 columnCount: safeGetProperty(margins, 'columnCount'),
                 columnGutter: safeGetProperty(margins, 'columnGutter')
             };
         }
     } catch (e) {
-        return { error: "Margin info access failed: " + e.message };
+        debugLog("Failed to extract margin info: " + e.message, "WARN");
     }
     return null;
 }
@@ -2250,75 +2516,437 @@ function getComprehensiveLayersInfo(doc) {
     }, ANALYSIS_CONFIG.maxCollectionSample, "layers");
 }
 
-function getStylesInfo(doc) {
-    enhancedStatusLog("COMP_STYLES", "Analyzing styles", 0, 4, "Paragraph and character styles");
+function getLayersInfo(doc) {
+    debugLog("Analyzing layers", "LAYERS");
     
-    var stylesInfo = {
-        analysisMode: "comprehensive",
-        timestamp: toISOString(new Date())
+    return safeIterateCollection(safeGetProperty(doc, 'layers'), function(layer, itemIndex) {
+        return {
+            index: itemIndex,
+            id: safeGetProperty(layer, 'id'),
+            name: safeGetProperty(layer, 'name'),
+            visible: safeGetProperty(layer, 'visible', true),
+            locked: safeGetProperty(layer, 'locked', false),
+            color: safeGetProperty(layer, 'layerColor'),
+            pageItems: safeGetLength(safeGetProperty(layer, 'pageItems')),
+            // Additional properties for comprehensive change tracking
+            printable: safeGetProperty(layer, 'printable'),
+            showGuides: safeGetProperty(layer, 'showGuides'),
+            layerOrder: itemIndex, // Track layer order changes
+            textFrameCount: safeGetLength(safeGetProperty(layer, 'textFrames')),
+            imageCount: safeGetLength(safeGetProperty(layer, 'images'))
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "layers");
+}
+
+function getStoriesInfo(doc) {
+    debugLog("Analyzing stories", "STORIES");
+    
+    return safeIterateCollection(safeGetProperty(doc, 'stories'), function(story, itemIndex) {
+        return {
+            index: itemIndex,
+            id: safeGetProperty(story, 'id'),
+            length: safeGetProperty(story, 'length', 0),
+            textFrames: safeGetLength(safeGetProperty(story, 'textFrames')),
+            overflows: safeGetProperty(story, 'overflows', false),
+            characters: safeGetLength(safeGetProperty(story, 'characters')),
+            words: safeGetLength(safeGetProperty(story, 'words')),
+            paragraphs: safeGetLength(safeGetProperty(story, 'paragraphs')),
+            // Additional for comprehensive threading detection
+            isThreaded: safeGetLength(safeGetProperty(story, 'textFrames')) > 1,
+            textContainers: safeGetLength(safeGetProperty(story, 'textContainers')),
+            // Text content preview for change detection
+            textPreview: (function() {
+                var content = safeGetProperty(story, 'contents');
+                return content ? content.substring(0, 100) : "[NO CONTENT]";
+            })(),
+            // Story statistics for change tracking
+            averageWordsPerParagraph: calculateWordsPerParagraph(story),
+            hasOverflow: safeGetProperty(story, 'overflows', false)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "stories");
+}
+
+function calculateWordsPerParagraph(story) {
+    try {
+        var wordCount = safeGetLength(safeGetProperty(story, 'words'));
+        var paragraphCount = safeGetLength(safeGetProperty(story, 'paragraphs'));
+        if (paragraphCount > 0) {
+            return Math.round((wordCount / paragraphCount) * 10) / 10;
+        }
+    } catch (e) {
+        debugLog("Failed to calculate words per paragraph: " + e.message, "WARN");
+    }
+    return 0;
+}
+
+function getTextFramesInfo(doc) {
+    debugLog("Analyzing text frames", "TEXTFRAMES");
+    
+    return safeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, itemIndex) {
+        return {
+            index: itemIndex,
+            id: safeGetProperty(textFrame, 'id'),
+            bounds: safeGetProperty(textFrame, 'bounds'),
+            overflows: safeGetProperty(textFrame, 'overflows', false),
+            parentStory: safeGetProperty(safeGetProperty(textFrame, 'parentStory'), 'id'),
+            layer: safeGetProperty(safeGetProperty(textFrame, 'itemLayer'), 'name'),
+            textPreview: safeTextCapture(textFrame), // ENHANCED identification
+            characters: safeGetLength(safeGetProperty(textFrame, 'characters')),
+            words: safeGetLength(safeGetProperty(textFrame, 'words')),
+            paragraphs: safeGetLength(safeGetProperty(textFrame, 'paragraphs')),
+            lines: safeGetLength(safeGetProperty(textFrame, 'lines')),
+            // Additional properties for comprehensive style and positioning changes
+            appliedObjectStyle: safeGetProperty(safeGetProperty(textFrame, 'appliedObjectStyle'), 'name'),
+            rotation: safeGetProperty(textFrame, 'rotationAngle'),
+            opacity: safeGetProperty(textFrame, 'transparencySettings.blendingSettings.opacity'),
+            // Text threading information
+            previousTextFrame: safeGetProperty(safeGetProperty(textFrame, 'previousTextFrame'), 'id'),
+            nextTextFrame: safeGetProperty(safeGetProperty(textFrame, 'nextTextFrame'), 'id'),
+            // Content statistics for change detection
+            characterCount: (function() {
+                var content = safeGetProperty(textFrame, 'contents');
+                return content ? content.length : 0;
+            })(),
+            wordCount: calculateWordCount(textFrame),
+            // First paragraph style for change tracking
+            firstParagraphStyle: getFirstParagraphStyle(textFrame)
+        };
+    }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames");
+}
+
+// ES3-compatible word count calculation
+function calculateWordCount(textFrame) {
+    try {
+        var content = safeGetProperty(textFrame, 'contents');
+        if (content) {
+            // ES3-compatible word splitting and filtering
+            var words = content.split(/\s+/);
+            var wordCount = 0;
+            for (var i = 0; i < words.length; i++) {
+                if (words[i].length > 0) {
+                    wordCount++;
+                }
+            }
+            return wordCount;
+        }
+    } catch (e) {
+        debugLog("Failed to calculate word count: " + e.message, "WARN");
+    }
+    return 0;
+}
+
+function getFirstParagraphStyle(textFrame) {
+    try {
+        var paragraphs = safeGetProperty(textFrame, 'paragraphs');
+        if (paragraphs && safeGetLength(paragraphs) > 0) {
+            var firstPara = paragraphs[0];
+            if (firstPara) {
+                return safeGetProperty(safeGetProperty(firstPara, 'appliedParagraphStyle'), 'name');
+            }
+        }
+    } catch (e) {
+        debugLog("Failed to get first paragraph style: " + e.message, "WARN");
+    }
+    return null;
+}
+
+// COMPREHENSIVE text content analysis - ENHANCED IDENTIFICATION WITH FULL CHANGE DETECTION
+function getComprehensiveTextContent(doc) {
+    if (!ANALYSIS_CONFIG.enableTextCapture) {
+        return { disabled: "Text capture disabled" };
+    }
+    
+    debugLog("Analyzing comprehensive text content", "TEXT");
+    statusLog("Text Analysis", "Processing text frames", 25);
+    
+    var textAnalysis = {
+        summary: {
+            totalTextFrames: 0,
+            totalStories: 0,
+            totalCharacters: 0,
+            totalWords: 0,
+            totalParagraphs: 0,
+            overflowingFrames: 0,
+            processingTime: 0
+        },
+        textFrameDetails: [],
+        storyDetails: [],
+        textStatistics: {}
+    };
+    
+    var textStartTime = new Date().getTime();
+    
+    // COMPREHENSIVE text frame analysis - ENHANCED IDENTIFICATION
+    try {
+        textAnalysis.textFrameDetails = safeIterateCollection(safeGetProperty(doc, 'textFrames'), function(textFrame, itemIndex) {
+            var frameAnalysis = {
+                index: itemIndex,
+                id: safeGetProperty(textFrame, 'id'),
+                path: "doc.textFrames[" + itemIndex + "]",
+                bounds: safeGetProperty(textFrame, 'bounds'),
+                overflows: safeGetProperty(textFrame, 'overflows', false),
+                layer: safeGetProperty(safeGetProperty(textFrame, 'itemLayer'), 'name'),
+                textPreview: safeTextCapture(textFrame), // ENHANCED identification
+                characterCount: 0,
+                wordCount: 0,
+                paragraphCount: 0,
+                // Enhanced properties for comprehensive change detection
+                appliedParagraphStyle: (function() {
+                    var paragraphs = safeGetProperty(textFrame, 'paragraphs');
+                    if (paragraphs && safeGetLength(paragraphs) > 0) {
+                        var firstPara = paragraphs[0];
+                        return firstPara ? safeGetProperty(safeGetProperty(firstPara, 'appliedParagraphStyle'), 'name') : null;
+                    }
+                    return null;
+                })(),
+                appliedCharacterStyle: (function() {
+                    var characters = safeGetProperty(textFrame, 'characters');
+                    if (characters && safeGetLength(characters) > 0) {
+                        var firstChar = characters[0];
+                        return firstChar ? safeGetProperty(safeGetProperty(firstChar, 'appliedCharacterStyle'), 'name') : null;
+                    }
+                    return null;
+                })(),
+                fontFamily: null,
+                fontSize: null,
+                textColor: null,
+                // Threading information
+                isThreaded: !!(safeGetProperty(textFrame, 'previousTextFrame') || safeGetProperty(textFrame, 'nextTextFrame')),
+                threadPosition: getThreadPosition(textFrame)
+            };
+            
+            // Enhanced character/word counting for comprehensive change detection
+            try {
+                var content = safeGetProperty(textFrame, 'contents');
+                if (content) {
+                    frameAnalysis.characterCount = content.length;
+                    // ES3-compatible word counting
+                    var words = content.split(/\s+/);
+                    var validWordCount = 0;
+                    for (var i = 0; i < words.length; i++) {
+                        if (words[i].length > 0) {
+                            validWordCount++;
+                        }
+                    }
+                    frameAnalysis.wordCount = validWordCount;
+                    frameAnalysis.paragraphCount = safeGetLength(safeGetProperty(textFrame, 'paragraphs'));
+                    
+                    // Try to get comprehensive font and color information for change detection
+                    try {
+                        var characters = safeGetProperty(textFrame, 'characters');
+                        if (characters && safeGetLength(characters) > 0) {
+                            var firstChar = characters[0];
+                            if (firstChar) {
+                                frameAnalysis.fontFamily = safeGetProperty(safeGetProperty(firstChar, 'appliedFont'), 'fontFamily');
+                                frameAnalysis.fontSize = safeGetProperty(firstChar, 'pointSize');
+                                frameAnalysis.textColor = safeGetProperty(safeGetProperty(firstChar, 'fillColor'), 'name');
+                            }
+                        }
+                    } catch (fontError) {
+                        debugLog("Could not get font info for frame " + itemIndex, "WARN");
+                    }
+                }
+            } catch (e) {
+                frameAnalysis.textError = "Access failed: " + e.message;
+                debugLog("Text content access failed for frame " + itemIndex + ": " + e.message, "ERROR");
+            }
+            
+            // Update global counters
+            textAnalysis.summary.totalTextFrames++;
+            textAnalysis.summary.totalCharacters += frameAnalysis.characterCount;
+            textAnalysis.summary.totalWords += frameAnalysis.wordCount;
+            textAnalysis.summary.totalParagraphs += frameAnalysis.paragraphCount;
+            if (frameAnalysis.overflows) {
+                textAnalysis.summary.overflowingFrames++;
+            }
+            ANALYSIS_CONFIG.textItemsProcessed++;
+            
+            return frameAnalysis;
+        }, ANALYSIS_CONFIG.maxCollectionSample, "textFrames");
+    } catch (e) {
+        textAnalysis.textFrameDetailsError = "Text frames analysis failed: " + e.message;
+        debugLog("Text frames analysis failed: " + e.message, "ERROR");
+    }
+    
+    statusLog("Text Analysis", "Processing stories", 50);
+    
+    // COMPREHENSIVE story analysis  
+    try {
+        textAnalysis.storyDetails = safeIterateCollection(safeGetProperty(doc, 'stories'), function(story, itemIndex) {
+            var storyAnalysis = {
+                index: itemIndex,
+                id: safeGetProperty(story, 'id'),
+                path: "doc.stories[" + itemIndex + "]",
+                length: safeGetProperty(story, 'length', 0),
+                textFrameCount: safeGetLength(safeGetProperty(story, 'textFrames')),
+                overflows: safeGetProperty(story, 'overflows', false),
+                characterCount: safeGetLength(safeGetProperty(story, 'characters')),
+                wordCount: safeGetLength(safeGetProperty(story, 'words')),
+                paragraphCount: safeGetLength(safeGetProperty(story, 'paragraphs')),
+                // Enhanced threading information for change detection
+                isThreaded: safeGetLength(safeGetProperty(story, 'textFrames')) > 1,
+                threadLength: safeGetLength(safeGetProperty(story, 'textFrames')),
+                // Content preview for change identification
+                contentPreview: (function() {
+                    var content = safeGetProperty(story, 'contents');
+                    return content ? content.substring(0, 150) : "[NO CONTENT]";
+                })(),
+                // Story-level statistics
+                averageWordsPerParagraph: calculateWordsPerParagraph(story),
+                hasFootnotes: safeGetLength(safeGetProperty(story, 'footnotes')) > 0,
+                footnoteCount: safeGetLength(safeGetProperty(story, 'footnotes'))
+            };
+            
+            textAnalysis.summary.totalStories++;
+            ANALYSIS_CONFIG.textItemsProcessed++;
+            
+            return storyAnalysis;
+        }, ANALYSIS_CONFIG.maxCollectionSample, "stories");
+    } catch (e) {
+        textAnalysis.storyDetailsError = "Stories analysis failed: " + e.message;
+        debugLog("Stories analysis failed: " + e.message, "ERROR");
+    }
+    
+    statusLog("Text Analysis", "Calculating statistics", 75);
+    
+    // Calculate comprehensive text statistics
+    textAnalysis.textStatistics = calculateComprehensiveTextStatistics(textAnalysis);
+    
+    textAnalysis.summary.processingTime = new Date().getTime() - textStartTime;
+    debugLog("Comprehensive text content analysis completed", "TEXT");
+    statusLog("Text Analysis", "Completed", 100);
+    
+    return textAnalysis;
+}
+
+function getThreadPosition(textFrame) {
+    try {
+        var prevFrame = safeGetProperty(textFrame, 'previousTextFrame');
+        var nextFrame = safeGetProperty(textFrame, 'nextTextFrame');
+        
+        if (prevFrame && nextFrame) {
+            return "middle";
+        } else if (prevFrame) {
+            return "end";
+        } else if (nextFrame) {
+            return "start";
+        } else {
+            return "single";
+        }
+    } catch (e) {
+        return "unknown";
+    }
+}
+
+function calculateComprehensiveTextStatistics(textAnalysis) {
+    var stats = {
+        averageCharactersPerFrame: 0,
+        averageWordsPerFrame: 0,
+        averageParagraphsPerFrame: 0,
+        overflowPercentage: 0,
+        largestTextFrame: null,
+        smallestTextFrame: null,
+        textDistribution: {
+            emptyFrames: 0,
+            smallFrames: 0,
+            mediumFrames: 0,
+            largeFrames: 0
+        }
     };
     
     try {
-        // Paragraph styles
-        enhancedStatusLog("COMP_STYLES", "Processing paragraph styles", 1, 4, "Style definitions");
-        var paragraphStyles = safeGetProperty(doc, 'paragraphStyles');
-        stylesInfo.paragraphStyles = enhancedSafeIterateCollection(paragraphStyles, function(style, itemIndex) {
+        var frameCount = textAnalysis.summary.totalTextFrames;
+        if (frameCount > 0) {
+            stats.averageCharactersPerFrame = Math.round(textAnalysis.summary.totalCharacters / frameCount);
+            stats.averageWordsPerFrame = Math.round(textAnalysis.summary.totalWords / frameCount);
+            stats.averageParagraphsPerFrame = Math.round(textAnalysis.summary.totalParagraphs / frameCount);
+            stats.overflowPercentage = Math.round((textAnalysis.summary.overflowingFrames / frameCount) * 100);
+        }
+        
+        // Find largest and smallest frames
+        var maxChars = 0;
+        var minChars = Infinity;
+        var frameDetailsLength = safeGetLength(textAnalysis.textFrameDetails);
+        for (var i = 0; i < frameDetailsLength; i++) {
+            var frame = textAnalysis.textFrameDetails[i];
+            var frameCharCount = safeGetProperty(frame, 'characterCount', 0);
+            if (frameCharCount > maxChars) {
+                maxChars = frameCharCount;
+                stats.largestTextFrame = {
+                    index: safeGetProperty(frame, 'index'),
+                    characterCount: frameCharCount,
+                    preview: safeGetProperty(frame, 'textPreview')
+                };
+            }
+            if (frameCharCount < minChars && frameCharCount > 0) {
+                minChars = frameCharCount;
+                stats.smallestTextFrame = {
+                    index: safeGetProperty(frame, 'index'),
+                    characterCount: frameCharCount,
+                    preview: safeGetProperty(frame, 'textPreview')
+                };
+            }
+            
+            // Categorize frame sizes
+            if (frameCharCount === 0) {
+                stats.textDistribution.emptyFrames++;
+            } else if (frameCharCount < 100) {
+                stats.textDistribution.smallFrames++;
+            } else if (frameCharCount < 1000) {
+                stats.textDistribution.mediumFrames++;
+            } else {
+                stats.textDistribution.largeFrames++;
+            }
+        }
+        
+    } catch (e) {
+        debugLog("Text statistics calculation failed: " + e.message, "ERROR");
+        stats.error = "Statistics calculation failed: " + e.message;
+    }
+    
+    return stats;
+}
+
+function getStylesInfo(doc) {
+    debugLog("Analyzing styles", "STYLES");
+    
+    return {
+        paragraphStyles: safeIterateCollection(safeGetProperty(doc, 'paragraphStyles'), function(style, itemIndex) {
             return {
                 index: itemIndex,
                 id: safeGetProperty(style, 'id'),
                 name: safeGetProperty(style, 'name'),
                 basedOn: safeGetProperty(safeGetProperty(style, 'basedOn'), 'name'),
+                // Additional properties for comprehensive change detection
                 fontFamily: safeGetProperty(safeGetProperty(style, 'appliedFont'), 'fontFamily'),
                 fontSize: safeGetProperty(style, 'pointSize'),
                 color: safeGetProperty(safeGetProperty(style, 'fillColor'), 'name'),
                 leading: safeGetProperty(style, 'leading'),
                 spaceAfter: safeGetProperty(style, 'spaceAfter'),
-                spaceBefore: safeGetProperty(style, 'spaceBefore'),
-                analysisMode: "comprehensive"
+                spaceBefore: safeGetProperty(style, 'spaceBefore')
             };
-        }, ANALYSIS_CONFIG.maxCollectionSample, "paragraphStyles");
+        }, ANALYSIS_CONFIG.maxCollectionSample, "paragraphStyles"),
         
-        // Character styles
-        enhancedStatusLog("COMP_STYLES", "Processing character styles", 3, 4, "Character formatting");
-        var characterStyles = safeGetProperty(doc, 'characterStyles');
-        stylesInfo.characterStyles = enhancedSafeIterateCollection(characterStyles, function(style, itemIndex) {
+        characterStyles: safeIterateCollection(safeGetProperty(doc, 'characterStyles'), function(style, itemIndex) {
             return {
                 index: itemIndex,
                 id: safeGetProperty(style, 'id'),
                 name: safeGetProperty(style, 'name'),
                 basedOn: safeGetProperty(safeGetProperty(style, 'basedOn'), 'name'),
+                // Additional properties for comprehensive change detection
                 fontFamily: safeGetProperty(safeGetProperty(style, 'appliedFont'), 'fontFamily'),
                 fontSize: safeGetProperty(style, 'pointSize'),
                 color: safeGetProperty(safeGetProperty(style, 'fillColor'), 'name'),
-                fontStyle: safeGetProperty(style, 'fontStyle'),
-                analysisMode: "comprehensive"
+                fontStyle: safeGetProperty(style, 'fontStyle')
             };
-        }, ANALYSIS_CONFIG.maxCollectionSample, "characterStyles");
-        
-        enhancedStatusLog("COMP_STYLES", "Styles analysis completed", 4, 4, "Style definitions captured");
-        
-    } catch (exc) {
-        stylesInfo.error = "Styles analysis failed: " + exc.message;
-    }
-    
-    return stylesInfo;
+        }, ANALYSIS_CONFIG.maxCollectionSample, "characterStyles")
+    };
 }
 
 function getColorsInfo(doc) {
-    enhancedStatusLog("COMP_COLORS", "Analyzing colors", 0, 2, "Color definitions and swatches");
+    debugLog("Analyzing colors", "COLORS");
     
-    var colors = safeGetProperty(doc, 'colors');
-    var colorCount = safeGetLength(colors);
-    
-    if (colorCount === 0) {
-        return {
-            totalCount: 0,
-            analysisMode: "comprehensive",
-            note: "No colors found"
-        };
-    }
-    
-    return enhancedSafeIterateCollection(colors, function(color, itemIndex) {
+    return safeIterateCollection(safeGetProperty(doc, 'colors'), function(color, itemIndex) {
         return {
             index: itemIndex,
             id: safeGetProperty(color, 'id'),
@@ -2326,29 +2954,18 @@ function getColorsInfo(doc) {
             model: safeGetProperty(color, 'model') ? safeGetProperty(color, 'model').toString() : 'unknown',
             space: safeGetProperty(color, 'space') ? safeGetProperty(color, 'space').toString() : 'unknown',
             colorValue: safeGetProperty(color, 'colorValue'),
+            // Additional properties for comprehensive change detection
             colorType: safeGetProperty(color, 'colorType') ? safeGetProperty(color, 'colorType').toString() : 'unknown',
             inkName: safeGetProperty(color, 'inkName'),
-            tint: safeGetProperty(color, 'tint'),
-            analysisMode: "comprehensive"
+            tint: safeGetProperty(color, 'tint')
         };
     }, ANALYSIS_CONFIG.maxCollectionSample, "colors");
 }
 
 function getFontsInfo(doc) {
-    enhancedStatusLog("COMP_FONTS", "Analyzing fonts", 0, 2, "Font usage and availability");
+    debugLog("Analyzing fonts", "FONTS");
     
-    var fonts = safeGetProperty(doc, 'fonts');
-    var fontCount = safeGetLength(fonts);
-    
-    if (fontCount === 0) {
-        return {
-            totalCount: 0,
-            analysisMode: "comprehensive",
-            note: "No fonts found"
-        };
-    }
-    
-    return enhancedSafeIterateCollection(fonts, function(font, itemIndex) {
+    return safeIterateCollection(safeGetProperty(doc, 'fonts'), function(font, itemIndex) {
         return {
             index: itemIndex,
             id: safeGetProperty(font, 'id'),
@@ -2357,35 +2974,20 @@ function getFontsInfo(doc) {
             fontStyleName: safeGetProperty(font, 'fontStyleName'),
             postScriptName: safeGetProperty(font, 'postScriptName'),
             status: safeGetProperty(font, 'status') ? safeGetProperty(font, 'status').toString() : 'unknown',
+            // Additional properties for comprehensive change detection
             location: safeGetProperty(font, 'location'),
             version: safeGetProperty(font, 'version'),
             fontType: safeGetProperty(font, 'fontType') ? safeGetProperty(font, 'fontType').toString() : 'unknown',
-            platform: safeGetProperty(font, 'platformName'),
-            analysisMode: "comprehensive"
+            platform: safeGetProperty(font, 'platformName')
         };
     }, ANALYSIS_CONFIG.maxCollectionSample, "fonts");
 }
 
+// ESSENTIAL for detecting image and link changes - RESTORED
 function getImagesInfo(doc) {
-    enhancedStatusLog("COMP_IMAGES", "Analyzing images", 0, 3, "Image links and properties (may be slow)");
+    debugLog("Analyzing images", "IMAGES");
     
-    var images = safeGetProperty(doc, 'images');
-    var imageCount = safeGetLength(images);
-    
-    if (imageCount === 0) {
-        return {
-            totalCount: 0,
-            analysisMode: "comprehensive",
-            note: "No images found"
-        };
-    }
-    
-    // Images are often problematic, use smaller sample and shorter timeout
-    var limitedSample = Math.min(imageCount, 10);
-    enhancedStatusLog("COMP_IMAGES", "Limited sampling for safety", 1, 3, 
-        "Processing " + limitedSample + " of " + imageCount + " images");
-    
-    return enhancedSafeIterateCollection(images, function(image, itemIndex) {
+    return safeIterateCollection(safeGetProperty(doc, 'images'), function(image, itemIndex) {
         var itemLink = safeGetProperty(image, 'itemLink');
         return {
             index: itemIndex,
@@ -2401,32 +3003,22 @@ function getImagesInfo(doc) {
                 date: safeGetProperty(itemLink, 'date'),
                 linkType: safeGetProperty(itemLink, 'linkType') ? safeGetProperty(itemLink, 'linkType').toString() : 'unknown'
             } : null,
+            parent: (function() {
+                var parentObj = safeGetProperty(image, 'parent');
+                var constructor = safeGetProperty(parentObj, 'constructor');
+                return constructor ? safeGetProperty(constructor, 'name', 'unknown') : 'unknown';
+            })(),
+            // Additional properties for comprehensive change detection
             imageTypeName: safeGetProperty(image, 'imageTypeName'),
-            analysisMode: "comprehensive"
+            transparencySettings: safeGetProperty(image, 'transparencySettings.blendingSettings.opacity')
         };
-    }, limitedSample, "images");
+    }, ANALYSIS_CONFIG.maxCollectionSample, "images");
 }
 
 function getLinksInfo(doc) {
-    enhancedStatusLog("COMP_LINKS", "Analyzing links", 0, 3, "Link status and properties (may be slow)");
+    debugLog("Analyzing links", "LINKS");
     
-    var links = safeGetProperty(doc, 'links');
-    var linkCount = safeGetLength(links);
-    
-    if (linkCount === 0) {
-        return {
-            totalCount: 0,
-            analysisMode: "comprehensive",
-            note: "No links found"
-        };
-    }
-    
-    // Links are often problematic, use smaller sample
-    var limitedSample = Math.min(linkCount, 10);
-    enhancedStatusLog("COMP_LINKS", "Limited sampling for safety", 1, 3, 
-        "Processing " + limitedSample + " of " + linkCount + " links");
-    
-    return enhancedSafeIterateCollection(links, function(link, itemIndex) {
+    return safeIterateCollection(safeGetProperty(doc, 'links'), function(link, itemIndex) {
         return {
             index: itemIndex,
             id: safeGetProperty(link, 'id'),
@@ -2436,12 +3028,57 @@ function getLinksInfo(doc) {
             size: safeGetProperty(link, 'size'),
             date: safeGetProperty(link, 'date'),
             linkType: safeGetProperty(link, 'linkType') ? safeGetProperty(link, 'linkType').toString() : 'unknown',
+            // Additional properties for comprehensive change detection
             needed: safeGetProperty(link, 'needed'),
             canEmbed: safeGetProperty(link, 'canEmbed'),
             canUnembed: safeGetProperty(link, 'canUnembed'),
-            analysisMode: "comprehensive"
+            linkResourceURI: safeGetProperty(link, 'linkResourceURI'),
+            versionState: safeGetProperty(link, 'versionState') ? safeGetProperty(link, 'versionState').toString() : 'unknown'
         };
-    }, limitedSample, "links");
+    }, ANALYSIS_CONFIG.maxCollectionSample, "links");
+}
+
+// RESTORED - Essential for detecting page item changes
+function getPageItemsInfo(doc) {
+    debugLog("Analyzing page items", "PAGEITEMS");
+    
+    var pageItemsInfo = {
+        totalCount: safeGetLength(safeGetProperty(doc, 'pageItems')),
+        byType: {},
+        sample: []
+    };
+    
+    // Sample page items for detailed analysis
+    pageItemsInfo.sample = safeIterateCollection(safeGetProperty(doc, 'pageItems'), function(item, itemIndex) {
+        var itemConstructor = safeGetProperty(item, 'constructor');
+        var itemType = itemConstructor ? safeGetProperty(itemConstructor, 'name', 'unknown') : 'unknown';
+        
+        // Count by type
+        if (!pageItemsInfo.byType[itemType]) {
+            pageItemsInfo.byType[itemType] = 0;
+        }
+        pageItemsInfo.byType[itemType]++;
+        
+        return {
+            index: itemIndex,
+            id: safeGetProperty(item, 'id'),
+            type: itemType,
+            bounds: safeGetProperty(item, 'bounds'),
+            layer: safeGetProperty(safeGetProperty(item, 'itemLayer'), 'name'),
+            parent: (function() {
+                var parentObj = safeGetProperty(item, 'parent');
+                var constructor = safeGetProperty(parentObj, 'constructor');
+                return constructor ? safeGetProperty(constructor, 'name', 'unknown') : 'unknown';
+            })(),
+            visible: safeGetProperty(item, 'visible', true),
+            locked: safeGetProperty(item, 'locked', false),
+            // Additional properties for change detection
+            rotation: safeGetProperty(item, 'rotationAngle'),
+            opacity: safeGetProperty(item, 'transparencySettings.blendingSettings.opacity')
+        };
+    }, Math.min(ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.pageItemSampleLimit), "pageItems");
+    
+    return pageItemsInfo;
 }
 
 // ============================================================================
@@ -2490,21 +3127,6 @@ function generateComprehensiveStats(report) {
         Math.round((stats.successfulSections / stats.sectionsAnalyzed) * 100) : 0;
     
     return stats;
-}
-
-// Count analyzed collections for legacy compatibility
-function countAnalyzedCollections(report) {
-    var count = 0;
-    var sections = ['pages', 'layers', 'stories', 'textFrames', 'styles', 'colors', 'fonts', 'images', 'links', 'pageItems'];
-    
-    for (var i = 0; i < sections.length; i++) {
-        var section = safeGetProperty(report, sections[i]);
-        if (section && safeGetLength(section)) {
-            count++;
-        }
-    }
-    
-    return count;
 }
 
 // ============================================================================
@@ -2559,7 +3181,7 @@ function compareDocumentReports(report1, report2) {
                 var sectionReport1 = safeGetProperty(report1, section);
                 var sectionReport2 = safeGetProperty(report2, section);
                 var changes = compareSection(sectionReport1, sectionReport2, section);
-                var changesLength = safeGetLength(changes); // FIXED: Use safeGetLength
+                var changesLength = safeGetLength(changes);
                 if (changesLength > 0) {
                     differences.summary.hasChanges = true;
                     differences.summary.changedSections.push(section);
@@ -2572,7 +3194,7 @@ function compareDocumentReports(report1, report2) {
                     enhancedStatusLog("COMPARE", "No changes in " + section, i + 1, totalSections, 
                         "Section identical to baseline");
                 }
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 differences.errors.push("Section comparison failed: " + section + " - " + exc.message);
                 logError("Section comparison failed: " + section + " - " + exc.message, 'comparison', 'high');
                 enhancedStatusLog("COMPARE", "Section comparison failed: " + section, i + 1, totalSections, 
@@ -2594,7 +3216,7 @@ function compareDocumentReports(report1, report2) {
         debugLog("Comparison completed. Changes found: " + differences.summary.hasChanges + 
                 ", Total changes: " + differences.summary.totalChanges, "COMPARE");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         differences.errors.push("Overall comparison failed: " + exc.message);
         logError("Overall comparison failed: " + exc.message, 'comparison', 'critical');
         enhancedStatusLog("COMPARE", "Comparison failed", 100, 100, "Critical error: " + exc.message);
@@ -2678,7 +3300,7 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
         // Count all property changes by type and section
         for (var section in changes) {
             var sectionChanges = changes[section];
-            var sectionChangesLength = safeGetLength(sectionChanges); // FIXED: Use safeGetLength
+            var sectionChangesLength = safeGetLength(sectionChanges);
             info.changesBySection[section] = sectionChangesLength;
             info.propertiesChanged += sectionChangesLength;
             
@@ -2714,7 +3336,7 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
         debugLog("Discovery info calculated. Properties changed: " + info.propertiesChanged + 
                 ", Significant changes: " + info.significantChanges, "DISCOVERY");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("Discovery info calculation failed: " + exc.message, 'comparison', 'medium');
         enhancedStatusLog("DISCOVERY", "Discovery analysis failed", 5, 5, "Error: " + exc.message);
     }
@@ -2765,7 +3387,7 @@ function analyzeStructuralChanges(report1, report2, info) {
         
         enhancedStatusLog("STRUCTURAL", "Structural analysis completed", 4, 4, "Structure comparison complete");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         debugLog("Structural change analysis failed: " + exc.message, "ERROR");
         enhancedStatusLog("STRUCTURAL", "Structural analysis failed", 4, 4, "Error: " + exc.message);
     }
@@ -2848,8 +3470,8 @@ function compareSection(section1, section2, sectionName) {
         
         // Array comparison with enhanced change detection
         if (typeof section1 === 'object' && section1.constructor === Array) {
-            var section1Length = safeGetLength(section1); // FIXED: Use safeGetLength
-            var section2Length = safeGetLength(section2); // FIXED: Use safeGetLength
+            var section1Length = safeGetLength(section1);
+            var section2Length = safeGetLength(section2);
             
             if (section1Length !== section2Length) {
                 changes.push(createChangeObject({
@@ -2950,7 +3572,7 @@ function compareSection(section1, section2, sectionName) {
                 }, sectionName));
             }
         }
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("compareSection failed for " + sectionName + ": " + exc.message, 'comparison', 'medium');
         changes.push(createChangeObject({
             type: "comparison_error",
@@ -3028,7 +3650,7 @@ function createChangeObject(changeData, analysisPath) {
     try {
         change.accessPath = generateEnhancedAccessPath(analysisPath);
         change.safetyNotes = generateSafetyNotes(analysisPath);
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("Failed to generate access info for " + analysisPath + ": " + exc.message, 'accessPath', 'medium');
         change.accessPath = {
             primary: "// Error generating access path: " + exc.message,
@@ -3179,7 +3801,7 @@ function generateEnhancedAccessPath(analysisPath) {
             }
         }
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("generateEnhancedAccessPath failed: " + exc.message, 'accessPath', 'high');
         accessInfo.primary = "// Error generating access path: " + exc.message;
         accessInfo.errorMessage = "Path generation failed: " + exc.message;
@@ -3305,7 +3927,7 @@ function generateSafetyNotes(analysisPath) {
             notes.push("Test thoroughly with your specific document types and InDesign version");
         }
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("generateSafetyNotes failed: " + exc.message, 'safetyNotes', 'medium');
         notes = [
             "Error generating safety notes: " + exc.message,
@@ -3358,7 +3980,7 @@ function quickCompare() {
                     docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
                     debugLog("Document saved to: " + docPath, "FILE");
                     enhancedStatusLog("WORKFLOW", "Document saved", 10, 100, "Saved to: " + docPath);
-                } catch (exc) { // FIXED: error -> exc
+                } catch (exc) {
                     alert("Failed to save document: " + exc.message);
                     debugLog("Save failed: " + exc.message, "ERROR");
                     return;
@@ -3410,7 +4032,7 @@ function quickCompare() {
                 
                 return saveReportSafely(baselineFile, report, "baseline");
                 
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Baseline creation failed: " + exc.message);
                 debugLog("Baseline creation failed: " + exc.message, "ERROR");
                 clearLargeObjects();
@@ -3448,7 +4070,7 @@ function quickCompare() {
             
             return saveReportSafely(currentFile, currentReport, "current");
             
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Current analysis failed: " + exc.message);
             debugLog("Current analysis failed: " + exc.message, "ERROR");
             clearLargeObjects();
@@ -3497,7 +4119,7 @@ function quickCompare() {
         debugLog("Baseline loaded successfully", "BASELINE");
         enhancedStatusLog("WORKFLOW", "Baseline loaded", 60, 100, "Baseline ready for comparison");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Failed to load baseline report: " + exc.message + "\nConsider recreating the baseline.");
         debugLog("Baseline load failed: " + exc.message, "ERROR");
         clearLargeObjects();
@@ -3531,7 +4153,7 @@ function quickCompare() {
             debugLog("Comparison completed successfully", "COMPARE");
             return true;
             
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Comparison failed: " + exc.message);
             debugLog("Comparison failed: " + exc.message, "ERROR");
             clearLargeObjects();
@@ -3553,7 +4175,7 @@ function quickCompare() {
     var reportSuiteSuccess = showProgressDialog("Generating comprehensive report suite...", function() {
         try {
             return createComprehensiveReportSuite(differences, docPath, docName);
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Report generation failed: " + exc.message);
             debugLog("Report generation failed: " + exc.message, "ERROR");
             clearLargeObjects();
@@ -3589,7 +4211,7 @@ function validateAnalysisReport(report) {
     // Check for required sections
     var requiredSections = ['timestamp', 'analysisVersion', 'documentInfo'];
     for (var i = 0; i < requiredSections.length; i++) {
-        if (!safeGetProperty(report, requiredSections[i])) { // FIXED: Use safeGetProperty
+        if (!safeGetProperty(report, requiredSections[i])) {
             debugLog("Report validation failed: missing " + requiredSections[i], "ERROR");
             enhancedStatusLog("VALIDATE", "Validation failed", 4, 4, "Missing: " + requiredSections[i]);
             return false;
@@ -3673,7 +4295,7 @@ function saveReportSafely(file, report, reportType) {
                 file.copy(backupFile);
                 debugLog("Backup created: " + backupFile.name, "FILE");
                 enhancedStatusLog("FILE", "Backup created", 2, 8, "Backup: " + backupFile.name);
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 debugLog("Backup creation failed: " + exc.message, "WARN");
                 // Backup failed but continue - not critical
             }
@@ -3704,7 +4326,7 @@ function saveReportSafely(file, report, reportType) {
                       Math.round(ANALYSIS_CONFIG.maxReportSize / 1024) + "KB limit).");
                 debugLog("Report simplified due to size", "WARN");
                 enhancedStatusLog("FILE", "Report simplified", 5, 8, "Size reduced for compatibility");
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Report too large and simplification failed: " + exc.message);
                 return false;
             }
@@ -3757,7 +4379,7 @@ function saveReportSafely(file, report, reportType) {
         debugLog("Report saved successfully: " + file.length + " bytes", "FILE");
         return true;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Failed to save " + reportType + " report: " + exc.message);
         debugLog("Save operation failed: " + exc.message, "ERROR");
         enhancedStatusLog("FILE", "Save failed", 8, 8, "Error: " + exc.message);
@@ -3816,7 +4438,7 @@ function showProgressDialog(message, operation) {
     
     try {
         progressDialog.show();
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         return operation();
     }
     
@@ -3859,7 +4481,7 @@ function showProgressDialog(message, operation) {
         progressDialog.close();
         return result;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         progressDialog.close();
         $.writeln("[ERROR] Progress dialog operation failed: " + exc.message);
         throw exc;
@@ -3909,7 +4531,7 @@ function showBaselineCreatedDialog() {
                 var folder = Folder(safeGetProperty(currentDoc, 'filePath'));
                 folder.execute();
             }
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Could not open folder: " + exc.message);
         }
     };
@@ -3973,7 +4595,7 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
                 report.file.write(report.content);
                 report.file.close();
                 debugLog("Saved " + report.type + " report: " + report.file.name, "REPORTS");
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Failed to save " + report.type + ": " + exc.message);
                 debugLog("Failed to save " + report.type + ": " + exc.message, "ERROR");
                 return false;
@@ -3985,7 +4607,7 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
         debugLog("Comprehensive report suite created successfully", "REPORTS");
         return true;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Report generation failed: " + exc.message);
         debugLog("Report generation failed: " + exc.message, "ERROR");
         return false;
@@ -4554,11 +5176,11 @@ function showEnhancedComparisonDialog(differences) {
     openFolderBtn.onClick = function() {
         try {
             var currentDoc = UTILITY_STATE.currentDocument;
-            if (currentDoc && safeGetProperty(currentDoc, 'filePath')) { // FIXED: Use safeGetProperty
+            if (currentDoc && safeGetProperty(currentDoc, 'filePath')) {
                 var folder = Folder(safeGetProperty(currentDoc, 'filePath'));
                 folder.execute();
             }
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Could not open folder: " + exc.message);
         }
     };
@@ -4594,7 +5216,7 @@ function exportAllReportsToFolder(differences) {
     var timestamp = new Date().getTime();
     var currentDoc = UTILITY_STATE.currentDocument;
     var docName = currentDoc ? 
-                  safeGetProperty(currentDoc, 'name', 'document').replace(/\.[^\.]+$/, "") : // FIXED: Use safeGetProperty
+                  safeGetProperty(currentDoc, 'name', 'document').replace(/\.[^\.]+$/, "") : 
                   "document_" + timestamp;
     
     try {
@@ -4623,7 +5245,7 @@ function exportAllReportsToFolder(differences) {
             jsonFile.write(JSON.stringify(reports.comparison, null, 2));
             jsonFile.close();
             savedFiles.push(jsonFile.name);
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Failed to save JSON report: " + exc.message);
             return;
         }
@@ -4647,7 +5269,7 @@ function exportAllReportsToFolder(differences) {
                 file.write(report.content);
                 file.close();
                 savedFiles.push(file.name);
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Failed to save " + report.file + ": " + exc.message);
                 return;
             }
@@ -4667,7 +5289,7 @@ function exportAllReportsToFolder(differences) {
               
         debugLog("Export completed successfully: " + savedFiles.length + " files", "EXPORT");
               
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Export failed: " + exc.message);
         debugLog("Export failed: " + exc.message, "ERROR");
         enhancedStatusLog("EXPORT", "Export failed", 100, 100, "Error: " + exc.message);
@@ -4691,9 +5313,9 @@ function analyzeDocument() {
         enhancedStatusLog("WORKFLOW", "Validating document", 5, 100, "Checking document state");
         
         // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
-        var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
-        var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
-        var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, ""); // FIXED: Use safeGetProperty
+        var docSaved = safeGetProperty(doc, 'saved', false);
+        var docPath = safeGetProperty(doc, 'filePath');
+        var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
         
         // Check if document is saved
         if (!docSaved) {
@@ -4752,7 +5374,7 @@ function analyzeDocument() {
         
         return report;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         var errorMsg = "Analysis failed: " + exc.message;
         if (exc.line) errorMsg += "\nLine: " + exc.line;
         
@@ -4775,9 +5397,9 @@ function resetBaseline() {
     var doc = app.activeDocument;
     
     // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
-    var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
-    var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
-    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, ""); // FIXED: Use safeGetProperty
+    var docSaved = safeGetProperty(doc, 'saved', false);
+    var docPath = safeGetProperty(doc, 'filePath');
+    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
     
     if (!docSaved || !docPath) {
         alert("Document must be saved before creating baseline.");
@@ -4799,7 +5421,7 @@ function resetBaseline() {
                 baselineFile.copy(backupFile);
                 debugLog("Baseline backup created: " + backupFile.name, "BASELINE");
                 enhancedStatusLog("WORKFLOW", "Backup created", 30, 100, "Backup: " + backupFile.name);
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 debugLog("Backup creation failed: " + exc.message, "WARN");
             }
         }
@@ -4833,7 +5455,7 @@ function resetBaseline() {
             enhancedStatusLog("WORKFLOW", "Baseline reset failed", 100, 100, "Could not create new baseline");
         }
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Baseline reset failed: " + exc.message);
         debugLog("Baseline reset failed: " + exc.message, "ERROR");
         enhancedStatusLog("WORKFLOW", "Baseline reset failed", 100, 100, "Error: " + exc.message);
@@ -4925,7 +5547,7 @@ function showHelpDialog() {
     };
     
     enhancedStatusLog("UI", "Help dialog ready", 1, 1, "Documentation displayed");
-    dialog.show();
+    helpDialog.show();
 }
 
 // Main menu dialog with enhanced status information and mode selection
@@ -5077,9 +5699,9 @@ function getEnhancedStatusText() {
         status += "* Enhanced validation detects compatibility issues\n";
     } else {
         var doc = app.activeDocument;
-        var docName = safeGetProperty(doc, 'name', 'Unknown'); // FIXED: Use safeGetProperty
-        var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
-        var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
+        var docName = safeGetProperty(doc, 'name', 'Unknown');
+        var docSaved = safeGetProperty(doc, 'saved', false);
+        var docPath = safeGetProperty(doc, 'filePath');
         
         status += "DOCUMENT: " + docName + "\n";
         
@@ -5100,7 +5722,7 @@ function getEnhancedStatusText() {
                     try {
                         var baselineDate = new Date(baselineFile.modified);
                         status += "BASELINE DATE: " + baselineDate.toLocaleString() + "\n";
-                    } catch (exc) { // FIXED: error -> exc
+                    } catch (exc) {
                         status += "BASELINE DATE: Unknown\n";
                     }
                 } else {
@@ -5222,7 +5844,7 @@ try {
     // Show main menu
     showMainMenu();
     
-} catch (exc) { // FIXED: error -> exc
+} catch (exc) {
     // Enhanced error handling for startup
     var errorMsg = "Enhanced InDesign Inspector v2.1-ESTK\n\n" +
                    "Initialization Error: " + exc.message + "\n\n" +

@@ -1,5 +1,5 @@
 // ============================================================================
-// CHUNK 2.1: BASIC DOCUMENT ANALYSIS - MINIMAL/SAFE OPERATIONS
+// CHUNK 2.1: BASIC DOCUMENT ANALYSIS - MINIMAL/SAFE OPERATIONS + MODE MANAGEMENT
 // ES3 COMPATIBLE VERSION - EMERGENCY BAILOUTS INTEGRATED
 // ============================================================================
 
@@ -21,6 +21,88 @@ var MODE_TIMEOUTS = {
     standard: 8000,       // 8 seconds
     comprehensive: 15000  // 15 seconds
 };
+
+// ============================================================================
+// MODE MANAGEMENT FUNCTIONS
+// ============================================================================
+
+function setAnalysisMode(mode) {
+    if (ANALYSIS_MODES[mode.toUpperCase()]) {
+        CURRENT_ANALYSIS_MODE = ANALYSIS_MODES[mode.toUpperCase()];
+        enhancedStatusLog("MODE", "Analysis mode set", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
+        return true;
+    } else {
+        enhancedStatusLog("MODE", "Invalid analysis mode", 0, 1, "Unknown mode: " + mode);
+        return false;
+    }
+}
+
+function getCurrentAnalysisMode() {
+    return CURRENT_ANALYSIS_MODE;
+}
+
+// Get mode description for UI display
+function getModeDescription(mode) {
+    var descriptions = {
+        minimal: "MINIMAL MODE (Safest)\n" +
+                "• Property exploration only\n" +
+                "• No collection iteration\n" +
+                "• 1-second timeout\n" +
+                "• Perfect for problematic documents\n" +
+                "• Compatibility testing mode",
+                
+        basic: "BASIC MODE (Safe)\n" +
+              "• Document info + counts\n" +
+              "• No text content processing\n" +
+              "• 3-second timeout\n" +
+              "• Essential information only\n" +
+              "• Good performance",
+              
+        standard: "STANDARD MODE (Balanced)\n" +
+                 "• Text content sampling\n" +
+                 "• Limited collection analysis\n" +
+                 "• 8-second timeout\n" +
+                 "• Comprehensive text tracking\n" +
+                 "• Moderate resources",
+                 
+        comprehensive: "COMPREHENSIVE MODE (Complete)\n" +
+                      "• Full feature analysis\n" +
+                      "• All collections processed\n" +
+                      "• 15-second timeout\n" +
+                      "• Images, links, styles\n" +
+                      "• Maximum detail"
+    };
+    
+    return descriptions[mode] || "Unknown analysis mode - using basic mode descriptions";
+}
+
+// Mode-based report creation
+function createModeBasedReport(doc) {
+    enhancedStatusLog("MODE", "Creating report for mode", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
+    
+    switch (CURRENT_ANALYSIS_MODE) {
+        case ANALYSIS_MODES.MINIMAL:
+            return createMinimalPropertyDump(doc);
+            
+        case ANALYSIS_MODES.BASIC:
+            return createBasicDocumentReport(doc);
+            
+        case ANALYSIS_MODES.STANDARD:
+            return createStandardDocumentReport(doc);
+            
+        case ANALYSIS_MODES.COMPREHENSIVE:
+            return createComprehensiveDocumentReport(doc);
+            
+        default:
+            enhancedStatusLog("MODE", "Unknown mode - using basic", 0, 1, "Fallback to basic mode");
+            return createBasicDocumentReport(doc);
+    }
+}
+
+// Replace the main document analysis function
+function createValidatedDocumentReport(doc) {
+    return createModeBasedReport(doc);
+}
 
 // ============================================================================
 // MINIMAL MODE: DOM PROPERTY EXPLORER
@@ -342,53 +424,4 @@ function getBasicLayerInfo(doc) {
         analysisMode: "basic",
         note: "Layer count only - no detailed layer analysis in basic mode"
     };
-}
-
-// ============================================================================
-// MODE SELECTION AND VALIDATION
-// ============================================================================
-
-function setAnalysisMode(mode) {
-    if (ANALYSIS_MODES[mode.toUpperCase()]) {
-        CURRENT_ANALYSIS_MODE = ANALYSIS_MODES[mode.toUpperCase()];
-        enhancedStatusLog("MODE", "Analysis mode set", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
-        return true;
-    } else {
-        enhancedStatusLog("MODE", "Invalid analysis mode", 0, 1, "Unknown mode: " + mode);
-        return false;
-    }
-}
-
-function getCurrentAnalysisMode() {
-    return CURRENT_ANALYSIS_MODE;
-}
-
-// Mode-based report creation
-function createModeBasedReport(doc) {
-    enhancedStatusLog("MODE", "Creating report for mode", 0, 1, "Mode: " + CURRENT_ANALYSIS_MODE);
-    
-    switch (CURRENT_ANALYSIS_MODE) {
-        case ANALYSIS_MODES.MINIMAL:
-            return createMinimalPropertyDump(doc);
-            
-        case ANALYSIS_MODES.BASIC:
-            return createBasicDocumentReport(doc);
-            
-        case ANALYSIS_MODES.STANDARD:
-            // Will be implemented in Chunk 2B
-            return createStandardDocumentReport(doc);
-            
-        case ANALYSIS_MODES.COMPREHENSIVE:
-            // Will be implemented in Chunk 2C
-            return createComprehensiveDocumentReport(doc);
-            
-        default:
-            enhancedStatusLog("MODE", "Unknown mode - using basic", 0, 1, "Fallback to basic mode");
-            return createBasicDocumentReport(doc);
-    }
-}
-
-// Replace the main document analysis function
-function createValidatedDocumentReport(doc) {
-    return createModeBasedReport(doc);
 }

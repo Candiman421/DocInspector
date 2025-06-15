@@ -876,12 +876,12 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
     
     var results = [];
     var startTime = new Date().getTime();
-    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit); // FIXED: Use config
+    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit);
     
     debugLog("Starting enhanced collection iteration: " + (collectionName || "unknown"), "ITER");
     
     try {
-        var collectionLength = safeGetLength(collection); // FIXED: length -> collectionLength
+        var collectionLength = safeGetLength(collection);
         debugLog("Collection length determined: " + collectionLength, "ITER");
         
         if (collectionLength === 0) {
@@ -1105,7 +1105,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
             
             return result;
             
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             var duration = new Date().getTime() - attemptStartTime;
             debugLog("Section " + sectionName + " failed: " + exc.message + " (attempt " + (sectionConfig.retryCount + 1) + ")", "ERROR");
             

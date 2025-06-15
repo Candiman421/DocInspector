@@ -46,7 +46,7 @@ function compareDocumentReports(report1, report2) {
                 var sectionReport1 = safeGetProperty(report1, section);
                 var sectionReport2 = safeGetProperty(report2, section);
                 var changes = compareSection(sectionReport1, sectionReport2, section);
-                var changesLength = safeGetLength(changes); // FIXED: Use safeGetLength
+                var changesLength = safeGetLength(changes);
                 if (changesLength > 0) {
                     differences.summary.hasChanges = true;
                     differences.summary.changedSections.push(section);
@@ -59,7 +59,7 @@ function compareDocumentReports(report1, report2) {
                     enhancedStatusLog("COMPARE", "No changes in " + section, i + 1, totalSections, 
                         "Section identical to baseline");
                 }
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 differences.errors.push("Section comparison failed: " + section + " - " + exc.message);
                 logError("Section comparison failed: " + section + " - " + exc.message, 'comparison', 'high');
                 enhancedStatusLog("COMPARE", "Section comparison failed: " + section, i + 1, totalSections, 
@@ -81,7 +81,7 @@ function compareDocumentReports(report1, report2) {
         debugLog("Comparison completed. Changes found: " + differences.summary.hasChanges + 
                 ", Total changes: " + differences.summary.totalChanges, "COMPARE");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         differences.errors.push("Overall comparison failed: " + exc.message);
         logError("Overall comparison failed: " + exc.message, 'comparison', 'critical');
         enhancedStatusLog("COMPARE", "Comparison failed", 100, 100, "Critical error: " + exc.message);
@@ -165,7 +165,7 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
         // Count all property changes by type and section
         for (var section in changes) {
             var sectionChanges = changes[section];
-            var sectionChangesLength = safeGetLength(sectionChanges); // FIXED: Use safeGetLength
+            var sectionChangesLength = safeGetLength(sectionChanges);
             info.changesBySection[section] = sectionChangesLength;
             info.propertiesChanged += sectionChangesLength;
             
@@ -201,7 +201,7 @@ function calculateEnhancedDiscoveryInfo(report1, report2, changes) {
         debugLog("Discovery info calculated. Properties changed: " + info.propertiesChanged + 
                 ", Significant changes: " + info.significantChanges, "DISCOVERY");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("Discovery info calculation failed: " + exc.message, 'comparison', 'medium');
         enhancedStatusLog("DISCOVERY", "Discovery analysis failed", 5, 5, "Error: " + exc.message);
     }
@@ -252,7 +252,7 @@ function analyzeStructuralChanges(report1, report2, info) {
         
         enhancedStatusLog("STRUCTURAL", "Structural analysis completed", 4, 4, "Structure comparison complete");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         debugLog("Structural change analysis failed: " + exc.message, "ERROR");
         enhancedStatusLog("STRUCTURAL", "Structural analysis failed", 4, 4, "Error: " + exc.message);
     }
@@ -335,8 +335,8 @@ function compareSection(section1, section2, sectionName) {
         
         // Array comparison with enhanced change detection
         if (typeof section1 === 'object' && section1.constructor === Array) {
-            var section1Length = safeGetLength(section1); // FIXED: Use safeGetLength
-            var section2Length = safeGetLength(section2); // FIXED: Use safeGetLength
+            var section1Length = safeGetLength(section1);
+            var section2Length = safeGetLength(section2);
             
             if (section1Length !== section2Length) {
                 changes.push(createChangeObject({
@@ -437,7 +437,7 @@ function compareSection(section1, section2, sectionName) {
                 }, sectionName));
             }
         }
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("compareSection failed for " + sectionName + ": " + exc.message, 'comparison', 'medium');
         changes.push(createChangeObject({
             type: "comparison_error",
@@ -515,7 +515,7 @@ function createChangeObject(changeData, analysisPath) {
     try {
         change.accessPath = generateEnhancedAccessPath(analysisPath);
         change.safetyNotes = generateSafetyNotes(analysisPath);
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("Failed to generate access info for " + analysisPath + ": " + exc.message, 'accessPath', 'medium');
         change.accessPath = {
             primary: "// Error generating access path: " + exc.message,
@@ -666,7 +666,7 @@ function generateEnhancedAccessPath(analysisPath) {
             }
         }
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("generateEnhancedAccessPath failed: " + exc.message, 'accessPath', 'high');
         accessInfo.primary = "// Error generating access path: " + exc.message;
         accessInfo.errorMessage = "Path generation failed: " + exc.message;
@@ -792,7 +792,7 @@ function generateSafetyNotes(analysisPath) {
             notes.push("Test thoroughly with your specific document types and InDesign version");
         }
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         logError("generateSafetyNotes failed: " + exc.message, 'safetyNotes', 'medium');
         notes = [
             "Error generating safety notes: " + exc.message,

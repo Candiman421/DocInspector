@@ -35,7 +35,7 @@ function quickCompare() {
                     docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
                     debugLog("Document saved to: " + docPath, "FILE");
                     enhancedStatusLog("WORKFLOW", "Document saved", 10, 100, "Saved to: " + docPath);
-                } catch (exc) { // FIXED: error -> exc
+                } catch (exc) {
                     alert("Failed to save document: " + exc.message);
                     debugLog("Save failed: " + exc.message, "ERROR");
                     return;
@@ -87,7 +87,7 @@ function quickCompare() {
                 
                 return saveReportSafely(baselineFile, report, "baseline");
                 
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Baseline creation failed: " + exc.message);
                 debugLog("Baseline creation failed: " + exc.message, "ERROR");
                 clearLargeObjects();
@@ -125,7 +125,7 @@ function quickCompare() {
             
             return saveReportSafely(currentFile, currentReport, "current");
             
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Current analysis failed: " + exc.message);
             debugLog("Current analysis failed: " + exc.message, "ERROR");
             clearLargeObjects();
@@ -174,7 +174,7 @@ function quickCompare() {
         debugLog("Baseline loaded successfully", "BASELINE");
         enhancedStatusLog("WORKFLOW", "Baseline loaded", 60, 100, "Baseline ready for comparison");
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Failed to load baseline report: " + exc.message + "\nConsider recreating the baseline.");
         debugLog("Baseline load failed: " + exc.message, "ERROR");
         clearLargeObjects();
@@ -208,7 +208,7 @@ function quickCompare() {
             debugLog("Comparison completed successfully", "COMPARE");
             return true;
             
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Comparison failed: " + exc.message);
             debugLog("Comparison failed: " + exc.message, "ERROR");
             clearLargeObjects();
@@ -230,7 +230,7 @@ function quickCompare() {
     var reportSuiteSuccess = showProgressDialog("Generating comprehensive report suite...", function() {
         try {
             return createComprehensiveReportSuite(differences, docPath, docName);
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Report generation failed: " + exc.message);
             debugLog("Report generation failed: " + exc.message, "ERROR");
             clearLargeObjects();
@@ -266,7 +266,7 @@ function validateAnalysisReport(report) {
     // Check for required sections
     var requiredSections = ['timestamp', 'analysisVersion', 'documentInfo'];
     for (var i = 0; i < requiredSections.length; i++) {
-        if (!safeGetProperty(report, requiredSections[i])) { // FIXED: Use safeGetProperty
+        if (!safeGetProperty(report, requiredSections[i])) {
             debugLog("Report validation failed: missing " + requiredSections[i], "ERROR");
             enhancedStatusLog("VALIDATE", "Validation failed", 4, 4, "Missing: " + requiredSections[i]);
             return false;
@@ -350,7 +350,7 @@ function saveReportSafely(file, report, reportType) {
                 file.copy(backupFile);
                 debugLog("Backup created: " + backupFile.name, "FILE");
                 enhancedStatusLog("FILE", "Backup created", 2, 8, "Backup: " + backupFile.name);
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 debugLog("Backup creation failed: " + exc.message, "WARN");
                 // Backup failed but continue - not critical
             }
@@ -381,7 +381,7 @@ function saveReportSafely(file, report, reportType) {
                       Math.round(ANALYSIS_CONFIG.maxReportSize / 1024) + "KB limit).");
                 debugLog("Report simplified due to size", "WARN");
                 enhancedStatusLog("FILE", "Report simplified", 5, 8, "Size reduced for compatibility");
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Report too large and simplification failed: " + exc.message);
                 return false;
             }
@@ -434,7 +434,7 @@ function saveReportSafely(file, report, reportType) {
         debugLog("Report saved successfully: " + file.length + " bytes", "FILE");
         return true;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Failed to save " + reportType + " report: " + exc.message);
         debugLog("Save operation failed: " + exc.message, "ERROR");
         enhancedStatusLog("FILE", "Save failed", 8, 8, "Error: " + exc.message);
@@ -493,7 +493,7 @@ function showProgressDialog(message, operation) {
     
     try {
         progressDialog.show();
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         return operation();
     }
     
@@ -536,7 +536,7 @@ function showProgressDialog(message, operation) {
         progressDialog.close();
         return result;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         progressDialog.close();
         $.writeln("[ERROR] Progress dialog operation failed: " + exc.message);
         throw exc;
@@ -586,7 +586,7 @@ function showBaselineCreatedDialog() {
                 var folder = Folder(safeGetProperty(currentDoc, 'filePath'));
                 folder.execute();
             }
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Could not open folder: " + exc.message);
         }
     };
@@ -650,7 +650,7 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
                 report.file.write(report.content);
                 report.file.close();
                 debugLog("Saved " + report.type + " report: " + report.file.name, "REPORTS");
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Failed to save " + report.type + ": " + exc.message);
                 debugLog("Failed to save " + report.type + ": " + exc.message, "ERROR");
                 return false;
@@ -662,7 +662,7 @@ function createComprehensiveReportSuite(differences, docPath, docName) {
         debugLog("Comprehensive report suite created successfully", "REPORTS");
         return true;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Report generation failed: " + exc.message);
         debugLog("Report generation failed: " + exc.message, "ERROR");
         return false;

@@ -63,11 +63,11 @@ function showEnhancedComparisonDialog(differences) {
     openFolderBtn.onClick = function() {
         try {
             var currentDoc = UTILITY_STATE.currentDocument;
-            if (currentDoc && safeGetProperty(currentDoc, 'filePath')) { // FIXED: Use safeGetProperty
+            if (currentDoc && safeGetProperty(currentDoc, 'filePath')) {
                 var folder = Folder(safeGetProperty(currentDoc, 'filePath'));
                 folder.execute();
             }
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Could not open folder: " + exc.message);
         }
     };
@@ -103,7 +103,7 @@ function exportAllReportsToFolder(differences) {
     var timestamp = new Date().getTime();
     var currentDoc = UTILITY_STATE.currentDocument;
     var docName = currentDoc ? 
-                  safeGetProperty(currentDoc, 'name', 'document').replace(/\.[^\.]+$/, "") : // FIXED: Use safeGetProperty
+                  safeGetProperty(currentDoc, 'name', 'document').replace(/\.[^\.]+$/, "") : 
                   "document_" + timestamp;
     
     try {
@@ -132,7 +132,7 @@ function exportAllReportsToFolder(differences) {
             jsonFile.write(JSON.stringify(reports.comparison, null, 2));
             jsonFile.close();
             savedFiles.push(jsonFile.name);
-        } catch (exc) { // FIXED: error -> exc
+        } catch (exc) {
             alert("Failed to save JSON report: " + exc.message);
             return;
         }
@@ -156,7 +156,7 @@ function exportAllReportsToFolder(differences) {
                 file.write(report.content);
                 file.close();
                 savedFiles.push(file.name);
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 alert("Failed to save " + report.file + ": " + exc.message);
                 return;
             }
@@ -176,7 +176,7 @@ function exportAllReportsToFolder(differences) {
               
         debugLog("Export completed successfully: " + savedFiles.length + " files", "EXPORT");
               
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Export failed: " + exc.message);
         debugLog("Export failed: " + exc.message, "ERROR");
         enhancedStatusLog("EXPORT", "Export failed", 100, 100, "Error: " + exc.message);
@@ -200,9 +200,9 @@ function analyzeDocument() {
         enhancedStatusLog("WORKFLOW", "Validating document", 5, 100, "Checking document state");
         
         // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
-        var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
-        var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
-        var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, ""); // FIXED: Use safeGetProperty
+        var docSaved = safeGetProperty(doc, 'saved', false);
+        var docPath = safeGetProperty(doc, 'filePath');
+        var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
         
         // Check if document is saved
         if (!docSaved) {
@@ -261,7 +261,7 @@ function analyzeDocument() {
         
         return report;
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         var errorMsg = "Analysis failed: " + exc.message;
         if (exc.line) errorMsg += "\nLine: " + exc.line;
         
@@ -284,9 +284,9 @@ function resetBaseline() {
     var doc = app.activeDocument;
     
     // OPTIMIZED: Cache document properties to avoid duplicate calls (Bug #3 fix)
-    var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
-    var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
-    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, ""); // FIXED: Use safeGetProperty
+    var docSaved = safeGetProperty(doc, 'saved', false);
+    var docPath = safeGetProperty(doc, 'filePath');
+    var docName = safeGetProperty(doc, 'name', 'document').replace(/\.[^\.]+$/, "");
     
     if (!docSaved || !docPath) {
         alert("Document must be saved before creating baseline.");
@@ -308,7 +308,7 @@ function resetBaseline() {
                 baselineFile.copy(backupFile);
                 debugLog("Baseline backup created: " + backupFile.name, "BASELINE");
                 enhancedStatusLog("WORKFLOW", "Backup created", 30, 100, "Backup: " + backupFile.name);
-            } catch (exc) { // FIXED: error -> exc
+            } catch (exc) {
                 debugLog("Backup creation failed: " + exc.message, "WARN");
             }
         }
@@ -342,7 +342,7 @@ function resetBaseline() {
             enhancedStatusLog("WORKFLOW", "Baseline reset failed", 100, 100, "Could not create new baseline");
         }
         
-    } catch (exc) { // FIXED: error -> exc
+    } catch (exc) {
         alert("Baseline reset failed: " + exc.message);
         debugLog("Baseline reset failed: " + exc.message, "ERROR");
         enhancedStatusLog("WORKFLOW", "Baseline reset failed", 100, 100, "Error: " + exc.message);
@@ -434,7 +434,7 @@ function showHelpDialog() {
     };
     
     enhancedStatusLog("UI", "Help dialog ready", 1, 1, "Documentation displayed");
-    dialog.show();
+    helpDialog.show();
 }
 
 // Main menu dialog with enhanced status information and mode selection
@@ -586,9 +586,9 @@ function getEnhancedStatusText() {
         status += "* Enhanced validation detects compatibility issues\n";
     } else {
         var doc = app.activeDocument;
-        var docName = safeGetProperty(doc, 'name', 'Unknown'); // FIXED: Use safeGetProperty
-        var docSaved = safeGetProperty(doc, 'saved', false); // FIXED: Use safeGetProperty
-        var docPath = safeGetProperty(doc, 'filePath'); // FIXED: Use safeGetProperty
+        var docName = safeGetProperty(doc, 'name', 'Unknown');
+        var docSaved = safeGetProperty(doc, 'saved', false);
+        var docPath = safeGetProperty(doc, 'filePath');
         
         status += "DOCUMENT: " + docName + "\n";
         
@@ -609,7 +609,7 @@ function getEnhancedStatusText() {
                     try {
                         var baselineDate = new Date(baselineFile.modified);
                         status += "BASELINE DATE: " + baselineDate.toLocaleString() + "\n";
-                    } catch (exc) { // FIXED: error -> exc
+                    } catch (exc) {
                         status += "BASELINE DATE: Unknown\n";
                     }
                 } else {
@@ -731,7 +731,7 @@ try {
     // Show main menu
     showMainMenu();
     
-} catch (exc) { // FIXED: error -> exc
+} catch (exc) {
     // Enhanced error handling for startup
     var errorMsg = "Enhanced InDesign Inspector v2.1-ESTK\n\n" +
                    "Initialization Error: " + exc.message + "\n\n" +
