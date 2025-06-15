@@ -3,42 +3,145 @@
 const fs = require('fs');
 const path = require('path');
 
-// Configuration
-const TARGET_FOLDER = './scripts'; // Adjust if needed - current folder is '.'
-const OUTPUT_FILE = 'InDesignDocInspectorAndComparer_ChunkBuilt.jsx';
-const CHUNK_PATTERN = /^InDesignDocInspectorAndComparer_Chunk_([0-9]+(?:\.[0-9]+)*)_.*\.jsx$/;
+// ============================================================================
+// BUILD MODE SELECTION - Comment/uncomment ONE of these lines
+// ============================================================================
 
-console.log('🔧 InDesign Inspector Chunk Builder');
-console.log('=====================================');
+//const BUILD_OLD_CHUNKS = true;   // Build original chunk-based system
+const BUILD_NEW_MODULES = true; // Build new modular system
 
-function discoverChunkFiles(folderPath) {
-    try {
-        const files = fs.readdirSync(folderPath);
-        const chunkFiles = [];
+// ============================================================================
+// CONFIGURATION 
+// ============================================================================
+
+const BUILD_CONFIG = {
+    // OLD CHUNK SYSTEM CONFIG
+    chunks: {
+        TARGET_FOLDER: './scripts',
+        OUTPUT_FILE: 'InDesignDocInspectorAndComparer_ChunkBuilt.jsx',
+        PATTERN: /^InDesignDocInspectorAndComparer_Chunk_([0-9]+(?:\.[0-9]+)*)_.*\.jsx$/,
+        FILES_TO_INCLUDE: [
+            'InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_2.0_EmergencyAnalysis.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_2.1_MinimalAnalysis.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_2.2_StandardAnalysis.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_2.3_AdvancedAnalysis.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_3_ComparisonFunctions.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_4_ReportGeneration.jsx',
+            'InDesignDocInspectorAndComparer_Chunk_5_MainInterfaceEntry.jsx',
+            
+            // Comment out chunks you don't want:
+            // 'InDesignDocInspectorAndComparer_Chunk_6_ExperimentalFeatures.jsx',
+        ]
+    },
+    
+    // NEW MODULE SYSTEM CONFIG  
+    modules: {
+        TARGET_FOLDER: './Modules',
+        OUTPUT_FILE: 'InDesignQueryTool_v3.0_Complete.jsx',
+        PATTERN: /^Module_([0-9]+\.[0-9]+)_.*\.jsx$/,
+        FILES_TO_INCLUDE: [
+            'Module_1.0_ConfigAndSafety.jsx',
+            'Module_2.0_DocumentAnalysisAndTreeBuilder.jsx', 
+            'Module_3.0_UIPanelAndControls.jsx',
+            'Module_4.0_ExportAndResultsDisplay.jsx',
+            'Module_5.0_MainEntryPoint.jsx',
+            
+            // Comment out modules you don't want:
+            // 'Module_6.0_ExperimentalFeatures.jsx',
+            // 'Module_7.0_DebugMode.jsx',
+        ]
+    },
+    
+    // Build options (apply to both systems)
+    ADD_DEBUG_COMMENTS: true,
+    ADD_TIMESTAMPS: true,
+    VALIDATE_FILES: true
+};
+
+// Determine which system to build
+const isChunkBuild = typeof BUILD_OLD_CHUNKS !== 'undefined' && BUILD_OLD_CHUNKS;
+const isModuleBuild = typeof BUILD_NEW_MODULES !== 'undefined' && BUILD_NEW_MODULES;
+
+if (isChunkBuild && isModuleBuild) {
+    console.error('❌ Error: Both BUILD_OLD_CHUNKS and BUILD_NEW_MODULES are enabled!');
+    console.error('   Comment out one of them at the top of this script');
+    process.exit(1);
+}
+
+if (!isChunkBuild && !isModuleBuild) {
+    console.error('❌ Error: Neither BUILD_OLD_CHUNKS nor BUILD_NEW_MODULES is enabled!');
+    console.error('   Uncomment one of them at the top of this script');
+    process.exit(1);
+}
+
+const CURRENT_CONFIG = isChunkBuild ? BUILD_CONFIG.chunks : BUILD_CONFIG.modules;
+const BUILD_TYPE = isChunkBuild ? 'CHUNKS' : 'MODULES';
+
+console.log(`🔧 InDesign ${BUILD_TYPE} Builder v2.0`);
+console.log('================================');
+console.log(`📂 Target folder: ${CURRENT_CONFIG.TARGET_FOLDER}`);
+console.log(`📄 Output file: ${CURRENT_CONFIG.OUTPUT_FILE}`);
+console.log(`🔨 Build type: ${BUILD_TYPE} System`);
+
+function parseConfiguredFiles() {
+    console.log(`\n📋 Processing configured ${BUILD_TYPE.toLowerCase()} list...`);
+    
+    const configuredFiles = [];
+    
+    CURRENT_CONFIG.FILES_TO_INCLUDE.forEach((filename, index) => {
+        // Skip empty lines and comments
+        const trimmed = filename.trim();
+        if (!trimmed || trimmed.startsWith('//')) {
+            console.log(`⏭️  Skipped: ${trimmed || '(empty line)'}`);
+            return;
+        }
         
-        files.forEach(file => {
-            const match = file.match(CHUNK_PATTERN);
-            if (match) {
-                const versionString = match[1]; // e.g., "2.1", "2.1.3", "7"
-                const fullPath = path.join(folderPath, file);
-                chunkFiles.push({
-                    filename: file,
-                    path: fullPath,
-                    versionString: versionString,
-                    versionArray: parseVersionNumber(versionString)
-                });
-                console.log(`📁 Found: ${file} (Version ${versionString})`);
-            }
+        // Validate file matches pattern
+        const match = trimmed.match(CURRENT_CONFIG.PATTERN);
+        if (!match) {
+            const expectedPattern = isChunkBuild ? 
+                'InDesignDocInspectorAndComparer_Chunk_X.X_Name.jsx' : 
+                'Module_X.X_Name.jsx';
+            console.error(`❌ Invalid filename format: ${trimmed}`);
+            console.error(`   Expected pattern: ${expectedPattern}`);
+            process.exit(1);
+        }
+        
+        const versionString = match[1]; // e.g., "1.0", "2.1"
+        const fullPath = path.join(CURRENT_CONFIG.TARGET_FOLDER, trimmed);
+        
+        // Check if file exists
+        if (BUILD_CONFIG.VALIDATE_FILES && !fs.existsSync(fullPath)) {
+            console.error(`❌ File not found: ${fullPath}`);
+            process.exit(1);
+        }
+        
+        configuredFiles.push({
+            filename: trimmed,
+            path: fullPath,
+            versionString: versionString,
+            versionArray: parseVersionNumber(versionString),
+            order: index // Preserve configuration order
         });
         
-        // Sort by version number using proper version comparison
-        chunkFiles.sort((a, b) => compareVersions(a.versionArray, b.versionArray));
-        
-        return chunkFiles;
-    } catch (error) {
-        console.error(`❌ Error reading folder ${folderPath}:`, error.message);
+        console.log(`✅ Included: ${trimmed} (Version ${versionString})`);
+    });
+    
+    if (configuredFiles.length === 0) {
+        console.error(`❌ No ${BUILD_TYPE.toLowerCase()} configured for build!`);
+        console.error('   Uncomment files in FILES_TO_INCLUDE array');
         process.exit(1);
     }
+    
+    // Sort by version number, but preserve explicit order if versions are same
+    configuredFiles.sort((a, b) => {
+        const versionCompare = compareVersions(a.versionArray, b.versionArray);
+        if (versionCompare !== 0) return versionCompare;
+        return a.order - b.order; // Preserve configuration order for same versions
+    });
+    
+    return configuredFiles;
 }
 
 // Parse version string into array for proper comparison
@@ -46,7 +149,7 @@ function parseVersionNumber(versionString) {
     return versionString.split('.').map(num => parseInt(num, 10));
 }
 
-// Compare version arrays (e.g., [2,1] vs [2,1,3] vs [7])
+// Compare version arrays (e.g., [1,0] vs [2,0] vs [1,1])
 function compareVersions(a, b) {
     const maxLength = Math.max(a.length, b.length);
     
@@ -61,138 +164,262 @@ function compareVersions(a, b) {
     return 0; // Equal
 }
 
-function buildCombinedFile(chunkFiles, outputPath) {
-    console.log('\n🔨 Building combined file...');
+function buildCombinedFile(files, outputPath) {
+    console.log(`\n🔨 Building combined ${BUILD_TYPE.toLowerCase()} file...`);
     
     let combinedContent = '';
     
-    // Add header comment
-    combinedContent += '//\n';
-    combinedContent += '// Enhanced InDesign Document Inspector & Comparison Tool v2.1-ESTK\n';
-    combinedContent += '// COMPLETE ASSEMBLED VERSION - All Chunks Combined\n';
-    combinedContent += '// Generated: ' + new Date().toISOString() + '\n';
-    combinedContent += '// \n';
-    combinedContent += '// This file contains all ' + chunkFiles.length + ' chunks assembled in proper order:\n';
+    // Add header comment based on build type
+    if (isChunkBuild) {
+        combinedContent += '//\n';
+        combinedContent += '// Enhanced InDesign Document Inspector & Comparison Tool v2.1-ESTK\n';
+        combinedContent += '// COMPLETE ASSEMBLED VERSION - All Chunks Combined\n';
+        if (BUILD_CONFIG.ADD_TIMESTAMPS) {
+            combinedContent += '// Generated: ' + new Date().toISOString() + '\n';
+        }
+        combinedContent += '// \n';
+        combinedContent += '// This file contains all ' + files.length + ' chunks assembled in proper order:\n';
+    } else {
+        combinedContent += '//\n';
+        combinedContent += '// InDesign Document Query Tool v3.0 - Complete Combined Build\n';
+        combinedContent += '// Modular Architecture - All Modules Assembled\n';
+        if (BUILD_CONFIG.ADD_TIMESTAMPS) {
+            combinedContent += '// Generated: ' + new Date().toISOString() + '\n';
+        }
+        combinedContent += '// \n';
+        combinedContent += '// This file contains ' + files.length + ' modules assembled in order:\n';
+    }
     
-    chunkFiles.forEach((chunk, index) => {
-        combinedContent += '// Chunk ' + (index + 1) + ' (v' + chunk.versionString + '): ' + chunk.filename + '\n';
+    files.forEach((item, index) => {
+        const itemType = isChunkBuild ? 'Chunk' : 'Module';
+        combinedContent += '// ' + itemType + ' ' + (index + 1) + ' (v' + item.versionString + '): ' + item.filename + '\n';
     });
     
     combinedContent += '//\n';
-    combinedContent += '// DO NOT EDIT THIS FILE DIRECTLY - Edit individual chunk files instead\n';
+    if (isChunkBuild) {
+        combinedContent += '// USAGE: Run this script in InDesign or ESTK for complete analysis functionality\n';
+        combinedContent += '// Includes progressive safety modes and comprehensive document comparison\n';
+    } else {
+        combinedContent += '// USAGE: Run this script in InDesign or ESTK for configurable document querying\n';
+        combinedContent += '// All modules are self-contained and execute in proper order\n';
+    }
+    combinedContent += '//\n';
+    combinedContent += '// DO NOT EDIT THIS FILE DIRECTLY - Edit individual ' + (isChunkBuild ? 'chunk' : 'module') + ' files instead\n';
     combinedContent += '//\n\n';
     
-    // Process each chunk file
-    chunkFiles.forEach((chunk, index) => {
-        console.log(`📝 Processing: ${chunk.filename} (Version ${chunk.versionString})`);
+    // Add verification code if debug enabled
+    if (BUILD_CONFIG.ADD_DEBUG_COMMENTS) {
+        const itemType = isChunkBuild ? 'Chunk' : 'Module';
+        combinedContent += '// ' + itemType + ' Loading Verification\n';
+        combinedContent += 'var ' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED = [];\n';
+        combinedContent += 'function verify' + itemType + 'Load(itemName) {\n';
+        combinedContent += '    ' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED.push(itemName);\n';
+        combinedContent += '    $.writeln("✓ ' + itemType + ' loaded: " + itemName);\n';
+        combinedContent += '}\n\n';
+    }
+    
+    // Process each file
+    files.forEach((item, index) => {
+        const itemType = isChunkBuild ? 'CHUNK' : 'MODULE';
+        console.log(`📝 Processing: ${item.filename} (Version ${item.versionString})`);
         
         try {
-            const content = fs.readFileSync(chunk.path, 'utf8');
+            const content = fs.readFileSync(item.path, 'utf8');
             
-            // Add chunk separator comment
-            combinedContent += '// ' + '='.repeat(76) + '\n';
-            combinedContent += '// CHUNK ' + (index + 1) + ' (v' + chunk.versionString + '): ' + chunk.filename.toUpperCase() + '\n';
-            combinedContent += '// ' + '='.repeat(76) + '\n\n';
+            // Add separator comment
+            combinedContent += '// ' + '='.repeat(78) + '\n';
+            combinedContent += '// ' + itemType + ' ' + (index + 1) + ' (v' + item.versionString + '): ' + item.filename.toUpperCase() + '\n';
+            combinedContent += '// ' + '='.repeat(78) + '\n\n';
             
-            // Add the chunk content
+            // Add verification call if debug enabled
+            if (BUILD_CONFIG.ADD_DEBUG_COMMENTS) {
+                const itemName = item.filename.replace('.jsx', '');
+                combinedContent += `verify${isChunkBuild ? 'Chunk' : 'Module'}Load("${itemName}");\n\n`;
+            }
+            
+            // Add the content
             combinedContent += content;
             
-            // Add spacing between chunks (except after last chunk)
-            if (index < chunkFiles.length - 1) {
+            // Add spacing between items (except after last)
+            if (index < files.length - 1) {
                 combinedContent += '\n\n';
             }
             
         } catch (error) {
-            console.error(`❌ Error reading ${chunk.filename}:`, error.message);
+            console.error(`❌ Error reading ${item.filename}:`, error.message);
             process.exit(1);
         }
     });
     
-    // Write the combined file
+    // Add footer with verification
+    if (BUILD_CONFIG.ADD_DEBUG_COMMENTS) {
+        const itemType = isChunkBuild ? 'Chunk' : 'Module';
+        const systemName = isChunkBuild ? 'InDesign Inspector v2.1-ESTK' : 'InDesign Query Tool v3.0';
+        combinedContent += '\n\n// ' + '='.repeat(78) + '\n';
+        combinedContent += '// BUILD VERIFICATION\n';
+        combinedContent += '// ' + '='.repeat(78) + '\n\n';
+        combinedContent += '$.writeln("🎉 ' + systemName + ' - All " + ' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED.length + " ' + itemType.toLowerCase() + 's loaded successfully!");\n';
+        combinedContent += 'if (' + (isChunkBuild ? 'CHUNKS' : 'MODULES') + '_LOADED.length === ' + files.length + ') {\n';
+        combinedContent += '    $.writeln("✅ Build verification passed - ready for use");\n';
+        combinedContent += '} else {\n';
+        combinedContent += '    $.writeln("⚠️  ' + itemType + ' count mismatch - check for loading errors");\n';
+        combinedContent += '}\n';
+    }
+    
+    // Write the combined file to the same directory as source files
+    const outputInSourceDir = path.join(CURRENT_CONFIG.TARGET_FOLDER, CURRENT_CONFIG.OUTPUT_FILE);
+    
     try {
-        fs.writeFileSync(outputPath, combinedContent, 'utf8');
-        console.log(`✅ Successfully created: ${outputPath}`);
+        fs.writeFileSync(outputInSourceDir, combinedContent, 'utf8');
+        console.log(`✅ Successfully created: ${outputInSourceDir}`);
         
         // Show file stats
-        const stats = fs.statSync(outputPath);
+        const stats = fs.statSync(outputInSourceDir);
         const sizeKB = Math.round(stats.size / 1024);
         console.log(`📊 File size: ${sizeKB} KB (${stats.size} bytes)`);
-        console.log(`📊 Total chunks: ${chunkFiles.length}`);
+        console.log(`📊 Total ${BUILD_TYPE.toLowerCase()}: ${files.length}`);
         
         // Show version summary
-        console.log(`📊 Version range: ${chunkFiles[0].versionString} → ${chunkFiles[chunkFiles.length - 1].versionString}`);
+        const versions = files.map(f => f.versionString);
+        const uniqueVersions = [...new Set(versions)];
+        console.log(`📊 ${isChunkBuild ? 'Chunk' : 'Module'} versions: ${uniqueVersions.join(', ')}`);
+        
+        return outputInSourceDir;
         
     } catch (error) {
-        console.error(`❌ Error writing ${outputPath}:`, error.message);
+        console.error(`❌ Error writing ${outputInSourceDir}:`, error.message);
         process.exit(1);
     }
 }
 
-function validateChunkSequence(chunkFiles) {
-    console.log('\n🔍 Validating chunk sequence...');
+function validateBuildConfig() {
+    console.log('\n🔍 Validating build configuration...');
     
-    if (chunkFiles.length === 0) {
-        console.error('❌ No chunk files found matching pattern!');
-        console.log('Expected pattern: InDesignDocInspectorAndComparer_Chunk_[VERSION]_*.jsx');
-        console.log('Examples: InDesignDocInspectorAndComparer_Chunk_2.1_Config.jsx');
-        console.log('         InDesignDocInspectorAndComparer_Chunk_2.1.3_Hotfix.jsx');
-        console.log('         InDesignDocInspectorAndComparer_Chunk_7_NewFeature.jsx');
+    // Check if target folder exists
+    if (!fs.existsSync(CURRENT_CONFIG.TARGET_FOLDER)) {
+        console.error(`❌ Target folder does not exist: ${CURRENT_CONFIG.TARGET_FOLDER}`);
+        console.error(`   Update TARGET_FOLDER in BUILD_CONFIG.${BUILD_TYPE.toLowerCase()}`);
         process.exit(1);
     }
     
-    // Check for duplicate versions
-    const versionMap = new Map();
-    for (let i = 0; i < chunkFiles.length; i++) {
-        const chunk = chunkFiles[i];
-        if (versionMap.has(chunk.versionString)) {
-            console.error(`❌ Duplicate version ${chunk.versionString} found!`);
-            console.error(`   First file: ${versionMap.get(chunk.versionString)}`);
-            console.error(`   Second file: ${chunk.filename}`);
-            process.exit(1);
-        }
-        versionMap.set(chunk.versionString, chunk.filename);
-    }
+    // Check for files in target folder
+    const filesInFolder = fs.readdirSync(CURRENT_CONFIG.TARGET_FOLDER)
+        .filter(f => f.match(CURRENT_CONFIG.PATTERN));
     
-    // Show sorted sequence
-    console.log('✅ Found chunks in sorted order:');
-    chunkFiles.forEach((chunk, index) => {
-        console.log(`   ${index + 1}. Version ${chunk.versionString}: ${chunk.filename}`);
+    console.log(`📁 Found ${filesInFolder.length} ${BUILD_TYPE.toLowerCase()} files in target folder:`);
+    filesInFolder.forEach(file => {
+        console.log(`   ${file}`);
     });
     
-    console.log(`✅ Chunk sequence validated: ${chunkFiles.length} chunks found and sorted`);
+    // Check if output file would overwrite an existing important file
+    const outputPath = path.join(CURRENT_CONFIG.TARGET_FOLDER, CURRENT_CONFIG.OUTPUT_FILE);
+    if (fs.existsSync(outputPath)) {
+        console.log(`⚠️  Output file already exists: ${CURRENT_CONFIG.OUTPUT_FILE}`);
+        console.log('   It will be overwritten');
+    }
+    
+    console.log('✅ Build configuration validated');
     return true;
+}
+
+function showConfigInstructions() {
+    console.log('\n📖 Configuration Instructions:');
+    console.log('==============================');
+    console.log('BUILD MODE SELECTION (at top of script):');
+    console.log('- To build OLD CHUNKS: Uncomment "const BUILD_OLD_CHUNKS = true;"');
+    console.log('- To build NEW MODULES: Uncomment "const BUILD_NEW_MODULES = true;"');
+    console.log('- Only ONE can be enabled at a time');
+    console.log('');
+    console.log('FILE INCLUSION/EXCLUSION:');
+    console.log('- To exclude files: Add // before filename in FILES_TO_INCLUDE');
+    console.log('- To include files: Remove // from beginning of line');
+    console.log('');
+    if (isChunkBuild) {
+        console.log('CHUNK SYSTEM:');
+        console.log('- Pattern: InDesignDocInspectorAndComparer_Chunk_X.X_Name.jsx');
+        console.log('- Output: InDesignDocInspectorAndComparer_ChunkBuilt.jsx');
+        console.log('- Location: ./scripts/ folder');
+    } else {
+        console.log('MODULE SYSTEM:');
+        console.log('- Pattern: Module_X.X_Name.jsx');
+        console.log('- Output: InDesignQueryTool_v3.0_Complete.jsx');
+        console.log('- Location: ./Modules/ folder');
+    }
+    console.log('');
+    console.log('File order: Files are sorted by version number, then config order');
+}
+
+function showSystemInfo() {
+    console.log('\n📋 Build System Information:');
+    console.log('============================');
+    console.log('DUAL SYSTEM SUPPORT:');
+    console.log('This script can build either:');
+    console.log('1. OLD CHUNK SYSTEM (v2.1-ESTK)');
+    console.log('   - Original comprehensive inspector with progressive modes');
+    console.log('   - Files: InDesignDocInspectorAndComparer_Chunk_*.jsx');
+    console.log('   - Output: InDesignDocInspectorAndComparer_ChunkBuilt.jsx');
+    console.log('');
+    console.log('2. NEW MODULE SYSTEM (v3.0)');
+    console.log('   - Lightweight configurable query tool');
+    console.log('   - Files: Module_*.jsx');
+    console.log('   - Output: InDesignQueryTool_v3.0_Complete.jsx');
+    console.log('');
+    console.log('SCRIPT LOCATION:');
+    console.log('Save this script (build-scripts.js) in your project root:');
+    console.log('');
+    console.log('PROJECT_ROOT/');
+    console.log('├── build-scripts.js  (this file)');
+    console.log('├── scripts/          (old chunk files)');
+    console.log('│   ├── InDesignDocInspectorAndComparer_Chunk_1_ConfigAndUtils.jsx');
+    console.log('│   ├── InDesignDocInspectorAndComparer_Chunk_2.0_EmergencyAnalysis.jsx');
+    console.log('│   └── ...');
+    console.log('└── Modules/          (new module files)');
+    console.log('    ├── Module_1.0_ConfigAndSafety.jsx');
+    console.log('    ├── Module_2.0_DocumentAnalysisAndTreeBuilder.jsx');
+    console.log('    └── ...');
 }
 
 // Main execution
 function main() {
-    const targetFolder = process.argv[2] || TARGET_FOLDER;
-    const outputFile = process.argv[3] || OUTPUT_FILE;
+    console.log('');
     
-    console.log(`📂 Target folder: ${targetFolder}`);
-    console.log(`📄 Output file: ${outputFile}`);
-    console.log(`🔍 Pattern: ${CHUNK_PATTERN}`);
-    console.log(`📋 Supports versions like: 2.1, 2.1.3, 7, etc.\n`);
+    // Show system info first
+    showSystemInfo();
     
-    // Check if target folder exists
-    if (!fs.existsSync(targetFolder)) {
-        console.error(`❌ Target folder does not exist: ${targetFolder}`);
-        process.exit(1);
+    // Allow command line override of target folder
+    if (process.argv[2]) {
+        CURRENT_CONFIG.TARGET_FOLDER = process.argv[2];
+        console.log(`📁 Target folder overridden: ${CURRENT_CONFIG.TARGET_FOLDER}`);
     }
     
-    // Discover chunk files
-    const chunkFiles = discoverChunkFiles(targetFolder);
+    // Allow command line override of output file
+    if (process.argv[3]) {
+        CURRENT_CONFIG.OUTPUT_FILE = process.argv[3];
+        console.log(`📄 Output file overridden: ${CURRENT_CONFIG.OUTPUT_FILE}`);
+    }
     
-    // Validate sequence
-    validateChunkSequence(chunkFiles);
+    // Validate configuration
+    validateBuildConfig();
+    
+    // Parse configured files
+    const files = parseConfiguredFiles();
     
     // Build combined file
-    buildCombinedFile(chunkFiles, outputFile);
+    const outputPath = buildCombinedFile(files, CURRENT_CONFIG.OUTPUT_FILE);
     
     console.log('\n🎉 Build complete!');
-    console.log(`\nNext steps:`);
-    console.log(`1. Test the generated file: ${outputFile}`);
-    console.log(`2. Copy to InDesign Scripts folder if needed`);
-    console.log(`3. Run from ESTK or InDesign Scripts panel`);
+    console.log('\nGenerated file:');
+    console.log(`📄 ${outputPath}`);
+    console.log('\nNext steps:');
+    console.log('1. Test the generated file in InDesign');
+    console.log('2. Copy to InDesign Scripts folder if needed');
+    console.log('3. Run from ESTK or InDesign Scripts panel');
+    
+    if (BUILD_CONFIG.ADD_DEBUG_COMMENTS) {
+        console.log('\n💡 Debug mode enabled - check console for loading verification');
+    }
+    
+    showConfigInstructions();
 }
 
 // Run the script
