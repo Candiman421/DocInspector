@@ -1,69 +1,213 @@
 // ============================================================================
-// CHUNK 2.2: TEXT ANALYSIS - STANDARD MODE WITH EMERGENCY BAILOUTS
-// ES3 COMPATIBLE VERSION - PROGRESSIVE TEXT CONTENT ANALYSIS
+// CHUNK 2.2: STANDARD ANALYSIS MODE - PROGRESSIVE TEXT ANALYSIS WITH SAFETY
+// ES3 COMPATIBLE VERSION - TRUE PROGRESSIVE SAFETY BUILDING ON BASIC MODE
 // ============================================================================
 
 // ============================================================================
-// STANDARD MODE: TEXT CONTENT ANALYSIS WITH BAILOUTS
+// STANDARD MODE: TEXT CONTENT ANALYSIS WITH ENHANCED SAFETY
 // ============================================================================
 
 function createStandardDocumentReport(doc) {
-    enhancedStatusLog("STANDARD", "Starting standard document analysis", 0, 10, "Text analysis with bailouts");
+    enhancedStatusLog("STANDARD", "Starting standard document analysis", 0, 15, "Text analysis with progressive safety");
     
-    // Start with basic report
+    // Start with basic report as foundation - TRUE PROGRESSIVE SAFETY
+    enhancedStatusLog("STANDARD", "Building on basic analysis", 1, 15, "Getting basic report foundation");
     var report = createBasicDocumentReport(doc);
     
-    // If basic failed, don't proceed
-    if (report.error || report.fallbackToMinimal) {
-        enhancedStatusLog("STANDARD", "Basic analysis failed", 1, 10, "Cannot proceed to standard mode");
+    // If basic failed or used emergency bailouts, don't proceed to standard
+    if (report.error || report.fallbackToMinimal || hasEmergencyBailouts(report)) {
+        enhancedStatusLog("STANDARD", "Basic analysis issues", 2, 15, "Cannot proceed to standard mode safely");
+        report.standardModeSkipped = true;
+        report.skipReason = "Basic analysis had issues - staying in basic mode for safety";
         return report;
     }
     
     // Upgrade to standard mode
     report.analysisVersion = "2.1-estk-standard";
     report.mode = "STANDARD_TEXT_ANALYSIS";
+    report.safetyLevel = "progressive_safety";
     
-    var timeout = MODE_TIMEOUTS.standard;
+    var standardStartTime = new Date().getTime();
+    var standardTimeout = ENHANCED_ANALYSIS_CONFIG.modes.standard.timeout;
     
     try {
+        // Enhanced pre-testing for standard mode collections
+        enhancedStatusLog("STANDARD", "Pre-testing standard collections", 3, 15, "Testing text-related collections");
+        report.standardPreTestResults = preTestStandardCollections(doc);
+        
+        // Only proceed if we have safe text-related collections
+        if (!hasRequiredStandardCollections(report.standardPreTestResults)) {
+            enhancedStatusLog("STANDARD", "Standard collections not safe", 4, 15, "Cannot do text analysis safely");
+            report.textAnalysisSkipped = true;
+            report.skipReason = "Text collections failed safety testing";
+            return report;
+        }
+        
         // Enhanced text frame analysis (with content sampling)
-        enhancedStatusLog("STANDARD", "Adding text frame analysis", 3, 10, "Limited content sampling");
-        report.textFrames = emergencyAnalyzeSection("textFrames", function() {
-            return getStandardTextFramesInfo(doc);
-        }, timeout, 4, 10);
+        enhancedStatusLog("STANDARD", "Adding text frame analysis", 5, 15, "Safe content sampling");
+        report.textFrames = emergencyAnalyzeSection("standardTextFrames", function() {
+            return getStandardTextFramesInfo(doc, report.standardPreTestResults);
+        }, standardTimeout / 3, 7, 15);
         
-        // Story analysis (with content previews)
-        enhancedStatusLog("STANDARD", "Adding story analysis", 5, 10, "Story threading and previews");
-        report.stories = emergencyAnalyzeSection("stories", function() {
-            return getStandardStoriesInfo(doc);
-        }, timeout, 6, 10);
+        // Story analysis (with content previews) - only if stories are safe
+        if (arrayIndexOf(report.standardPreTestResults.safe, 'stories') !== -1) {
+            enhancedStatusLog("STANDARD", "Adding story analysis", 9, 15, "Story threading and previews");
+            report.stories = emergencyAnalyzeSection("standardStories", function() {
+                return getStandardStoriesInfo(doc, report.standardPreTestResults);
+            }, standardTimeout / 3, 10, 15);
+        } else {
+            enhancedStatusLog("STANDARD", "Skipping story analysis", 9, 15, "Stories collection not safe");
+            report.stories = {
+                skipped: true,
+                reason: "Stories collection failed safety testing"
+            };
+        }
         
-        // Text content summary (safe sampling)
-        enhancedStatusLog("STANDARD", "Adding text content summary", 7, 10, "Safe text content analysis");
-        report.textContent = emergencyAnalyzeSection("textContent", function() {
-            return getStandardTextContent(doc);
-        }, timeout, 8, 10);
+        // Text content summary (safe sampling) - core of standard mode
+        enhancedStatusLog("STANDARD", "Adding text content analysis", 11, 15, "Safe text content sampling");
+        report.textContent = emergencyAnalyzeSection("standardTextContent", function() {
+            return getStandardTextContent(doc, report.standardPreTestResults);
+        }, standardTimeout / 3, 13, 15);
         
-        enhancedStatusLog("STANDARD", "Standard analysis completed", 10, 10, "Text analysis successful");
+        var standardDuration = new Date().getTime() - standardStartTime;
+        report.standardProcessingTime = standardDuration;
+        
+        enhancedStatusLog("STANDARD", "Standard analysis completed", 15, 15, 
+            "Text analysis completed in " + standardDuration + "ms");
+        
+        // Check if standard mode processing was reasonable
+        if (standardDuration > standardTimeout) {
+            report.warnings = report.warnings || [];
+            report.warnings.push("Standard analysis exceeded timeout (" + standardDuration + "ms) - document may be complex");
+        }
         
     } catch (exc) {
-        enhancedStatusLog("STANDARD", "Standard analysis failed", 10, 10, "Error: " + exc.message);
-        report.error = "Standard analysis failed: " + exc.message;
+        enhancedStatusLog("STANDARD", "Standard analysis failed", 15, 15, "Error: " + exc.message);
+        report.errors = report.errors || [];
+        report.errors.push("Standard analysis failed: " + exc.message);
         report.partialResults = true;
+        report.standardProcessingTime = new Date().getTime() - standardStartTime;
     }
     
     return report;
 }
 
+// Check if basic report has emergency bailouts that prevent standard mode
+function hasEmergencyBailouts(basicReport) {
+    if (!basicReport) return true;
+    
+    // Check for bailouts in key sections
+    var keyBasicSections = ['documentInfo', 'pageInfo', 'textInfo', 'layerInfo'];
+    
+    for (var i = 0; i < keyBasicSections.length; i++) {
+        var section = basicReport[keyBasicSections[i]];
+        if (section && section.emergencyBailout) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Check if we have the required collections for standard mode
+function hasRequiredStandardCollections(preTestResults) {
+    if (!preTestResults || !preTestResults.safe) return false;
+    
+    // Standard mode requires at least textFrames to be safe for text analysis
+    return arrayIndexOf(preTestResults.safe, 'textFrames') !== -1;
+}
+
+// Pre-test collections specifically for standard mode
+function preTestStandardCollections(doc) {
+    var standardCollections = createModeFilteredCollectionList("standard");
+    var testResults = {
+        tested: [],
+        safe: [],
+        unsafe: [],
+        textRelatedSafe: [],
+        processingTime: 0
+    };
+    
+    var startTime = new Date().getTime();
+    
+    enhancedStatusLog("STANDARD_PRETEST", "Testing standard collections", 0, standardCollections.length, 
+        "Pre-testing " + standardCollections.length + " collections for text analysis");
+    
+    for (var i = 0; i < standardCollections.length; i++) {
+        var collName = standardCollections[i];
+        
+        try {
+            enhancedStatusLog("STANDARD_PRETEST", "Testing " + collName, i + 1, standardCollections.length, 
+                "Collection safety for standard mode");
+            
+            var testResult = testCollectionSafety(doc, collName, 
+                ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess / 4);
+            
+            testResults.tested.push({
+                name: collName,
+                result: testResult
+            });
+            
+            if (testResult.safety === "safe" || testResult.safety === "moderate") {
+                testResults.safe.push(collName);
+                
+                // Track text-related collections separately
+                if (collName === 'textFrames' || collName === 'stories') {
+                    testResults.textRelatedSafe.push(collName);
+                    enhancedStatusLog("STANDARD_PRETEST", collName + " is text-safe", i + 1, standardCollections.length, 
+                        "Safe for text analysis");
+                } else {
+                    enhancedStatusLog("STANDARD_PRETEST", collName + " is safe", i + 1, standardCollections.length, 
+                        "Safety: " + testResult.safety);
+                }
+            } else {
+                testResults.unsafe.push(collName);
+                enhancedStatusLog("STANDARD_PRETEST", collName + " is unsafe", i + 1, standardCollections.length, 
+                    "Safety: " + testResult.safety + " - " + testResult.error);
+            }
+            
+        } catch (exc) {
+            testResults.unsafe.push(collName);
+            enhancedStatusLog("STANDARD_PRETEST", collName + " test failed", i + 1, standardCollections.length, 
+                "Error: " + exc.message);
+        }
+    }
+    
+    testResults.processingTime = new Date().getTime() - startTime;
+    
+    enhancedStatusLog("STANDARD_PRETEST", "Standard pre-testing completed", standardCollections.length, standardCollections.length, 
+        "Safe: " + testResults.safe.length + ", Text-safe: " + testResults.textRelatedSafe.length);
+    
+    return testResults;
+}
+
 // ============================================================================
-// STANDARD TEXT ANALYSIS FUNCTIONS - LIMITED SAMPLING
+// STANDARD TEXT ANALYSIS FUNCTIONS - LIMITED SAMPLING WITH SAFETY
 // ============================================================================
 
-function getStandardTextFramesInfo(doc) {
-    enhancedStatusLog("STANDARD_TEXT", "Analyzing text frames", 0, 5, "Limited sampling with bailouts");
+function getStandardTextFramesInfo(doc, preTestResults) {
+    enhancedStatusLog("STANDARD_TEXT", "Analyzing text frames", 0, 8, "Limited sampling with progressive safety");
     
-    var textFrames = safeGetProperty(doc, 'textFrames');
-    var frameCount = safeGetLength(textFrames);
+    // Only proceed if textFrames passed pre-testing
+    if (!preTestResults || arrayIndexOf(preTestResults.safe, 'textFrames') === -1) {
+        return {
+            skipped: true,
+            reason: "TextFrames collection failed safety pre-testing",
+            analysisMode: "standard",
+            recommendation: "Use basic mode for this document"
+        };
+    }
+    
+    var textFrames = progressiveCollectionAccess(doc, 'textFrames', 'standard');
+    if (!textFrames) {
+        return {
+            error: "Progressive collection access denied textFrames for standard mode",
+            analysisMode: "standard"
+        };
+    }
+    
+    var frameCount = emergencyGetLength(textFrames, 
+        ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess);
     
     if (frameCount === 0) {
         return {
@@ -73,60 +217,75 @@ function getStandardTextFramesInfo(doc) {
         };
     }
     
-    // Limit sampling in standard mode for safety
-    var sampleLimit = Math.min(frameCount, 5); // Only sample first 5 frames
+    // Progressive sampling for standard mode - more conservative than comprehensive
+    var sampleLimit = Math.min(frameCount, 8); // Increased from 5 but still limited
     var frameDetails = [];
-    var timeoutPerFrame = 500; // 500ms max per frame
+    var timeoutPerFrame = ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess / sampleLimit;
     
-    enhancedStatusLog("STANDARD_TEXT", "Sampling text frames", 1, 5, 
+    enhancedStatusLog("STANDARD_TEXT", "Sampling text frames", 1, 8, 
         "Processing " + sampleLimit + " of " + frameCount + " frames");
     
     for (var i = 0; i < sampleLimit; i++) {
         var frameStart = new Date().getTime();
         
         try {
+            enhancedStatusLog("STANDARD_TEXT", "Processing frame " + (i + 1), 2 + i, 8, 
+                "Frame " + (i + 1) + " of " + sampleLimit);
+            
             var frame = null;
             
-            // Try multiple access methods with timeout
-            try {
-                frame = textFrames[i];
-            } catch (e1) {
+            // Enhanced access with progressive safety
+            var frameResult = emergencyBailoutHandler(function() {
                 try {
+                    frame = textFrames[i];
+                    return frame;
+                } catch (e1) {
                     if (textFrames.item) {
-                        frame = textFrames.item(i);
+                        return textFrames.item(i);
                     }
-                } catch (e2) {
-                    enhancedStatusLog("STANDARD_TEXT", "Frame access failed", 2, 5, 
-                        "Frame " + i + " inaccessible");
-                    continue;
+                    throw e1;
                 }
+            }, timeoutPerFrame);
+            
+            if (frameResult.bailout || !frameResult.result) {
+                enhancedStatusLog("STANDARD_TEXT", "Frame access failed", 2 + i, 8, 
+                    "Frame " + i + " not accessible - " + (frameResult.error || "timeout"));
+                frameDetails.push({
+                    index: i,
+                    error: "Frame access failed: " + (frameResult.error || "timeout"),
+                    emergencySkip: true,
+                    mode: "standard"
+                });
+                continue;
             }
             
-            if (frame) {
-                var frameAnalysis = analyzeTextFrameSafely(frame, i, timeoutPerFrame);
-                frameDetails.push(frameAnalysis);
-                
-                // Check processing time
-                var frameDuration = new Date().getTime() - frameStart;
-                if (frameDuration > timeoutPerFrame) {
-                    enhancedStatusLog("STANDARD_TEXT", "Frame timeout", 3, 5, 
-                        "Frame " + i + " took " + frameDuration + "ms - stopping for safety");
-                    break;
-                }
+            frame = frameResult.result;
+            
+            // Analyze frame safely with standard mode constraints
+            var frameAnalysis = analyzeTextFrameForStandard(frame, i, timeoutPerFrame);
+            frameDetails.push(frameAnalysis);
+            
+            // Check frame processing time
+            var frameDuration = new Date().getTime() - frameStart;
+            if (frameDuration > timeoutPerFrame) {
+                enhancedStatusLog("STANDARD_TEXT", "Frame timeout", 2 + i, 8, 
+                    "Frame " + i + " took " + frameDuration + "ms - stopping for safety");
+                break;
             }
             
         } catch (exc) {
-            enhancedStatusLog("STANDARD_TEXT", "Frame processing error", 3, 5, 
+            enhancedStatusLog("STANDARD_TEXT", "Frame processing error", 2 + i, 8, 
                 "Frame " + i + ": " + exc.message);
             frameDetails.push({
                 index: i,
                 error: "Processing failed: " + exc.message,
-                emergencySkip: true
+                emergencySkip: true,
+                mode: "standard"
             });
         }
     }
     
-    enhancedStatusLog("STANDARD_TEXT", "Text frame sampling completed", 5, 5, 
+    enhancedStatusLog("STANDARD_TEXT", "Text frame sampling completed", 8, 8, 
         "Processed " + frameDetails.length + " frames safely");
     
     return {
@@ -135,61 +294,175 @@ function getStandardTextFramesInfo(doc) {
         sampleLimit: sampleLimit,
         frameDetails: frameDetails,
         analysisMode: "standard",
-        note: "Limited sampling for safety - increase mode for full analysis"
+        progressiveSafety: true,
+        note: "Limited sampling for safety and performance - use comprehensive mode for full analysis"
     };
 }
 
-function analyzeTextFrameSafely(textFrame, frameIndex, timeoutMs) {
+function analyzeTextFrameForStandard(textFrame, frameIndex, timeoutMs) {
     var startTime = new Date().getTime();
     
     var analysis = {
         index: frameIndex,
-        id: safeGetProperty(textFrame, 'id'),
-        bounds: safeGetProperty(textFrame, 'bounds'),
-        overflows: safeGetProperty(textFrame, 'overflows', false),
-        layer: safeGetProperty(safeGetProperty(textFrame, 'itemLayer'), 'name'),
-        emergencyAnalysis: true
+        mode: "standard",
+        progressiveSafety: true,
+        processingTime: 0
     };
     
-    // Try to get text content with timeout protection
     try {
-        var content = safeGetProperty(textFrame, 'contents');
-        if (content && typeof content === 'string') {
-            analysis.hasText = true;
-            analysis.characterCount = content.length;
-            analysis.textPreview = content.substring(0, 30) + (content.length > 30 ? "..." : "");
-            
-            // Quick word count (ES3 compatible)
-            var words = content.split(/\s+/);
-            var wordCount = 0;
-            for (var i = 0; i < words.length && i < 100; i++) { // Limit word counting
-                if (words[i].length > 0) wordCount++;
-            }
-            analysis.wordCount = wordCount;
-        } else {
-            analysis.hasText = false;
-            analysis.textPreview = "[NO TEXT]";
-        }
+        // Basic properties with emergency access
+        var idResult = emergencyBailoutHandler(function() {
+            return emergencyGetProperty(textFrame, 'id');
+        }, timeoutMs / 4);
+        
+        var boundsResult = emergencyBailoutHandler(function() {
+            return emergencyGetProperty(textFrame, 'bounds');
+        }, timeoutMs / 4);
+        
+        var overflowsResult = emergencyBailoutHandler(function() {
+            return emergencyGetProperty(textFrame, 'overflows', false);
+        }, timeoutMs / 4);
+        
+        // Safe property assignment
+        analysis.id = idResult.bailout ? null : idResult.result;
+        analysis.bounds = boundsResult.bailout ? null : boundsResult.result;
+        analysis.overflows = overflowsResult.bailout ? false : overflowsResult.result;
+        
+        // Layer information (if accessible)
+        var layerResult = emergencyBailoutHandler(function() {
+            var itemLayer = emergencyGetProperty(textFrame, 'itemLayer');
+            return itemLayer ? emergencyGetProperty(itemLayer, 'name') : null;
+        }, timeoutMs / 4);
+        
+        analysis.layer = layerResult.bailout ? null : layerResult.result;
+        
+        // Text content analysis - core of standard mode
+        enhancedStatusLog("STANDARD_FRAME", "Analyzing text content", 0, 1, 
+            "Frame " + frameIndex + " content analysis");
+        
+        var contentResult = analyzeFrameTextContent(textFrame, timeoutMs / 2);
+        analysis.textAnalysis = contentResult;
+        
+        // Calculate totals
+        analysis.hasText = contentResult.hasText || false;
+        analysis.characterCount = contentResult.characterCount || 0;
+        analysis.wordCount = contentResult.wordCount || 0;
+        analysis.textPreview = contentResult.textPreview || "[NO TEXT]";
+        
+        analysis.processingTime = new Date().getTime() - startTime;
         
         // Check timeout
-        var duration = new Date().getTime() - startTime;
-        if (duration > timeoutMs) {
-            analysis.timeoutWarning = "Analysis took " + duration + "ms";
+        if (analysis.processingTime > timeoutMs) {
+            analysis.timeoutWarning = "Analysis took " + analysis.processingTime + "ms (limit: " + timeoutMs + "ms)";
         }
         
     } catch (exc) {
-        analysis.textError = "Text access failed: " + exc.message;
-        analysis.hasText = false;
+        analysis.error = "Frame analysis failed: " + exc.message;
+        analysis.processingTime = new Date().getTime() - startTime;
     }
     
     return analysis;
 }
 
-function getStandardStoriesInfo(doc) {
-    enhancedStatusLog("STANDARD_STORIES", "Analyzing stories", 0, 3, "Limited story sampling");
+function analyzeFrameTextContent(textFrame, timeoutMs) {
+    var contentAnalysis = {
+        hasText: false,
+        characterCount: 0,
+        wordCount: 0,
+        textPreview: "[NO TEXT]",
+        contentAccessible: false,
+        processingTime: 0
+    };
     
-    var stories = safeGetProperty(doc, 'stories');
-    var storyCount = safeGetLength(stories);
+    var startTime = new Date().getTime();
+    
+    try {
+        // Get text content with progressive safety
+        var contentResult = emergencyBailoutHandler(function() {
+            return safeTextCapture(textFrame); // Uses safe text capture from Chunk 1
+        }, timeoutMs);
+        
+        if (contentResult.bailout) {
+            contentAnalysis.textPreview = "[TIMEOUT]";
+            contentAnalysis.error = "Text content access timed out";
+            return contentAnalysis;
+        }
+        
+        var textPreview = contentResult.result;
+        
+        if (textPreview && textPreview !== "[NO TEXT]" && textPreview !== "[ERROR]") {
+            contentAnalysis.hasText = true;
+            contentAnalysis.textPreview = textPreview;
+            contentAnalysis.contentAccessible = true;
+            
+            // Try to get full content for analysis (with timeout protection)
+            var fullContentResult = emergencyBailoutHandler(function() {
+                return emergencyGetProperty(textFrame, 'contents');
+            }, timeoutMs / 2);
+            
+            if (!fullContentResult.bailout && fullContentResult.result && typeof fullContentResult.result === 'string') {
+                var content = fullContentResult.result;
+                contentAnalysis.characterCount = content.length;
+                
+                // ES3-compatible word counting with safety limits
+                var words = content.split(/\s+/);
+                var wordCount = 0;
+                var maxWordsToCount = Math.min(words.length, 500); // Limit word counting for performance
+                
+                for (var i = 0; i < maxWordsToCount; i++) {
+                    if (words[i] && words[i].length > 0) {
+                        wordCount++;
+                    }
+                }
+                
+                contentAnalysis.wordCount = wordCount;
+                
+                // If we didn't count all words, estimate
+                if (words.length > maxWordsToCount) {
+                    var ratio = wordCount / maxWordsToCount;
+                    contentAnalysis.wordCount = Math.round(ratio * words.length);
+                    contentAnalysis.wordCountEstimated = true;
+                }
+            } else {
+                // Use preview for basic metrics
+                contentAnalysis.characterCount = textPreview.length;
+                contentAnalysis.wordCount = textPreview.split(/\s+/).length;
+                contentAnalysis.metricsFromPreview = true;
+            }
+        }
+        
+        contentAnalysis.processingTime = new Date().getTime() - startTime;
+        
+    } catch (exc) {
+        contentAnalysis.error = "Text content analysis failed: " + exc.message;
+        contentAnalysis.processingTime = new Date().getTime() - startTime;
+    }
+    
+    return contentAnalysis;
+}
+
+function getStandardStoriesInfo(doc, preTestResults) {
+    enhancedStatusLog("STANDARD_STORIES", "Analyzing stories", 0, 5, "Limited story sampling with safety");
+    
+    // Only proceed if stories passed pre-testing
+    if (!preTestResults || arrayIndexOf(preTestResults.safe, 'stories') === -1) {
+        return {
+            skipped: true,
+            reason: "Stories collection failed safety pre-testing",
+            analysisMode: "standard"
+        };
+    }
+    
+    var stories = progressiveCollectionAccess(doc, 'stories', 'standard');
+    if (!stories) {
+        return {
+            error: "Progressive collection access denied stories for standard mode",
+            analysisMode: "standard"
+        };
+    }
+    
+    var storyCount = emergencyGetLength(stories, 
+        ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess);
     
     if (storyCount === 0) {
         return {
@@ -199,61 +472,63 @@ function getStandardStoriesInfo(doc) {
         };
     }
     
-    // Limit story sampling for safety
-    var sampleLimit = Math.min(storyCount, 3); // Only sample first 3 stories
+    // Conservative story sampling for standard mode
+    var sampleLimit = Math.min(storyCount, 5); // Limit to 5 stories for safety
     var storyDetails = [];
+    var timeoutPerStory = ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess / sampleLimit;
     
-    enhancedStatusLog("STANDARD_STORIES", "Sampling stories", 1, 3, 
+    enhancedStatusLog("STANDARD_STORIES", "Sampling stories", 1, 5, 
         "Processing " + sampleLimit + " of " + storyCount + " stories");
     
     for (var i = 0; i < sampleLimit; i++) {
         try {
+            enhancedStatusLog("STANDARD_STORIES", "Processing story " + (i + 1), 2 + i, 5, 
+                "Story " + (i + 1) + " of " + sampleLimit);
+            
             var story = null;
-            try {
-                story = stories[i];
-            } catch (e1) {
-                if (stories.item) {
-                    story = stories.item(i);
+            
+            var storyResult = emergencyBailoutHandler(function() {
+                try {
+                    story = stories[i];
+                    return story;
+                } catch (e1) {
+                    if (stories.item) {
+                        return stories.item(i);
+                    }
+                    throw e1;
                 }
+            }, timeoutPerStory);
+            
+            if (storyResult.bailout || !storyResult.result) {
+                enhancedStatusLog("STANDARD_STORIES", "Story access failed", 2 + i, 5, 
+                    "Story " + i + " not accessible");
+                storyDetails.push({
+                    index: i,
+                    error: "Story access failed: " + (storyResult.error || "timeout"),
+                    emergencySkip: true,
+                    mode: "standard"
+                });
+                continue;
             }
             
-            if (story) {
-                var storyAnalysis = {
-                    index: i,
-                    id: safeGetProperty(story, 'id'),
-                    length: safeGetProperty(story, 'length', 0),
-                    textFrameCount: safeGetLength(safeGetProperty(story, 'textFrames')),
-                    overflows: safeGetProperty(story, 'overflows', false),
-                    isThreaded: safeGetLength(safeGetProperty(story, 'textFrames')) > 1,
-                    analysisMode: "standard"
-                };
-                
-                // Try to get content preview safely
-                try {
-                    var content = safeGetProperty(story, 'contents');
-                    if (content && typeof content === 'string') {
-                        storyAnalysis.contentPreview = content.substring(0, 50) + 
-                            (content.length > 50 ? "..." : "");
-                    } else {
-                        storyAnalysis.contentPreview = "[NO CONTENT]";
-                    }
-                } catch (exc) {
-                    storyAnalysis.contentPreview = "[ACCESS FAILED]";
-                }
-                
-                storyDetails.push(storyAnalysis);
-            }
+            story = storyResult.result;
+            
+            var storyAnalysis = analyzeStoryForStandard(story, i, timeoutPerStory);
+            storyDetails.push(storyAnalysis);
             
         } catch (exc) {
+            enhancedStatusLog("STANDARD_STORIES", "Story processing error", 2 + i, 5, 
+                "Story " + i + ": " + exc.message);
             storyDetails.push({
                 index: i,
                 error: "Story analysis failed: " + exc.message,
-                emergencySkip: true
+                emergencySkip: true,
+                mode: "standard"
             });
         }
     }
     
-    enhancedStatusLog("STANDARD_STORIES", "Story sampling completed", 3, 3, 
+    enhancedStatusLog("STANDARD_STORIES", "Story sampling completed", 5, 5, 
         "Processed " + storyDetails.length + " stories");
     
     return {
@@ -261,82 +536,198 @@ function getStandardStoriesInfo(doc) {
         sampledCount: storyDetails.length,
         storyDetails: storyDetails,
         analysisMode: "standard",
-        note: "Limited story sampling for safety"
+        progressiveSafety: true,
+        note: "Limited story sampling for safety - use comprehensive mode for full analysis"
     };
 }
 
-function getStandardTextContent(doc) {
-    enhancedStatusLog("STANDARD_CONTENT", "Creating text content summary", 0, 4, "Safe text analysis");
-    
-    var textSummary = {
-        analysisMode: "standard",
-        limitedAnalysis: true,
-        timestamp: toISOString(new Date())
+function analyzeStoryForStandard(story, storyIndex, timeoutMs) {
+    var analysis = {
+        index: storyIndex,
+        mode: "standard",
+        progressiveSafety: true
     };
     
     try {
+        // Basic story properties with emergency access
+        var idResult = emergencyBailoutHandler(function() {
+            return emergencyGetProperty(story, 'id');
+        }, timeoutMs / 6);
+        
+        var lengthResult = emergencyBailoutHandler(function() {
+            return emergencyGetProperty(story, 'length', 0);
+        }, timeoutMs / 6);
+        
+        var textFrameCountResult = emergencyBailoutHandler(function() {
+            var textFrames = emergencyGetProperty(story, 'textFrames');
+            return textFrames ? emergencyGetLength(textFrames, timeoutMs / 6) : 0;
+        }, timeoutMs / 6);
+        
+        var overflowsResult = emergencyBailoutHandler(function() {
+            return emergencyGetProperty(story, 'overflows', false);
+        }, timeoutMs / 6);
+        
+        // Safe assignment
+        analysis.id = idResult.bailout ? null : idResult.result;
+        analysis.length = lengthResult.bailout ? 0 : lengthResult.result;
+        analysis.textFrameCount = textFrameCountResult.bailout ? 0 : textFrameCountResult.result;
+        analysis.overflows = overflowsResult.bailout ? false : overflowsResult.result;
+        analysis.isThreaded = analysis.textFrameCount > 1;
+        
+        // Content preview with safety
+        var contentResult = emergencyBailoutHandler(function() {
+            var content = emergencyGetProperty(story, 'contents');
+            if (content && typeof content === 'string') {
+                return content.substring(0, 80) + (content.length > 80 ? "..." : "");
+            }
+            return "[NO CONTENT]";
+        }, timeoutMs / 3);
+        
+        analysis.contentPreview = contentResult.bailout ? "[TIMEOUT]" : contentResult.result;
+        
+    } catch (exc) {
+        analysis.error = "Story analysis failed: " + exc.message;
+    }
+    
+    return analysis;
+}
+
+function getStandardTextContent(doc, preTestResults) {
+    enhancedStatusLog("STANDARD_CONTENT", "Creating text content summary", 0, 6, "Safe text analysis with sampling");
+    
+    var textSummary = {
+        analysisMode: "standard",
+        progressiveSafety: true,
+        limitedAnalysis: true,
+        timestamp: toISOString(new Date()),
+        processingTime: 0
+    };
+    
+    var startTime = new Date().getTime();
+    
+    try {
         // Get basic counts safely
-        enhancedStatusLog("STANDARD_CONTENT", "Getting text counts", 1, 4, "Basic text metrics");
+        enhancedStatusLog("STANDARD_CONTENT", "Getting text counts", 1, 6, "Basic text metrics");
         
-        var textFrames = safeGetProperty(doc, 'textFrames');
-        var stories = safeGetProperty(doc, 'stories');
+        textSummary.summary = getStandardTextSummary(doc, preTestResults);
         
-        textSummary.summary = {
-            totalTextFrames: safeGetLength(textFrames),
-            totalStories: safeGetLength(stories),
-            samplingNote: "Standard mode - limited content analysis for safety"
-        };
+        // Get overflow info with safety
+        enhancedStatusLog("STANDARD_CONTENT", "Checking overflows", 3, 6, "Overflow detection with safety");
+        textSummary.overflowInfo = getOverflowInfoForStandard(doc, preTestResults);
         
-        // Try to get overflow count safely
-        enhancedStatusLog("STANDARD_CONTENT", "Checking overflows", 2, 4, "Overflow detection");
-        textSummary.overflowInfo = getOverflowInfoSafely(textFrames);
+        // Get enhanced text statistics from sampled content
+        enhancedStatusLog("STANDARD_CONTENT", "Computing text statistics", 5, 6, "Statistical analysis of samples");
+        textSummary.textStatistics = getStandardTextStatistics(doc, preTestResults);
         
-        // Get basic text statistics from sampled frames
-        enhancedStatusLog("STANDARD_CONTENT", "Computing text statistics", 3, 4, "Statistical summary");
-        textSummary.textStatistics = getBasicTextStatistics(textFrames);
+        textSummary.processingTime = new Date().getTime() - startTime;
         
-        enhancedStatusLog("STANDARD_CONTENT", "Text content analysis completed", 4, 4, "Summary generated");
+        enhancedStatusLog("STANDARD_CONTENT", "Text content analysis completed", 6, 6, 
+            "Summary generated in " + textSummary.processingTime + "ms");
         
     } catch (exc) {
         textSummary.error = "Text content analysis failed: " + exc.message;
         textSummary.partialResults = true;
+        textSummary.processingTime = new Date().getTime() - startTime;
     }
     
     return textSummary;
 }
 
-function getOverflowInfoSafely(textFrames) {
-    var overflowInfo = {
-        totalFrames: safeGetLength(textFrames),
-        overflowingFrames: 0,
-        sampleSize: 0,
-        note: "Limited overflow check for safety"
+function getStandardTextSummary(doc, preTestResults) {
+    var summary = {
+        mode: "standard",
+        progressiveSafety: true
     };
     
-    var frameCount = overflowInfo.totalFrames;
+    // Text frames summary
+    if (preTestResults && arrayIndexOf(preTestResults.safe, 'textFrames') !== -1) {
+        var textFrames = progressiveCollectionAccess(doc, 'textFrames', 'standard');
+        summary.totalTextFrames = textFrames ? emergencyGetLength(textFrames, 
+            ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess) : 0;
+        summary.textFramesAccessible = true;
+    } else {
+        summary.totalTextFrames = 0;
+        summary.textFramesAccessible = false;
+        summary.textFramesReason = "TextFrames collection failed pre-testing";
+    }
+    
+    // Stories summary
+    if (preTestResults && arrayIndexOf(preTestResults.safe, 'stories') !== -1) {
+        var stories = progressiveCollectionAccess(doc, 'stories', 'standard');
+        summary.totalStories = stories ? emergencyGetLength(stories, 
+            ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess) : 0;
+        summary.storiesAccessible = true;
+    } else {
+        summary.totalStories = 0;
+        summary.storiesAccessible = false;
+        summary.storiesReason = "Stories collection not available or failed pre-testing";
+    }
+    
+    summary.samplingNote = "Standard mode - safe sampling with pre-tested collections";
+    return summary;
+}
+
+function getOverflowInfoForStandard(doc, preTestResults) {
+    var overflowInfo = {
+        mode: "standard",
+        progressiveSafety: true,
+        sampleSize: 0,
+        overflowingFrames: 0,
+        note: "Limited overflow check with safety constraints"
+    };
+    
+    // Only check overflows if textFrames are safe
+    if (!preTestResults || arrayIndexOf(preTestResults.safe, 'textFrames') === -1) {
+        overflowInfo.skipped = true;
+        overflowInfo.reason = "TextFrames collection not safe for overflow checking";
+        return overflowInfo;
+    }
+    
+    var textFrames = progressiveCollectionAccess(doc, 'textFrames', 'standard');
+    if (!textFrames) {
+        overflowInfo.error = "Cannot access textFrames for overflow checking";
+        return overflowInfo;
+    }
+    
+    var frameCount = emergencyGetLength(textFrames, 
+        ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess);
+    overflowInfo.totalFrames = frameCount;
+    
+    // Conservative sampling for overflow checking
     var sampleLimit = Math.min(frameCount, 10); // Check only first 10 frames
+    var timeout = ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess / 2;
     
     for (var i = 0; i < sampleLimit; i++) {
         try {
-            var frame = null;
-            try {
-                frame = textFrames[i];
-            } catch (e1) {
-                if (textFrames.item) {
-                    frame = textFrames.item(i);
+            var frameResult = emergencyBailoutHandler(function() {
+                try {
+                    return textFrames[i];
+                } catch (e1) {
+                    if (textFrames.item) {
+                        return textFrames.item(i);
+                    }
+                    throw e1;
                 }
+            }, timeout / sampleLimit);
+            
+            if (frameResult.bailout || !frameResult.result) {
+                break; // Stop on first failure for safety
             }
             
-            if (frame) {
-                var overflows = safeGetProperty(frame, 'overflows', false);
-                if (overflows) {
+            var frame = frameResult.result;
+            var overflowResult = emergencyBailoutHandler(function() {
+                return emergencyGetProperty(frame, 'overflows', false);
+            }, timeout / sampleLimit);
+            
+            if (!overflowResult.bailout) {
+                if (overflowResult.result) {
                     overflowInfo.overflowingFrames++;
                 }
                 overflowInfo.sampleSize++;
             }
             
         } catch (exc) {
-            // Skip problematic frames
+            // Skip problematic frames and continue
             continue;
         }
     }
@@ -351,55 +742,96 @@ function getOverflowInfoSafely(textFrames) {
     return overflowInfo;
 }
 
-function getBasicTextStatistics(textFrames) {
+function getStandardTextStatistics(doc, preTestResults) {
     var stats = {
         analysisMode: "standard",
+        progressiveSafety: true,
         limitedSampling: true,
         sampleSize: 0,
         totalCharacters: 0,
         totalWords: 0,
         emptyFrames: 0,
-        textFrames: 0
+        textFrames: 0,
+        processingTime: 0
     };
     
-    var frameCount = safeGetLength(textFrames);
-    var sampleLimit = Math.min(frameCount, 5); // Sample only 5 frames for statistics
+    var startTime = new Date().getTime();
+    
+    // Only analyze if textFrames are safe
+    if (!preTestResults || arrayIndexOf(preTestResults.safe, 'textFrames') === -1) {
+        stats.skipped = true;
+        stats.reason = "TextFrames collection not safe for statistics";
+        return stats;
+    }
+    
+    var textFrames = progressiveCollectionAccess(doc, 'textFrames', 'standard');
+    if (!textFrames) {
+        stats.error = "Cannot access textFrames for statistics";
+        return stats;
+    }
+    
+    var frameCount = emergencyGetLength(textFrames, 
+        ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess);
+    
+    // Conservative sampling for statistics
+    var sampleLimit = Math.min(frameCount, 8); // Sample only 8 frames for statistics
+    var timeout = ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts.standard.collectionAccess / 2;
     
     for (var i = 0; i < sampleLimit; i++) {
         try {
-            var frame = null;
-            try {
-                frame = textFrames[i];
-            } catch (e1) {
-                if (textFrames.item) {
-                    frame = textFrames.item(i);
+            var frameResult = emergencyBailoutHandler(function() {
+                try {
+                    return textFrames[i];
+                } catch (e1) {
+                    if (textFrames.item) {
+                        return textFrames.item(i);
+                    }
+                    throw e1;
                 }
+            }, timeout / sampleLimit);
+            
+            if (frameResult.bailout || !frameResult.result) {
+                break; // Stop sampling on first failure
             }
             
-            if (frame) {
-                var content = safeGetProperty(frame, 'contents');
-                if (content && typeof content === 'string') {
-                    stats.totalCharacters += content.length;
-                    
-                    // Quick word count
-                    var words = content.split(/\s+/);
-                    var wordCount = 0;
-                    for (var j = 0; j < words.length && j < 50; j++) { // Limit processing
-                        if (words[j].length > 0) wordCount++;
+            var frame = frameResult.result;
+            
+            var contentResult = emergencyBailoutHandler(function() {
+                return emergencyGetProperty(frame, 'contents');
+            }, timeout / sampleLimit);
+            
+            if (!contentResult.bailout && contentResult.result && typeof contentResult.result === 'string') {
+                var content = contentResult.result;
+                stats.totalCharacters += content.length;
+                
+                // Quick word count with limit
+                var words = content.split(/\s+/);
+                var wordCount = 0;
+                var maxWords = Math.min(words.length, 100); // Limit word processing
+                
+                for (var j = 0; j < maxWords; j++) {
+                    if (words[j] && words[j].length > 0) {
+                        wordCount++;
                     }
-                    stats.totalWords += wordCount;
-                    
-                    if (content.length === 0) {
-                        stats.emptyFrames++;
-                    } else {
-                        stats.textFrames++;
-                    }
-                } else {
-                    stats.emptyFrames++;
                 }
                 
-                stats.sampleSize++;
+                // Estimate if we limited word counting
+                if (words.length > maxWords) {
+                    wordCount = Math.round((wordCount / maxWords) * words.length);
+                }
+                
+                stats.totalWords += wordCount;
+                
+                if (content.length === 0) {
+                    stats.emptyFrames++;
+                } else {
+                    stats.textFrames++;
+                }
+            } else {
+                stats.emptyFrames++;
             }
+            
+            stats.sampleSize++;
             
         } catch (exc) {
             // Skip problematic frames
@@ -420,7 +852,29 @@ function getBasicTextStatistics(textFrames) {
         }
     }
     
-    stats.note = "Based on limited sampling of " + stats.sampleSize + " frames out of " + frameCount;
+    stats.processingTime = new Date().getTime() - startTime;
+    stats.note = "Based on limited sampling of " + stats.sampleSize + " frames out of " + frameCount + " for safety";
     
     return stats;
+}
+
+// Progressive text sampling strategy for standard mode
+function progressiveTextSampling(textFrames, mode) {
+    var modeConfig = ENHANCED_ANALYSIS_CONFIG.modes[mode];
+    if (!modeConfig) return null;
+    
+    var frameCount = emergencyGetLength(textFrames, modeConfig.timeout / 4);
+    var sampleLimits = {
+        minimal: Math.min(frameCount, 2),
+        basic: Math.min(frameCount, 5),
+        standard: Math.min(frameCount, 8),
+        comprehensive: Math.min(frameCount, 20)
+    };
+    
+    return {
+        totalFrames: frameCount,
+        sampleLimit: sampleLimits[mode] || sampleLimits.basic,
+        timeout: modeConfig.timeout,
+        timeoutPerFrame: modeConfig.timeout / (sampleLimits[mode] || sampleLimits.basic)
+    };
 }

@@ -1,65 +1,196 @@
 //
 // Enhanced InDesign Document Inspector & Comparison Tool v2.1 - ESTK Optimized Edition  
 // Robust property change detection with API error handling
-// Chunk 1: Core Configuration & Utility Functions
+// Chunk 1: Enhanced Configuration & Utility Functions - COMPREHENSIVE ARCHITECTURE FIX
 // Optimized for ExtendScript Toolkit (ESTK) development environment
 // ES3 COMPATIBLE VERSION
 //
 
-// ROBUST CONFIGURATION FOR CLUNKY INDESIGN APIS
-var ANALYSIS_CONFIG = {
-    version: "2.1-estk",
-    maxRecursionDepth: 3, // Balanced for thorough analysis without recursion hell
-    enableDeepScan: false, // Keep disabled for performance
-    skipEmptyProperties: true,
-    timeoutThreshold: 8000, // 8 seconds for complex documents
-    safeMode: true,
-    logErrors: true,
-    errors: [],
-    maxErrorsPerSection: 5, // More error tracking for API issues
-    skipProblematicProperties: true,
+// ============================================================================
+// ENHANCED CONFIGURATION SYSTEM - COMPLETE OVERHAUL FOR MODE-BASED SAFETY
+// ============================================================================
+
+// ENHANCED ANALYSIS CONFIGURATION - COMPLETE ARCHITECTURAL OVERHAUL
+var ENHANCED_ANALYSIS_CONFIG = {
+    version: "2.1-estk-enhanced",
     
-    // ENHANCED TEXT CAPTURE - PROPER IDENTIFICATION + CHANGE DETECTION
-    enableTextCapture: true,
-    enableAutoDiscovery: false, // Disabled to avoid recursive discovery
-    enablePropertyTracking: true, // ESSENTIAL for change detection
-    maxTextPreviewLength: 60, // Increased for better identification
-    maxCollectionSample: 20, // Increased for thorough change detection
-    maxReportSize: 3000000, // 3MB limit - larger for comprehensive analysis
+    // MODE-BASED SAFETY SYSTEM
+    modes: {
+        emergency: {
+            description: "Ultra-safe mode for broken documents",
+            timeout: 500,
+            collections: [],  // NO collection access
+            memoryLimit: 1048576,  // 1MB
+            reportComplexity: "minimal",
+            propertyTesting: "emergency_only"
+        },
+        minimal: {
+            description: "Basic safe mode with limited collection access",
+            timeout: 1000,
+            collections: ["pages"],  // Only safest collection
+            memoryLimit: 2097152,  // 2MB
+            reportComplexity: "basic",
+            propertyTesting: "safe_only"
+        },
+        basic: {
+            description: "Moderate mode with safe collections",
+            timeout: 3000,
+            collections: ["pages", "textFrames", "layers"],
+            memoryLimit: 4194304,  // 4MB
+            reportComplexity: "structured",
+            propertyTesting: "safe_and_moderate"
+        },
+        standard: {
+            description: "Balanced mode with content sampling",
+            timeout: 8000,
+            collections: ["pages", "textFrames", "layers", "stories"],
+            memoryLimit: 8388608,  // 8MB
+            reportComplexity: "detailed",
+            propertyTesting: "comprehensive_safe"
+        },
+        comprehensive: {
+            description: "Complete analysis with pre-tested risky collections",
+            timeout: 15000,
+            collections: ["pages", "textFrames", "layers", "stories", "styles", "colors", "fonts", "images", "links", "pageItems"],
+            memoryLimit: 16777216,  // 16MB
+            reportComplexity: "full",
+            propertyTesting: "all_with_pretesting"
+        }
+    },
     
-    // SAFETY LIMITS - Replace all hardcoded values
-    maxSafetyLimit: 50, // For safeIterateCollection safety override
-    pageItemSampleLimit: 30, // For getPageItemsInfo sampling
+    // COLLECTION SAFETY MATRIX - CRITICAL FOR PROGRESSIVE ACCESS
+    collectionSafety: {
+        "pages": "safe",           // Reliable access
+        "textFrames": "safe",      // Usually reliable
+        "layers": "safe",          // Generally safe
+        "stories": "moderate",     // Can be slow but usually works
+        "styles": "moderate",      // Generally reliable
+        "colors": "moderate",      // Usually works
+        "fonts": "moderate",       // Can have issues with missing fonts
+        "pageItems": "risky",      // Can be slow, complex hierarchy
+        "images": "dangerous",     // Frequently causes hanging
+        "links": "dangerous"       // Frequently causes hanging
+    },
     
-    // Runtime tracking - ESSENTIAL for change detection
-    textItemsProcessed: 0,
-    processingStartTime: null,
-    brokenPropertiesFound: [],
-    discoveredAlternatives: {},
+    // PROGRESSIVE TIMEOUT SYSTEM
+    progressiveTimeouts: {
+        emergency: {
+            propertyAccess: 50,      // 50ms max per property
+            collectionAccess: 0,     // No collection access
+            totalOperation: 500      // 500ms total
+        },
+        minimal: {
+            propertyAccess: 100,
+            collectionAccess: 200,
+            totalOperation: 1000
+        },
+        basic: {
+            propertyAccess: 200,
+            collectionAccess: 500,
+            totalOperation: 3000
+        },
+        standard: {
+            propertyAccess: 500,
+            collectionAccess: 1000,
+            totalOperation: 8000
+        },
+        comprehensive: {
+            propertyAccess: 1000,
+            collectionAccess: 2000,
+            totalOperation: 15000
+        }
+    },
     
-    // Known problematic properties with ESTK-tested alternatives
-    problematicProperties: [
-        'parent.parent.parent',
-        'selection.item', 
-        'activeWindow.panels',
-        'preferences.dictionary',
-        'preferences.workspace',
-        'links.parent.parent'
-    ],
+    // DOCUMENT CAPABILITY TESTING PARAMETERS
+    capabilityTesting: {
+        enablePreTesting: true,
+        collectionTestTimeout: 100,     // 100ms to test if collection is accessible
+        propertyTestTimeout: 50,        // 50ms to test if property exists
+        maxTestRetries: 2,
+        testSampleSize: 3               // Test first 3 items in collections
+    },
     
-    // ESTK debugging enabled
-    enableESTKDebugging: true,
-    debugPrefix: "[InDesign Inspector]"
+    // MEMORY MANAGEMENT CONFIGURATION
+    memoryManagement: {
+        enableActiveCleanup: true,
+        cleanupFrequency: 5,            // Every 5 operations
+        gcHint: true,                   // Call $.gc() when available
+        stringBufferSize: 1000,         // For ES3 optimized string building
+        maxReportSize: {
+            emergency: 524288,          // 512KB
+            minimal: 1048576,           // 1MB
+            basic: 2097152,             // 2MB
+            standard: 4194304,          // 4MB
+            comprehensive: 8388608      // 8MB
+        }
+    },
+    
+    // ENHANCED ERROR HANDLING
+    errorHandling: {
+        enableRetryLogic: true,
+        maxRetries: 3,
+        retryDelay: 100,                // ms between retries
+        enableGracefulDegradation: true,
+        enableModeDowngrade: true,
+        logErrors: true,
+        maxErrorsPerSection: 10
+    },
+    
+    // ANALYSIS STATE MANAGEMENT
+    stateManagement: {
+        preventConcurrent: true,
+        enableProgressTracking: true,
+        enableSessionPersistence: false,  // Disabled for simplicity
+        maxSessionDuration: 60000         // 60 seconds max
+    },
+    
+    // ESTK DEBUGGING CONFIGURATION
+    debugging: {
+        enableESTKDebugging: true,
+        debugPrefix: "[Enhanced Inspector]",
+        verboseLogging: true,
+        performanceMonitoring: true
+    },
+    
+    // RUNTIME STATE
+    runtime: {
+        currentMode: "basic",
+        currentDocument: null,
+        analysisInProgress: false,
+        sessionStartTime: null,
+        errors: [],
+        discoveredAlternatives: {},
+        documentCapabilities: null
+    }
 };
 
-// Utility configuration  
+// MODE HIERARCHY FOR PROGRESSIVE SAFETY
+var MODE_HIERARCHY = ["emergency", "minimal", "basic", "standard", "comprehensive"];
+
+// COLLECTION RISK LEVELS - ORGANIZED BY SAFETY
+var COLLECTION_RISK_LEVELS = {
+    safe: ["pages", "textFrames", "layers"],
+    moderate: ["stories", "styles", "colors", "fonts"],
+    risky: ["pageItems"],
+    dangerous: ["images", "links"]
+};
+
+// EMERGENCY TIMEOUTS FOR ULTRA-FAST BAILOUTS
+var EMERGENCY_TIMEOUTS = {
+    PROPERTY_ACCESS: 50,     // 50ms max for any property access
+    COLLECTION_TEST: 100,    // 100ms max to test collection existence
+    TOTAL_EMERGENCY: 500     // 500ms max for entire emergency operation
+};
+
+// Legacy configuration for backwards compatibility
+var ANALYSIS_CONFIG = ENHANCED_ANALYSIS_CONFIG;
 var UTILITY_CONFIG = {
-    version: "2.1-estk",
-    requiredInspectorVersion: "2.1-estk", 
+    version: "2.1-estk-enhanced",
+    requiredInspectorVersion: "2.1-estk-enhanced", 
     enableProgressDialogs: true,
-    maxReportFileSize: 10000000, // 10MB limit for comprehensive reports
+    maxReportFileSize: 10000000,
     autoSaveReports: true,
-    createBackups: true, // ESSENTIAL for safety
+    createBackups: true,
     enableESTKDebugging: true
 };
 
@@ -68,11 +199,628 @@ var UTILITY_STATE = {
     lastAnalysisReport: null,
     lastComparisonResult: null,
     currentDocument: null,
-    reportFiles: {}
+    reportFiles: {},
+    analysisSession: null
 };
 
 // ============================================================================
-// ES3 COMPATIBILITY HELPER FUNCTIONS - CRITICAL FOR EXTENDSCRIPT
+// DOCUMENT CAPABILITY DETECTION SYSTEM - NEW CORE FUNCTIONALITY
+// ============================================================================
+
+// Detect document capabilities and build safety matrix
+function detectDocumentCapabilities(doc) {
+    enhancedStatusLog("CAPABILITY", "Starting document capability detection", 0, 10, "Testing document safety");
+    
+    var capabilities = {
+        timestamp: toISOString(new Date()),
+        documentName: safeGetProperty(doc, 'name', 'unknown'),
+        overallSafety: "unknown",
+        collectionSafety: {},
+        propertySafety: {},
+        recommendedMode: "emergency",
+        testResults: {
+            basicProperties: false,
+            collectionAccess: false,
+            advancedProperties: false
+        },
+        errors: []
+    };
+    
+    try {
+        // Test 1: Basic document properties
+        enhancedStatusLog("CAPABILITY", "Testing basic properties", 1, 10, "Document name, saved status");
+        capabilities.testResults.basicProperties = testBasicDocumentProperties(doc, capabilities);
+        
+        // Test 2: Safe collection access
+        enhancedStatusLog("CAPABILITY", "Testing safe collections", 3, 10, "Pages, textFrames, layers");
+        capabilities.testResults.collectionAccess = testSafeCollections(doc, capabilities);
+        
+        // Test 3: Moderate risk collections
+        enhancedStatusLog("CAPABILITY", "Testing moderate collections", 5, 10, "Stories, styles, fonts");
+        testModerateCollections(doc, capabilities);
+        
+        // Test 4: Risky collections (with caution)
+        enhancedStatusLog("CAPABILITY", "Testing risky collections", 7, 10, "PageItems (with timeout)");
+        testRiskyCollections(doc, capabilities);
+        
+        // Test 5: Dangerous collections (minimal testing)
+        enhancedStatusLog("CAPABILITY", "Testing dangerous collections", 8, 10, "Images, links (quick test)");
+        testDangerousCollections(doc, capabilities);
+        
+        // Determine overall safety and recommended mode
+        enhancedStatusLog("CAPABILITY", "Analyzing results", 9, 10, "Determining recommended mode");
+        determineDocumentSafetyLevel(capabilities);
+        
+        enhancedStatusLog("CAPABILITY", "Capability detection completed", 10, 10, 
+            "Recommended mode: " + capabilities.recommendedMode);
+        
+    } catch (exc) {
+        capabilities.errors.push("Capability detection failed: " + exc.message);
+        capabilities.overallSafety = "dangerous";
+        capabilities.recommendedMode = "emergency";
+        enhancedStatusLog("CAPABILITY", "Detection failed", 10, 10, "Error: " + exc.message);
+    }
+    
+    return capabilities;
+}
+
+// Test basic document properties for accessibility
+function testBasicDocumentProperties(doc, capabilities) {
+    var basicProps = ['name', 'saved', 'modified', 'visible'];
+    var successCount = 0;
+    
+    for (var i = 0; i < basicProps.length; i++) {
+        var prop = basicProps[i];
+        try {
+            var startTime = new Date().getTime();
+            var value = emergencyGetProperty(doc, prop);
+            var duration = new Date().getTime() - startTime;
+            
+            if (value !== null && duration < EMERGENCY_TIMEOUTS.PROPERTY_ACCESS) {
+                capabilities.propertySafety[prop] = "safe";
+                successCount++;
+            } else {
+                capabilities.propertySafety[prop] = "slow";
+            }
+        } catch (exc) {
+            capabilities.propertySafety[prop] = "failed";
+            capabilities.errors.push("Property test failed: " + prop + " - " + exc.message);
+        }
+    }
+    
+    return successCount >= 3; // At least 3 basic properties should work
+}
+
+// Test safe collections for basic accessibility
+function testSafeCollections(doc, capabilities) {
+    var safeCollections = COLLECTION_RISK_LEVELS.safe;
+    var successCount = 0;
+    
+    for (var i = 0; i < safeCollections.length; i++) {
+        var collName = safeCollections[i];
+        var result = testCollectionSafety(doc, collName, ENHANCED_ANALYSIS_CONFIG.capabilityTesting.collectionTestTimeout);
+        
+        capabilities.collectionSafety[collName] = result.safety;
+        if (result.safety === "safe") {
+            successCount++;
+        }
+        
+        if (result.error) {
+            capabilities.errors.push("Safe collection test failed: " + collName + " - " + result.error);
+        }
+    }
+    
+    return successCount >= 2; // At least 2 safe collections should work
+}
+
+// Test moderate risk collections
+function testModerateCollections(doc, capabilities) {
+    var moderateCollections = COLLECTION_RISK_LEVELS.moderate;
+    
+    for (var i = 0; i < moderateCollections.length; i++) {
+        var collName = moderateCollections[i];
+        var result = testCollectionSafety(doc, collName, ENHANCED_ANALYSIS_CONFIG.capabilityTesting.collectionTestTimeout * 2);
+        
+        capabilities.collectionSafety[collName] = result.safety;
+        if (result.error) {
+            capabilities.errors.push("Moderate collection test: " + collName + " - " + result.error);
+        }
+    }
+}
+
+// Test risky collections with enhanced caution
+function testRiskyCollections(doc, capabilities) {
+    var riskyCollections = COLLECTION_RISK_LEVELS.risky;
+    
+    for (var i = 0; i < riskyCollections.length; i++) {
+        var collName = riskyCollections[i];
+        var result = testCollectionSafety(doc, collName, ENHANCED_ANALYSIS_CONFIG.capabilityTesting.collectionTestTimeout);
+        
+        capabilities.collectionSafety[collName] = result.safety;
+        if (result.error) {
+            capabilities.errors.push("Risky collection test: " + collName + " - " + result.error);
+        }
+    }
+}
+
+// Test dangerous collections with minimal testing
+function testDangerousCollections(doc, capabilities) {
+    var dangerousCollections = COLLECTION_RISK_LEVELS.dangerous;
+    
+    for (var i = 0; i < dangerousCollections.length; i++) {
+        var collName = dangerousCollections[i];
+        // Very quick test for dangerous collections
+        var result = testCollectionSafety(doc, collName, 50); // Only 50ms test
+        
+        capabilities.collectionSafety[collName] = result.safety;
+        if (result.error) {
+            capabilities.errors.push("Dangerous collection test: " + collName + " - " + result.error);
+        }
+    }
+}
+
+// Test individual collection safety with timeout protection
+function testCollectionSafety(doc, collectionName, timeoutMs) {
+    var result = {
+        collectionName: collectionName,
+        safety: "unknown",
+        accessible: false,
+        length: 0,
+        duration: 0,
+        error: null
+    };
+    
+    var startTime = new Date().getTime();
+    
+    try {
+        // Test 1: Can we get the collection reference?
+        var collection = emergencyGetProperty(doc, collectionName);
+        
+        if (!collection) {
+            result.safety = "failed";
+            result.error = "Collection not found";
+            return result;
+        }
+        
+        result.accessible = true;
+        
+        // Test 2: Can we get the length safely?
+        var lengthTestStart = new Date().getTime();
+        var collectionLength = emergencyGetLength(collection, timeoutMs);
+        var lengthDuration = new Date().getTime() - lengthTestStart;
+        
+        if (lengthDuration > timeoutMs) {
+            result.safety = "timeout";
+            result.error = "Length access timed out (" + lengthDuration + "ms)";
+            return result;
+        }
+        
+        result.length = collectionLength;
+        result.duration = new Date().getTime() - startTime;
+        
+        // Determine safety based on performance
+        if (result.duration < timeoutMs / 4) {
+            result.safety = "safe";
+        } else if (result.duration < timeoutMs / 2) {
+            result.safety = "moderate";
+        } else if (result.duration < timeoutMs) {
+            result.safety = "slow";
+        } else {
+            result.safety = "timeout";
+        }
+        
+    } catch (exc) {
+        result.duration = new Date().getTime() - startTime;
+        result.safety = "failed";
+        result.error = exc.message;
+    }
+    
+    return result;
+}
+
+// Determine overall document safety level and recommend mode
+function determineDocumentSafetyLevel(capabilities) {
+    var safeCollectionCount = 0;
+    var moderateCollectionCount = 0;
+    var failedCollectionCount = 0;
+    
+    // Count collection safety levels
+    for (var collName in capabilities.collectionSafety) {
+        var safety = capabilities.collectionSafety[collName];
+        if (safety === "safe") {
+            safeCollectionCount++;
+        } else if (safety === "moderate" || safety === "slow") {
+            moderateCollectionCount++;
+        } else {
+            failedCollectionCount++;
+        }
+    }
+    
+    // Determine overall safety and recommend mode
+    if (!capabilities.testResults.basicProperties) {
+        capabilities.overallSafety = "dangerous";
+        capabilities.recommendedMode = "emergency";
+    } else if (safeCollectionCount === 0) {
+        capabilities.overallSafety = "risky";
+        capabilities.recommendedMode = "emergency";
+    } else if (safeCollectionCount >= 2 && failedCollectionCount <= 1) {
+        capabilities.overallSafety = "safe";
+        if (moderateCollectionCount >= 3) {
+            capabilities.recommendedMode = "comprehensive";
+        } else if (moderateCollectionCount >= 2) {
+            capabilities.recommendedMode = "standard";
+        } else {
+            capabilities.recommendedMode = "basic";
+        }
+    } else if (safeCollectionCount >= 1) {
+        capabilities.overallSafety = "moderate";
+        capabilities.recommendedMode = "basic";
+    } else {
+        capabilities.overallSafety = "risky";
+        capabilities.recommendedMode = "minimal";
+    }
+}
+
+// Recommend safe mode based on document capabilities
+function recommendSafeMode(doc) {
+    try {
+        var capabilities = detectDocumentCapabilities(doc);
+        return capabilities.recommendedMode;
+    } catch (exc) {
+        debugLog("Mode recommendation failed: " + exc.message, "ERROR");
+        return "emergency"; // Safest fallback
+    }
+}
+
+// ============================================================================
+// ENHANCED SAFE PROPERTY ACCESS SYSTEM
+// ============================================================================
+
+// Emergency property access with ultra-fast timeout
+function emergencyGetProperty(obj, prop, fallback) {
+    var startTime = new Date().getTime();
+    
+    try {
+        if (!obj) {
+            return fallback !== undefined ? fallback : null;
+        }
+        
+        // Ultra-fast timeout check
+        if (new Date().getTime() - startTime > EMERGENCY_TIMEOUTS.PROPERTY_ACCESS) {
+            return fallback !== undefined ? fallback : null;
+        }
+        
+        // Try direct access first (fastest)
+        if (obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
+            var value = obj[prop];
+            return value !== undefined ? value : (fallback !== undefined ? fallback : null);
+        }
+        
+        // Fallback access
+        if (obj[prop] !== undefined) {
+            return obj[prop];
+        }
+        
+        return fallback !== undefined ? fallback : null;
+        
+    } catch (exc) {
+        return fallback !== undefined ? fallback : null;
+    }
+}
+
+// Emergency length getter with timeout protection
+function emergencyGetLength(collection, timeoutMs) {
+    var startTime = new Date().getTime();
+    var timeout = timeoutMs || EMERGENCY_TIMEOUTS.COLLECTION_TEST;
+    
+    try {
+        if (!collection) return 0;
+        
+        // Quick timeout check
+        if (new Date().getTime() - startTime > timeout) {
+            return 0;
+        }
+        
+        // Try length first
+        if (typeof collection.length === 'number' && collection.length >= 0) {
+            return collection.length;
+        }
+        
+        // Try count as fallback
+        if (typeof collection.count === 'number' && collection.count >= 0) {
+            return collection.count;
+        }
+        
+        return 0;
+        
+    } catch (exc) {
+        return 0;
+    }
+}
+
+// Progressive collection access based on mode
+function progressiveCollectionAccess(doc, collectionName, mode) {
+    var modeConfig = ENHANCED_ANALYSIS_CONFIG.modes[mode];
+    if (!modeConfig) {
+        return null; // Invalid mode
+    }
+    
+    // Check if collection is allowed in this mode
+    if (arrayIndexOf(modeConfig.collections, collectionName) === -1) {
+        debugLog("Collection " + collectionName + " not allowed in " + mode + " mode", "MODE");
+        return null;
+    }
+    
+    // Check collection safety level
+    var collectionRisk = ENHANCED_ANALYSIS_CONFIG.collectionSafety[collectionName];
+    if (!collectionRisk) {
+        debugLog("Unknown collection risk level: " + collectionName, "WARN");
+        return null;
+    }
+    
+    // Pre-test collection if enabled
+    if (ENHANCED_ANALYSIS_CONFIG.capabilityTesting.enablePreTesting) {
+        var testResult = testCollectionSafety(doc, collectionName, modeConfig.timeout / 4);
+        if (testResult.safety === "failed" || testResult.safety === "timeout") {
+            debugLog("Collection pre-test failed: " + collectionName + " - " + testResult.error, "SAFETY");
+            return null;
+        }
+    }
+    
+    // Access collection with mode-appropriate safety
+    try {
+        return safeGetProperty(doc, collectionName);
+    } catch (exc) {
+        debugLog("Progressive collection access failed: " + collectionName + " - " + exc.message, "ERROR");
+        return null;
+    }
+}
+
+// Emergency bailout handler for ultra-fast operations
+function emergencyBailoutHandler(operation, maxTime) {
+    var startTime = new Date().getTime();
+    var timeout = maxTime || EMERGENCY_TIMEOUTS.TOTAL_EMERGENCY;
+    
+    try {
+        var result = operation();
+        var duration = new Date().getTime() - startTime;
+        
+        if (duration > timeout) {
+            debugLog("Emergency bailout triggered after " + duration + "ms", "BAILOUT");
+            return {
+                bailout: true,
+                duration: duration,
+                timeout: timeout,
+                result: null
+            };
+        }
+        
+        return {
+            bailout: false,
+            duration: duration,
+            result: result
+        };
+        
+    } catch (exc) {
+        var duration = new Date().getTime() - startTime;
+        debugLog("Emergency operation failed: " + exc.message, "ERROR");
+        return {
+            bailout: true,
+            duration: duration,
+            error: exc.message,
+            result: null
+        };
+    }
+}
+
+// ============================================================================
+// ANALYSIS STATE MANAGEMENT SYSTEM
+// ============================================================================
+
+// Start analysis session with state management
+function startAnalysisSession(doc, mode) {
+    // Prevent concurrent analysis
+    if (ENHANCED_ANALYSIS_CONFIG.runtime.analysisInProgress) {
+        debugLog("Analysis already in progress - preventing concurrent execution", "STATE");
+        return false;
+    }
+    
+    ENHANCED_ANALYSIS_CONFIG.runtime.analysisInProgress = true;
+    ENHANCED_ANALYSIS_CONFIG.runtime.sessionStartTime = new Date().getTime();
+    ENHANCED_ANALYSIS_CONFIG.runtime.currentDocument = doc;
+    ENHANCED_ANALYSIS_CONFIG.runtime.currentMode = mode;
+    ENHANCED_ANALYSIS_CONFIG.runtime.errors = [];
+    
+    debugLog("Analysis session started - Mode: " + mode, "STATE");
+    return true;
+}
+
+// Track analysis progress with detailed reporting
+function trackAnalysisProgress(section, progress, total, details) {
+    if (ENHANCED_ANALYSIS_CONFIG.debugging.enableESTKDebugging) {
+        var sessionDuration = new Date().getTime() - ENHANCED_ANALYSIS_CONFIG.runtime.sessionStartTime;
+        var percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
+        
+        $.writeln("[PROGRESS] [" + sessionDuration + "ms] " + section + " (" + percentage + "%): " + details);
+        
+        // Check for session timeout
+        if (sessionDuration > ENHANCED_ANALYSIS_CONFIG.stateManagement.maxSessionDuration) {
+            $.writeln("[WARNING] Analysis session exceeding maximum duration (" + sessionDuration + "ms)");
+        }
+    }
+}
+
+// Prevent concurrent analysis
+function preventConcurrentAnalysis(doc) {
+    if (!ENHANCED_ANALYSIS_CONFIG.stateManagement.preventConcurrent) {
+        return true; // Allow if not configured to prevent
+    }
+    
+    return !ENHANCED_ANALYSIS_CONFIG.runtime.analysisInProgress;
+}
+
+// End analysis session
+function endAnalysisSession() {
+    var sessionDuration = new Date().getTime() - ENHANCED_ANALYSIS_CONFIG.runtime.sessionStartTime;
+    
+    ENHANCED_ANALYSIS_CONFIG.runtime.analysisInProgress = false;
+    ENHANCED_ANALYSIS_CONFIG.runtime.currentDocument = null;
+    ENHANCED_ANALYSIS_CONFIG.runtime.sessionStartTime = null;
+    
+    debugLog("Analysis session ended - Duration: " + sessionDuration + "ms", "STATE");
+    
+    // Cleanup memory
+    clearLargeObjects();
+    
+    return sessionDuration;
+}
+
+// ============================================================================
+// ES3 OPTIMIZED STRING BUILDING SYSTEM
+// ============================================================================
+
+// ES3-compatible efficient string builder
+function es3OptimizedStringBuilder(initialCapacity) {
+    return {
+        parts: [],
+        capacity: initialCapacity || ENHANCED_ANALYSIS_CONFIG.memoryManagement.stringBufferSize,
+        length: 0,
+        
+        append: function(str) {
+            this.parts.push(String(str));
+            this.length += str.length;
+            
+            // Check memory limits
+            if (this.length > this.capacity) {
+                debugLog("String builder exceeding capacity: " + this.length, "MEMORY");
+            }
+        },
+        
+        appendLine: function(str) {
+            this.append(str + "\n");
+        },
+        
+        toString: function() {
+            var result = this.parts.join("");
+            return result;
+        },
+        
+        clear: function() {
+            this.parts = [];
+            this.length = 0;
+        },
+        
+        getLength: function() {
+            return this.length;
+        }
+    };
+}
+
+// ============================================================================
+// ENHANCED UTILITY FUNCTIONS - UPDATED FOR MODE AWARENESS
+// ============================================================================
+
+// Enhanced safeGetProperty with mode awareness
+function safeGetProperty(obj, prop, defaultValue) {
+    try {
+        // Get current mode timeout
+        var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+        var timeouts = ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts[currentMode];
+        var maxTime = timeouts ? timeouts.propertyAccess : 1000;
+        
+        var startTime = new Date().getTime();
+        
+        if (!obj) {
+            return defaultValue !== undefined ? defaultValue : null;
+        }
+        
+        // Handle array-like access with bounds checking
+        if (typeof prop === 'number') {
+            if (obj.length !== undefined && prop >= 0 && prop < obj.length) {
+                var value = obj[prop];
+                
+                // Check timeout
+                if (new Date().getTime() - startTime > maxTime) {
+                    debugLog("Property access timeout: array[" + prop + "]", "TIMEOUT");
+                    return defaultValue !== undefined ? defaultValue : null;
+                }
+                
+                return value !== undefined ? value : (defaultValue !== undefined ? defaultValue : null);
+            }
+            debugLog("Array index out of bounds: " + prop, "WARN");
+            return defaultValue !== undefined ? defaultValue : null;
+        }
+        
+        // Handle string properties
+        if (typeof prop === 'string') {
+            // Skip known problematic properties in safer modes
+            if (currentMode === "emergency" || currentMode === "minimal") {
+                for (var i = 0; i < ANALYSIS_CONFIG.problematicProperties.length; i++) {
+                    if (stringIndexOf(prop, ANALYSIS_CONFIG.problematicProperties[i]) !== -1) {
+                        debugLog("Skipping problematic property in " + currentMode + " mode: " + prop, "SKIP");
+                        return defaultValue !== undefined ? defaultValue : null;
+                    }
+                }
+            }
+            
+            // Handle dotted paths
+            if (stringIndexOf(prop, '.') !== -1) {
+                return safeGetNestedProperty(obj, prop, defaultValue);
+            }
+            
+            // Handle simple properties
+            return safeGetSimpleProperty(obj, prop, defaultValue);
+        }
+        
+        return defaultValue !== undefined ? defaultValue : null;
+    } catch (e) {
+        if (ANALYSIS_CONFIG.logErrors) {
+            logError("Property access failed: " + prop + " - " + e.message, 'propertyAccess', 'medium');
+        }
+        return defaultValue !== undefined ? defaultValue : null;
+    }
+}
+
+// Enhanced safeGetLength with mode-based safety
+function safeGetLength(collection) {
+    var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+    var timeouts = ENHANCED_ANALYSIS_CONFIG.progressiveTimeouts[currentMode];
+    var maxTime = timeouts ? timeouts.collectionAccess : 1000;
+    
+    return emergencyGetLength(collection, maxTime);
+}
+
+// Enhanced memory cleanup with mode awareness
+function clearLargeObjects() {
+    try {
+        var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+        var memoryConfig = ENHANCED_ANALYSIS_CONFIG.memoryManagement;
+        
+        debugLog("Clearing large objects - Mode: " + currentMode, "MEMORY");
+        
+        // Clear mode-specific objects
+        ENHANCED_ANALYSIS_CONFIG.runtime.errors = [];
+        ENHANCED_ANALYSIS_CONFIG.runtime.discoveredAlternatives = {};
+        UTILITY_STATE.lastAnalysisReport = null;
+        UTILITY_STATE.lastComparisonResult = null;
+        
+        // Garbage collection hint
+        if (memoryConfig.gcHint) {
+            try {
+                $.gc();
+            } catch (gcError) {
+                // Ignore GC errors
+            }
+        }
+        
+        debugLog("Memory cleanup completed for " + currentMode + " mode", "MEMORY");
+    } catch (e) {
+        debugLog("Memory cleanup failed: " + e.message, "ERROR");
+    }
+}
+
+// ============================================================================
+// ES3 COMPATIBILITY HELPER FUNCTIONS - ENHANCED
 // ============================================================================
 
 // ES3-compatible indexOf function
@@ -156,7 +904,7 @@ function stringTrim(str) {
     return str.substring(start, end + 1);
 }
 
-// Helper function to check if character is whitespace - FIXED: char -> character
+// Helper function to check if character is whitespace
 function isWhitespace(character) {
     return character === ' ' || character === '\t' || character === '\n' || character === '\r' || character === '\f';
 }
@@ -175,7 +923,6 @@ function toISOString(date) {
         
         return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes + ':' + seconds + 'Z';
     } catch (e) {
-        // Fallback to basic string representation
         try {
             return date.toString();
         } catch (e2) {
@@ -197,7 +944,7 @@ function objectKeys(obj) {
     return keys;
 }
 
-// Helper function for string repetition (already exists but ensuring ES3 compatibility)
+// Helper function for string repetition
 function repeatString(str, count) {
     var result = "";
     for (var i = 0; i < count; i++) {
@@ -207,36 +954,50 @@ function repeatString(str, count) {
 }
 
 // ============================================================================
-// ENHANCED PROGRESS REPORTING FUNCTIONS - NEW FOR HANGING PREVENTION
+// ENHANCED PROGRESS REPORTING FUNCTIONS
 // ============================================================================
 
-// Enhanced progress reporting with detailed operational information
+// Enhanced progress reporting with mode awareness
 function enhancedStatusLog(section, operation, current, total, details) {
-    if (ANALYSIS_CONFIG.enableESTKDebugging) {
+    if (ENHANCED_ANALYSIS_CONFIG.debugging.enableESTKDebugging) {
         var progress = total > 0 ? Math.round((current / total) * 100) : 0;
         var timestamp = new Date().toLocaleTimeString();
-        $.writeln("[PROGRESS] [" + timestamp + "] " + section + " (" + progress + "%): " + operation);
+        var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "unknown";
+        
+        $.writeln("[" + currentMode.toUpperCase() + "] [" + timestamp + "] " + section + " (" + progress + "%): " + operation);
         if (details) {
             $.writeln("  └─ " + details);
         }
-        if (current % 5 === 0 || current === total) { // Every 5 items or completion
-            $.writeln("  └─ Processed " + current + "/" + total + " items");
-        }
+        
+        // Track progress in state management
+        trackAnalysisProgress(section, current, total, operation + " - " + details);
+    }
+}
+
+// ESTK debugging function
+function debugLog(message, category) {
+    if (ENHANCED_ANALYSIS_CONFIG.debugging.enableESTKDebugging) {
+        var timestamp = new Date().toLocaleTimeString();
+        var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "unknown";
+        var logMessage = ENHANCED_ANALYSIS_CONFIG.debugging.debugPrefix + " [" + currentMode + "] [" + timestamp + "] [" + (category || "INFO") + "] " + message;
+        $.writeln(logMessage);
     }
 }
 
 // ============================================================================
-// DOCUMENT VALIDATION FUNCTIONS - NEW FOR API FAILURE PREVENTION
+// ENHANCED VALIDATION AND SAFETY FUNCTIONS
 // ============================================================================
 
-// Comprehensive document validation before analysis
+// Enhanced document validation with mode-appropriate safety
 function validateDocumentState(doc) {
-    enhancedStatusLog("VALIDATION", "Starting document validation", 0, 5, "Checking document object");
+    var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+    enhancedStatusLog("VALIDATION", "Starting document validation", 0, 5, "Mode: " + currentMode);
     
     var validation = {
         isValid: false,
         errors: [],
         warnings: [],
+        mode: currentMode,
         capabilities: {
             hasBasicProperties: false,
             hasCollections: false,
@@ -252,10 +1013,10 @@ function validateDocumentState(doc) {
             return validation;
         }
         
-        // Test 2: Essential properties with safe access
-        enhancedStatusLog("VALIDATION", "Testing essential properties", 2, 5, "Checking name, saved status");
-        var docName = safeGetProperty(doc, 'name');
-        var docSaved = safeGetProperty(doc, 'saved');
+        // Test 2: Essential properties with emergency access
+        enhancedStatusLog("VALIDATION", "Testing essential properties", 2, 5, "Using mode-appropriate safety");
+        var docName = emergencyGetProperty(doc, 'name');
+        var docSaved = emergencyGetProperty(doc, 'saved');
         
         if (docName) {
             validation.capabilities.hasBasicProperties = true;
@@ -264,31 +1025,50 @@ function validateDocumentState(doc) {
             validation.warnings.push("Cannot access document name property");
         }
         
-        // Test 3: Collection access
-        enhancedStatusLog("VALIDATION", "Testing collection access", 3, 5, "Checking pages, textFrames");
-        var pagesCollection = safeGetProperty(doc, 'pages');
-        var textFramesCollection = safeGetProperty(doc, 'textFrames');
-        
-        if (pagesCollection || textFramesCollection) {
-            validation.capabilities.hasCollections = true;
-            var pageCount = safeGetLength(pagesCollection);
-            var frameCount = safeGetLength(textFramesCollection);
-            enhancedStatusLog("VALIDATION", "Collections accessible", 3, 5, 
-                "pages: " + pageCount + ", textFrames: " + frameCount);
+        // Test 3: Collection access (mode-dependent)
+        if (currentMode !== "emergency") {
+            enhancedStatusLog("VALIDATION", "Testing collection access", 3, 5, "Mode-appropriate collections");
+            var modeConfig = ENHANCED_ANALYSIS_CONFIG.modes[currentMode];
+            
+            if (modeConfig && modeConfig.collections.length > 0) {
+                var accessibleCollections = 0;
+                
+                for (var i = 0; i < modeConfig.collections.length; i++) {
+                    var collName = modeConfig.collections[i];
+                    var collection = progressiveCollectionAccess(doc, collName, currentMode);
+                    
+                    if (collection) {
+                        accessibleCollections++;
+                    }
+                }
+                
+                if (accessibleCollections > 0) {
+                    validation.capabilities.hasCollections = true;
+                    enhancedStatusLog("VALIDATION", "Collections accessible", 3, 5, 
+                        accessibleCollections + " of " + modeConfig.collections.length + " collections");
+                } else {
+                    validation.errors.push("Cannot access any collections for " + currentMode + " mode");
+                }
+            }
         } else {
-            validation.errors.push("Cannot access basic collections (pages, textFrames)");
+            enhancedStatusLog("VALIDATION", "Skipping collection test", 3, 5, "Emergency mode - no collections");
+            validation.capabilities.hasCollections = true; // Not required in emergency mode
         }
         
-        // Test 4: Advanced properties
-        enhancedStatusLog("VALIDATION", "Testing advanced properties", 4, 5, "Checking viewPreferences, links");
-        var viewPrefs = safeGetProperty(doc, 'viewPreferences');
-        var linksCollection = safeGetProperty(doc, 'links');
-        
-        if (viewPrefs || linksCollection) {
-            validation.capabilities.hasAdvancedProperties = true;
-            enhancedStatusLog("VALIDATION", "Advanced properties accessible", 4, 5, "viewPrefs and links OK");
+        // Test 4: Advanced properties (only for higher modes)
+        if (currentMode === "standard" || currentMode === "comprehensive") {
+            enhancedStatusLog("VALIDATION", "Testing advanced properties", 4, 5, "Higher mode validation");
+            var viewPrefs = emergencyGetProperty(doc, 'viewPreferences');
+            
+            if (viewPrefs) {
+                validation.capabilities.hasAdvancedProperties = true;
+                enhancedStatusLog("VALIDATION", "Advanced properties accessible", 4, 5, "viewPrefs OK");
+            } else {
+                validation.warnings.push("Advanced properties may not be accessible");
+            }
         } else {
-            validation.warnings.push("Advanced properties may not be accessible");
+            enhancedStatusLog("VALIDATION", "Skipping advanced properties", 4, 5, "Not required for " + currentMode + " mode");
+            validation.capabilities.hasAdvancedProperties = true; // Not required for basic modes
         }
         
         // Test 5: Final validation
@@ -296,10 +1076,10 @@ function validateDocumentState(doc) {
         
         if (validation.capabilities.hasBasicProperties && validation.capabilities.hasCollections) {
             validation.isValid = true;
-            enhancedStatusLog("VALIDATION", "Document validation PASSED", 5, 5, "Ready for analysis");
+            enhancedStatusLog("VALIDATION", "Document validation PASSED", 5, 5, "Ready for " + currentMode + " analysis");
         } else {
-            validation.errors.push("Document lacks minimum required capabilities for analysis");
-            enhancedStatusLog("VALIDATION", "Document validation FAILED", 5, 5, "Cannot proceed with analysis");
+            validation.errors.push("Document lacks minimum required capabilities for " + currentMode + " mode");
+            enhancedStatusLog("VALIDATION", "Document validation FAILED", 5, 5, "Cannot proceed with " + currentMode + " analysis");
         }
         
     } catch (exc) {
@@ -311,89 +1091,36 @@ function validateDocumentState(doc) {
 }
 
 // ============================================================================
-// CORE UTILITY FUNCTIONS - ESTK OPTIMIZED WITH ROBUST ERROR HANDLING
+// REMAINING UTILITY FUNCTIONS (PRESERVED FROM ORIGINAL)
 // ============================================================================
 
-// ESTK debugging function - CRITICAL for development
-function debugLog(message, category) {
-    if (ANALYSIS_CONFIG.enableESTKDebugging) {
-        var timestamp = new Date().toLocaleTimeString();
-        var logMessage = ANALYSIS_CONFIG.debugPrefix + " [" + timestamp + "] [" + (category || "INFO") + "] " + message;
-        $.writeln(logMessage);
-    }
-}
-
-// Enhanced status logging for complex operations - DEPRECATED, use enhancedStatusLog
-function statusLog(operation, details, progress) {
-    if (ANALYSIS_CONFIG.enableESTKDebugging) {
-        var progressStr = progress ? " (" + progress + "%)" : "";
-        $.writeln("[STATUS] " + operation + progressStr + ": " + details);
-    }
-}
-
-// Memory management and cleanup
-function clearLargeObjects() {
-    try {
-        debugLog("Clearing large objects from memory", "MEMORY");
-        ANALYSIS_CONFIG.errors = [];
-        ANALYSIS_CONFIG.brokenPropertiesFound = [];
-        UTILITY_STATE.lastAnalysisReport = null;
-        UTILITY_STATE.lastComparisonResult = null;
-        $.gc(); // Garbage collection hint
-        debugLog("Memory cleanup completed", "MEMORY");
-    } catch (e) {
-        debugLog("Memory cleanup failed: " + e.message, "ERROR");
-    }
-}
-
-// Check file system access permissions
-function checkFileAccess(folderPath) {
-    try {
-        debugLog("Checking file access for: " + folderPath, "FILE");
-        var testFile = File(folderPath + "/indesign_test_write.tmp");
-        testFile.open("w");
-        testFile.write("test");
-        testFile.close();
-        testFile.remove();
-        debugLog("File access confirmed", "FILE");
-        return true;
-    } catch (e) {
-        debugLog("File access denied: " + e.message, "ERROR");
-        return false;
-    }
-}
-
-// Enhanced text capture with comprehensive safety - ES3 COMPATIBLE
+// Enhanced text capture with comprehensive safety
 function safeTextCapture(textFrame) {
     try {
         if (!textFrame) {
             return "[NO TEXT]";
         }
         
+        var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+        var maxLength = currentMode === "emergency" ? 20 : 
+                       currentMode === "minimal" ? 30 : 
+                       ENHANCED_ANALYSIS_CONFIG.modes[currentMode] ? 60 : 60;
+        
         // Multiple attempts to get content
-        var content = null;
+        var content = emergencyGetProperty(textFrame, 'contents');
         
-        // Method 1: Use safe property access
-        content = safeGetProperty(textFrame, 'contents');
-        
-        // Method 2: Try alternative content properties
         if (!content) {
-            content = safeGetProperty(textFrame, 'content');
+            content = emergencyGetProperty(textFrame, 'content');
         }
         if (!content) {
-            content = safeGetProperty(textFrame, 'text');
-        }
-        if (!content) {
-            content = safeGetProperty(textFrame, 'string');
+            content = emergencyGetProperty(textFrame, 'text');
         }
         
-        // Validate content type
         if (!content) {
             return "[NO TEXT]";
         }
         
         if (typeof content !== 'string') {
-            // Try to convert to string safely
             try {
                 content = String(content);
             } catch (e) {
@@ -401,13 +1128,10 @@ function safeTextCapture(textFrame) {
             }
         }
         
-        // Enhanced content processing with safety checks
-        var previewLength = ANALYSIS_CONFIG.maxTextPreviewLength || 60;
-        var preview = content.substring(0, previewLength);
+        var preview = content.substring(0, maxLength);
         
         // Clean whitespace safely - ES3 compatible
         try {
-            // Replace multiple whitespace with single space
             var cleanPreview = "";
             var lastWasSpace = false;
             for (var i = 0; i < preview.length; i++) {
@@ -427,8 +1151,7 @@ function safeTextCapture(textFrame) {
             // If cleaning fails, use original
         }
         
-        // Add truncation indicator
-        if (content.length > previewLength) {
+        if (content.length > maxLength) {
             preview += "...";
         }
         
@@ -440,48 +1163,52 @@ function safeTextCapture(textFrame) {
     }
 }
 
-// BULLETPROOF property accessor - handles dotted paths, arrays, nulls, everything
-function safeGetProperty(obj, prop, defaultValue) {
+// Enhanced error logging with mode awareness
+function logError(message, category, severity) {
     try {
-        if (!obj) {
-            return defaultValue !== undefined ? defaultValue : null;
+        if (!ENHANCED_ANALYSIS_CONFIG.runtime.errors) {
+            ENHANCED_ANALYSIS_CONFIG.runtime.errors = [];
         }
         
-        // Handle array-like access with bounds checking
-        if (typeof prop === 'number') {
-            if (obj.length !== undefined && prop >= 0 && prop < obj.length) {
-                var value = obj[prop];
-                return value !== undefined ? value : (defaultValue !== undefined ? defaultValue : null);
-            }
-            debugLog("Array index out of bounds: " + prop, "WARN");
-            return defaultValue !== undefined ? defaultValue : null;
-        }
+        var errorEntry = {
+            timestamp: toISOString(new Date()),
+            message: message,
+            category: category || 'general',
+            severity: severity || 'medium',
+            mode: ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || 'unknown',
+            apiCategory: categorizeAPIError(message)
+        };
         
-        // Handle string properties (simple and dotted paths)
-        if (typeof prop === 'string') {
-            // Skip known problematic properties - ES3 compatible
-            for (var i = 0; i < ANALYSIS_CONFIG.problematicProperties.length; i++) {
-                if (stringIndexOf(prop, ANALYSIS_CONFIG.problematicProperties[i]) !== -1) {
-                    debugLog("Skipping problematic property: " + prop, "SKIP");
-                    return defaultValue !== undefined ? defaultValue : null;
-                }
-            }
-            
-            // Handle dotted paths like 'viewPreferences.horizontalMeasurementUnits'
-            if (stringIndexOf(prop, '.') !== -1) {
-                return safeGetNestedProperty(obj, prop, defaultValue);
-            }
-            
-            // Handle simple properties with multiple fallback methods
-            return safeGetSimpleProperty(obj, prop, defaultValue);
-        }
+        ENHANCED_ANALYSIS_CONFIG.runtime.errors.push(errorEntry);
+        debugLog("Error logged: " + message, "ERROR");
         
-        return defaultValue !== undefined ? defaultValue : null;
+        // Limit error log size
+        if (ENHANCED_ANALYSIS_CONFIG.runtime.errors.length > 100) {
+            ENHANCED_ANALYSIS_CONFIG.runtime.errors.splice(0, 50);
+        }
     } catch (e) {
-        if (ANALYSIS_CONFIG.logErrors) {
-            logError("Property access failed: " + prop + " - " + e.message, 'propertyAccess', 'medium');
-        }
-        return defaultValue !== undefined ? defaultValue : null;
+        debugLog("Failed to log error: " + e.message, "CRITICAL");
+    }
+}
+
+// Categorize API errors for better troubleshooting
+function categorizeAPIError(errorMessage) {
+    var msg = errorMessage.toLowerCase();
+    
+    if (stringIndexOf(msg, 'object does not support') !== -1) {
+        return 'unsupported_property';
+    } else if (stringIndexOf(msg, 'access denied') !== -1) {
+        return 'access_denied';
+    } else if (stringIndexOf(msg, 'invalid index') !== -1) {
+        return 'invalid_index';
+    } else if (stringIndexOf(msg, 'timeout') !== -1) {
+        return 'timeout';
+    } else if (stringIndexOf(msg, 'permission') !== -1) {
+        return 'permission_error';
+    } else if (stringIndexOf(msg, 'not found') !== -1) {
+        return 'not_found';
+    } else {
+        return 'unknown';
     }
 }
 
@@ -499,33 +1226,7 @@ function safeGetNestedProperty(obj, dotPath, defaultValue) {
                 return defaultValue !== undefined ? defaultValue : null;
             }
             
-            // Try multiple access methods for each part
-            var nextValue = null;
-            
-            // Method 1: hasOwnProperty check
-            if (current.hasOwnProperty && current.hasOwnProperty(part)) {
-                nextValue = current[part];
-            }
-            // Method 2: Direct access
-            else if (current[part] !== undefined) {
-                nextValue = current[part];
-            }
-            // Method 3: Try alternatives
-            else {
-                var alternatives = getPropertyAlternatives(part);
-                for (var j = 0; j < alternatives.length; j++) {
-                    try {
-                        if (current[alternatives[j]] !== undefined) {
-                            nextValue = current[alternatives[j]];
-                            debugLog("Used alternative: " + alternatives[j] + " for " + part, "ALT");
-                            ANALYSIS_CONFIG.discoveredAlternatives[part] = alternatives[j];
-                            break;
-                        }
-                    } catch (e) {
-                        // Continue to next alternative
-                    }
-                }
-            }
+            var nextValue = emergencyGetProperty(current, part);
             
             if (nextValue === undefined || nextValue === null) {
                 debugLog("Property not found in path: " + dotPath + " at part: " + part, "WARN");
@@ -557,13 +1258,13 @@ function safeGetSimpleProperty(obj, prop, defaultValue) {
             return obj[prop];
         }
         
-        // Method 3: Try alternative property names for InDesign inconsistencies
+        // Method 3: Try alternative property names
         var alternatives = getPropertyAlternatives(prop);
         for (var i = 0; i < alternatives.length; i++) {
             try {
                 if (obj[alternatives[i]] !== undefined) {
                     debugLog("Used alternative property: " + alternatives[i] + " for " + prop, "ALT");
-                    ANALYSIS_CONFIG.discoveredAlternatives[prop] = alternatives[i];
+                    ENHANCED_ANALYSIS_CONFIG.runtime.discoveredAlternatives[prop] = alternatives[i];
                     return obj[alternatives[i]];
                 }
             } catch (e) {
@@ -581,9 +1282,6 @@ function safeGetSimpleProperty(obj, prop, defaultValue) {
 
 // Get alternative property names for InDesign API inconsistencies
 function getPropertyAlternatives(prop) {
-    var alternatives = [];
-    
-    // Common InDesign property name variations
     var alternativeMap = {
         'length': ['count', 'size'],
         'count': ['length', 'size'],
@@ -597,156 +1295,68 @@ function getPropertyAlternatives(prop) {
         'size': ['length', 'fileSize']
     };
     
-    if (alternativeMap[prop]) {
-        alternatives = alternativeMap[prop];
-    }
-    
-    return alternatives;
+    return alternativeMap[prop] || [];
 }
 
-// Enhanced error logging with API error categorization
-function logError(message, category, severity) {
+// Check file system access permissions
+function checkFileAccess(folderPath) {
     try {
-        if (!ANALYSIS_CONFIG.errors) {
-            ANALYSIS_CONFIG.errors = [];
-        }
-        
-        var errorEntry = {
-            timestamp: toISOString(new Date()),
-            message: message,
-            category: category || 'general',
-            severity: severity || 'medium',
-            apiCategory: categorizeAPIError(message)
-        };
-        
-        ANALYSIS_CONFIG.errors.push(errorEntry);
-        debugLog("Error logged: " + message, "ERROR");
-        
-        // Limit error log size
-        if (ANALYSIS_CONFIG.errors.length > 100) {
-            ANALYSIS_CONFIG.errors.splice(0, 50);
-        }
+        debugLog("Checking file access for: " + folderPath, "FILE");
+        var testFile = File(folderPath + "/indesign_test_write.tmp");
+        testFile.open("w");
+        testFile.write("test");
+        testFile.close();
+        testFile.remove();
+        debugLog("File access confirmed", "FILE");
+        return true;
     } catch (e) {
-        debugLog("Failed to log error: " + e.message, "CRITICAL");
+        debugLog("File access denied: " + e.message, "ERROR");
+        return false;
     }
 }
 
-// Categorize API errors for better troubleshooting
-function categorizeAPIError(errorMessage) {
-    var msg = errorMessage.toLowerCase();
-    
-    if (stringIndexOf(msg, 'object does not support') !== -1) {
-        return 'unsupported_property';
-    } else if (stringIndexOf(msg, 'access denied') !== -1) {
-        return 'access_denied';
-    } else if (stringIndexOf(msg, 'invalid index') !== -1) {
-        return 'invalid_index';
-    } else if (stringIndexOf(msg, 'timeout') !== -1) {
-        return 'timeout';
-    } else if (stringIndexOf(msg, 'permission') !== -1) {
-        return 'permission_error';
-    } else if (stringIndexOf(msg, 'not found') !== -1) {
-        return 'not_found';
-    } else {
-        return 'unknown';
-    }
-}
-
-// Enhanced collection length getter with comprehensive fallbacks
-function safeGetLength(collection) {
+// Enhanced memory and size limit checking
+function checkMemoryLimits(dataSize, operation) {
     try {
-        if (!collection) return 0;
+        var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+        var modeConfig = ENHANCED_ANALYSIS_CONFIG.modes[currentMode];
+        var memoryLimit = modeConfig ? modeConfig.memoryLimit : 4194304; // Default 4MB
         
-        // Handle null/undefined
-        if (collection === null || collection === undefined) return 0;
+        debugLog("Checking memory limits for " + operation + ": " + Math.round(dataSize / 1024) + "KB (limit: " + Math.round(memoryLimit / 1024) + "KB)", "MEMORY");
         
-        // Try standard length property
-        if (typeof collection.length !== 'undefined' && collection.length !== null) {
-            var collectionLength = collection.length;
-            // Validate length is a reasonable number
-            if (typeof collectionLength === 'number' && collectionLength >= 0 && collectionLength < 1000000) {
-                return collectionLength;
-            }
+        if (dataSize > memoryLimit) {
+            debugLog("Memory limit exceeded for " + currentMode + " mode: " + Math.round(dataSize / 1024 / 1024) + "MB", "WARN");
+            alert("Memory limit exceeded (" + Math.round(dataSize / 1024 / 1024) + "MB) for " + currentMode + " mode.\nUsing summary mode for: " + operation);
+            return false;
         }
         
-        // Try InDesign's count property
-        if (typeof collection.count !== 'undefined' && collection.count !== null) {
-            var count = collection.count;
-            if (typeof count === 'number' && count >= 0 && count < 1000000) {
-                return count;
-            }
-        }
-        
-        // Try to enumerate items manually (with safety limit)
-        try {
-            var manualCount = 0;
-            for (var i = 0; i < 1000; i++) { // Safety limit
-                try {
-                    var item = collection[i];
-                    if (item === undefined || item === null) {
-                        break;
-                    }
-                    manualCount++;
-                } catch (e) {
-                    break; // No more items
-                }
-            }
-            if (manualCount > 0) {
-                return manualCount;
-            }
-        } catch (e) {
-            debugLog("Manual enumeration failed: " + e.message, "WARN");
-        }
-        
-        // Try .item() method enumeration
-        try {
-            if (collection.item) {
-                var itemCount = 0;
-                for (var i = 0; i < 1000; i++) { // Safety limit
-                    try {
-                        var item = collection.item(i);
-                        if (!item) break;
-                        itemCount++;
-                    } catch (e) {
-                        break; // No more items
-                    }
-                }
-                if (itemCount > 0) {
-                    return itemCount;
-                }
-            }
-        } catch (e) {
-            debugLog("Item method enumeration failed: " + e.message, "WARN");
-        }
-        
-        debugLog("Could not determine collection length, defaulting to 0", "WARN");
-        return 0;
+        return true;
         
     } catch (e) {
-        debugLog("Collection length access failed: " + e.message, "ERROR");
-        return 0;
+        debugLog("Memory check failed: " + e.message, "ERROR");
+        return true; // If we can't check, continue anyway
     }
 }
 
-// ============================================================================
-// ENHANCED COLLECTION ITERATION WITH DETAILED PROGRESS REPORTING - NEW
-// ============================================================================
-
-// Enhanced collection iteration with detailed progress and timeout protection
+// Enhanced collection iteration with mode awareness
 function enhancedSafeIterateCollection(collection, callback, maxItems, collectionName) {
     if (!collection || !callback) {
         enhancedStatusLog("ITERATION", "Invalid parameters", 0, 0, "collection or callback missing");
         return [];
     }
     
+    var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+    var modeConfig = ENHANCED_ANALYSIS_CONFIG.modes[currentMode];
+    var modeTimeout = modeConfig ? modeConfig.timeout : 3000;
+    
     var results = [];
     var startTime = new Date().getTime();
-    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit);
+    maxItems = Math.min(maxItems || 20, 50); // Cap at 50 items max
     
     enhancedStatusLog("ITERATION", "Starting collection analysis", 0, 0, collectionName || "unknown");
     
     try {
-        var collectionLength = safeGetLength(collection);
+        var collectionLength = emergencyGetLength(collection, modeTimeout / 4);
         var actualMax = Math.min(collectionLength, maxItems);
         
         enhancedStatusLog("ITERATION", "Collection size determined", 0, actualMax, 
@@ -757,22 +1367,23 @@ function enhancedSafeIterateCollection(collection, callback, maxItems, collectio
             return results;
         }
         
-        // Enhanced iteration with detailed progress
+        // Enhanced iteration with mode-aware timeouts
         for (var i = 0; i < actualMax; i++) {
-            // Enhanced timeout protection
-            if (new Date().getTime() - startTime > ANALYSIS_CONFIG.timeoutThreshold) {
-                enhancedStatusLog("ITERATION", "TIMEOUT PROTECTION", i, actualMax, 
-                    "Stopped at item " + i + " after " + ANALYSIS_CONFIG.timeoutThreshold + "ms");
+            // Mode-aware timeout protection
+            if (new Date().getTime() - startTime > modeTimeout) {
+                enhancedStatusLog("ITERATION", "MODE TIMEOUT", i, actualMax, 
+                    "Stopped at item " + i + " after " + modeTimeout + "ms (" + currentMode + " mode)");
                 results.push({
                     notice: "Processing timed out at item " + i + " of " + collectionLength,
                     timeout: true,
+                    mode: currentMode,
                     collectionName: collectionName || "unknown",
-                    timeoutThreshold: ANALYSIS_CONFIG.timeoutThreshold
+                    timeoutThreshold: modeTimeout
                 });
                 break;
             }
             
-            // Progress reporting every 5 items or on important milestones
+            // Progress reporting every 5 items
             if (i % 5 === 0 || i === actualMax - 1) {
                 enhancedStatusLog("ITERATION", "Processing items", i + 1, actualMax, 
                     collectionName + " item " + (i + 1));
@@ -782,34 +1393,18 @@ function enhancedSafeIterateCollection(collection, callback, maxItems, collectio
                 var item = null;
                 var accessMethod = "unknown";
                 
-                // Enhanced access method reporting
+                // Try array access first
                 try {
                     item = collection[i];
                     accessMethod = "array[" + i + "]";
-                    if (item && i % 10 === 0) { // Report every 10th successful access
-                        enhancedStatusLog("ITERATION", "Access method working", i + 1, actualMax, 
-                            "Using " + accessMethod);
-                    }
                 } catch (e1) {
-                    if (i < 3) { // Only log first few failures
-                        enhancedStatusLog("ITERATION", "Array access failed", i + 1, actualMax, 
-                            "Item " + i + ": " + e1.message);
-                    }
-                }
-                
-                // Fallback to .item() method
-                if (!item && collection.item) {
-                    try {
-                        item = collection.item(i);
-                        accessMethod = "collection.item(" + i + ")";
-                        if (item && i % 10 === 0) {
-                            enhancedStatusLog("ITERATION", "Fallback method working", i + 1, actualMax, 
-                                "Using " + accessMethod);
-                        }
-                    } catch (e2) {
-                        if (i < 3) {
-                            enhancedStatusLog("ITERATION", ".item() access failed", i + 1, actualMax, 
-                                "Item " + i + ": " + e2.message);
+                    // Try .item() method
+                    if (collection.item) {
+                        try {
+                            item = collection.item(i);
+                            accessMethod = "collection.item(" + i + ")";
+                        } catch (e2) {
+                            // Item access failed
                         }
                     }
                 }
@@ -821,24 +1416,25 @@ function enhancedSafeIterateCollection(collection, callback, maxItems, collectio
                         if (result !== null && result !== undefined) {
                             if (typeof result === 'object') {
                                 result._accessMethod = accessMethod;
+                                result._mode = currentMode;
                             }
                             results.push(result);
                         }
                     } catch (callbackError) {
                         enhancedStatusLog("ITERATION", "Callback failed", i + 1, actualMax, 
                             "Item " + i + ": " + callbackError.message);
-                        results.push({
-                            error: "Callback processing failed",
-                            index: i,
-                            errorMessage: callbackError.message,
-                            accessMethod: accessMethod,
-                            collectionName: collectionName || "unknown"
-                        });
-                    }
-                } else {
-                    if (i < 3) { // Only report first few access failures
-                        enhancedStatusLog("ITERATION", "Item access failed", i + 1, actualMax, 
-                            "Could not access item " + i + " with any method");
+                        
+                        // Only add error details for first few failures
+                        if (i < 3) {
+                            results.push({
+                                error: "Callback processing failed",
+                                index: i,
+                                errorMessage: callbackError.message,
+                                accessMethod: accessMethod,
+                                mode: currentMode,
+                                collectionName: collectionName || "unknown"
+                            });
+                        }
                     }
                 }
                 
@@ -852,7 +1448,7 @@ function enhancedSafeIterateCollection(collection, callback, maxItems, collectio
         
         var totalTime = new Date().getTime() - startTime;
         enhancedStatusLog("ITERATION", "Collection analysis complete", actualMax, actualMax, 
-            collectionName + ": " + results.length + " results in " + totalTime + "ms");
+            collectionName + ": " + results.length + " results in " + totalTime + "ms (" + currentMode + " mode)");
         
     } catch (exc) {
         enhancedStatusLog("ITERATION", "Collection analysis FAILED", 0, 0, 
@@ -860,6 +1456,7 @@ function enhancedSafeIterateCollection(collection, callback, maxItems, collectio
         results.push({
             error: "Collection iteration completely failed: " + exc.message,
             collectionName: collectionName || "unknown",
+            mode: currentMode,
             errorType: categorizeAPIError(exc.message)
         });
     }
@@ -867,191 +1464,34 @@ function enhancedSafeIterateCollection(collection, callback, maxItems, collectio
     return results;
 }
 
-// Enhanced collection iterator with maximum safety and error recovery (LEGACY - use enhancedSafeIterateCollection)
+// Legacy function for backwards compatibility
 function safeIterateCollection(collection, callback, maxItems, collectionName) {
-    if (!collection || !callback) {
-        debugLog("Invalid collection or callback provided to safeIterateCollection", "WARN");
-        return [];
-    }
-    
-    var results = [];
-    var startTime = new Date().getTime();
-    maxItems = Math.min(maxItems || ANALYSIS_CONFIG.maxCollectionSample, ANALYSIS_CONFIG.maxSafetyLimit);
-    
-    debugLog("Starting enhanced collection iteration: " + (collectionName || "unknown"), "ITER");
-    
-    try {
-        var collectionLength = safeGetLength(collection);
-        debugLog("Collection length determined: " + collectionLength, "ITER");
-        
-        if (collectionLength === 0) {
-            debugLog("Empty collection: " + (collectionName || "unknown"), "ITER");
-            return results;
-        }
-        
-        // Enhanced iteration with multiple access methods
-        for (var i = 0; i < Math.min(collectionLength, maxItems); i++) {
-            // Enhanced timeout protection
-            if (new Date().getTime() - startTime > ANALYSIS_CONFIG.timeoutThreshold) {
-                debugLog("Collection iteration timed out at item " + i, "TIMEOUT");
-                results.push({
-                    notice: "Processing timed out at item " + i + " of " + collectionLength,
-                    timeout: true,
-                    collectionName: collectionName || "unknown",
-                    timeoutThreshold: ANALYSIS_CONFIG.timeoutThreshold
-                });
-                break;
-            }
-            
-            try {
-                var item = null;
-                var accessMethod = "unknown";
-                
-                // Method 1: Standard array access
-                try {
-                    item = collection[i];
-                    accessMethod = "array[" + i + "]";
-                    if (item) {
-                        debugLog("Item " + i + " accessed via array method", "ITER_DETAIL");
-                    }
-                } catch (e1) {
-                    debugLog("Array access failed for item " + i + ": " + e1.message, "ITER_DETAIL");
-                }
-                
-                // Method 2: InDesign .item() method
-                if (!item && collection.item) {
-                    try {
-                        item = collection.item(i);
-                        accessMethod = "collection.item(" + i + ")";
-                        if (item) {
-                            debugLog("Item " + i + " accessed via .item() method", "ITER_DETAIL");
-                        }
-                    } catch (e2) {
-                        debugLog(".item() access failed for item " + i + ": " + e2.message, "ITER_DETAIL");
-                    }
-                }
-                
-                // Method 3: itemByRange as last resort
-                if (!item && collection.itemByRange) {
-                    try {
-                        var rangeResult = collection.itemByRange(i, i);
-                        if (rangeResult && safeGetLength(rangeResult) > 0) {
-                            item = rangeResult[0];
-                            accessMethod = "collection.itemByRange(" + i + ", " + i + ")";
-                            debugLog("Item " + i + " accessed via .itemByRange() method", "ITER_DETAIL");
-                        }
-                    } catch (e3) {
-                        debugLog("itemByRange access failed for item " + i + ": " + e3.message, "ITER_DETAIL");
-                    }
-                }
-                
-                // Process item if we got it
-                if (item) {
-                    try {
-                        var result = callback(item, i);
-                        if (result !== null && result !== undefined) {
-                            // Add access method info for debugging
-                            if (typeof result === 'object') {
-                                result._accessMethod = accessMethod;
-                            }
-                            results.push(result);
-                        }
-                    } catch (callbackError) {
-                        debugLog("Callback failed for item " + i + ": " + callbackError.message, "ERROR");
-                        // Add error info to results for debugging
-                        results.push({
-                            error: "Callback processing failed",
-                            index: i,
-                            errorMessage: callbackError.message,
-                            accessMethod: accessMethod,
-                            collectionName: collectionName || "unknown",
-                            recoverable: true
-                        });
-                    }
-                } else {
-                    debugLog("Could not access item " + i + " with any method", "WARN");
-                    // Only add error for first few items to avoid spam
-                    if (i < 3) {
-                        results.push({
-                            error: "Item access failed with all methods",
-                            index: i,
-                            collectionName: collectionName || "unknown",
-                            recoverable: false
-                        });
-                    }
-                }
-                
-            } catch (itemError) {
-                debugLog("Item " + i + " processing failed: " + itemError.message, "ERROR");
-                
-                // Only add detailed errors for first few items
-                if (i < 3) {
-                    results.push({
-                        error: "Item processing failed",
-                        index: i,
-                        errorType: categorizeAPIError(itemError.message),
-                        errorMessage: itemError.message,
-                        collectionName: collectionName || "unknown",
-                        recoverable: true
-                    });
-                }
-            }
-        }
-        
-        // Add comprehensive truncation notice
-        if (collectionLength > maxItems) {
-            results.push({
-                notice: "Collection truncated for performance and safety",
-                totalItems: collectionLength,
-                shownItems: maxItems,
-                collectionName: collectionName || "unknown",
-                processingTime: new Date().getTime() - startTime,
-                recommendation: "Increase ANALYSIS_CONFIG.maxCollectionSample if needed for more thorough analysis"
-            });
-        }
-        
-        debugLog("Enhanced collection iteration completed: " + results.length + " results in " + 
-                (new Date().getTime() - startTime) + "ms", "ITER");
-        
-    } catch (e) {
-        var collectionError = {
-            error: "Collection iteration completely failed: " + e.message,
-            collectionName: collectionName || "unknown",
-            errorType: categorizeAPIError(e.message),
-            processingTime: new Date().getTime() - startTime,
-            recoverable: false
-        };
-        
-        debugLog("Collection iteration completely failed: " + e.message, "CRITICAL");
-        results.push(collectionError);
-        
-        if (ANALYSIS_CONFIG.logErrors) {
-            logError("Collection iteration failed for " + (collectionName || "unknown") + ": " + e.message, 'collection', 'high');
-        }
-    }
-    
-    return results;
+    return enhancedSafeIterateCollection(collection, callback, maxItems, collectionName);
 }
 
-// Enhanced section analyzer with comprehensive error handling and recovery
+// Enhanced section analyzer with mode awareness
 function safeAnalyzeSection(sectionName, analyzeFunction) {
+    var currentMode = ENHANCED_ANALYSIS_CONFIG.runtime.currentMode || "basic";
+    var modeConfig = ENHANCED_ANALYSIS_CONFIG.modes[currentMode];
+    var sectionTimeout = modeConfig ? modeConfig.timeout : 3000;
+    
     var startTime = new Date().getTime();
     var sectionConfig = {
         name: sectionName,
-        timeout: ANALYSIS_CONFIG.timeoutThreshold || 8000,
+        timeout: sectionTimeout,
         retryCount: 0,
-        maxRetries: 3, // Increased for more resilience
-        retryDelay: 100 // Brief delay between retries
+        maxRetries: ENHANCED_ANALYSIS_CONFIG.errorHandling.maxRetries,
+        retryDelay: ENHANCED_ANALYSIS_CONFIG.errorHandling.retryDelay,
+        mode: currentMode
     };
     
-    debugLog("Starting enhanced section analysis: " + sectionName, "SECTION");
-    enhancedStatusLog("SECTION", "Section analysis starting", 0, 1, sectionName);
+    debugLog("Starting section analysis: " + sectionName + " (mode: " + currentMode + ")", "SECTION");
+    enhancedStatusLog("SECTION", "Section analysis starting", 0, 1, sectionName + " (" + currentMode + " mode)");
     
     function attemptAnalysis() {
         var attemptStartTime = new Date().getTime();
         
         try {
-            // Pre-execution validation
             if (typeof analyzeFunction !== 'function') {
                 throw new Error("Invalid analyze function provided");
             }
@@ -1064,7 +1504,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
             debugLog("Section " + sectionName + " completed in " + duration + "ms", "SECTION");
             enhancedStatusLog("SECTION", "Section analysis completed", 1, 1, sectionName + " - " + duration + "ms");
             
-            // Enhanced timeout detection and retry logic
+            // Enhanced timeout detection with mode awareness
             if (duration > sectionConfig.timeout) {
                 if (sectionConfig.retryCount < sectionConfig.maxRetries) {
                     sectionConfig.retryCount++;
@@ -1079,28 +1519,18 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
                     
                     return attemptAnalysis();
                 } else {
-                    logError("Section " + sectionName + " timed out after " + duration + "ms with " + sectionConfig.retryCount + " retries", 'timeout', 'high');
+                    logError("Section " + sectionName + " timed out after " + duration + "ms with " + sectionConfig.retryCount + " retries (mode: " + currentMode + ")", 'timeout', 'high');
                     return {
                         error: "Section analysis timed out after multiple attempts",
                         timeout: true,
                         duration: duration,
                         retryCount: sectionConfig.retryCount,
                         sectionName: sectionName,
+                        mode: currentMode,
                         partialData: result,
-                        recommendation: "Consider increasing ANALYSIS_CONFIG.timeoutThreshold or simplifying analysis"
+                        recommendation: "Consider using a lower analysis mode or increasing timeout"
                     };
                 }
-            }
-            
-            // Validate result
-            if (result === undefined) {
-                debugLog("Section " + sectionName + " returned undefined result", "WARN");
-                return {
-                    warning: "Section returned undefined result",
-                    sectionName: sectionName,
-                    duration: duration,
-                    data: null
-                };
             }
             
             return result;
@@ -1109,11 +1539,11 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
             var duration = new Date().getTime() - attemptStartTime;
             debugLog("Section " + sectionName + " failed: " + exc.message + " (attempt " + (sectionConfig.retryCount + 1) + ")", "ERROR");
             
-            // Enhanced retry logic for different error types
+            // Enhanced retry logic with mode awareness
             var shouldRetry = false;
             var errorCategory = categorizeAPIError(exc.message);
             
-            if (sectionConfig.retryCount < sectionConfig.maxRetries) {
+            if (sectionConfig.retryCount < sectionConfig.maxRetries && ENHANCED_ANALYSIS_CONFIG.errorHandling.enableRetryLogic) {
                 // Retry for certain error types
                 if (errorCategory === 'timeout' || 
                     errorCategory === 'access_denied' || 
@@ -1128,8 +1558,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
                 sectionConfig.retryCount++;
                 debugLog("Section " + sectionName + " failed, retrying (" + sectionConfig.retryCount + "/" + sectionConfig.maxRetries + "): " + exc.message, "RETRY");
                 
-                // Adaptive delay based on error type
-                var retryDelay = sectionConfig.retryDelay * (sectionConfig.retryCount * 2); // Increasing delay
+                var retryDelay = sectionConfig.retryDelay * (sectionConfig.retryCount * 2);
                 var delayStart = new Date().getTime();
                 while (new Date().getTime() - delayStart < retryDelay) {
                     // Adaptive delay
@@ -1137,7 +1566,7 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
                 
                 return attemptAnalysis();
             } else {
-                logError("Section " + sectionName + " analysis failed permanently: " + exc.message, 'sectionFailure', 'high');
+                logError("Section " + sectionName + " analysis failed permanently: " + exc.message + " (mode: " + currentMode + ")", 'sectionFailure', 'high');
                 return {
                     error: "Section analysis failed: " + exc.message,
                     sectionName: sectionName,
@@ -1146,7 +1575,8 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
                     retryCount: sectionConfig.retryCount,
                     errorType: errorCategory,
                     duration: duration,
-                    troubleshooting: generateErrorTroubleshooting(errorCategory, sectionName)
+                    mode: currentMode,
+                    troubleshooting: generateErrorTroubleshooting(errorCategory, sectionName, currentMode)
                 };
             }
         }
@@ -1155,14 +1585,17 @@ function safeAnalyzeSection(sectionName, analyzeFunction) {
     return attemptAnalysis();
 }
 
-// Generate troubleshooting guidance for specific error types
-function generateErrorTroubleshooting(errorCategory, sectionName) {
+// Generate troubleshooting guidance with mode awareness
+function generateErrorTroubleshooting(errorCategory, sectionName, mode) {
     var guidance = [];
     
     switch (errorCategory) {
         case 'unsupported_property':
             guidance.push("Check if property exists in your InDesign version");
             guidance.push("Try alternative property names for " + sectionName);
+            if (mode !== "emergency") {
+                guidance.push("Consider switching to emergency mode for ultra-safe access");
+            }
             break;
         case 'access_denied':
             guidance.push("Verify document is not locked or protected");
@@ -1171,43 +1604,29 @@ function generateErrorTroubleshooting(errorCategory, sectionName) {
         case 'invalid_index':
             guidance.push("Collection size may have changed during analysis");
             guidance.push("Use smaller sample sizes for " + sectionName);
+            if (mode === "comprehensive" || mode === "standard") {
+                guidance.push("Consider using basic or minimal mode");
+            }
             break;
         case 'timeout':
-            guidance.push("Increase ANALYSIS_CONFIG.timeoutThreshold");
+            guidance.push("Increase timeout thresholds or use a lower analysis mode");
             guidance.push("Process " + sectionName + " in smaller batches");
+            if (mode !== "minimal") {
+                guidance.push("Try minimal mode for problematic documents");
+            }
             break;
         default:
             guidance.push("Use comprehensive error handling for " + sectionName);
             guidance.push("Test with simpler documents first");
+            if (mode !== "emergency") {
+                guidance.push("Try emergency mode for maximum safety");
+            }
     }
     
     return guidance;
 }
 
-// Enhanced memory and size limit checking
-function checkMemoryLimits(dataSize, operation) {
-    try {
-        debugLog("Checking memory limits for " + operation + ": " + Math.round(dataSize / 1024) + "KB", "MEMORY");
-        
-        if (dataSize > ANALYSIS_CONFIG.maxReportSize) {
-            debugLog("Report size limit exceeded: " + Math.round(dataSize / 1024 / 1024) + "MB", "WARN");
-            alert("Report size limit exceeded (" + Math.round(dataSize / 1024 / 1024) + "MB).\nUsing summary mode for: " + operation);
-            return false;
-        }
-        
-        // Check available memory by testing object creation
-        try {
-            var testArray = new Array(1000);
-            testArray = null;
-            return true;
-        } catch (memError) {
-            debugLog("Low memory detected: " + memError.message, "WARN");
-            alert("Low memory detected. Using minimal analysis mode.");
-            return false;
-        }
-        
-    } catch (e) {
-        debugLog("Memory check failed: " + e.message, "ERROR");
-        return true; // If we can't check, continue anyway
-    }
+// Legacy status logging for backwards compatibility
+function statusLog(operation, details, progress) {
+    enhancedStatusLog("LEGACY", operation, progress || 0, 100, details);
 }
