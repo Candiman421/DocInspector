@@ -1474,11 +1474,11 @@ function generateDeveloperGuide(session, analysisResult, config) {
                     builder.appendLine('// Accessing ' + collection.name + ' with memory management:');
                     builder.appendLine('if (doc && "' + collection.name + '" in doc) {');
                     builder.appendLine('    var collection = doc.' + collection.name + ';');
-                    builder.appendLine('    var length = collection.length || 0;');
-                    builder.appendLine('    var batchSize = Math.min(length, 100); // Process in batches');
+                    builder.appendLine('    var len = collection.length || 0;');
+                    builder.appendLine('    var batchSize = Math.min(len, 100); // Process in batches');
                     builder.appendLine('    ');
-                    builder.appendLine('    for (var i = 0; i < length; i += batchSize) {');
-                    builder.appendLine('        var endIndex = Math.min(i + batchSize, length);');
+                    builder.appendLine('    for (var i = 0; i < len; i += batchSize) {');
+                    builder.appendLine('        var endIndex = Math.min(i + batchSize, len);');
                     builder.appendLine('        ');
                     builder.appendLine('        for (var j = i; j < endIndex; j++) {');
                     builder.appendLine('            try {');

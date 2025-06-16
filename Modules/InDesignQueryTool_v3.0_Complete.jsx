@@ -243,19 +243,19 @@ function emergencyGetLength(collection, maxTimeMs) {
             return { length: 0, status: "emergency_timeout" };
         }
         
-        var length = 0;
+        var len = 0;
         
         // Try multiple safe length access methods
         if (typeof collection.length !== "undefined") {
-            length = collection.length;
+            len = collection.length;
         } else if (typeof collection.count !== "undefined") {
-            length = collection.count;
+            len = collection.count;
         } else if (collection.hasOwnProperty && collection.hasOwnProperty("length")) {
-            length = collection.length;
+            len = collection.length;
         }
         
         return { 
-            length: length, 
+            length: len, 
             status: "success",
             processingTime: new Date().getTime() - startTime
         };
@@ -773,14 +773,14 @@ function analyzeCollectionSafely(doc, collectionName) {
         
         // Get collection length safely
         var lengthResult = emergencyGetLength(collection, QUERY_CONFIG.safety.emergencyTimeoutMs);
-        var length = lengthResult.length;
+        var len = lengthResult.length;
         
         if (lengthResult.status === "error" || lengthResult.status === "emergency_timeout") {
             updateProgress(collectionName, collectionPath, "length access failed: " + lengthResult.status, "error");
             return createErrorNode(collectionName, "Failed to get collection length", collectionPath);
         }
         
-        updateProgress(collectionName, collectionPath, "found " + length + " items", "working");
+        updateProgress(collectionName, collectionPath, "found " + len + " items", "working");
         
         // Create collection node
         var collectionNode = createTreeNode(
@@ -793,7 +793,7 @@ function analyzeCollectionSafely(doc, collectionName) {
         );
         
         // Apply sample limit for performance
-        var sampleLimit = Math.min(length, QUERY_CONFIG.traversal.sampleLimit);
+        var sampleLimit = Math.min(len, QUERY_CONFIG.traversal.sampleLimit);
         
         // Process collection items with enhanced safety
         for (var i = 0; i < sampleLimit; i++) {
@@ -844,10 +844,10 @@ function analyzeCollectionSafely(doc, collectionName) {
         }
         
         // Add truncation notice if needed
-        if (length > sampleLimit) {
+        if (len > sampleLimit) {
             var truncateNode = createTreeNode(
                 "...",
-                "+" + (length - sampleLimit) + " more items (increase sample limit to see more)",
+                "+" + (len - sampleLimit) + " more items (increase sample limit to see more)",
                 "truncated",
                 "truncated",
                 collectionPath + ".truncated",
@@ -1185,14 +1185,14 @@ function getPathSegments(path) {
     var currentSegment = "";
     
     for (var i = 0; i < path.length; i++) {
-        var char = path.charAt(i);
-        if (char === ".") {
+        var charVal = path.charAt(i);
+        if (charVal === ".") {
             if (currentSegment) {
                 segments.push(currentSegment);
                 currentSegment = "";
             }
         } else {
-            currentSegment += char;
+            currentSegment += charVal;
         }
     }
     

@@ -397,9 +397,9 @@ function stringReplace(str, searchValue, replaceValue) {
         var replaceVal = replaceValue || '';
         
         // Simple string replacement (replace first occurrence)
-        var index = result.indexOf(searchValue);
-        if (index !== -1) {
-            result = result.substring(0, index) + replaceVal + result.substring(index + searchValue.length);
+        var idx = result.indexOf(searchValue);
+        if (idx !== -1) {
+            result = result.substring(0, idx) + replaceVal + result.substring(idx + searchValue.length);
         }
         
         return result;

@@ -143,8 +143,8 @@ function generateObjectReferenceID(obj) {
         // Create hash-like ID from object string representation
         var hash = 0;
         for (var i = 0; i < objString.length; i++) {
-            var char = objString.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
+            var charVal = objString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + charVal;
             hash = hash & hash; // Convert to 32-bit integer
         }
         
@@ -238,9 +238,9 @@ function createObjectReferenceTracker() {
          */
         getPathsForReference: function(refID) {
             try {
-                var index = parseInt(refID.replace('ref_', ''), 10);
-                if (index >= 0 && index < objectPaths.length) {
-                    return objectPaths[index].slice(); // Return copy
+                var idx = parseInt(refID.replace('ref_', ''), 10);
+                if (idx >= 0 && idx < objectPaths.length) {
+                    return objectPaths[idx].slice(); // Return copy
                 }
                 return [];
             } catch (exc) {
@@ -1091,8 +1091,8 @@ function generateObjectIdentityHash(obj, objPath) {
         var hashValue = 0;
         
         for (var i = 0; i < hashInput.length; i++) {
-            var char = hashInput.charCodeAt(i);
-            hashValue = ((hashValue << 5) - hashValue) + char;
+            var charVal = hashInput.charCodeAt(i);
+            hashValue = ((hashValue << 5) - hashValue) + charVal;
             hashValue = hashValue & hashValue; // Convert to 32-bit integer
         }
         
@@ -2927,14 +2927,14 @@ function generateValueMetadata(value, config) {
                 
             case 'object':
                 // Check if it's a collection
-                var length = safeGetLength(value);
-                if (length >= 0) {
+                var len = safeGetLength(value);
+                if (len >= 0) {
                     metadata.isCollection = true;
-                    metadata.size = length;
+                    metadata.size = len;
                     metadata.hasLength = true;
-                    if (length > 100) {
+                    if (len > 100) {
                         metadata.complexity = 'large';
-                    } else if (length > 10) {
+                    } else if (len > 10) {
                         metadata.complexity = 'moderate';
                     }
                 } else {
@@ -2994,9 +2994,9 @@ function generateValueFingerprint(value) {
                 break;
                 
             case 'object':
-                var length = safeGetLength(value);
-                if (length >= 0) {
-                    fingerprint += 'collection:' + length;
+                var len = safeGetLength(value);
+                if (len >= 0) {
+                    fingerprint += 'collection:' + len;
                 } else {
                     fingerprint += 'object:' + String(value).substring(0, 30);
                 }
@@ -3102,9 +3102,9 @@ function formatObjectValueEnhanced(obj, config, metadata, depth) {
         }
         
         // Fallback to original logic
-        var length = safeGetLength(obj);
-        if (length >= 0) {
-            return '[collection, length: ' + length + ']';
+        var len = safeGetLength(obj);
+        if (len >= 0) {
+            return '[collection, length: ' + len + ']';
         }
         
         // For other objects, show limited info

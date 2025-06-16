@@ -162,11 +162,11 @@ function discoverCollectionsSafely(obj) {
     try {
         for (var prop in obj) {
             try {
-                var value = obj[prop];
-                if (value && typeof value.length !== 'undefined' && value.length > 0) {
+                var val = obj[prop];
+                if (val && typeof val.length !== 'undefined' && val.length > 0) {
                     collections.push({
                         name: prop,
-                        length: value.length,
+                        length: val.length,
                         accessible: true
                     });
                 }

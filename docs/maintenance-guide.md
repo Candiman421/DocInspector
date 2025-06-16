@@ -72,12 +72,12 @@ function safeGetNestedProperty(obj, path, defaultValue) {
                 var arrayMatch = segment.match(/^([^[]+)\[(\d+)\]$/);
                 if (arrayMatch) {
                     var propName = arrayMatch[1];
-                    var index = parseInt(arrayMatch[2]);
+                    var idx = parseInt(arrayMatch[2]);
                     
                     current = safeGetProperty(current, propName);
                     if (!current) return defaultValue !== undefined ? defaultValue : null;
                     
-                    current = safeGetProperty(current, index);
+                    current = safeGetProperty(current, idx);
                     if (current === null || current === undefined) {
                         return defaultValue !== undefined ? defaultValue : null;
                     }
@@ -112,13 +112,13 @@ function safeIterateCollection(collection, callback, maxItems, collectionName) {
     var results = [];
     
     try {
-        var length = safeGetLength(collection);
+        var len = safeGetLength(collection);
         
         // Enhanced auto-discovery tracking
         if (ANALYSIS_CONFIG.enableAutoDiscovery && collectionName) {
             var discoveryInfo = {
                 name: collectionName,
-                length: length,
+                length: len,
                 accessible: true,
                 sampleTypes: [],
                 processingTime: 0,

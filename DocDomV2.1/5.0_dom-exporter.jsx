@@ -882,7 +882,7 @@ function getEnabledFeatures(config) {
  */
 function generateAccessPathIndex(domStructure) {
     try {
-        var index = {};
+        var idx = {};
         
         if (domStructure.objectRegistry && domStructure.objectRegistry.accessPaths) {
             var accessPaths = domStructure.objectRegistry.accessPaths;
@@ -890,12 +890,12 @@ function generateAccessPathIndex(domStructure) {
             // Enhanced ES3-compatible iteration
             for (var objectId in accessPaths) {
                 if (objectHasOwnProperty(accessPaths, objectId)) {
-                    index[objectId] = arraySlice(accessPaths[objectId], 0); // Enhanced array copy
+                    idx[objectId] = arraySlice(accessPaths[objectId], 0); // Enhanced array copy
                 }
             }
         }
         
-        return index;
+        return idx;
         
     } catch (exc) {
         return {};
@@ -996,8 +996,8 @@ function safeStringifyEnhanced(targetObj, currentDepth, maxDepth) {
                         // Skip dangerous properties
                         if (isDangerousProperty && isDangerousProperty(key)) continue;
                         
-                        var value = safeStringifyEnhanced(targetObj[key], currentDepth + 1, maxDepth);
-                        objectParts.push('"' + stringReplace(key, '"', '\\"') + '":' + value);
+                        var val = safeStringifyEnhanced(targetObj[key], currentDepth + 1, maxDepth);
+                        objectParts.push('"' + stringReplace(key, '"', '\\"') + '":' + val);
                         propertyCount++;
                     } catch (exc) {
                         // Skip properties that cause errors

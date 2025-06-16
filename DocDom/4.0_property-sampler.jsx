@@ -342,14 +342,14 @@ function generateValueMetadata(value, config) {
                 
             case 'object':
                 // Check if it's a collection
-                var length = safeGetLength(value);
-                if (length >= 0) {
+                var len = safeGetLength(value);
+                if (len >= 0) {
                     metadata.isCollection = true;
-                    metadata.size = length;
+                    metadata.size = len;
                     metadata.hasLength = true;
-                    if (length > 100) {
+                    if (len > 100) {
                         metadata.complexity = 'large';
-                    } else if (length > 10) {
+                    } else if (len > 10) {
                         metadata.complexity = 'moderate';
                     }
                 } else {
@@ -392,10 +392,10 @@ function generateValueFingerprint(value) {
         if (value === null) return 'null';
         if (value === undefined) return 'undefined';
         
-        var type = typeof value;
-        var fingerprint = type + ':';
+        var objType = typeof value;
+        var fingerprint = objType + ':';
         
-        switch (type) {
+        switch (objType) {
             case 'string':
                 fingerprint += value.length + ':' + (value.substring(0, 50).replace(/[^a-zA-Z0-9]/g, ''));
                 break;
@@ -409,9 +409,9 @@ function generateValueFingerprint(value) {
                 break;
                 
             case 'object':
-                var length = safeGetLength(value);
-                if (length >= 0) {
-                    fingerprint += 'collection:' + length;
+                var len = safeGetLength(value);
+                if (len >= 0) {
+                    fingerprint += 'collection:' + len;
                 } else {
                     fingerprint += 'object:' + String(value).substring(0, 30);
                 }
@@ -517,9 +517,9 @@ function formatObjectValueEnhanced(obj, config, metadata, depth) {
         }
         
         // Fallback to original logic
-        var length = safeGetLength(obj);
-        if (length >= 0) {
-            return '[collection, length: ' + length + ']';
+        var len = safeGetLength(obj);
+        if (len >= 0) {
+            return '[collection, length: ' + len + ']';
         }
         
         // For other objects, show limited info
@@ -573,7 +573,7 @@ function safeGetPropertyValue(obj, propName, timeoutMs) {
         }
         
         // This is the critical moment - actually accessing the property value
-        var value = obj[propName];
+        var val = obj[propName];
         
         if (timeoutChecker()) {
             result.timeout = true;
@@ -582,7 +582,7 @@ function safeGetPropertyValue(obj, propName, timeoutMs) {
         }
         
         result.success = true;
-        result.value = value;
+        result.value = val;
         return result;
         
     } catch (exc) {

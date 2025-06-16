@@ -310,10 +310,10 @@ function testBasicDocumentProperties(doc, capabilities) {
         var prop = basicProps[i];
         try {
             var startTime = new Date().getTime();
-            var value = emergencyGetProperty(doc, prop);
+            var val = emergencyGetProperty(doc, prop);
             var duration = new Date().getTime() - startTime;
             
-            if (value !== null && duration < EMERGENCY_TIMEOUTS.PROPERTY_ACCESS) {
+            if (val !== null && duration < EMERGENCY_TIMEOUTS.PROPERTY_ACCESS) {
                 capabilities.propertySafety[prop] = "safe";
                 successCount++;
             } else {
@@ -529,8 +529,8 @@ function emergencyGetProperty(obj, prop, fallback) {
         
         // Try direct access first (fastest)
         if (obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
-            var value = obj[prop];
-            return value !== undefined ? value : (fallback !== undefined ? fallback : null);
+            var val = obj[prop];
+            return val !== undefined ? val : (fallback !== undefined ? fallback : null);
         }
         
         // Fallback access
@@ -774,7 +774,7 @@ function safeGetProperty(obj, prop, defaultValue) {
         // Handle array-like access with bounds checking
         if (typeof prop === 'number') {
             if (obj.length !== undefined && prop >= 0 && prop < obj.length) {
-                var value = obj[prop];
+                var val = obj[prop];
                 
                 // Check timeout
                 if (new Date().getTime() - startTime > maxTime) {
@@ -782,7 +782,7 @@ function safeGetProperty(obj, prop, defaultValue) {
                     return defaultValue !== undefined ? defaultValue : null;
                 }
                 
-                return value !== undefined ? value : (defaultValue !== undefined ? defaultValue : null);
+                return val !== undefined ? val : (defaultValue !== undefined ? defaultValue : null);
             }
             debugLog("Array index out of bounds: " + prop, "WARN");
             return defaultValue !== undefined ? defaultValue : null;
@@ -1286,8 +1286,8 @@ function safeGetSimpleProperty(obj, prop, defaultValue) {
     try {
         // Method 1: hasOwnProperty (safest)
         if (obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
-            var value = obj[prop];
-            return value !== undefined ? value : (defaultValue !== undefined ? defaultValue : null);
+            var val = obj[prop];
+            return val !== undefined ? val : (defaultValue !== undefined ? defaultValue : null);
         }
         
         // Method 2: Direct access fallback
@@ -6647,9 +6647,9 @@ function addBasicReportContent(reportBuilder, data, mode) {
             
             for (var prop in docInfo) {
                 if (docInfo.hasOwnProperty && docInfo.hasOwnProperty(prop)) {
-                    var value = docInfo[prop];
-                    if (value !== null && value !== undefined) {
-                        reportBuilder.appendLine(prop + ": " + String(value));
+                    var val = docInfo[prop];
+                    if (val !== null && val !== undefined) {
+                        reportBuilder.appendLine(prop + ": " + String(val));
                     }
                 }
             }
@@ -6854,9 +6854,9 @@ function addStructuredCollectionDetails(reportBuilder, data) {
                     reportBuilder.appendLine("  Sample Properties:");
                     for (var prop in sample) {
                         if (sample.hasOwnProperty && sample.hasOwnProperty(prop) && prop !== '_accessMethod' && prop !== '_mode') {
-                            var value = sample[prop];
-                            if (value !== null && value !== undefined) {
-                                var valueStr = String(value).substring(0, 50);
+                            var val = sample[prop];
+                            if (val !== null && val !== undefined) {
+                                var valueStr = String(val).substring(0, 50);
                                 reportBuilder.appendLine("    " + prop + ": " + valueStr);
                             }
                         }

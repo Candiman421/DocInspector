@@ -528,8 +528,8 @@ function generateObjectReferenceAnalysisSection(builder, domStructure, config, m
             if (referenceSummary.objectsByType) {
                 builder.appendLine('');
                 builder.appendLine('Objects by Type:');
-                for (var type in referenceSummary.objectsByType) {
-                    builder.appendLine('  ' + type + ': ' + referenceSummary.objectsByType[type]);
+                for (var objType in referenceSummary.objectsByType) {
+                    builder.appendLine('  ' + objType + ': ' + referenceSummary.objectsByType[objType]);
                 }
             }
             
@@ -943,12 +943,12 @@ function enhancedStringifyObjectWithReferences(obj, depth, config) {
     if (obj === null) return 'null';
     if (obj === undefined) return 'undefined';
     
-    var type = typeof obj;
+    var objType = typeof obj;
     
-    if (type === 'string') return '"' + obj.replace(/"/g, '\\"') + '"';
-    if (type === 'number' || type === 'boolean') return String(obj);
+    if (objType === 'string') return '"' + obj.replace(/"/g, '\\"') + '"';
+    if (objType === 'number' || objType === 'boolean') return String(obj);
     
-    if (type === 'object') {
+    if (objType === 'object') {
         if (obj.constructor === Array || (obj.length !== undefined && typeof obj.length === 'number')) {
             // Handle arrays
             var parts = ['['];
@@ -982,7 +982,7 @@ function enhancedStringifyObjectWithReferences(obj, depth, config) {
         }
     }
     
-    return '"[' + type + ']"';
+    return '"[' + objType + ']"';
 }
 
 /**

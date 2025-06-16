@@ -1173,11 +1173,11 @@ function formatDataPreview(data) {
                 break;
             }
             
-            var value = data[key];
-            if (typeof value === 'object' && value !== null) {
+            var val = data[key];
+            if (typeof val === 'object' && val !== null) {
                 preview += key + "=[Object], ";
             } else {
-                var valueStr = String(value);
+                var valueStr = String(val);
                 if (valueStr.length > 20) {
                     valueStr = valueStr.substring(0, 20) + "...";
                 }
@@ -1198,11 +1198,11 @@ function countProperties(data) {
     try {
         for (var key in data) {
             count++;
-            var value = data[key];
+            var val = data[key];
             
             // Count nested properties (up to 2 levels)
-            if (typeof value === 'object' && value !== null) {
-                for (var nestedKey in value) {
+            if (typeof val === 'object' && val !== null) {
+                for (var nestedKey in val) {
                     count++;
                 }
             }
@@ -1317,21 +1317,21 @@ function formatDataForExport(data, indentLevel) {
     
     try {
         for (var key in data) {
-            var value = data[key];
+            var val = data[key];
             
-            if (value === null || value === undefined) {
+            if (val === null || val === undefined) {
                 result += indent + key + ": [null]\n";
-            } else if (typeof value === 'object') {
+            } else if (typeof val === 'object') {
                 result += indent + key + ":\n";
                 
                 // Limit nesting depth
                 if (indentLevel < 3) {
-                    result += formatDataForExport(value, indentLevel + 1);
+                    result += formatDataForExport(val, indentLevel + 1);
                 } else {
                     result += indent + "  [Object - max depth reached]\n";
                 }
             } else {
-                var valueStr = String(value);
+                var valueStr = String(val);
                 if (valueStr.length > 200) {
                     valueStr = valueStr.substring(0, 200) + "... [truncated]";
                 }

@@ -536,12 +536,12 @@ function cloneObject(objRef, maxDepth, currentDepth) {
         
         for (var key in objRef) {
             if (objRef.hasOwnProperty && objRef.hasOwnProperty(key)) {
-                var value = objRef[key];
+                var val = objRef[key];
                 
-                if (typeof value === 'object' && value !== null) {
-                    clonedObj[key] = cloneObject(value, maxDepth, currentDepth + 1);
+                if (typeof val === 'object' && val !== null) {
+                    clonedObj[key] = cloneObject(val, maxDepth, currentDepth + 1);
                 } else {
-                    clonedObj[key] = value;
+                    clonedObj[key] = val;
                 }
             }
         }
@@ -565,19 +565,19 @@ function formatDataForTextExport(dataObj, indentLevel, maxDepth) {
         }
         
         for (var key in dataObj) {
-            var value = dataObj[key];
+            var val = dataObj[key];
             
-            if (value === null || value === undefined) {
+            if (val === null || val === undefined) {
                 resultBuilder.appendLine(indent + key + ": [null]");
-            } else if (typeof value === 'object') {
+            } else if (typeof val === 'object') {
                 resultBuilder.appendLine(indent + key + ":");
                 if (indentLevel < maxDepth - 1) {
-                    resultBuilder.append(formatDataForTextExport(value, indentLevel + 1, maxDepth));
+                    resultBuilder.append(formatDataForTextExport(val, indentLevel + 1, maxDepth));
                 } else {
                     resultBuilder.appendLine(indent + "  [Object - max depth]");
                 }
             } else {
-                var valueStr = String(value);
+                var valueStr = String(val);
                 if (valueStr.length > 100) {
                     valueStr = valueStr.substring(0, 100) + "... [truncated]";
                 }
@@ -603,17 +603,17 @@ function formatDataForXMLExport(dataObj, indentLevel, maxDepth) {
         }
         
         for (var key in dataObj) {
-            var value = dataObj[key];
+            var val = dataObj[key];
             var safeKey = key.replace(/[^a-zA-Z0-9]/g, '_');
             
-            if (value === null || value === undefined) {
+            if (val === null || val === undefined) {
                 resultBuilder.appendLine(indent + '<' + safeKey + ' type="null"/>');
-            } else if (typeof value === 'object') {
+            } else if (typeof val === 'object') {
                 resultBuilder.appendLine(indent + '<' + safeKey + '>');
-                resultBuilder.append(formatDataForXMLExport(value, indentLevel + 2, maxDepth));
+                resultBuilder.append(formatDataForXMLExport(val, indentLevel + 2, maxDepth));
                 resultBuilder.appendLine(indent + '</' + safeKey + '>');
             } else {
-                var valueStr = escapeXmlValue(String(value));
+                var valueStr = escapeXmlValue(String(val));
                 if (valueStr.length > 200) {
                     valueStr = valueStr.substring(0, 200) + "... [truncated]";
                 }
@@ -712,9 +712,9 @@ function convertToJSONString(objRef, currentDepth, maxDepth) {
             
             for (var key in objRef) {
                 if (objRef.hasOwnProperty && objRef.hasOwnProperty(key)) {
-                    var value = objRef[key];
+                    var val = objRef[key];
                     var keyStr = '"' + escapeJsonString(String(key)) + '"';
-                    var valueStr = convertToJSONString(value, currentDepth + 1, maxDepth);
+                    var valueStr = convertToJSONString(val, currentDepth + 1, maxDepth);
                     jsonParts.push(keyStr + ':' + valueStr);
                 }
             }

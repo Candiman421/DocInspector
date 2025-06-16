@@ -177,10 +177,10 @@ function analyzeObjects(session, config) {
         // Analyze objects by type
         var allTypes = ['object', 'string', 'number', 'boolean', 'function'];
         for (var i = 0; i < allTypes.length; i++) {
-            var type = allTypes[i];
-            var objectsOfType = session.objectAtlas.getObjectsByType(type);
+            var objType = allTypes[i];
+            var objectsOfType = session.objectAtlas.getObjectsByType(objType);
             if (objectsOfType.length > 0) {
-                analysis.objectsByType[type] = {
+                analysis.objectsByType[objType] = {
                     count: objectsOfType.length,
                     objects: objectsOfType.slice(0, config.maxReportItems)
                 };
@@ -703,9 +703,9 @@ function generateObjectReport(objectAnalysis, config) {
     
     // Objects by type
     builder.appendLine('OBJECTS BY TYPE:');
-    for (var type in objectAnalysis.objectsByType) {
-        var typeInfo = objectAnalysis.objectsByType[type];
-        builder.appendLine('  ' + type + ': ' + typeInfo.count + ' objects');
+    for (var objType in objectAnalysis.objectsByType) {
+        var typeInfo = objectAnalysis.objectsByType[objType];
+        builder.appendLine('  ' + objType + ': ' + typeInfo.count + ' objects');
     }
     builder.appendLine('');
     

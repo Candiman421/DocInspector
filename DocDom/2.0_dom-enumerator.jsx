@@ -175,8 +175,8 @@ function generateObjectIdentityHash(obj, objPath) {
         var hashValue = 0;
         
         for (var i = 0; i < hashInput.length; i++) {
-            var char = hashInput.charCodeAt(i);
-            hashValue = ((hashValue << 5) - hashValue) + char;
+            var charVal = hashInput.charCodeAt(i);
+            hashValue = ((hashValue << 5) - hashValue) + charVal;
             hashValue = hashValue & hashValue; // Convert to 32-bit integer
         }
         

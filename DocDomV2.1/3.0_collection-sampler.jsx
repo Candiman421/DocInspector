@@ -871,14 +871,14 @@ function getMostCommonType(typeCounts) {
         var mostCommon = 'unknown';
         
         // Enhanced ES3 iteration
-        for (var type in typeCounts) {
-            if (!objectHasOwnProperty(typeCounts, type)) {
+        for (var objType in typeCounts) {
+            if (!objectHasOwnProperty(typeCounts, objType)) {
                 continue;
             }
             
-            if (typeCounts[type] > maxCount) {
-                maxCount = typeCounts[type];
-                mostCommon = type;
+            if (typeCounts[objType] > maxCount) {
+                maxCount = typeCounts[objType];
+                mostCommon = objType;
             }
         }
         

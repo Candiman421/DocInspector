@@ -293,8 +293,8 @@ function exampleAccessStoryContent() {
                         var prop = storiesCollection.samplingData.commonProperties[k];
                         if (prop.safetyLevel === 'safe' || prop.safetyLevel === 'moderate') {
                             try {
-                                var value = firstStory[prop.name];
-                                $.writeln('  story[0].' + prop.name + ' = ' + (typeof value === 'string' ? '"' + value.substring(0, 50) + '"' : value));
+                                var val = firstStory[prop.name];
+                                $.writeln('  story[0].' + prop.name + ' = ' + (typeof val === 'string' ? '"' + val.substring(0, 50) + '"' : val));
                             } catch (propExc) {
                                 $.writeln('  story[0].' + prop.name + ' = [access failed]');
                             }

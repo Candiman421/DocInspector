@@ -497,10 +497,10 @@ function containsFunctionCallPattern(content) {
         var identifierLength = 0;
 
         for (var i = 0; i < content.length - 1; i++) {
-            var char = content.charAt(i);
+            var charVal = content.charAt(i);
             var nextChar = content.charAt(i + 1);
 
-            if (stringIndexOf(identifierChars, char) !== -1) {
+            if (stringIndexOf(identifierChars, charVal) !== -1) {
                 if (!inIdentifier) {
                     inIdentifier = true;
                     identifierLength = 1;
@@ -508,7 +508,7 @@ function containsFunctionCallPattern(content) {
                     identifierLength++;
                 }
             } else {
-                if (inIdentifier && identifierLength > 1 && char === '(' && nextChar !== ')') {
+                if (inIdentifier && identifierLength > 1 && charVal === '(' && nextChar !== ')') {
                     // Found potential function call pattern
                     return true;
                 }

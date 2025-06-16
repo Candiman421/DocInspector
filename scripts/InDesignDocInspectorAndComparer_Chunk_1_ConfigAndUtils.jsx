@@ -273,10 +273,10 @@ function testBasicDocumentProperties(doc, capabilities) {
         var prop = basicProps[i];
         try {
             var startTime = new Date().getTime();
-            var value = emergencyGetProperty(doc, prop);
+            var val = emergencyGetProperty(doc, prop);
             var duration = new Date().getTime() - startTime;
             
-            if (value !== null && duration < EMERGENCY_TIMEOUTS.PROPERTY_ACCESS) {
+            if (val !== null && duration < EMERGENCY_TIMEOUTS.PROPERTY_ACCESS) {
                 capabilities.propertySafety[prop] = "safe";
                 successCount++;
             } else {
@@ -492,8 +492,8 @@ function emergencyGetProperty(obj, prop, fallback) {
         
         // Try direct access first (fastest)
         if (obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
-            var value = obj[prop];
-            return value !== undefined ? value : (fallback !== undefined ? fallback : null);
+            var val = obj[prop];
+            return val !== undefined ? val : (fallback !== undefined ? fallback : null);
         }
         
         // Fallback access
@@ -737,7 +737,7 @@ function safeGetProperty(obj, prop, defaultValue) {
         // Handle array-like access with bounds checking
         if (typeof prop === 'number') {
             if (obj.length !== undefined && prop >= 0 && prop < obj.length) {
-                var value = obj[prop];
+                var val = obj[prop];
                 
                 // Check timeout
                 if (new Date().getTime() - startTime > maxTime) {
@@ -745,7 +745,7 @@ function safeGetProperty(obj, prop, defaultValue) {
                     return defaultValue !== undefined ? defaultValue : null;
                 }
                 
-                return value !== undefined ? value : (defaultValue !== undefined ? defaultValue : null);
+                return val !== undefined ? val : (defaultValue !== undefined ? defaultValue : null);
             }
             debugLog("Array index out of bounds: " + prop, "WARN");
             return defaultValue !== undefined ? defaultValue : null;
@@ -1249,8 +1249,8 @@ function safeGetSimpleProperty(obj, prop, defaultValue) {
     try {
         // Method 1: hasOwnProperty (safest)
         if (obj.hasOwnProperty && obj.hasOwnProperty(prop)) {
-            var value = obj[prop];
-            return value !== undefined ? value : (defaultValue !== undefined ? defaultValue : null);
+            var val = obj[prop];
+            return val !== undefined ? val : (defaultValue !== undefined ? defaultValue : null);
         }
         
         // Method 2: Direct access fallback

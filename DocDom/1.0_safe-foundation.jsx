@@ -94,8 +94,8 @@ function generateObjectReferenceID(obj) {
         // Create hash-like ID from object string representation
         var hash = 0;
         for (var i = 0; i < objString.length; i++) {
-            var char = objString.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
+            var charVal = objString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + charVal;
             hash = hash & hash; // Convert to 32-bit integer
         }
         
@@ -189,9 +189,9 @@ function createObjectReferenceTracker() {
          */
         getPathsForReference: function(refID) {
             try {
-                var index = parseInt(refID.replace('ref_', ''), 10);
-                if (index >= 0 && index < objectPaths.length) {
-                    return objectPaths[index].slice(); // Return copy
+                var idx = parseInt(refID.replace('ref_', ''), 10);
+                if (idx >= 0 && idx < objectPaths.length) {
+                    return objectPaths[idx].slice(); // Return copy
                 }
                 return [];
             } catch (exc) {

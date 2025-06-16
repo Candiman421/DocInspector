@@ -255,13 +255,13 @@ function estimateNodeMemory(nodeRef) {
             var propKeys = objectKeys(nodeRef.properties);
             for (var i = 0; i < propKeys.length; i++) {
                 var key = propKeys[i];
-                var value = nodeRef.properties[key];
+                var val = nodeRef.properties[key];
                 
                 estimate += key.length * 2; // Key string
                 
-                if (typeof value === 'string') {
-                    estimate += value.length * 2;
-                } else if (typeof value === 'object' && value !== null) {
+                if (typeof val === 'string') {
+                    estimate += val.length * 2;
+                } else if (typeof val === 'object' && val !== null) {
                     estimate += 50; // Object overhead
                 } else {
                     estimate += 8; // Primitive value
@@ -326,8 +326,8 @@ function formatTreeAsText(rootNode, options) {
         builder.appendLine("NODE TYPE BREAKDOWN:");
         var typeKeys = objectKeys(stats.nodesByType);
         for (var i = 0; i < typeKeys.length; i++) {
-            var type = typeKeys[i];
-            builder.appendLine("  " + type + ": " + stats.nodesByType[type]);
+            var objType = typeKeys[i];
+            builder.appendLine("  " + objType + ": " + stats.nodesByType[objType]);
         }
         builder.appendLine("");
     }
@@ -362,8 +362,8 @@ function formatNodeAsText(nodeRef, builder, indent, maxDepth, currentDepth, incl
             var propKeys = objectKeys(nodeRef.properties);
             for (var i = 0; i < propKeys.length; i++) {
                 var key = propKeys[i];
-                var value = nodeRef.properties[key];
-                var displayValue = formatValueForDisplay(value);
+                var val = nodeRef.properties[key];
+                var displayValue = formatValueForDisplay(val);
                 builder.appendLine(indent + "  " + key + ": " + displayValue);
             }
         }
@@ -945,13 +945,13 @@ function optimizeNodeRecursive(nodeRef, removeEmptyNodes, removeMetadata, compac
         var propKeys = objectKeys(nodeRef.properties);
         for (var i = 0; i < propKeys.length; i++) {
             var key = propKeys[i];
-            var value = nodeRef.properties[key];
+            var val = nodeRef.properties[key];
             
             // If property is an object with just a value, flatten it
-            if (typeof value === 'object' && value !== null && 
-                value.hasOwnProperty && value.hasOwnProperty('value') && 
-                objectKeys(value).length <= 2) {
-                nodeRef.properties[key] = value.value;
+            if (typeof val === 'object' && val !== null && 
+                val.hasOwnProperty && val.hasOwnProperty('value') && 
+                objectKeys(val).length <= 2) {
+                nodeRef.properties[key] = val.value;
             }
         }
     }

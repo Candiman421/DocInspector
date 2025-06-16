@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-16T21:36:15.708Z
+// Generated: 2025-06-16T22:15:32.938Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v0.0): 0.0_module-loader.jsx
@@ -899,9 +899,9 @@ function stringReplace(str, searchValue, replaceValue) {
         var replaceVal = replaceValue || '';
         
         // Simple string replacement (replace first occurrence)
-        var index = result.indexOf(searchValue);
-        if (index !== -1) {
-            result = result.substring(0, index) + replaceVal + result.substring(index + searchValue.length);
+        var idx = result.indexOf(searchValue);
+        if (idx !== -1) {
+            result = result.substring(0, idx) + replaceVal + result.substring(idx + searchValue.length);
         }
         
         return result;
@@ -3855,14 +3855,14 @@ function getMostCommonType(typeCounts) {
         var mostCommon = 'unknown';
         
         // Enhanced ES3 iteration
-        for (var type in typeCounts) {
-            if (!objectHasOwnProperty(typeCounts, type)) {
+        for (var objType in typeCounts) {
+            if (!objectHasOwnProperty(typeCounts, objType)) {
                 continue;
             }
             
-            if (typeCounts[type] > maxCount) {
-                maxCount = typeCounts[type];
-                mostCommon = type;
+            if (typeCounts[objType] > maxCount) {
+                maxCount = typeCounts[objType];
+                mostCommon = objType;
             }
         }
         
@@ -5503,7 +5503,7 @@ function getEnabledFeatures(config) {
  */
 function generateAccessPathIndex(domStructure) {
     try {
-        var index = {};
+        var idx = {};
         
         if (domStructure.objectRegistry && domStructure.objectRegistry.accessPaths) {
             var accessPaths = domStructure.objectRegistry.accessPaths;
@@ -5511,12 +5511,12 @@ function generateAccessPathIndex(domStructure) {
             // Enhanced ES3-compatible iteration
             for (var objectId in accessPaths) {
                 if (objectHasOwnProperty(accessPaths, objectId)) {
-                    index[objectId] = arraySlice(accessPaths[objectId], 0); // Enhanced array copy
+                    idx[objectId] = arraySlice(accessPaths[objectId], 0); // Enhanced array copy
                 }
             }
         }
         
-        return index;
+        return idx;
         
     } catch (exc) {
         return {};
@@ -5617,8 +5617,8 @@ function safeStringifyEnhanced(targetObj, currentDepth, maxDepth) {
                         // Skip dangerous properties
                         if (isDangerousProperty && isDangerousProperty(key)) continue;
                         
-                        var value = safeStringifyEnhanced(targetObj[key], currentDepth + 1, maxDepth);
-                        objectParts.push('"' + stringReplace(key, '"', '\\"') + '":' + value);
+                        var val = safeStringifyEnhanced(targetObj[key], currentDepth + 1, maxDepth);
+                        objectParts.push('"' + stringReplace(key, '"', '\\"') + '":' + val);
                         propertyCount++;
                     } catch (exc) {
                         // Skip properties that cause errors
@@ -6229,10 +6229,10 @@ function containsFunctionCallPattern(content) {
         var identifierLength = 0;
 
         for (var i = 0; i < content.length - 1; i++) {
-            var char = content.charAt(i);
+            var charVal = content.charAt(i);
             var nextChar = content.charAt(i + 1);
 
-            if (stringIndexOf(identifierChars, char) !== -1) {
+            if (stringIndexOf(identifierChars, charVal) !== -1) {
                 if (!inIdentifier) {
                     inIdentifier = true;
                     identifierLength = 1;
@@ -6240,7 +6240,7 @@ function containsFunctionCallPattern(content) {
                     identifierLength++;
                 }
             } else {
-                if (inIdentifier && identifierLength > 1 && char === '(' && nextChar !== ')') {
+                if (inIdentifier && identifierLength > 1 && charVal === '(' && nextChar !== ')') {
                     // Found potential function call pattern
                     return true;
                 }
@@ -10080,11 +10080,11 @@ function generateDeveloperGuide(session, analysisResult, config) {
                     builder.appendLine('// Accessing ' + collection.name + ' with memory management:');
                     builder.appendLine('if (doc && "' + collection.name + '" in doc) {');
                     builder.appendLine('    var collection = doc.' + collection.name + ';');
-                    builder.appendLine('    var length = collection.length || 0;');
-                    builder.appendLine('    var batchSize = Math.min(length, 100); // Process in batches');
+                    builder.appendLine('    var len = collection.length || 0;');
+                    builder.appendLine('    var batchSize = Math.min(len, 100); // Process in batches');
                     builder.appendLine('    ');
-                    builder.appendLine('    for (var i = 0; i < length; i += batchSize) {');
-                    builder.appendLine('        var endIndex = Math.min(i + batchSize, length);');
+                    builder.appendLine('    for (var i = 0; i < len; i += batchSize) {');
+                    builder.appendLine('        var endIndex = Math.min(i + batchSize, len);');
                     builder.appendLine('        ');
                     builder.appendLine('        for (var j = i; j < endIndex; j++) {');
                     builder.appendLine('            try {');

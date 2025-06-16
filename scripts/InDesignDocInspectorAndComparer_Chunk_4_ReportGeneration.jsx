@@ -132,9 +132,9 @@ function addBasicReportContent(reportBuilder, data, mode) {
             
             for (var prop in docInfo) {
                 if (docInfo.hasOwnProperty && docInfo.hasOwnProperty(prop)) {
-                    var value = docInfo[prop];
-                    if (value !== null && value !== undefined) {
-                        reportBuilder.appendLine(prop + ": " + String(value));
+                    var val = docInfo[prop];
+                    if (val !== null && val !== undefined) {
+                        reportBuilder.appendLine(prop + ": " + String(val));
                     }
                 }
             }
@@ -339,9 +339,9 @@ function addStructuredCollectionDetails(reportBuilder, data) {
                     reportBuilder.appendLine("  Sample Properties:");
                     for (var prop in sample) {
                         if (sample.hasOwnProperty && sample.hasOwnProperty(prop) && prop !== '_accessMethod' && prop !== '_mode') {
-                            var value = sample[prop];
-                            if (value !== null && value !== undefined) {
-                                var valueStr = String(value).substring(0, 50);
+                            var val = sample[prop];
+                            if (val !== null && val !== undefined) {
+                                var valueStr = String(val).substring(0, 50);
                                 reportBuilder.appendLine("    " + prop + ": " + valueStr);
                             }
                         }
