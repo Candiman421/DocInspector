@@ -1,9 +1,9 @@
 //
 // 6.0_collection-sampler.jsx
-// InDesign DOM Discovery Builder - Collection Content Sampling
+// InDesign DOM Discovery Builder - Collection Content Sampling (FIXED)
 // CORE PURPOSE: Safely drill into discovered collections to map their contents
 // DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx
-// SAFETY: Ultra-safe collection access with timeouts and limits
+// SAFETY: Ultra-safe collection access with discovery-first approach
 // ES3 COMPATIBLE: No reserved words, no modern JS features
 //
 
@@ -13,12 +13,11 @@
 
 var DEFAULT_COLLECTION_SAMPLING_CONFIG = {
     maxSamplesPerCollection: 3,     // Sample first 3 items from each collection
-    timeoutPerCollection: 2000,     // 2 seconds max per collection
-    timeoutPerItem: 500,           // 500ms max per collection item
+    timeoutPerCollection: 3000,     // 3 seconds max per collection
+    timeoutPerItem: 1000,          // 1 second max per collection item
     maxCollectionSize: 1000,       // Skip collections larger than 1000 items
     samplingDepth: 2,              // How deep to drill into sampled items
     skipEmptyCollections: true,     // Skip collections with 0 length
-    safetyFilter: 'moderate',      // Only sample collections marked 'moderate' or safer
     enableProgressLogging: true    // Log sampling progress
 };
 
@@ -27,7 +26,7 @@ var DEFAULT_COLLECTION_SAMPLING_CONFIG = {
 // ============================================================================
 
 /**
- * Sample contents of discovered collections and enhance DOM structure
+ * Sample contents of discovered collections and enhance DOM structure (FIXED)
  * @param {Object} domStructure - DOM structure from enumeration
  * @param {Object} sourceDocument - InDesign document object for sampling
  * @param {Object} samplingConfig - Sampling configuration
@@ -39,16 +38,16 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
         return domStructure;
     }
     
-    // Merge configuration
+    // Merge configuration (removed problematic safetyFilter)
     var config = mergeCollectionSamplingConfig(DEFAULT_COLLECTION_SAMPLING_CONFIG, samplingConfig);
     
     $.writeln('');
     $.writeln('==========================================');
     $.writeln('COLLECTION CONTENT SAMPLING STARTED');
     $.writeln('==========================================');
+    $.writeln('🎯 DISCOVERY-FIRST APPROACH: Sampling all discovered collections');
     $.writeln('Max samples per collection: ' + config.maxSamplesPerCollection);
     $.writeln('Timeout per collection: ' + config.timeoutPerCollection + 'ms');
-    $.writeln('Safety filter: ' + config.safetyFilter);
     $.writeln('');
     
     var startTime = new Date().getTime();
@@ -69,7 +68,7 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
         samplingStats.collectionsFound = discoveredCollections.length;
         
         if (config.enableProgressLogging) {
-            $.writeln('Found ' + discoveredCollections.length + ' collections to potentially sample');
+            $.writeln('Found ' + discoveredCollections.length + ' collections to sample');
         }
         
         // Sample each discovered collection
@@ -77,19 +76,21 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
             var collection = discoveredCollections[i];
             
             if (config.enableProgressLogging) {
-                $.writeln('Processing collection ' + (i + 1) + '/' + discoveredCollections.length + ': ' + collection.path);
+                $.writeln('Processing collection ' + (i + 1) + '/' + discoveredCollections.length + ': ' + collection.name);
+                $.writeln('  Path: ' + collection.path);
+                $.writeln('  Safety level: ' + collection.safetyLevel);
             }
             
-            // Check if collection meets safety criteria
-            if (!meetsCollectionSafetyCriteria(collection, config)) {
+            // FIXED: Use discovery-first criteria instead of restrictive safety filter
+            if (!meetsDiscoveryFirstCriteria(collection, config)) {
                 samplingStats.collectionsSkipped++;
                 if (config.enableProgressLogging) {
-                    $.writeln('  Skipped - safety criteria not met');
+                    $.writeln('  ❌ Skipped - truly dangerous or problematic');
                 }
                 continue;
             }
             
-            // Sample this collection
+            // Sample this collection with safety-adjusted approach
             var collectionSamplingResult = sampleSingleCollection(
                 collection, 
                 sourceDocument, 
@@ -106,13 +107,13 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
                 enhanceCollectionWithSamplingData(collection, collectionSamplingResult.samplingData);
                 
                 if (config.enableProgressLogging) {
-                    $.writeln('  Sampled successfully - ' + collectionSamplingResult.itemsSampled + ' items, ' + 
+                    $.writeln('  ✅ Sampled successfully - ' + collectionSamplingResult.itemsSampled + ' items, ' + 
                              collectionSamplingResult.propertiesDiscovered + ' properties');
                 }
             } else {
                 samplingStats.errors++;
                 if (config.enableProgressLogging) {
-                    $.writeln('  Sampling failed: ' + collectionSamplingResult.error);
+                    $.writeln('  ❌ Sampling failed: ' + collectionSamplingResult.error);
                 }
             }
         }
@@ -127,7 +128,8 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
         domStructure.metadata.collectionSampling = {
             timestamp: getCurrentTimestamp(),
             config: config,
-            stats: samplingStats
+            stats: samplingStats,
+            approach: 'discovery-first'
         };
         
         $.writeln('');
@@ -157,7 +159,76 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
 }
 
 /**
- * Sample contents of a single collection
+ * FIXED: Discovery-first criteria - sample all discovered collections except truly dangerous ones
+ * @param {Object} collection - Collection property classification
+ * @param {Object} config - Sampling configuration
+ * @returns {Boolean} - true if collection should be sampled
+ */
+function meetsDiscoveryFirstCriteria(collection, config) {
+    try {
+        // Skip only truly dangerous collections (functions, etc.)
+        if (collection.safetyLevel === 'dangerous') {
+            return false;
+        }
+        
+        // Skip collections with obviously dangerous names
+        if (isDangerousProperty(collection.name)) {
+            return false;
+        }
+        
+        // DISCOVERY-FIRST PRINCIPLE: If enumeration found it, we sample it safely
+        // Safety level affects HOW we sample, not WHETHER we sample
+        return true;
+        
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Get safety-adjusted sampling configuration based on collection safety level
+ * @param {Object} collection - Collection property classification
+ * @param {Object} baseConfig - Base sampling configuration
+ * @returns {Object} - Adjusted configuration
+ */
+function getSafetyAdjustedConfig(collection, baseConfig) {
+    var adjustedConfig = {
+        maxSamplesPerCollection: baseConfig.maxSamplesPerCollection,
+        timeoutPerCollection: baseConfig.timeoutPerCollection,
+        timeoutPerItem: baseConfig.timeoutPerItem
+    };
+    
+    // Adjust safety measures based on collection safety level
+    switch (collection.safetyLevel) {
+        case 'safe':
+            // Safe collections - can be more aggressive
+            adjustedConfig.maxSamplesPerCollection = Math.min(baseConfig.maxSamplesPerCollection * 2, 5);
+            break;
+            
+        case 'moderate':
+            // Moderate collections - use base settings
+            break;
+            
+        case 'risky':
+            // Risky collections - be more cautious
+            adjustedConfig.maxSamplesPerCollection = Math.max(Math.floor(baseConfig.maxSamplesPerCollection / 2), 1);
+            adjustedConfig.timeoutPerCollection = Math.floor(baseConfig.timeoutPerCollection / 2);
+            adjustedConfig.timeoutPerItem = Math.floor(baseConfig.timeoutPerItem / 2);
+            break;
+            
+        case 'dangerous':
+            // Should have been filtered out, but just in case
+            adjustedConfig.maxSamplesPerCollection = 1;
+            adjustedConfig.timeoutPerCollection = 500;
+            adjustedConfig.timeoutPerItem = 100;
+            break;
+    }
+    
+    return adjustedConfig;
+}
+
+/**
+ * Sample contents of a single collection with safety adjustments
  * @param {Object} collection - Collection property classification
  * @param {Object} sourceDocument - InDesign document object
  * @param {Object} config - Sampling configuration
@@ -173,11 +244,13 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
         error: ''
     };
     
-    var timeoutChecker = createTimeoutChecker(config.timeoutPerCollection);
+    // Get safety-adjusted configuration
+    var adjustedConfig = getSafetyAdjustedConfig(collection, config);
+    var timeoutChecker = createTimeoutChecker(adjustedConfig.timeoutPerCollection);
     
     try {
-        // Get reference to the actual collection object
-        var collectionObject = safeGetObjectFromPath(sourceDocument, collection.path, config.timeoutPerCollection);
+        // Get reference to the actual collection object using discovered path
+        var collectionObject = safeGetObjectFromPath(sourceDocument, collection.path, adjustedConfig.timeoutPerCollection);
         
         if (!collectionObject.success) {
             result.error = 'Could not access collection: ' + collectionObject.error;
@@ -208,11 +281,16 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
             collectionLength: collectionLength,
             sampledItems: [],
             commonProperties: [],
-            accessPatterns: []
+            accessPatterns: [],
+            safetyAdjustments: {
+                originalSafetyLevel: collection.safetyLevel,
+                adjustedMaxSamples: adjustedConfig.maxSamplesPerCollection,
+                adjustedTimeout: adjustedConfig.timeoutPerCollection
+            }
         };
         
-        // Sample first few items from collection
-        var itemsToSample = Math.min(collectionLength, config.maxSamplesPerCollection);
+        // Sample items using safety-adjusted limits
+        var itemsToSample = Math.min(collectionLength, adjustedConfig.maxSamplesPerCollection);
         
         for (var itemIndex = 0; itemIndex < itemsToSample; itemIndex++) {
             if (timeoutChecker()) {
@@ -226,7 +304,7 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
                     actualCollection, 
                     itemIndex, 
                     collection.path + '[' + itemIndex + ']',
-                    config
+                    adjustedConfig
                 );
                 
                 if (itemSamplingResult.success) {
@@ -235,11 +313,11 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
                     result.propertiesDiscovered += itemSamplingResult.propertiesFound;
                 } else {
                     // Don't fail entire collection for one bad item
-                    $.writeln('  Warning: Could not sample item [' + itemIndex + ']: ' + itemSamplingResult.error);
+                    $.writeln('    Warning: Could not sample item [' + itemIndex + ']: ' + itemSamplingResult.error);
                 }
                 
             } catch (itemExc) {
-                $.writeln('  Warning: Exception sampling item [' + itemIndex + ']: ' + itemExc.message);
+                $.writeln('    Warning: Exception sampling item [' + itemIndex + ']: ' + itemExc.message);
             }
         }
         
@@ -460,41 +538,6 @@ function findCollectionsInNode(domNode, collections) {
 }
 
 /**
- * Check if collection meets safety criteria for sampling
- * @param {Object} collection - Collection property classification
- * @param {Object} config - Sampling configuration
- * @returns {Boolean} - true if collection is safe to sample
- */
-function meetsCollectionSafetyCriteria(collection, config) {
-    try {
-        // Check safety level
-        var safetyLevels = {
-            'safe': 1,
-            'moderate': 2,
-            'risky': 3,
-            'dangerous': 4
-        };
-        
-        var collectionSafetyLevel = safetyLevels[collection.safetyLevel] || 4;
-        var requiredSafetyLevel = safetyLevels[config.safetyFilter] || 2;
-        
-        if (collectionSafetyLevel > requiredSafetyLevel) {
-            return false;
-        }
-        
-        // Additional safety checks
-        if (isDangerousProperty(collection.name)) {
-            return false;
-        }
-        
-        return true;
-        
-    } catch (exc) {
-        return false;
-    }
-}
-
-/**
  * Analyze sampled items to find common property patterns
  * @param {Object} samplingData - Sampling data to analyze
  */
@@ -629,8 +672,7 @@ function mergeCollectionSamplingConfig(defaults, userConfig) {
 function quickSampleCollections(domStructure, sourceDocument) {
     var quickConfig = {
         maxSamplesPerCollection: 2,
-        timeoutPerCollection: 1000,
-        safetyFilter: 'moderate',
+        timeoutPerCollection: 2000,
         enableProgressLogging: false
     };
     
@@ -707,7 +749,7 @@ function initializeCollectionSampler() {
             }
         }
         
-        $.writeln('6.0_collection-sampler.jsx: All functions initialized successfully');
+        $.writeln('6.0_collection-sampler.jsx: All functions initialized successfully (FIXED VERSION)');
         $.writeln('Use sampleCollectionContents(domStructure, document, config) to sample collections');
         return true;
         

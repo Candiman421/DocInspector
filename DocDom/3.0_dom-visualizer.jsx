@@ -42,7 +42,7 @@ function createDOMVisualizerUI() {
         var dialog = new Window('dialog', 'InDesign DOM Explorer v2.0');
         dialog.orientation = 'column';
         dialog.alignChildren = 'fill';
-        dialog.preferredSize.width = 800;
+        dialog.preferredSize.width = 850;
         dialog.preferredSize.height = 750;
         
         // Header panel with document info
@@ -141,7 +141,7 @@ function createControlPanel(parentWindow) {
         runDOMEnumeration();
     };
     
-    // Sample Collections button (new!)
+    // Sample Collections button (enhanced!)
     var sampleBtn = buttonGroup.add('button', undefined, 'Sample Collections');
     sampleBtn.preferredSize.width = 120;
     sampleBtn.enabled = false; // Enable after enumeration
@@ -317,12 +317,11 @@ function runCollectionSampling() {
             DOM_VISUALIZER_STATE.controls.sampleButton.text = 'Sampling...';
         }
         
-        // Run collection sampling
+        // Run collection sampling with discovery-first approach
         var samplingConfig = {
             maxSamplesPerCollection: 3,
             timeoutPerCollection: 3000,
-            safetyFilter: 'moderate',
-            enableProgressLogging: true
+            enableProgressLogging: false  // Disable for UI
         };
         
         var enhancedDOMStructure = sampleCollectionContents(
@@ -426,12 +425,11 @@ function formatDOMForDisplay(domStructure) {
         builder.appendLine('No DOM structure available');
     }
     
-    // Property access guide
+    // Property access guide (enhanced with collection data)
     builder.appendLine('');
     builder.appendLine('PROPERTY ACCESS EXAMPLES:');
     builder.appendLine('========================');
     builder.appendLine('');
-    builder.appendLine('// Safe properties (recommended)');
     if (domStructure.structure && domStructure.structure.document) {
         var examples = generateEnhancedAccessExamples(domStructure.structure.document);
         builder.append(examples);
@@ -462,55 +460,80 @@ function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
     
     builder.appendLine(nodeLine);
     
-    // Properties
-    var allProperties = [];
-    if (domNode.properties) allProperties = allProperties.concat(domNode.properties);
-    if (domNode.collections) allProperties = allProperties.concat(domNode.collections);
-    
-    // Show first few properties
-    var maxPropsToShow = 8;
-    for (var i = 0; i < Math.min(allProperties.length, maxPropsToShow); i++) {
-        var prop = allProperties[i];
-        var childPrefix = prefix + (isLast ? '    ' : '│   ');
-        var propPrefix = childPrefix + (i < maxPropsToShow - 1 ? '├── ' : '└── ');
-        var propLine = propPrefix + prop.name + ' (' + prop.type + ') [' + prop.safetyLevel + ']';
+    // Enhanced: Show safe properties first
+    if (domNode.properties && domNode.properties.length > 0) {
+        var safeProps = [];
+        var otherProps = [];
         
-        if (prop.isCollection) {
-            propLine += ' [COLLECTION';
+        for (var i = 0; i < domNode.properties.length; i++) {
+            var prop = domNode.properties[i];
+            if (prop.safetyLevel === 'safe') {
+                safeProps.push(prop);
+            } else {
+                otherProps.push(prop);
+            }
+        }
+        
+        var childPrefix = prefix + (isLast ? '    ' : '│   ');
+        var propCount = 0;
+        var maxPropsToShow = 5;
+        
+        // Show safe properties first
+        for (var i = 0; i < safeProps.length && propCount < maxPropsToShow; i++) {
+            var prop = safeProps[i];
+            var propPrefix = childPrefix + '├── ';
+            var propLine = propPrefix + prop.name + ' (' + prop.type + ') [' + prop.safetyLevel + ']';
+            builder.appendLine(propLine);
+            propCount++;
+        }
+        
+        // Show some other properties
+        for (var i = 0; i < otherProps.length && propCount < maxPropsToShow; i++) {
+            var prop = otherProps[i];
+            var propPrefix = childPrefix + '├── ';
+            var propLine = propPrefix + prop.name + ' (' + prop.type + ') [' + prop.safetyLevel + ']';
+            builder.appendLine(propLine);
+            propCount++;
+        }
+        
+        if (domNode.properties.length > maxPropsToShow) {
+            builder.appendLine(childPrefix + '├── ... and ' + (domNode.properties.length - maxPropsToShow) + ' more properties');
+        }
+    }
+    
+    // Enhanced: Show collections with sampling data
+    if (domNode.collections && domNode.collections.length > 0) {
+        for (var i = 0; i < domNode.collections.length; i++) {
+            var collection = domNode.collections[i];
+            var childPrefix = prefix + (isLast ? '    ' : '│   ');
+            var propPrefix = childPrefix + '├── ';
+            var propLine = propPrefix + collection.name + ' (' + collection.type + ') [' + collection.safetyLevel + '] [COLLECTION';
             
             // Add collection sampling info if available
-            if (prop.hasSamplingData && prop.samplingData) {
-                propLine += ', length: ' + prop.samplingData.collectionLength;
-                if (prop.samplingData.commonProperties && prop.samplingData.commonProperties.length > 0) {
-                    propLine += ', ' + prop.samplingData.commonProperties.length + ' common props';
+            if (collection.hasSamplingData && collection.samplingData) {
+                propLine += ', length: ' + collection.samplingData.collectionLength;
+                if (collection.samplingData.commonProperties && collection.samplingData.commonProperties.length > 0) {
+                    propLine += ', ' + collection.samplingData.commonProperties.length + ' common props';
                 }
             }
             
             propLine += ']';
+            builder.appendLine(propLine);
             
-            // Show common properties if available
-            if (prop.samplingData && prop.samplingData.commonProperties) {
-                for (var j = 0; j < Math.min(prop.samplingData.commonProperties.length, 3); j++) {
-                    var commonProp = prop.samplingData.commonProperties[j];
-                    var commonPrefix = childPrefix + '    ';
+            // Show common properties from sampling if available
+            if (collection.samplingData && collection.samplingData.commonProperties) {
+                for (var j = 0; j < Math.min(collection.samplingData.commonProperties.length, 3); j++) {
+                    var commonProp = collection.samplingData.commonProperties[j];
+                    var commonPrefix = childPrefix + '│   ';
                     var commonLine = commonPrefix + '├── [item].' + commonProp.name + ' (' + commonProp.type + ') [' + commonProp.safetyLevel + ']';
                     builder.appendLine(commonLine);
                 }
-                if (prop.samplingData.commonProperties.length > 3) {
-                    var morePrefix = childPrefix + '    ';
-                    builder.appendLine(morePrefix + '└── ... and ' + (prop.samplingData.commonProperties.length - 3) + ' more common properties');
+                if (collection.samplingData.commonProperties.length > 3) {
+                    var morePrefix = childPrefix + '│   ';
+                    builder.appendLine(morePrefix + '└── ... and ' + (collection.samplingData.commonProperties.length - 3) + ' more common properties');
                 }
             }
-            
-        } else {
-            builder.appendLine(propLine);
         }
-    }
-    
-    // Show count if there are more properties
-    if (allProperties.length > maxPropsToShow) {
-        var childPrefix = prefix + (isLast ? '    ' : '│   ');
-        builder.appendLine(childPrefix + '└── ... and ' + (allProperties.length - maxPropsToShow) + ' more properties');
     }
     
     return builder.toString();
@@ -524,46 +547,68 @@ function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
 function generateEnhancedAccessExamples(domNode) {
     var builder = createStringBuilder();
     
-    if (!domNode || !domNode.properties) return '';
+    if (!domNode) return '';
     
-    // Find safe properties to show as examples
-    var safeProps = [];
-    for (var i = 0; i < domNode.properties.length; i++) {
-        var prop = domNode.properties[i];
-        if (prop.safetyLevel === 'safe' && safeProps.length < 5) {
-            safeProps.push(prop);
+    // Safe properties section
+    builder.appendLine('// Safe properties (recommended):');
+    if (domNode.properties) {
+        var safeProps = [];
+        for (var i = 0; i < domNode.properties.length; i++) {
+            var prop = domNode.properties[i];
+            if (prop.safetyLevel === 'safe' && safeProps.length < 5) {
+                safeProps.push(prop);
+            }
+        }
+        
+        for (var i = 0; i < safeProps.length; i++) {
+            var prop = safeProps[i];
+            builder.appendLine('var ' + prop.name.replace(/[^a-zA-Z0-9]/g, '') + ' = document.' + prop.name + ';  // ' + prop.type);
+        }
+        
+        if (safeProps.length === 0) {
+            builder.appendLine('// No safe properties found for direct access');
         }
     }
     
-    for (var i = 0; i < safeProps.length; i++) {
-        var prop = safeProps[i];
-        builder.appendLine('var ' + prop.name.replace(/[^a-zA-Z0-9]/g, '') + ' = document.' + prop.name + ';  // ' + prop.type);
-    }
-    
-    if (safeProps.length === 0) {
-        builder.appendLine('// No safe properties found for direct access');
-    }
-    
-    // Enhanced: Show collection access patterns if available
+    // Enhanced: Show collection access patterns from sampling
     if (domNode.collections) {
         builder.appendLine('');
         builder.appendLine('// Collection access patterns (from sampling):');
         
+        var foundPatterns = false;
         for (var i = 0; i < domNode.collections.length; i++) {
             var collection = domNode.collections[i];
-            if (collection.hasSamplingData && collection.samplingData.accessPatterns) {
-                builder.appendLine('// ' + collection.name + ' collection:');
-                builder.appendLine('var ' + collection.name + 'Count = document.' + collection.name + '.length;  // ' + 
-                                 (collection.samplingData.collectionLength || 'unknown'));
-                
-                for (var j = 0; j < Math.min(collection.samplingData.accessPatterns.length, 3); j++) {
-                    var pattern = collection.samplingData.accessPatterns[j];
-                    var examplePath = pattern.pattern.replace('[index]', '[0]');
-                    var varName = (collection.name + pattern.description.split(' ')[1]).replace(/[^a-zA-Z0-9]/g, '');
-                    builder.appendLine('var ' + varName + ' = ' + examplePath + ';  // ' + pattern.type + ' [' + pattern.safetyLevel + ']');
-                }
+            if (collection.hasSamplingData && collection.samplingData) {
+                foundPatterns = true;
                 builder.appendLine('');
+                builder.appendLine('// ' + collection.name + ' collection (' + collection.samplingData.collectionLength + ' items):');
+                builder.appendLine('var ' + collection.name + 'Count = document.' + collection.name + '.length;');
+                
+                if (collection.samplingData.accessPatterns && collection.samplingData.accessPatterns.length > 0) {
+                    for (var j = 0; j < Math.min(collection.samplingData.accessPatterns.length, 3); j++) {
+                        var pattern = collection.samplingData.accessPatterns[j];
+                        var exampleCode = pattern.pattern.replace('[index]', '[0]');
+                        builder.appendLine('var value = ' + exampleCode + ';  // ' + pattern.type + ' [' + pattern.safetyLevel + ']');
+                    }
+                    
+                    // Safe iteration example
+                    builder.appendLine('// Safe iteration:');
+                    builder.appendLine('for (var i = 0; i < document.' + collection.name + '.length; i++) {');
+                    builder.appendLine('  try {');
+                    builder.appendLine('    var item = document.' + collection.name + '[i];');
+                    if (collection.samplingData.commonProperties && collection.samplingData.commonProperties.length > 0) {
+                        var firstProp = collection.samplingData.commonProperties[0];
+                        builder.appendLine('    var ' + firstProp.name + ' = item.' + firstProp.name + ';');
+                    }
+                    builder.appendLine('  } catch (exc) { /* handle error */ }');
+                    builder.appendLine('}');
+                }
             }
+        }
+        
+        if (!foundPatterns) {
+            builder.appendLine('// No collection sampling data available yet.');
+            builder.appendLine('// Click "Sample Collections" to generate access patterns.');
         }
     }
     
@@ -641,11 +686,11 @@ function updateDocumentInfo() {
 }
 
 // ============================================================================
-// EXPORT FUNCTIONALITY (unchanged)
+// EXPORT FUNCTIONALITY
 // ============================================================================
 
 /**
- * Show export options dialog (renamed from exportDOMStructure to avoid naming conflict)
+ * Show export options dialog
  */
 function showExportOptions() {
     if (!DOM_VISUALIZER_STATE.currentDOMStructure) {
@@ -669,8 +714,8 @@ function showExportDialog() {
     var exportDialog = new Window('dialog', 'Export DOM Structure');
     exportDialog.orientation = 'column';
     exportDialog.alignChildren = 'fill';
-    exportDialog.preferredSize.width = 400;
-    exportDialog.preferredSize.height = 300;
+    exportDialog.preferredSize.width = 450;
+    exportDialog.preferredSize.height = 350;
     
     // Header
     var headerPanel = exportDialog.add('panel', undefined, 'Export Options');
@@ -693,10 +738,12 @@ function showExportDialog() {
     var includeValues = optionsPanel.add('checkbox', undefined, 'Include sample values (if available)');
     var includeStats = optionsPanel.add('checkbox', undefined, 'Include discovery statistics');
     var includeGuide = optionsPanel.add('checkbox', undefined, 'Include property access guide');
+    var includeCollection = optionsPanel.add('checkbox', undefined, 'Include collection sampling data');
     
     includeValues.value = true;
     includeStats.value = true;
     includeGuide.value = true;
+    includeCollection.value = true;
     
     // File path
     var pathPanel = exportDialog.add('panel', undefined, 'File Location');
@@ -797,26 +844,35 @@ function performExport(format, customPath) {
 }
 
 /**
- * Show settings dialog with basic options
+ * Show settings dialog with collection sampling options
  */
 function showSettingsDialog() {
     var settingsDialog = new Window('dialog', 'DOM Discovery Settings');
     settingsDialog.orientation = 'column';
     settingsDialog.alignChildren = 'fill';
-    settingsDialog.preferredSize.width = 350;
-    settingsDialog.preferredSize.height = 300;
+    settingsDialog.preferredSize.width = 400;
+    settingsDialog.preferredSize.height = 350;
     
     // Current settings display
     var currentPanel = settingsDialog.add('panel', undefined, 'Current Settings');
-    currentPanel.add('statictext', undefined, 'Max Depth: 2 levels');
-    currentPanel.add('statictext', undefined, 'Timeout: 8 seconds');
-    currentPanel.add('statictext', undefined, 'Skip Dangerous Properties: Yes');
-    currentPanel.add('statictext', undefined, 'Max Properties: 2000');
+    currentPanel.add('statictext', undefined, 'DOM Enumeration:');
+    currentPanel.add('statictext', undefined, '  Max Depth: 2 levels');
+    currentPanel.add('statictext', undefined, '  Timeout: 8 seconds');
+    currentPanel.add('statictext', undefined, '  Skip Dangerous Properties: Yes');
+    currentPanel.add('statictext', undefined, '  Max Properties: 2000');
     currentPanel.add('statictext', undefined, '');
     currentPanel.add('statictext', undefined, 'Collection Sampling:');
     currentPanel.add('statictext', undefined, '  Max Samples per Collection: 3');
     currentPanel.add('statictext', undefined, '  Collection Timeout: 3 seconds');
-    currentPanel.add('statictext', undefined, '  Safety Filter: Moderate');
+    currentPanel.add('statictext', undefined, '  Discovery-First Approach: Enabled');
+    
+    // Features panel
+    var featuresPanel = settingsDialog.add('panel', undefined, 'Available Features');
+    featuresPanel.add('statictext', undefined, '✓ DOM Structure Discovery');
+    featuresPanel.add('statictext', undefined, '✓ Collection Content Sampling');
+    featuresPanel.add('statictext', undefined, '✓ Property Access Pattern Generation');
+    featuresPanel.add('statictext', undefined, '✓ Multi-format Export (Text, JSON, CSV)');
+    featuresPanel.add('statictext', undefined, '✓ Safety Classification & Timeout Protection');
     
     // Future settings note
     var futurePanel = settingsDialog.add('panel', undefined, 'Configuration');
@@ -886,7 +942,7 @@ function initializeDOMVisualizer() {
         
         // Collection sampler is optional but recommended
         if (typeof sampleCollectionContents === 'function') {
-            $.writeln('Collection sampler module detected');
+            $.writeln('Collection sampler module detected - enhanced features available');
         } else {
             $.writeln('Collection sampler module not available - some features disabled');
         }
@@ -903,7 +959,7 @@ function initializeDOMVisualizer() {
             }
         }
         
-        $.writeln('3.0_dom-visualizer.jsx: All functions initialized successfully');
+        $.writeln('3.0_dom-visualizer.jsx: All functions initialized successfully (ENHANCED VERSION)');
         $.writeln('Use showDOMVisualizer() to open the interface');
         return true;
         
