@@ -2,7 +2,7 @@
 // 3.0_dom-visualizer.jsx (Fixed Dependencies)
 // InDesign DOM Discovery Builder - Basic DOM Structure Visualization
 // CORE PURPOSE: Display DOM structure in user-friendly interface
-// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx, 6.0_collection-sampler.jsx
+// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx (6.0_collection-sampler.jsx optional)
 // SAFETY: Uses only proven ExtendScript UI patterns
 // ES3 COMPATIBLE: No reserved words, no modern JS features
 // FIXED: Removed illegal dependencies on 7.0 and 8.0 modules
