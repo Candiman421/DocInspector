@@ -585,6 +585,8 @@ function showExportDialog() {
  */
 function performExport(format, customPath) {
     try {
+        updateStatus('Starting ' + format + ' export...');
+        
         // Call the exporter function directly (should be in global scope from 5.0_dom-exporter.jsx)
         var result = null;
         
@@ -592,25 +594,35 @@ function performExport(format, customPath) {
         try {
             // Direct call to the global function from 5.0_dom-exporter.jsx
             if (typeof exportDOMStructure === 'function') {
+                $.writeln('Calling exportDOMStructure with format: ' + format);
                 result = exportDOMStructure(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
+                $.writeln('Export function returned: ' + (result ? 'success=' + result.success : 'null'));
             } else {
-                throw new Error('Export function not found');
+                throw new Error('Export function not found - exportDOMStructure is not defined');
             }
         } catch (exc) {
             result = {
                 success: false,
                 filePath: '',
-                error: 'DOM Exporter module not available or failed: ' + exc.message
+                error: 'DOM Exporter module call failed: ' + exc.message
             };
+            $.writeln('Export function call failed: ' + exc.message);
         }
         
         if (result && result.success) {
             updateStatus('Export successful: ' + result.filePath);
             alert('DOM structure exported successfully!\n\nFile saved to:\n' + result.filePath);
         } else {
-            var errorMsg = result ? result.error : 'Unknown export error';
+            var errorMsg = result ? result.error : 'Unknown export error - no result returned';
             updateStatus('Export failed: ' + errorMsg);
-            alert('Export failed:\n\n' + errorMsg);
+            alert('Export failed:\n\n' + errorMsg + '\n\nCheck ExtendScript console for more details.');
+            $.writeln('EXPORT FAILURE DETAILS:');
+            $.writeln('  Format: ' + format);
+            $.writeln('  Custom Path: ' + customPath);
+            $.writeln('  DOM Structure exists: ' + (DOM_VISUALIZER_STATE.currentDOMStructure ? 'Yes' : 'No'));
+            if (DOM_VISUALIZER_STATE.currentDOMStructure) {
+                $.writeln('  DOM Properties: ' + DOM_VISUALIZER_STATE.currentDOMStructure.statistics.totalProperties);
+            }
         }
         
     } catch (exc) {

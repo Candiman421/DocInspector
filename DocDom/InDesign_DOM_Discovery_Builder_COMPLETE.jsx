@@ -2,7 +2,7 @@
 // InDesign DOM Discovery Builder v2.0 - COMPLETE ASSEMBLED VERSION
 // All DOM Discovery Modules Combined (Auto-Discovery Build)
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-16T02:13:44.473Z
+// Generated: 2025-06-16T03:15:36.274Z
 // 
 // This file contains all 5 modules assembled in proper order:
 // Module 1 (v1.0): 1.0_safe-foundation.jsx
@@ -1534,6 +1534,8 @@ function showExportDialog() {
  */
 function performExport(format, customPath) {
     try {
+        updateStatus('Starting ' + format + ' export...');
+        
         // Call the exporter function directly (should be in global scope from 5.0_dom-exporter.jsx)
         var result = null;
         
@@ -1541,25 +1543,35 @@ function performExport(format, customPath) {
         try {
             // Direct call to the global function from 5.0_dom-exporter.jsx
             if (typeof exportDOMStructure === 'function') {
+                $.writeln('Calling exportDOMStructure with format: ' + format);
                 result = exportDOMStructure(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
+                $.writeln('Export function returned: ' + (result ? 'success=' + result.success : 'null'));
             } else {
-                throw new Error('Export function not found');
+                throw new Error('Export function not found - exportDOMStructure is not defined');
             }
         } catch (exc) {
             result = {
                 success: false,
                 filePath: '',
-                error: 'DOM Exporter module not available or failed: ' + exc.message
+                error: 'DOM Exporter module call failed: ' + exc.message
             };
+            $.writeln('Export function call failed: ' + exc.message);
         }
         
         if (result && result.success) {
             updateStatus('Export successful: ' + result.filePath);
             alert('DOM structure exported successfully!\n\nFile saved to:\n' + result.filePath);
         } else {
-            var errorMsg = result ? result.error : 'Unknown export error';
+            var errorMsg = result ? result.error : 'Unknown export error - no result returned';
             updateStatus('Export failed: ' + errorMsg);
-            alert('Export failed:\n\n' + errorMsg);
+            alert('Export failed:\n\n' + errorMsg + '\n\nCheck ExtendScript console for more details.');
+            $.writeln('EXPORT FAILURE DETAILS:');
+            $.writeln('  Format: ' + format);
+            $.writeln('  Custom Path: ' + customPath);
+            $.writeln('  DOM Structure exists: ' + (DOM_VISUALIZER_STATE.currentDOMStructure ? 'Yes' : 'No'));
+            if (DOM_VISUALIZER_STATE.currentDOMStructure) {
+                $.writeln('  DOM Properties: ' + DOM_VISUALIZER_STATE.currentDOMStructure.statistics.totalProperties);
+            }
         }
         
     } catch (exc) {
@@ -2202,39 +2214,54 @@ function exportDOMStructure(domStructure, format, customPath) {
     };
     
     try {
+        $.writeln('Starting export: format=' + format);
+        
         if (!domStructure) {
             result.error = 'No DOM structure provided for export';
             return result;
         }
         
         var exportFormat = format || EXPORT_CONFIG.defaultFormat;
+        $.writeln('Using export format: ' + exportFormat);
         
         // Generate export content based on format
         var content = '';
         var fileExtension = '.txt';
         
-        switch (exportFormat.toLowerCase()) {
-            case 'text':
-                content = generateTextExport(domStructure);
-                fileExtension = '.txt';
-                break;
-            case 'json':
-                content = generateJSONExport(domStructure);
-                fileExtension = '.json';
-                break;
-            case 'csv':
-                content = generateCSVExport(domStructure);
-                fileExtension = '.csv';
-                break;
-            default:
-                result.error = 'Unsupported export format: ' + exportFormat;
-                return result;
+        try {
+            switch (exportFormat.toLowerCase()) {
+                case 'text':
+                    $.writeln('Generating text export...');
+                    content = generateTextExport(domStructure);
+                    fileExtension = '.txt';
+                    break;
+                case 'json':
+                    $.writeln('Generating JSON export...');
+                    content = generateJSONExport(domStructure);
+                    fileExtension = '.json';
+                    break;
+                case 'csv':
+                    $.writeln('Generating CSV export...');
+                    content = generateCSVExport(domStructure);
+                    fileExtension = '.csv';
+                    break;
+                default:
+                    result.error = 'Unsupported export format: ' + exportFormat;
+                    return result;
+            }
+        } catch (contentExc) {
+            result.error = 'Content generation failed for ' + exportFormat + ': ' + contentExc.message;
+            $.writeln('Content generation error: ' + contentExc.message);
+            return result;
         }
         
         if (!content) {
-            result.error = 'Failed to generate export content';
+            result.error = 'Failed to generate export content (content is empty)';
+            $.writeln('Content generation produced empty result');
             return result;
         }
+        
+        $.writeln('Content generated successfully, length: ' + content.length + ' characters');
         
         // Check content size
         if (content.length > EXPORT_CONFIG.maxFileSize) {
@@ -2244,6 +2271,7 @@ function exportDOMStructure(domStructure, format, customPath) {
         
         // Determine file path
         var filePath = customPath || generateDefaultFilePath(domStructure, fileExtension);
+        $.writeln('Using file path: ' + filePath);
         
         // Write file
         var writeResult = writeToFile(filePath, content);
@@ -2253,6 +2281,7 @@ function exportDOMStructure(domStructure, format, customPath) {
             $.writeln('DOM structure exported successfully to: ' + result.filePath);
         } else {
             result.error = writeResult.error;
+            $.writeln('File write failed: ' + result.error);
         }
         
     } catch (exc) {
@@ -2264,121 +2293,205 @@ function exportDOMStructure(domStructure, format, customPath) {
 }
 
 /**
+ * Safe local version of countPropertiesBySafety to avoid dependencies
+ * @param {Object} domNode - DOM node to analyze
+ * @returns {Object} - Count by safety level
+ */
+function safeCountPropertiesBySafety(domNode) {
+    var counts = {
+        safe: 0,
+        moderate: 0,
+        risky: 0,
+        dangerous: 0
+    };
+    
+    try {
+        if (!domNode) return counts;
+        
+        // Count properties in this node
+        var allProps = [];
+        if (domNode.properties) allProps = allProps.concat(domNode.properties);
+        if (domNode.collections) allProps = allProps.concat(domNode.collections);
+        if (domNode.methods) allProps = allProps.concat(domNode.methods);
+        
+        for (var i = 0; i < allProps.length; i++) {
+            var prop = allProps[i];
+            if (prop.safetyLevel && counts.hasOwnProperty(prop.safetyLevel)) {
+                counts[prop.safetyLevel]++;
+            }
+        }
+        
+        // Recursively count child nodes
+        if (domNode.childNodes) {
+            for (var i = 0; i < domNode.childNodes.length; i++) {
+                var childCounts = safeCountPropertiesBySafety(domNode.childNodes[i]);
+                counts.safe += childCounts.safe;
+                counts.moderate += childCounts.moderate;
+                counts.risky += childCounts.risky;
+                counts.dangerous += childCounts.dangerous;
+            }
+        }
+    } catch (exc) {
+        $.writeln('Error counting properties by safety: ' + exc.message);
+    }
+    
+    return counts;
+}
+
+/**
  * Generate human-readable text export
  * @param {Object} domStructure - DOM structure to export
  * @returns {String} - Formatted text export
  */
 function generateTextExport(domStructure) {
-    var builder = createStringBuilder();
-    
-    // Header
-    builder.appendLine('INDESIGN DOCUMENT DOM STRUCTURE ANALYSIS');
-    builder.appendLine('=======================================');
-    builder.appendLine('Generated by: InDesign DOM Discovery Builder v2.0');
-    builder.appendLine('Timestamp: ' + getCurrentTimestamp());
-    builder.appendLine('');
-    
-    // Document metadata
-    if (EXPORT_CONFIG.includeMetadata && domStructure.metadata) {
-        builder.appendLine('DOCUMENT INFORMATION');
-        builder.appendLine('===================');
-        builder.appendLine('Document Name: ' + (domStructure.metadata.documentName || 'Unknown'));
-        builder.appendLine('Analysis Time: ' + (domStructure.metadata.enumerationTime || 0) + 'ms');
-        builder.appendLine('Analysis Version: ' + (domStructure.metadata.version || 'Unknown'));
+    try {
+        var builder = createStringBuilder();
         
-        if (domStructure.metadata.config) {
+        // Header
+        builder.appendLine('INDESIGN DOCUMENT DOM STRUCTURE ANALYSIS');
+        builder.appendLine('=======================================');
+        builder.appendLine('Generated by: InDesign DOM Discovery Builder v2.0');
+        builder.appendLine('Timestamp: ' + getCurrentTimestamp());
+        builder.appendLine('');
+        
+        // Document metadata
+        try {
+            if (EXPORT_CONFIG.includeMetadata && domStructure.metadata) {
+                builder.appendLine('DOCUMENT INFORMATION');
+                builder.appendLine('===================');
+                builder.appendLine('Document Name: ' + (domStructure.metadata.documentName || 'Unknown'));
+                builder.appendLine('Analysis Time: ' + (domStructure.metadata.enumerationTime || 0) + 'ms');
+                builder.appendLine('Analysis Version: ' + (domStructure.metadata.version || 'Unknown'));
+                
+                if (domStructure.metadata.config) {
+                    builder.appendLine('');
+                    builder.appendLine('Analysis Configuration:');
+                    builder.appendLine('  Max Depth: ' + domStructure.metadata.config.maxDepth);
+                    builder.appendLine('  Timeout: ' + domStructure.metadata.config.timeoutMs + 'ms');
+                    builder.appendLine('  Skip Dangerous: ' + domStructure.metadata.config.skipDangerous);
+                    builder.appendLine('  Max Properties: ' + domStructure.metadata.config.maxProperties);
+                }
+                builder.appendLine('');
+            }
+        } catch (exc) {
+            builder.appendLine('Error generating metadata section: ' + exc.message);
             builder.appendLine('');
-            builder.appendLine('Analysis Configuration:');
-            builder.appendLine('  Max Depth: ' + domStructure.metadata.config.maxDepth);
-            builder.appendLine('  Timeout: ' + domStructure.metadata.config.timeoutMs + 'ms');
-            builder.appendLine('  Skip Dangerous: ' + domStructure.metadata.config.skipDangerous);
-            builder.appendLine('  Max Properties: ' + domStructure.metadata.config.maxProperties);
         }
-        builder.appendLine('');
-    }
-    
-    // Statistics
-    if (EXPORT_CONFIG.includeStatistics && domStructure.statistics) {
-        builder.appendLine('DISCOVERY STATISTICS');
-        builder.appendLine('===================');
-        builder.appendLine('Total Objects Discovered: ' + domStructure.statistics.totalNodes);
-        builder.appendLine('Total Properties Found: ' + domStructure.statistics.totalProperties);
-        builder.appendLine('Maximum Depth Reached: ' + domStructure.statistics.maxDepthReached);
-        builder.appendLine('Circular References Detected: ' + domStructure.statistics.circularRefsDetected);
-        builder.appendLine('Timeout Events: ' + domStructure.statistics.timeouts);
-        builder.appendLine('Enumeration Errors: ' + domStructure.statistics.errors.length);
         
-        // Property safety breakdown
-        if (domStructure.structure && domStructure.structure.document) {
-            var safetyCounts = countPropertiesBySafety(domStructure.structure.document);
+        // Statistics
+        try {
+            if (EXPORT_CONFIG.includeStatistics && domStructure.statistics) {
+                builder.appendLine('DISCOVERY STATISTICS');
+                builder.appendLine('===================');
+                builder.appendLine('Total Objects Discovered: ' + domStructure.statistics.totalNodes);
+                builder.appendLine('Total Properties Found: ' + domStructure.statistics.totalProperties);
+                builder.appendLine('Maximum Depth Reached: ' + domStructure.statistics.maxDepthReached);
+                builder.appendLine('Circular References Detected: ' + domStructure.statistics.circularRefsDetected);
+                builder.appendLine('Timeout Events: ' + domStructure.statistics.timeouts);
+                builder.appendLine('Enumeration Errors: ' + domStructure.statistics.errors.length);
+                
+                // Property safety breakdown - use safe local function
+                if (domStructure.structure && domStructure.structure.document) {
+                    try {
+                        var safetyCounts = safeCountPropertiesBySafety(domStructure.structure.document);
+                        builder.appendLine('');
+                        builder.appendLine('Properties by Safety Level:');
+                        builder.appendLine('  Safe Properties: ' + safetyCounts.safe);
+                        builder.appendLine('  Moderate Risk Properties: ' + safetyCounts.moderate);
+                        builder.appendLine('  Risky Properties: ' + safetyCounts.risky);
+                        builder.appendLine('  Dangerous Properties: ' + safetyCounts.dangerous);
+                    } catch (exc) {
+                        builder.appendLine('  Could not calculate safety breakdown: ' + exc.message);
+                    }
+                }
+                
+                // Sampling statistics if available - use safe check
+                if (domStructure.metadata && domStructure.metadata.sampling) {
+                    try {
+                        builder.appendLine('');
+                        builder.appendLine('Property Value Sampling:');
+                        if (domStructure.metadata.sampling.stats) {
+                            var stats = domStructure.metadata.sampling.stats;
+                            builder.appendLine('  Values Sampled: ' + (stats.successfulSamples || 0) + '/' + (stats.totalAttempts || 0));
+                            builder.appendLine('  Sampling Time: ' + (domStructure.metadata.sampling.samplingTime || 0) + 'ms');
+                            builder.appendLine('  Timeouts: ' + (stats.timeouts || 0));
+                            builder.appendLine('  Errors: ' + (stats.errors || 0));
+                        }
+                    } catch (exc) {
+                        builder.appendLine('  Could not generate sampling statistics: ' + exc.message);
+                    }
+                }
+                
+                builder.appendLine('');
+            }
+        } catch (exc) {
+            builder.appendLine('Error generating statistics section: ' + exc.message);
             builder.appendLine('');
-            builder.appendLine('Properties by Safety Level:');
-            builder.appendLine('  Safe Properties: ' + safetyCounts.safe);
-            builder.appendLine('  Moderate Risk Properties: ' + safetyCounts.moderate);
-            builder.appendLine('  Risky Properties: ' + safetyCounts.risky);
-            builder.appendLine('  Dangerous Properties: ' + safetyCounts.dangerous);
         }
         
-        // Sampling statistics if available
-        if (domStructure.metadata && domStructure.metadata.sampling) {
-            var samplingStats = getSamplingStatistics(domStructure);
+        // Property access guide
+        try {
+            if (EXPORT_CONFIG.includeAccessGuide) {
+                builder.appendLine('PROPERTY ACCESS GUIDE');
+                builder.appendLine('====================');
+                builder.appendLine('This section shows how to safely access discovered properties in your own scripts.');
+                builder.appendLine('');
+                
+                if (domStructure.structure && domStructure.structure.document) {
+                    var accessGuide = generatePropertyAccessGuide(domStructure.structure.document);
+                    builder.append(accessGuide);
+                }
+                
+                builder.appendLine('');
+            }
+        } catch (exc) {
+            builder.appendLine('Error generating access guide: ' + exc.message);
             builder.appendLine('');
-            builder.appendLine('Property Value Sampling:');
-            builder.appendLine('  Values Sampled: ' + samplingStats.successful + '/' + samplingStats.attempted);
-            builder.appendLine('  Sampling Time: ' + samplingStats.samplingTime + 'ms');
-            builder.appendLine('  Timeouts: ' + samplingStats.timeouts);
-            builder.appendLine('  Errors: ' + samplingStats.errors);
         }
         
-        builder.appendLine('');
-    }
-    
-    // Property access guide
-    if (EXPORT_CONFIG.includeAccessGuide) {
-        builder.appendLine('PROPERTY ACCESS GUIDE');
-        builder.appendLine('====================');
-        builder.appendLine('This section shows how to safely access discovered properties in your own scripts.');
-        builder.appendLine('');
-        
-        if (domStructure.structure && domStructure.structure.document) {
-            var accessGuide = generatePropertyAccessGuide(domStructure.structure.document);
-            builder.append(accessGuide);
+        // Full DOM tree structure
+        try {
+            if (EXPORT_CONFIG.includeFullTree) {
+                builder.appendLine('COMPLETE DOM STRUCTURE');
+                builder.appendLine('=====================');
+                builder.appendLine('This tree shows all discovered objects and properties with their safety classifications.');
+                builder.appendLine('');
+                
+                if (domStructure.structure && domStructure.structure.document) {
+                    var treeText = generateDetailedDOMTree(domStructure.structure.document, '', true);
+                    builder.append(treeText);
+                } else {
+                    builder.appendLine('No DOM structure available');
+                }
+                
+                builder.appendLine('');
+            }
+        } catch (exc) {
+            builder.appendLine('Error generating DOM tree: ' + exc.message);
+            builder.appendLine('');
         }
         
+        // Footer with usage notes
+        builder.appendLine('USAGE NOTES');
+        builder.appendLine('===========');
+        builder.appendLine('• This file contains the complete DOM structure discovered in your InDesign document');
+        builder.appendLine('• Use the Property Access Guide section to write safe property access code');
+        builder.appendLine('• Properties marked [safe] are recommended for direct access');
+        builder.appendLine('• Properties marked [risky] or [dangerous] should be accessed with error handling');
+        builder.appendLine('• Collections should be iterated safely with length checks and try-catch blocks');
+        builder.appendLine('• Always test property access with your specific document types');
         builder.appendLine('');
-    }
-    
-    // Full DOM tree structure
-    if (EXPORT_CONFIG.includeFullTree) {
-        builder.appendLine('COMPLETE DOM STRUCTURE');
-        builder.appendLine('=====================');
-        builder.appendLine('This tree shows all discovered objects and properties with their safety classifications.');
-        builder.appendLine('');
+        builder.appendLine('Generated by InDesign DOM Discovery Builder');
+        builder.appendLine('For more information, visit: [project documentation]');
         
-        if (domStructure.structure && domStructure.structure.document) {
-            var treeText = generateDetailedDOMTree(domStructure.structure.document, '', true);
-            builder.append(treeText);
-        } else {
-            builder.appendLine('No DOM structure available');
-        }
+        return builder.toString();
         
-        builder.appendLine('');
+    } catch (exc) {
+        $.writeln('ERROR: Text export generation failed: ' + exc.message);
+        return 'Text export failed: ' + exc.message + '\n\nBasic DOM info:\n' + 
+               'Document: ' + (domStructure.metadata ? domStructure.metadata.documentName : 'Unknown') + '\n' +
+               'Properties: ' + (domStructure.statistics ? domStructure.statistics.totalProperties : 'Unknown');
     }
-    
-    // Footer with usage notes
-    builder.appendLine('USAGE NOTES');
-    builder.appendLine('===========');
-    builder.appendLine('• This file contains the complete DOM structure discovered in your InDesign document');
-    builder.appendLine('• Use the Property Access Guide section to write safe property access code');
-    builder.appendLine('• Properties marked [safe] are recommended for direct access');
-    builder.appendLine('• Properties marked [risky] or [dangerous] should be accessed with error handling');
-    builder.appendLine('• Collections should be iterated safely with length checks and try-catch blocks');
-    builder.appendLine('• Always test property access with your specific document types');
-    builder.appendLine('');
-    builder.appendLine('Generated by InDesign DOM Discovery Builder');
-    builder.appendLine('For more information, visit: [project documentation]');
-    
-    return builder.toString();
 }
 
 /**
@@ -2467,30 +2580,93 @@ function simplifyDOMNodeForJSON(domNode) {
         hasCircularRefs: domNode.hasCircularRefs || false
     };
     
-    // Simplified properties
+    // Include enumeration errors if any
+    if (domNode.enumerationErrors && domNode.enumerationErrors.length > 0) {
+        simplified.enumerationErrors = domNode.enumerationErrors;
+    }
+    
+    // Simplified properties with more detail
     if (domNode.properties && domNode.properties.length > 0) {
         simplified.properties = [];
         for (var i = 0; i < domNode.properties.length; i++) {
             var prop = domNode.properties[i];
-            simplified.properties.push({
+            var simpleProp = {
                 name: prop.name,
                 type: prop.type,
                 safetyLevel: prop.safetyLevel,
                 isCollection: prop.isCollection || false,
-                isMethod: prop.isMethod || false
-            });
+                isMethod: prop.isMethod || false,
+                isReserved: prop.isReserved || false,
+                path: prop.path || ''
+            };
+            
+            // Include sample value if available
+            if (prop.hasSampleValue && prop.sampleValue) {
+                simpleProp.sampleValue = prop.sampleValue;
+                simpleProp.hasSampleValue = true;
+            }
+            
+            // Include alternatives if available
+            if (prop.alternatives && prop.alternatives.length > 0) {
+                simpleProp.alternatives = prop.alternatives;
+            }
+            
+            simplified.properties.push(simpleProp);
         }
     }
     
-    // Simplified collections
+    // Simplified collections with more detail
     if (domNode.collections && domNode.collections.length > 0) {
         simplified.collections = [];
         for (var i = 0; i < domNode.collections.length; i++) {
             var coll = domNode.collections[i];
-            simplified.collections.push({
+            var simpleColl = {
                 name: coll.name,
                 type: coll.type,
-                safetyLevel: coll.safetyLevel
+                safetyLevel: coll.safetyLevel,
+                isCollection: true,
+                path: coll.path || ''
+            };
+            
+            // Include sample value if available
+            if (coll.hasSampleValue && coll.sampleValue) {
+                simpleColl.sampleValue = coll.sampleValue;
+                simpleColl.hasSampleValue = true;
+            }
+            
+            simplified.collections.push(simpleColl);
+        }
+    }
+    
+    // Include methods if any
+    if (domNode.methods && domNode.methods.length > 0) {
+        simplified.methods = [];
+        for (var i = 0; i < domNode.methods.length; i++) {
+            var method = domNode.methods[i];
+            simplified.methods.push({
+                name: method.name,
+                type: method.type,
+                safetyLevel: method.safetyLevel,
+                isMethod: true,
+                path: method.path || ''
+            });
+        }
+    }
+    
+    // Include child nodes recursively, but limit depth
+    if (domNode.childNodes && domNode.childNodes.length > 0 && domNode.depth < 3) {
+        simplified.childNodes = [];
+        for (var i = 0; i < Math.min(domNode.childNodes.length, 20); i++) {
+            var childSimplified = simplifyDOMNodeForJSON(domNode.childNodes[i]);
+            if (childSimplified) {
+                simplified.childNodes.push(childSimplified);
+            }
+        }
+        if (domNode.childNodes.length > 20) {
+            simplified.childNodes.push({
+                name: '[...more child nodes]',
+                type: 'truncated',
+                truncatedCount: domNode.childNodes.length - 20
             });
         }
     }
@@ -2728,26 +2904,63 @@ function writeToFile(filePath, content) {
     };
     
     try {
-        var file = new File(filePath);
+        $.writeln('Writing to file: ' + filePath);
+        $.writeln('Content length: ' + (content ? content.length : 0) + ' characters');
         
-        if (!file.open('w')) {
-            result.error = 'Cannot open file for writing: ' + filePath;
+        if (!content) {
+            result.error = 'No content to write';
             return result;
         }
         
-        if (!file.write(content)) {
-            result.error = 'Failed to write content to file';
+        var file = new File(filePath);
+        
+        // Try to ensure directory exists
+        if (file.parent && !file.parent.exists) {
+            try {
+                file.parent.create();
+            } catch (dirExc) {
+                $.writeln('Could not create directory: ' + dirExc.message);
+            }
+        }
+        
+        if (!file.open('w')) {
+            result.error = 'Cannot open file for writing: ' + filePath;
+            $.writeln('File open failed: ' + result.error);
+            return result;
+        }
+        
+        // Set encoding to UTF-8 for better compatibility
+        file.encoding = 'UTF-8';
+        
+        var writeSuccess = file.write(content);
+        if (!writeSuccess) {
+            result.error = 'Failed to write content to file (write returned false)';
+            $.writeln('File write failed: ' + result.error);
             file.close();
             return result;
         }
         
         file.close();
         
+        // Verify file was actually created and has content
+        if (file.exists) {
+            var fileSize = file.length;
+            $.writeln('File created successfully, size: ' + fileSize + ' bytes');
+            if (fileSize === 0) {
+                result.error = 'File was created but is empty (0 bytes)';
+                return result;
+            }
+        } else {
+            result.error = 'File operation completed but file does not exist';
+            return result;
+        }
+        
         result.success = true;
         result.filePath = file.absoluteURI;
         
     } catch (exc) {
         result.error = 'File operation failed: ' + exc.message;
+        $.writeln('File operation exception: ' + exc.message);
     }
     
     return result;
@@ -2826,8 +3039,8 @@ function generateDefaultFilePath(domStructure, extension) {
  * @returns {String} - JSON-like string
  */
 function stringifyObject(obj, depth) {
-    // Simple implementation - could be enhanced
-    if (depth > 3) return '"[max depth]"';
+    // More permissive depth limit
+    if (depth > 6) return '"[max depth reached]"';
     
     if (obj === null) return 'null';
     if (obj === undefined) return 'undefined';
@@ -2842,11 +3055,11 @@ function stringifyObject(obj, depth) {
             // Handle arrays
             var parts = ['['];
             var arrayLength = obj.length || 0;
-            for (var i = 0; i < Math.min(arrayLength, 10); i++) {  // Limit array size
+            for (var i = 0; i < Math.min(arrayLength, 50); i++) {  // Increased limit
                 if (i > 0) parts.push(',');
                 parts.push(stringifyObject(obj[i], depth + 1));
             }
-            if (arrayLength > 10) parts.push(',"[...more items]"');
+            if (arrayLength > 50) parts.push(',"[...more items]"');
             parts.push(']');
             return parts.join('');
         } else {
@@ -2855,7 +3068,7 @@ function stringifyObject(obj, depth) {
             var first = true;
             var count = 0;
             for (var key in obj) {
-                if (count >= 20) {  // Limit object properties
+                if (count >= 100) {  // Increased limit
                     if (!first) parts.push(',');
                     parts.push('"[...more properties]":"truncated"');
                     break;
