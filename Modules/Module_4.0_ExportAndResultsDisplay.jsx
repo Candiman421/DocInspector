@@ -1,533 +1,1095 @@
 // ============================================================================
-// MODULE 4.0: EXPORT & RESULTS DISPLAY (UPDATED)
-// InDesign Document Query Tool v3.1 - Enhanced Export and Visualization
-// ES3 Compatible - Tree Export and Results Viewer with Best Practice Safety
+// MODULE 4.0: EXPORT AND RESULTS DISPLAY
+// InDesign Document Query Tool v3.1 - Enhanced Safety Edition
+// ES3 Compatible - All Reserved Words Fixed
 // ============================================================================
 
-// RESULTS DISPLAY DIALOG - Enhanced expandable tree view with safety
-function showResultsDialog(treeResults) {
-    if (!treeResults) {
-        alert("No results to display.");
-        return;
+// Export format definitions
+var EXPORT_FORMATS = {
+    json: {
+        name: "JSON Format",
+        extension: "json",
+        mimeType: "application/json",
+        description: "Machine-readable JSON data"
+    },
+    text: {
+        name: "Plain Text",
+        extension: "txt", 
+        mimeType: "text/plain",
+        description: "Human-readable text format"
+    },
+    csv: {
+        name: "CSV Format",
+        extension: "csv",
+        mimeType: "text/csv", 
+        description: "Comma-separated values for spreadsheets"
+    },
+    xml: {
+        name: "XML Format",
+        extension: "xml",
+        mimeType: "application/xml",
+        description: "Structured XML data"
+    }
+};
+
+// Export state management
+var EXPORT_STATE = {
+    lastExportPath: null,
+    lastExportFormat: "text",
+    exportCount: 0,
+    activeExports: []
+};
+
+// ============================================================================
+// MAIN EXPORT FUNCTIONS
+// ============================================================================
+
+function exportAnalysisResults(resultsData, exportOptions) {
+    debugLog("Starting export process", "EXPORT");
+    
+    var exportConfig = {
+        format: exportOptions.format || "text",
+        includeMetadata: exportOptions.includeMetadata !== false,
+        includeErrors: exportOptions.includeErrors !== false,
+        includeTimestamps: exportOptions.includeTimestamps !== false,
+        maxDepth: exportOptions.maxDepth || 5,
+        filename: exportOptions.filename || generateDefaultFilename(resultsData),
+        targetPath: exportOptions.targetPath || null
+    };
+    
+    try {
+        // Validate export configuration
+        if (!validateExportConfig(exportConfig)) {
+            throw new Error("Invalid export configuration");
+        }
+        
+        // Validate results data
+        if (!validateResultsData(resultsData)) {
+            throw new Error("Invalid or empty results data");
+        }
+        
+        // Get export file path
+        var exportFile = getExportFilePath(exportConfig);
+        if (!exportFile) {
+            throw new Error("No file selected for export");
+        }
+        
+        // Generate export content based on format
+        var exportContent = generateExportContent(resultsData, exportConfig);
+        
+        // Write to file
+        var writeSuccess = writeExportFile(exportFile, exportContent, exportConfig);
+        if (!writeSuccess) {
+            throw new Error("Failed to write export file");
+        }
+        
+        // Update export state
+        EXPORT_STATE.lastExportPath = exportFile.fsName;
+        EXPORT_STATE.lastExportFormat = exportConfig.format;
+        EXPORT_STATE.exportCount++;
+        
+        debugLog("Export completed successfully: " + exportFile.fsName, "EXPORT");
+        
+        return {
+            success: true,
+            filePath: exportFile.fsName,
+            format: exportConfig.format,
+            fileSize: exportFile.length,
+            timestamp: toISOString(new Date())
+        };
+        
+    } catch (exc) {
+        var errorInfo = {
+            success: false,
+            errorMessage: exc.message,
+            timestamp: toISOString(new Date())
+        };
+        
+        logError("Export failed: " + exc.message, "EXPORT", "HIGH");
+        return errorInfo;
+    }
+}
+
+function generateDefaultFilename(resultsData) {
+    var timestamp = new Date();
+    var dateStr = timestamp.getFullYear() + 
+                  ('0' + (timestamp.getMonth() + 1)).slice(-2) + 
+                  ('0' + timestamp.getDate()).slice(-2) + 
+                  '_' +
+                  ('0' + timestamp.getHours()).slice(-2) + 
+                  ('0' + timestamp.getMinutes()).slice(-2);
+    
+    var docName = "unknown";
+    if (resultsData && resultsData.targets && resultsData.targets.documentProperties) {
+        var docProps = resultsData.targets.documentProperties;
+        if (docProps.data && docProps.data.name) {
+            docName = docProps.data.name.replace(/[^a-zA-Z0-9]/g, '_');
+        }
+    }
+    
+    return "indesign_analysis_" + docName + "_" + dateStr;
+}
+
+function validateExportConfig(configObj) {
+    try {
+        if (!configObj || typeof configObj !== 'object') {
+            return false;
+        }
+        
+        // Check required properties
+        if (!configObj.format || !EXPORT_FORMATS[configObj.format]) {
+            debugLog("Invalid export format: " + configObj.format, "EXPORT");
+            return false;
+        }
+        
+        if (!configObj.filename || typeof configObj.filename !== 'string') {
+            debugLog("Invalid filename in export config", "EXPORT");
+            return false;
+        }
+        
+        return true;
+        
+    } catch (exc) {
+        debugLog("Export config validation error: " + exc.message, "EXPORT");
+        return false;
+    }
+}
+
+function validateResultsData(resultsObj) {
+    try {
+        if (!resultsObj || typeof resultsObj !== 'object') {
+            return false;
+        }
+        
+        // Check for basic structure
+        if (!resultsObj.targets || typeof resultsObj.targets !== 'object') {
+            debugLog("Results data missing targets", "EXPORT");
+            return false;
+        }
+        
+        // Check if there's any data to export
+        var hasData = false;
+        for (var targetKey in resultsObj.targets) {
+            if (resultsObj.targets[targetKey] && resultsObj.targets[targetKey].data) {
+                hasData = true;
+                break;
+            }
+        }
+        
+        if (!hasData) {
+            debugLog("Results data contains no analyzable targets", "EXPORT");
+            return false;
+        }
+        
+        return true;
+        
+    } catch (exc) {
+        debugLog("Results validation error: " + exc.message, "EXPORT");
+        return false;
+    }
+}
+
+function getExportFilePath(configObj) {
+    try {
+        var formatInfo = EXPORT_FORMATS[configObj.format];
+        var filename = configObj.filename + "." + formatInfo.extension;
+        
+        // Use target path if provided
+        if (configObj.targetPath) {
+            return new File(configObj.targetPath + "/" + filename);
+        }
+        
+        // Show save dialog
+        var fileFilter = "*." + formatInfo.extension;
+        var dialogTitle = "Save " + formatInfo.name + " Export";
+        
+        var exportFile = File.saveDialog(dialogTitle, fileFilter);
+        return exportFile;
+        
+    } catch (exc) {
+        debugLog("Error getting export file path: " + exc.message, "EXPORT");
+        return null;
+    }
+}
+
+// ============================================================================
+// FORMAT-SPECIFIC EXPORT GENERATORS
+// ============================================================================
+
+function generateExportContent(resultsData, configObj) {
+    debugLog("Generating export content for format: " + configObj.format, "EXPORT");
+    
+    switch (configObj.format) {
+        case "json":
+            return generateJSONExport(resultsData, configObj);
+        case "text":
+            return generateTextExport(resultsData, configObj);
+        case "csv":
+            return generateCSVExport(resultsData, configObj);
+        case "xml":
+            return generateXMLExport(resultsData, configObj);
+        default:
+            throw new Error("Unsupported export format: " + configObj.format);
+    }
+}
+
+function generateJSONExport(resultsData, configObj) {
+    debugLog("Generating JSON export", "EXPORT");
+    
+    try {
+        // Create a clean copy of results for export
+        var exportData = createExportableData(resultsData, configObj);
+        
+        // Convert to JSON string with ES3-compatible method
+        var jsonString = convertToJSONString(exportData, 0, configObj.maxDepth);
+        
+        // Add metadata if requested
+        if (configObj.includeMetadata) {
+            var metadataWrapper = {
+                exportMetadata: {
+                    timestamp: toISOString(new Date()),
+                    tool: "InDesign Document Inspector v3.1",
+                    format: "JSON",
+                    generator: "ES3 Compatible Export System"
+                },
+                analysisResults: exportData
+            };
+            
+            jsonString = convertToJSONString(metadataWrapper, 0, configObj.maxDepth);
+        }
+        
+        return jsonString;
+        
+    } catch (exc) {
+        throw new Error("JSON export generation failed: " + exc.message);
+    }
+}
+
+function generateTextExport(resultsData, configObj) {
+    debugLog("Generating text export", "EXPORT");
+    
+    try {
+        var textBuilder = createStringBuilder();
+        
+        // Header
+        textBuilder.appendLine("INDESIGN DOCUMENT ANALYSIS RESULTS");
+        textBuilder.appendLine(repeatString("=", 50));
+        
+        if (configObj.includeTimestamps) {
+            textBuilder.appendLine("Generated: " + toISOString(new Date()));
+            textBuilder.appendLine("Analysis Time: " + (resultsData.timestamp || "Unknown"));
+        }
+        
+        textBuilder.appendLine("Tool: InDesign Document Inspector v3.1");
+        textBuilder.appendLine("Export Format: Plain Text");
+        textBuilder.appendLine("");
+        
+        // Summary section
+        if (resultsData.summary) {
+            textBuilder.appendLine("ANALYSIS SUMMARY");
+            textBuilder.appendLine(repeatString("-", 20));
+            textBuilder.appendLine("Total Targets: " + (resultsData.summary.totalTargets || 0));
+            textBuilder.appendLine("Successful: " + (resultsData.summary.successfulTargets || 0));
+            textBuilder.appendLine("Failed: " + (resultsData.summary.failedTargets || 0));
+            textBuilder.appendLine("Total Properties: " + (resultsData.summary.totalProperties || 0));
+            textBuilder.appendLine("");
+        }
+        
+        // Configuration section
+        if (resultsData.configuration) {
+            textBuilder.appendLine("ANALYSIS CONFIGURATION");
+            textBuilder.appendLine(repeatString("-", 25));
+            for (var configKey in resultsData.configuration) {
+                textBuilder.appendLine(configKey + ": " + resultsData.configuration[configKey]);
+            }
+            textBuilder.appendLine("");
+        }
+        
+        // Target details
+        if (resultsData.targets) {
+            textBuilder.appendLine("TARGET ANALYSIS RESULTS");
+            textBuilder.appendLine(repeatString("-", 27));
+            
+            for (var targetKey in resultsData.targets) {
+                var target = resultsData.targets[targetKey];
+                
+                textBuilder.appendLine("");
+                textBuilder.appendLine("TARGET: " + (target.name || targetKey));
+                textBuilder.appendLine("Description: " + (target.description || "N/A"));
+                textBuilder.appendLine("Safety Level: " + (target.safetyLevel || "Unknown"));
+                textBuilder.appendLine("Status: " + (target.success ? "SUCCESS" : "FAILED"));
+                
+                if (target.processingTime) {
+                    textBuilder.appendLine("Processing Time: " + target.processingTime + "ms");
+                }
+                
+                if (target.propertyCount) {
+                    textBuilder.appendLine("Properties Found: " + target.propertyCount);
+                }
+                
+                if (target.errorMessage) {
+                    textBuilder.appendLine("Error: " + target.errorMessage);
+                }
+                
+                if (target.success && target.data) {
+                    textBuilder.appendLine("");
+                    textBuilder.appendLine("Data:");
+                    textBuilder.append(formatDataForTextExport(target.data, 1, configObj.maxDepth));
+                }
+                
+                textBuilder.appendLine("");
+                textBuilder.appendLine(repeatString("-", 40));
+            }
+        }
+        
+        // Error section
+        if (configObj.includeErrors && resultsData.summary && resultsData.summary.errors) {
+            textBuilder.appendLine("");
+            textBuilder.appendLine("ERROR DETAILS");
+            textBuilder.appendLine(repeatString("-", 15));
+            
+            for (var i = 0; i < resultsData.summary.errors.length; i++) {
+                textBuilder.appendLine((i + 1) + ". " + resultsData.summary.errors[i]);
+            }
+        }
+        
+        textBuilder.appendLine("");
+        textBuilder.appendLine("Export completed.");
+        
+        return textBuilder.toString();
+        
+    } catch (exc) {
+        throw new Error("Text export generation failed: " + exc.message);
+    }
+}
+
+function generateCSVExport(resultsData, configObj) {
+    debugLog("Generating CSV export", "EXPORT");
+    
+    try {
+        var csvBuilder = createStringBuilder();
+        
+        // CSV Header
+        csvBuilder.appendLine("Target,Name,Description,Status,Properties,ProcessingTime,ErrorMessage");
+        
+        // Process each target
+        for (var targetKey in resultsData.targets) {
+            var target = resultsData.targets[targetKey];
+            
+            var csvRow = [
+                escapeCsvValue(targetKey),
+                escapeCsvValue(target.name || ""),
+                escapeCsvValue(target.description || ""),
+                escapeCsvValue(target.success ? "SUCCESS" : "FAILED"),
+                escapeCsvValue(String(target.propertyCount || 0)),
+                escapeCsvValue(String(target.processingTime || 0)),
+                escapeCsvValue(target.errorMessage || "")
+            ].join(",");
+            
+            csvBuilder.appendLine(csvRow);
+        }
+        
+        return csvBuilder.toString();
+        
+    } catch (exc) {
+        throw new Error("CSV export generation failed: " + exc.message);
+    }
+}
+
+function generateXMLExport(resultsData, configObj) {
+    debugLog("Generating XML export", "EXPORT");
+    
+    try {
+        var xmlBuilder = createStringBuilder();
+        
+        // XML Declaration and root element
+        xmlBuilder.appendLine('<?xml version="1.0" encoding="UTF-8"?>');
+        xmlBuilder.appendLine('<indesignAnalysisResults>');
+        
+        // Metadata
+        if (configObj.includeMetadata) {
+            xmlBuilder.appendLine('  <metadata>');
+            xmlBuilder.appendLine('    <timestamp>' + escapeXmlValue(toISOString(new Date())) + '</timestamp>');
+            xmlBuilder.appendLine('    <tool>InDesign Document Inspector v3.1</tool>');
+            xmlBuilder.appendLine('    <format>XML</format>');
+            xmlBuilder.appendLine('  </metadata>');
+        }
+        
+        // Analysis summary
+        if (resultsData.summary) {
+            xmlBuilder.appendLine('  <summary>');
+            xmlBuilder.appendLine('    <totalTargets>' + (resultsData.summary.totalTargets || 0) + '</totalTargets>');
+            xmlBuilder.appendLine('    <successfulTargets>' + (resultsData.summary.successfulTargets || 0) + '</successfulTargets>');
+            xmlBuilder.appendLine('    <failedTargets>' + (resultsData.summary.failedTargets || 0) + '</failedTargets>');
+            xmlBuilder.appendLine('    <totalProperties>' + (resultsData.summary.totalProperties || 0) + '</totalProperties>');
+            xmlBuilder.appendLine('  </summary>');
+        }
+        
+        // Configuration
+        if (resultsData.configuration) {
+            xmlBuilder.appendLine('  <configuration>');
+            for (var configKey in resultsData.configuration) {
+                xmlBuilder.appendLine('    <' + configKey + '>' + escapeXmlValue(String(resultsData.configuration[configKey])) + '</' + configKey + '>');
+            }
+            xmlBuilder.appendLine('  </configuration>');
+        }
+        
+        // Targets
+        xmlBuilder.appendLine('  <targets>');
+        for (var targetKey in resultsData.targets) {
+            var target = resultsData.targets[targetKey];
+            
+            xmlBuilder.appendLine('    <target id="' + escapeXmlAttribute(targetKey) + '">');
+            xmlBuilder.appendLine('      <name>' + escapeXmlValue(target.name || "") + '</name>');
+            xmlBuilder.appendLine('      <description>' + escapeXmlValue(target.description || "") + '</description>');
+            xmlBuilder.appendLine('      <safetyLevel>' + escapeXmlValue(target.safetyLevel || "") + '</safetyLevel>');
+            xmlBuilder.appendLine('      <success>' + (target.success ? 'true' : 'false') + '</success>');
+            xmlBuilder.appendLine('      <propertyCount>' + (target.propertyCount || 0) + '</propertyCount>');
+            xmlBuilder.appendLine('      <processingTime>' + (target.processingTime || 0) + '</processingTime>');
+            
+            if (target.errorMessage) {
+                xmlBuilder.appendLine('      <errorMessage>' + escapeXmlValue(target.errorMessage) + '</errorMessage>');
+            }
+            
+            if (target.success && target.data) {
+                xmlBuilder.appendLine('      <data>');
+                xmlBuilder.append(formatDataForXMLExport(target.data, 4, configObj.maxDepth));
+                xmlBuilder.appendLine('      </data>');
+            }
+            
+            xmlBuilder.appendLine('    </target>');
+        }
+        xmlBuilder.appendLine('  </targets>');
+        
+        xmlBuilder.appendLine('</indesignAnalysisResults>');
+        
+        return xmlBuilder.toString();
+        
+    } catch (exc) {
+        throw new Error("XML export generation failed: " + exc.message);
+    }
+}
+
+// ============================================================================
+// DATA FORMATTING UTILITIES
+// ============================================================================
+
+function createExportableData(originalData, configObj) {
+    var exportData = {};
+    
+    try {
+        // Copy basic properties
+        if (originalData.timestamp) exportData.timestamp = originalData.timestamp;
+        if (originalData.summary) exportData.summary = cloneObject(originalData.summary, configObj.maxDepth);
+        if (originalData.configuration) exportData.configuration = cloneObject(originalData.configuration, configObj.maxDepth);
+        
+        // Process targets
+        if (originalData.targets) {
+            exportData.targets = {};
+            
+            for (var targetKey in originalData.targets) {
+                var target = originalData.targets[targetKey];
+                exportData.targets[targetKey] = {
+                    name: target.name || targetKey,
+                    description: target.description || "",
+                    safetyLevel: target.safetyLevel || "unknown",
+                    success: target.success || false,
+                    propertyCount: target.propertyCount || 0,
+                    processingTime: target.processingTime || 0
+                };
+                
+                if (target.errorMessage) {
+                    exportData.targets[targetKey].errorMessage = target.errorMessage;
+                }
+                
+                if (target.success && target.data) {
+                    exportData.targets[targetKey].data = cloneObject(target.data, configObj.maxDepth);
+                }
+            }
+        }
+        
+        return exportData;
+        
+    } catch (exc) {
+        debugLog("Error creating exportable data: " + exc.message, "EXPORT");
+        throw new Error("Failed to prepare data for export: " + exc.message);
+    }
+}
+
+function cloneObject(objRef, maxDepth, currentDepth) {
+    currentDepth = currentDepth || 0;
+    
+    if (currentDepth >= maxDepth) {
+        return "[Max depth reached]";
+    }
+    
+    if (objRef === null || objRef === undefined) {
+        return objRef;
+    }
+    
+    if (typeof objRef !== 'object') {
+        return objRef;
     }
     
     try {
-        var resultsDialog = new Window("dialog", "Analysis Results - Enhanced DOM Tree View");
-        resultsDialog.orientation = "column";
-        resultsDialog.alignChildren = "fill";
-        resultsDialog.preferredSize.width = 850;
-        resultsDialog.preferredSize.height = 650;
+        var clonedObj = {};
         
-        // Enhanced header with comprehensive statistics
-        var headerPanel = resultsDialog.add("panel", undefined, "Analysis Summary & Safety Metrics");
-        headerPanel.orientation = "column";
-        headerPanel.alignChildren = "fill";
-        
-        var stats = getTreeStatistics(treeResults);
-        var headerLine1 = "Total Nodes: " + stats.totalNodes + 
-                         " | Success: " + stats.successNodes + 
-                         " | Errors: " + stats.errorNodes + 
-                         " | Max Depth: " + stats.maxDepth;
-        
-        var headerLine2 = "Undefined: " + stats.undefinedNodes + 
-                         " | Empty: " + stats.emptyNodes + 
-                         " | Timeouts: " + stats.timeoutNodes + 
-                         " | Avg Depth: " + stats.avgDepth;
-        
-        headerPanel.add("statictext", undefined, headerLine1);
-        headerPanel.add("statictext", undefined, headerLine2);
-        
-        // Tree display area with enhanced formatting
-        var treePanel = resultsDialog.add("panel", undefined, "Document Tree Structure");
-        treePanel.orientation = "column";
-        treePanel.alignChildren = "fill";
-        
-        var treeText = treePanel.add("edittext", undefined, "", {multiline: true, readonly: true});
-        treeText.alignment = "fill";
-        
-        // Convert tree to enhanced display format
-        var treeDisplay = formatTreeForDisplayEnhanced(treeResults, 0, true, false);
-        treeText.text = treeDisplay;
-        
-        // Enhanced controls panel
-        var controlsPanel = resultsDialog.add("group");
-        controlsPanel.orientation = "row";
-        controlsPanel.alignment = "center";
-        
-        var expandBtn = controlsPanel.add("button", undefined, "Expand All");
-        var collapseBtn = controlsPanel.add("button", undefined, "Collapse All");
-        var filterBtn = controlsPanel.add("button", undefined, "Filter Errors");
-        var exportBtn = controlsPanel.add("button", undefined, "Export Full");
-        var copyBtn = controlsPanel.add("button", undefined, "Copy Summary");
-        var validateBtn = controlsPanel.add("button", undefined, "Validate Tree");
-        var closeBtn = controlsPanel.add("button", undefined, "Close");
-        
-        // Enhanced event handlers
-        expandBtn.onClick = function() {
-            try {
-                var expandedDisplay = formatTreeForDisplayEnhanced(treeResults, 0, true, true);
-                treeText.text = expandedDisplay;
-            } catch (e) {
-                alert("Error expanding tree: " + e.message);
-            }
-        };
-        
-        collapseBtn.onClick = function() {
-            try {
-                var collapsedDisplay = formatTreeForDisplayEnhanced(treeResults, 0, false, false);
-                treeText.text = collapsedDisplay;
-            } catch (e) {
-                alert("Error collapsing tree: " + e.message);
-            }
-        };
-        
-        filterBtn.onClick = function() {
-            try {
-                var filteredTree = filterTreeByStatus(treeResults, ["error", "timeout"]);
-                if (filteredTree) {
-                    var filteredDisplay = formatTreeForDisplayEnhanced(filteredTree, 0, true, true);
-                    treeText.text = filteredDisplay;
+        for (var key in objRef) {
+            if (objRef.hasOwnProperty && objRef.hasOwnProperty(key)) {
+                var value = objRef[key];
+                
+                if (typeof value === 'object' && value !== null) {
+                    clonedObj[key] = cloneObject(value, maxDepth, currentDepth + 1);
                 } else {
-                    treeText.text = "No errors or timeouts found in the analysis results.";
+                    clonedObj[key] = value;
                 }
-            } catch (e) {
-                alert("Error filtering tree: " + e.message);
             }
-        };
+        }
         
-        exportBtn.onClick = function() {
-            try {
-                exportTreeToFileEnhanced(treeResults);
-            } catch (e) {
-                alert("Error exporting: " + e.message);
-            }
-        };
+        return clonedObj;
         
-        copyBtn.onClick = function() {
-            try {
-                copyTreeSummaryToClipboard(treeResults);
-            } catch (e) {
-                alert("Error copying: " + e.message);
-            }
-        };
+    } catch (exc) {
+        debugLog("Object cloning error: " + exc.message, "EXPORT");
+        return "[Cloning failed]";
+    }
+}
+
+function formatDataForTextExport(dataObj, indentLevel, maxDepth) {
+    var indent = repeatString("  ", indentLevel);
+    var resultBuilder = createStringBuilder();
+    
+    try {
+        if (indentLevel >= maxDepth) {
+            resultBuilder.appendLine(indent + "[Max depth reached]");
+            return resultBuilder.toString();
+        }
         
-        validateBtn.onClick = function() {
-            try {
-                var validation = validateTreeStructure(treeResults);
-                var message = "Tree Validation Results:\n\n";
-                message += "Nodes Checked: " + validation.nodesChecked + "\n";
-                message += "Valid: " + (validation.isValid ? "YES" : "NO") + "\n";
-                message += "Errors: " + validation.errors.length + "\n";
-                message += "Warnings: " + validation.warnings.length + "\n\n";
-                
-                if (validation.errors.length > 0) {
-                    message += "Errors:\n" + validation.errors.join("\n") + "\n\n";
+        for (var key in dataObj) {
+            var value = dataObj[key];
+            
+            if (value === null || value === undefined) {
+                resultBuilder.appendLine(indent + key + ": [null]");
+            } else if (typeof value === 'object') {
+                resultBuilder.appendLine(indent + key + ":");
+                if (indentLevel < maxDepth - 1) {
+                    resultBuilder.append(formatDataForTextExport(value, indentLevel + 1, maxDepth));
+                } else {
+                    resultBuilder.appendLine(indent + "  [Object - max depth]");
                 }
-                
-                if (validation.warnings.length > 0) {
-                    message += "Warnings:\n" + validation.warnings.join("\n");
+            } else {
+                var valueStr = String(value);
+                if (valueStr.length > 100) {
+                    valueStr = valueStr.substring(0, 100) + "... [truncated]";
                 }
-                
-                alert(message);
-            } catch (e) {
-                alert("Error validating tree: " + e.message);
+                resultBuilder.appendLine(indent + key + ": " + valueStr);
             }
-        };
+        }
         
-        closeBtn.onClick = function() {
-            resultsDialog.close();
-        };
+    } catch (exc) {
+        resultBuilder.appendLine(indent + "[Formatting error: " + exc.message + "]");
+    }
+    
+    return resultBuilder.toString();
+}
+
+function formatDataForXMLExport(dataObj, indentLevel, maxDepth) {
+    var indent = repeatString(" ", indentLevel);
+    var resultBuilder = createStringBuilder();
+    
+    try {
+        if (indentLevel >= maxDepth * 2) {
+            resultBuilder.appendLine(indent + '<maxDepth>Reached</maxDepth>');
+            return resultBuilder.toString();
+        }
         
-        resultsDialog.show();
+        for (var key in dataObj) {
+            var value = dataObj[key];
+            var safeKey = key.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            if (value === null || value === undefined) {
+                resultBuilder.appendLine(indent + '<' + safeKey + ' type="null"/>');
+            } else if (typeof value === 'object') {
+                resultBuilder.appendLine(indent + '<' + safeKey + '>');
+                resultBuilder.append(formatDataForXMLExport(value, indentLevel + 2, maxDepth));
+                resultBuilder.appendLine(indent + '</' + safeKey + '>');
+            } else {
+                var valueStr = escapeXmlValue(String(value));
+                if (valueStr.length > 200) {
+                    valueStr = valueStr.substring(0, 200) + "... [truncated]";
+                }
+                resultBuilder.appendLine(indent + '<' + safeKey + '>' + valueStr + '</' + safeKey + '>');
+            }
+        }
+        
+    } catch (exc) {
+        resultBuilder.appendLine(indent + '<error>' + escapeXmlValue(exc.message) + '</error>');
+    }
+    
+    return resultBuilder.toString();
+}
+
+// ============================================================================
+// ESCAPE AND ENCODING UTILITIES
+// ============================================================================
+
+function escapeCsvValue(valueStr) {
+    if (!valueStr) return '""';
+    
+    valueStr = String(valueStr);
+    
+    // If contains comma, quote, or newline, wrap in quotes and escape quotes
+    if (stringIndexOf(valueStr, ',') !== -1 || 
+        stringIndexOf(valueStr, '"') !== -1 || 
+        stringIndexOf(valueStr, '\n') !== -1) {
+        
+        valueStr = valueStr.replace(/"/g, '""');
+        return '"' + valueStr + '"';
+    }
+    
+    return valueStr;
+}
+
+function escapeXmlValue(valueStr) {
+    if (!valueStr) return "";
+    
+    valueStr = String(valueStr);
+    
+    valueStr = valueStr.replace(/&/g, '&amp;');
+    valueStr = valueStr.replace(/</g, '&lt;');
+    valueStr = valueStr.replace(/>/g, '&gt;');
+    valueStr = valueStr.replace(/"/g, '&quot;');
+    valueStr = valueStr.replace(/'/g, '&apos;');
+    
+    return valueStr;
+}
+
+function escapeXmlAttribute(valueStr) {
+    if (!valueStr) return "";
+    
+    valueStr = String(valueStr);
+    
+    valueStr = valueStr.replace(/&/g, '&amp;');
+    valueStr = valueStr.replace(/"/g, '&quot;');
+    valueStr = valueStr.replace(/'/g, '&apos;');
+    valueStr = valueStr.replace(/</g, '&lt;');
+    valueStr = valueStr.replace(/>/g, '&gt;');
+    
+    return valueStr;
+}
+
+// ES3-compatible JSON stringifier
+function convertToJSONString(objRef, currentDepth, maxDepth) {
+    currentDepth = currentDepth || 0;
+    maxDepth = maxDepth || 5;
+    
+    if (currentDepth >= maxDepth) {
+        return '"[Max depth reached]"';
+    }
+    
+    try {
+        if (objRef === null) {
+            return 'null';
+        }
+        
+        if (objRef === undefined) {
+            return 'null';
+        }
+        
+        if (typeof objRef === 'boolean') {
+            return objRef ? 'true' : 'false';
+        }
+        
+        if (typeof objRef === 'number') {
+            return String(objRef);
+        }
+        
+        if (typeof objRef === 'string') {
+            return '"' + escapeJsonString(objRef) + '"';
+        }
+        
+        if (typeof objRef === 'object') {
+            var jsonParts = [];
+            
+            for (var key in objRef) {
+                if (objRef.hasOwnProperty && objRef.hasOwnProperty(key)) {
+                    var value = objRef[key];
+                    var keyStr = '"' + escapeJsonString(String(key)) + '"';
+                    var valueStr = convertToJSONString(value, currentDepth + 1, maxDepth);
+                    jsonParts.push(keyStr + ':' + valueStr);
+                }
+            }
+            
+            return '{' + jsonParts.join(',') + '}';
+        }
+        
+        return '"[Unsupported type]"';
+        
+    } catch (exc) {
+        return '"[JSON conversion error: ' + escapeJsonString(exc.message) + ']"';
+    }
+}
+
+function escapeJsonString(stringValue) {
+    if (!stringValue) return "";
+    
+    stringValue = String(stringValue);
+    
+    stringValue = stringValue.replace(/\\/g, '\\\\');
+    stringValue = stringValue.replace(/"/g, '\\"');
+    stringValue = stringValue.replace(/\n/g, '\\n');
+    stringValue = stringValue.replace(/\r/g, '\\r');
+    stringValue = stringValue.replace(/\t/g, '\\t');
+    
+    return stringValue;
+}
+
+// ============================================================================
+// FILE WRITING AND VALIDATION
+// ============================================================================
+
+function writeExportFile(fileRef, contentStr, configObj) {
+    debugLog("Writing export file: " + fileRef.fsName, "EXPORT");
+    
+    try {
+        // Validate file path
+        if (!fileRef || !fileRef.fsName) {
+            throw new Error("Invalid file reference");
+        }
+        
+        // Check if we can write to the directory
+        var parentFolder = fileRef.parent;
+        if (!parentFolder.exists) {
+            throw new Error("Parent directory does not exist: " + parentFolder.fsName);
+        }
+        
+        // Try to open file for writing
+        if (!fileRef.open("w")) {
+            throw new Error("Cannot open file for writing: " + fileRef.fsName);
+        }
+        
+        // Write content
+        var writeSuccess = fileRef.write(contentStr);
+        if (!writeSuccess) {
+            fileRef.close();
+            throw new Error("Failed to write content to file");
+        }
+        
+        // Close file
+        fileRef.close();
+        
+        // Verify file was written
+        if (!fileRef.exists) {
+            throw new Error("File was not created successfully");
+        }
+        
+        debugLog("Export file written successfully, size: " + fileRef.length + " bytes", "EXPORT");
+        return true;
+        
+    } catch (exc) {
+        try {
+            if (fileRef && fileRef.close) {
+                fileRef.close();
+            }
+        } catch (closeError) {
+            // Ignore close errors
+        }
+        
+        logError("File writing failed: " + exc.message, "EXPORT", "HIGH");
+        return false;
+    }
+}
+
+// ============================================================================
+// RESULTS DISPLAY FUNCTIONS
+// ============================================================================
+
+function showResultsDialog(resultsData, displayOptions) {
+    debugLog("Showing results dialog", "DISPLAY");
+    
+    try {
+        var dialog = new Window("dialog", "Analysis Results - InDesign Inspector v3.1");
+        dialog.orientation = "column";
+        dialog.alignChildren = "fill";
+        dialog.preferredSize.width = 700;
+        dialog.preferredSize.height = 600;
+        
+        // Create results display
+        createResultsDisplay(dialog, resultsData, displayOptions);
+        
+        // Create action buttons
+        createResultsActions(dialog, resultsData);
+        
+        // Show dialog
+        dialog.show();
         
     } catch (exc) {
         alert("Failed to show results dialog: " + exc.message);
+        debugLog("Results dialog error: " + exc.message, "DISPLAY");
     }
 }
 
-// ENHANCED TREE FORMATTING - Improved display with safety indicators
-function formatTreeForDisplayEnhanced(node, depth, showChildren, expandAll) {
-    if (!node) return "";
+function createResultsDisplay(parentWindow, resultsData, displayOptions) {
+    // Summary panel
+    var summaryPanel = parentWindow.add("panel", undefined, "Analysis Summary");
+    summaryPanel.alignment = "fill";
+    summaryPanel.preferredSize.height = 100;
     
-    var output = "";
-    var indent = "";
+    var summaryText = generateSummaryText(resultsData);
+    var summaryDisplay = summaryPanel.add("statictext", undefined, summaryText, {multiline: true});
+    summaryDisplay.alignment = "fill";
     
-    // Create enhanced indentation
-    for (var i = 0; i < depth; i++) {
-        indent += i === depth - 1 ? "├─ " : "│  ";
-    }
+    // Results panel with tabs simulation
+    var resultsPanel = parentWindow.add("panel", undefined, "Detailed Results");
+    resultsPanel.alignment = "fill";
     
-    // Enhanced status symbols with safety context
-    var nodeSymbol = getDisplaySymbolEnhanced(node.status);
-    var nodeDisplay = indent + nodeSymbol + " " + node.name;
+    // Create tabbed interface simulation with dropdown
+    var tabGroup = resultsPanel.add("group");
+    tabGroup.alignment = "fill";
     
-    // Add enhanced type and value information
-    if (node.type && node.type !== "unknown") {
-        nodeDisplay += " [" + node.type + "]";
-    }
+    tabGroup.add("statictext", undefined, "View:");
+    var tabDropdown = tabGroup.add("dropdownlist", undefined, ["Summary", "Targets", "Errors", "Raw Data"]);
+    tabDropdown.selection = 0;
     
-    if (node.value && node.value !== node.name && String(node.value).length > 0) {
-        var valueDisplay = String(node.value);
-        if (valueDisplay.length > 80) {
-            valueDisplay = valueDisplay.substring(0, 77) + "...";
-        }
-        nodeDisplay += ": " + valueDisplay;
-    }
+    // Results display area
+    var resultsDisplay = resultsPanel.add("edittext", undefined, "", 
+        {multiline: true, readonly: true, scrolling: true});
+    resultsDisplay.alignment = "fill";
+    resultsDisplay.preferredSize.height = 300;
     
-    // Add safety and performance indicators
-    if (node.status === "timeout") {
-        nodeDisplay += " [TIMEOUT]";
-    } else if (node.status === "error") {
-        nodeDisplay += " [ERROR]";
-    } else if (node.status === "emergency_timeout") {
-        nodeDisplay += " [EMERGENCY]";
-    }
-    
-    // Add path for debugging if enabled
-    if (QUERY_CONFIG.traversal.pathTracking && node.path && depth < 3) {
-        nodeDisplay += " (" + node.path + ")";
-    }
-    
-    output += nodeDisplay + "\n";
-    
-    // Enhanced children handling
-    if (showChildren && node.children && node.children.length > 0) {
-        var shouldShowChildren = expandAll || depth < 2;
+    // Update display based on selection
+    tabDropdown.onChange = function() {
+        var selectedView = tabDropdown.selection.text;
+        var displayContent = "";
         
-        if (shouldShowChildren) {
-            for (var i = 0; i < node.children.length; i++) {
-                output += formatTreeForDisplayEnhanced(node.children[i], depth + 1, true, expandAll);
+        switch (selectedView) {
+            case "Summary":
+                displayContent = generateSummaryText(resultsData);
+                break;
+            case "Targets":
+                displayContent = generateTargetsText(resultsData);
+                break;
+            case "Errors":
+                displayContent = generateErrorsText(resultsData);
+                break;
+            case "Raw Data":
+                displayContent = generateRawDataText(resultsData);
+                break;
+        }
+        
+        resultsDisplay.text = displayContent;
+    };
+    
+    // Initialize display
+    resultsDisplay.text = generateSummaryText(resultsData);
+    
+    return resultsPanel;
+}
+
+function createResultsActions(parentWindow, resultsData) {
+    var actionsPanel = parentWindow.add("panel", undefined, "Actions");
+    actionsPanel.alignment = "fill";
+    
+    var buttonGroup = actionsPanel.add("group");
+    buttonGroup.alignment = "center";
+    
+    var exportBtn = buttonGroup.add("button", undefined, "Export Results");
+    exportBtn.onClick = function() {
+        exportFromDialog(resultsData);
+    };
+    
+    var copyBtn = buttonGroup.add("button", undefined, "Copy Summary");
+    copyBtn.onClick = function() {
+        copyFromDialog(resultsData);
+    };
+    
+    var saveBtn = buttonGroup.add("button", undefined, "Save to File");
+    saveBtn.onClick = function() {
+        quickSaveResults(resultsData);
+    };
+    
+    var closeBtn = buttonGroup.add("button", undefined, "Close");
+    closeBtn.onClick = function() {
+        parentWindow.close();
+    };
+}
+
+function generateSummaryText(resultsData) {
+    var builder = createStringBuilder();
+    
+    builder.appendLine("ANALYSIS SUMMARY");
+    builder.appendLine(repeatString("=", 20));
+    
+    if (resultsData.timestamp) {
+        builder.appendLine("Analysis Time: " + resultsData.timestamp);
+    }
+    
+    if (resultsData.summary) {
+        builder.appendLine("Total Targets: " + (resultsData.summary.totalTargets || 0));
+        builder.appendLine("Successful: " + (resultsData.summary.successfulTargets || 0));
+        builder.appendLine("Failed: " + (resultsData.summary.failedTargets || 0));
+        builder.appendLine("Properties Found: " + (resultsData.summary.totalProperties || 0));
+    }
+    
+    if (resultsData.configuration) {
+        builder.appendLine("");
+        builder.appendLine("Configuration:");
+        for (var key in resultsData.configuration) {
+            builder.appendLine("  " + key + ": " + resultsData.configuration[key]);
+        }
+    }
+    
+    return builder.toString();
+}
+
+function generateTargetsText(resultsData) {
+    var builder = createStringBuilder();
+    
+    builder.appendLine("TARGET ANALYSIS DETAILS");
+    builder.appendLine(repeatString("=", 27));
+    
+    if (resultsData.targets) {
+        for (var targetKey in resultsData.targets) {
+            var target = resultsData.targets[targetKey];
+            
+            builder.appendLine("");
+            builder.appendLine("Target: " + (target.name || targetKey));
+            builder.appendLine("Status: " + (target.success ? "SUCCESS" : "FAILED"));
+            builder.appendLine("Properties: " + (target.propertyCount || 0));
+            builder.appendLine("Time: " + (target.processingTime || 0) + "ms");
+            
+            if (target.errorMessage) {
+                builder.appendLine("Error: " + target.errorMessage);
             }
+            
+            builder.appendLine(repeatString("-", 30));
+        }
+    } else {
+        builder.appendLine("No target data available.");
+    }
+    
+    return builder.toString();
+}
+
+function generateErrorsText(resultsData) {
+    var builder = createStringBuilder();
+    
+    builder.appendLine("ERROR ANALYSIS");
+    builder.appendLine(repeatString("=", 15));
+    
+    if (resultsData.summary && resultsData.summary.errors && resultsData.summary.errors.length > 0) {
+        for (var i = 0; i < resultsData.summary.errors.length; i++) {
+            builder.appendLine((i + 1) + ". " + resultsData.summary.errors[i]);
+        }
+    } else {
+        builder.appendLine("No errors recorded during analysis.");
+    }
+    
+    return builder.toString();
+}
+
+function generateRawDataText(resultsData) {
+    var builder = createStringBuilder();
+    
+    builder.appendLine("RAW DATA DUMP");
+    builder.appendLine(repeatString("=", 15));
+    
+    try {
+        var jsonString = convertToJSONString(resultsData, 0, 3);
+        builder.append(jsonString);
+    } catch (exc) {
+        builder.appendLine("Error generating raw data: " + exc.message);
+    }
+    
+    return builder.toString();
+}
+
+// ============================================================================
+// QUICK ACTION FUNCTIONS
+// ============================================================================
+
+function exportFromDialog(resultsData) {
+    try {
+        var exportOptions = {
+            format: "text",
+            includeMetadata: true,
+            includeErrors: true,
+            includeTimestamps: true
+        };
+        
+        var exportResult = exportAnalysisResults(resultsData, exportOptions);
+        
+        if (exportResult.success) {
+            alert("Results exported successfully to:\n" + exportResult.filePath);
         } else {
-            var childSummary = indent + "│  ▼ " + node.children.length + " children ";
-            
-            // Add child status summary
-            var childStats = { success: 0, error: 0, other: 0 };
-            for (var i = 0; i < node.children.length; i++) {
-                var childStatus = node.children[i].status;
-                if (childStatus === "success") {
-                    childStats.success++;
-                } else if (childStatus === "error" || childStatus === "timeout") {
-                    childStats.error++;
-                } else {
-                    childStats.other++;
-                }
-            }
-            
-            childSummary += "(✓" + childStats.success + " ✗" + childStats.error + " ?" + childStats.other + ")";
-            childSummary += " - expand to view\n";
-            output += childSummary;
+            alert("Export failed: " + exportResult.errorMessage);
         }
+        
+    } catch (exc) {
+        alert("Export error: " + exc.message);
     }
-    
-    return output;
 }
 
-function getDisplaySymbolEnhanced(status) {
-    var symbols = {
-        success: "✓",
-        error: "✗",
-        timeout: "⏱",
-        emergency_timeout: "🚨",
-        undefined: "∅",
-        empty: "○",
-        skipped: "⏭",
-        disabled: "⏸",
-        truncated: "…",
-        optimized: "⚡",
-        unknown: "?"
-    };
-    
-    return symbols[status] || "?";
-}
-
-// ENHANCED FILE EXPORT - Complete tree with metadata and safety info
-function exportTreeToFileEnhanced(treeResults) {
-    if (!treeResults) {
-        alert("No results to export.");
-        return;
-    }
-    
-    var outputPath = QUERY_CONFIG.paths.outputPath;
-    if (!outputPath) {
-        var folder = Folder.selectDialog("Select folder to save enhanced tree export");
-        if (!folder) return;
-        outputPath = folder.fsName;
-        QUERY_CONFIG.paths.outputPath = outputPath;
-    }
-    
+function copyFromDialog(resultsData) {
     try {
-        var timestamp = new Date();
-        var dateStr = timestamp.getFullYear() + 
-                     padNumber(timestamp.getMonth() + 1) + 
-                     padNumber(timestamp.getDate()) + "_" + 
-                     padNumber(timestamp.getHours()) + 
-                     padNumber(timestamp.getMinutes()) + 
-                     padNumber(timestamp.getSeconds());
+        var summaryText = generateSummaryText(resultsData);
         
-        var filename = "InDesign_QueryResults_Enhanced_" + dateStr + ".txt";
-        var filepath = outputPath + "/" + filename;
-        var file = File(filepath);
+        // Show copy dialog since ExtendScript doesn't have direct clipboard access
+        var copyDialog = new Window("dialog", "Copy Summary");
+        copyDialog.alignChildren = "fill";
         
-        file.open("w");
+        copyDialog.add("statictext", undefined, "Select all text below and copy manually:");
         
-        // Enhanced header with comprehensive information
-        file.writeln("InDesign Document Query Tool v3.1 - Enhanced Analysis Results");
-        file.writeln("========================================================");
-        file.writeln("Generated: " + timestamp.toString());
-        file.writeln("Document: " + (QUERY_CONFIG.paths.documentPath || "Unknown"));
-        file.writeln("");
+        var textArea = copyDialog.add("edittext", undefined, summaryText, 
+            {multiline: true, readonly: true, scrolling: true});
+        textArea.preferredSize.width = 400;
+        textArea.preferredSize.height = 200;
         
-        // Configuration details
-        file.writeln("ANALYSIS CONFIGURATION:");
-        file.writeln("  Traversal Depth: " + QUERY_CONFIG.traversal.maxDepth);
-        file.writeln("  Sample Limit: " + QUERY_CONFIG.traversal.sampleLimit);
-        file.writeln("  Timeout: " + QUERY_CONFIG.traversal.timeoutMs + "ms");
-        file.writeln("  Emergency Bailouts: " + QUERY_CONFIG.traversal.emergencyBailouts);
-        file.writeln("  Show Empty Values: " + QUERY_CONFIG.traversal.showEmpty);
-        file.writeln("  Show Undefined: " + QUERY_CONFIG.traversal.showUndefined);
-        file.writeln("  Path Tracking: " + QUERY_CONFIG.traversal.pathTracking);
-        file.writeln("");
+        var buttonGroup = copyDialog.add("group");
+        buttonGroup.alignment = "center";
         
-        // Enhanced statistics
-        var stats = getTreeStatistics(treeResults);
-        file.writeln("ANALYSIS STATISTICS:");
-        file.writeln("  Total Nodes: " + stats.totalNodes);
-        file.writeln("  Successful: " + stats.successNodes + " (" + Math.round((stats.successNodes/stats.totalNodes)*100) + "%)");
-        file.writeln("  Errors: " + stats.errorNodes);
-        file.writeln("  Undefined: " + stats.undefinedNodes);
-        file.writeln("  Empty: " + stats.emptyNodes);
-        file.writeln("  Timeouts: " + stats.timeoutNodes);
-        file.writeln("  Truncated: " + stats.truncatedNodes);
-        file.writeln("  Maximum Depth: " + stats.maxDepth);
-        file.writeln("  Average Depth: " + stats.avgDepth);
-        file.writeln("");
+        var selectAllBtn = buttonGroup.add("button", undefined, "Select All");
+        selectAllBtn.onClick = function() {
+            textArea.active = true;
+            textArea.selection = [0, textArea.text.length];
+        };
         
-        // Safety metrics
-        file.writeln("SAFETY METRICS:");
-        file.writeln("  Runtime Errors: " + QUERY_CONFIG.runtime.errorCount);
-        file.writeln("  Success Count: " + QUERY_CONFIG.runtime.successCount);
-        file.writeln("  Success Rate: " + Math.round((QUERY_CONFIG.runtime.successCount/(QUERY_CONFIG.runtime.successCount + QUERY_CONFIG.runtime.errorCount))*100) + "%");
-        file.writeln("");
+        var closeBtn = buttonGroup.add("button", undefined, "Close");
+        closeBtn.onClick = function() {
+            copyDialog.close();
+        };
         
-        // Enabled targets list
-        var enabledTargets = getEnabledTargets();
-        file.writeln("ENABLED TARGETS:");
-        for (var i = 0; i < enabledTargets.length; i++) {
-            var target = QUERY_CONFIG.targets[enabledTargets[i]];
-            file.writeln("  " + enabledTargets[i] + " - " + target.description + " (Safe: " + target.safe + ")");
-        }
-        file.writeln("");
+        copyDialog.show();
         
-        file.writeln("DOCUMENT TREE STRUCTURE:");
-        file.writeln("========================");
-        
-        // Export the complete tree structure
-        var treeContent = formatTreeForExportEnhanced(treeResults, 0);
-        file.write(treeContent);
-        
-        file.close();
-        
-        alert("Enhanced results exported successfully to:\n" + filepath + "\n\nFile includes comprehensive statistics and safety metrics.");
-        
-    } catch (e) {
-        alert("Enhanced export failed: " + e.message);
+    } catch (exc) {
+        alert("Copy failed: " + exc.message);
     }
 }
 
-// ENHANCED TREE EXPORT FORMATTING
-function formatTreeForExportEnhanced(node, depth) {
-    if (!node) return "";
-    
-    var output = "";
-    var indent = "";
-    
-    // Create detailed indentation
-    for (var i = 0; i < depth; i++) {
-        indent += "  ";
-    }
-    
-    // Enhanced node information
-    output += indent + "├─ " + node.name + "\n";
-    output += indent + "│  Type: " + (node.type || "unknown") + "\n";
-    output += indent + "│  Status: " + (node.status || "unknown") + "\n";
-    
-    if (node.value !== undefined && String(node.value).length > 0) {
-        var valueStr = String(node.value);
-        if (valueStr.length > 500) {
-            valueStr = valueStr.substring(0, 500) + "... [truncated for export]";
-        }
-        output += indent + "│  Value: " + valueStr + "\n";
-    }
-    
-    if (node.path) {
-        output += indent + "│  Path: " + node.path + "\n";
-    }
-    
-    if (node.timestamp) {
-        output += indent + "│  Timestamp: " + node.timestamp + "\n";
-    }
-    
-    output += indent + "│\n";
-    
-    // Enhanced children processing
-    if (node.children && node.children.length > 0) {
-        for (var i = 0; i < node.children.length; i++) {
-            output += formatTreeForExportEnhanced(node.children[i], depth + 1);
-        }
-    }
-    
-    return output;
-}
-
-// ENHANCED CLIPBOARD COPY - Summary with key metrics
-function copyTreeSummaryToClipboard(treeResults) {
-    if (!treeResults) {
-        alert("No results to copy.");
-        return;
-    }
-    
+function quickSaveResults(resultsData) {
     try {
-        var stats = getTreeStatistics(treeResults);
-        var summary = "InDesign Document Analysis Summary\n";
-        summary += "==================================\n\n";
-        summary += "Total Nodes: " + stats.totalNodes + "\n";
-        summary += "Success Rate: " + Math.round((stats.successNodes/stats.totalNodes)*100) + "%\n";
-        summary += "Errors: " + stats.errorNodes + "\n";
-        summary += "Max Depth: " + stats.maxDepth + "\n";
-        summary += "Avg Depth: " + stats.avgDepth + "\n\n";
-        
-        summary += "Top-Level Structure:\n";
-        summary += "===================\n";
-        
-        // Add top-level nodes summary
-        if (treeResults.children && treeResults.children.length > 0) {
-            for (var i = 0; i < treeResults.children.length; i++) {
-                var child = treeResults.children[i];
-                summary += "• " + child.name + " [" + child.status + "]";
-                if (child.children && child.children.length > 0) {
-                    summary += " (" + child.children.length + " children)";
-                }
-                summary += "\n";
-            }
+        var saveFile = File.saveDialog("Save Analysis Results", "*.txt");
+        if (!saveFile) {
+            return; // User cancelled
         }
         
-        // Create temporary file for clipboard access
-        var tempFile = File(Folder.temp + "/indesign_query_summary.txt");
-        tempFile.open("w");
-        tempFile.write(summary);
-        tempFile.close();
+        var textContent = generateTextExport(resultsData, {
+            includeMetadata: true,
+            includeErrors: true,
+            includeTimestamps: true,
+            maxDepth: 5
+        });
         
-        alert("Summary prepared for copying.\nFile location: " + tempFile.fsName + "\n\nOpen this file and copy its contents to your clipboard.");
-        tempFile.execute();
+        var writeSuccess = writeExportFile(saveFile, textContent, {format: "text"});
         
-    } catch (e) {
-        alert("Copy summary failed: " + e.message);
-    }
-}
-
-// JSON EXPORT UTILITIES - Enhanced structured data export
-function createJSONExportEnhanced(treeResults) {
-    var exportData = {
-        metadata: {
-            version: QUERY_CONFIG.version,
-            timestamp: new Date().toISOString ? new Date().toISOString() : new Date().toString(),
-            document: QUERY_CONFIG.paths.documentPath || "unknown",
-            configuration: {
-                maxDepth: QUERY_CONFIG.traversal.maxDepth,
-                sampleLimit: QUERY_CONFIG.traversal.sampleLimit,
-                timeoutMs: QUERY_CONFIG.traversal.timeoutMs,
-                showEmpty: QUERY_CONFIG.traversal.showEmpty,
-                showUndefined: QUERY_CONFIG.traversal.showUndefined,
-                emergencyBailouts: QUERY_CONFIG.traversal.emergencyBailouts,
-                pathTracking: QUERY_CONFIG.traversal.pathTracking
-            },
-            enabledTargets: getEnabledTargets(),
-            statistics: getTreeStatistics(treeResults),
-            safetyMetrics: {
-                runtimeErrors: QUERY_CONFIG.runtime.errorCount,
-                successCount: QUERY_CONFIG.runtime.successCount
-            }
-        },
-        tree: convertTreeToJSONEnhanced(treeResults)
-    };
-    
-    return exportData;
-}
-
-function convertTreeToJSONEnhanced(node) {
-    if (!node) return undefined;
-    
-    var jsonNode = {
-        name: node.name,
-        type: node.type,
-        status: node.status,
-        path: node.path
-    };
-    
-    // Enhanced value handling
-    if (node.value !== undefined && String(node.value).length > 0 && node.value !== node.name) {
-        jsonNode.value = node.value;
-    }
-    
-    // Add metadata
-    if (node.timestamp) {
-        jsonNode.timestamp = node.timestamp;
-    }
-    
-    if (node.depth !== undefined) {
-        jsonNode.depth = node.depth;
-    }
-    
-    // Enhanced children processing
-    if (node.children && node.children.length > 0) {
-        jsonNode.children = [];
-        jsonNode.childCount = node.children.length;
-        
-        for (var i = 0; i < node.children.length; i++) {
-            var childJSON = convertTreeToJSONEnhanced(node.children[i]);
-            if (childJSON) {
-                jsonNode.children.push(childJSON);
-            }
+        if (writeSuccess) {
+            alert("Results saved successfully to:\n" + saveFile.fsName);
+        } else {
+            alert("Failed to save results file.");
         }
+        
+    } catch (exc) {
+        alert("Save failed: " + exc.message);
     }
-    
-    return jsonNode;
 }
 
-// UTILITY FUNCTIONS
-function padNumber(number) {
-    return number < 10 ? "0" + number.toString() : number.toString();
-}
-
-function createResultsSummaryEnhanced(treeResults) {
-    if (!treeResults) return "No results available";
-    
-    var stats = getTreeStatistics(treeResults);
-    var summary = "ENHANCED ANALYSIS SUMMARY\n";
-    summary += "========================\n\n";
-    summary += "Total Nodes Analyzed: " + stats.totalNodes + "\n";
-    summary += "Successful Accesses: " + stats.successNodes + "\n";
-    summary += "Errors Encountered: " + stats.errorNodes + "\n";
-    summary += "Undefined Values: " + stats.undefinedNodes + "\n";
-    summary += "Empty Values: " + stats.emptyNodes + "\n";
-    summary += "Timeouts Occurred: " + stats.timeoutNodes + "\n";
-    summary += "Truncated Nodes: " + stats.truncatedNodes + "\n";
-    summary += "Maximum Depth: " + stats.maxDepth + "\n";
-    summary += "Average Depth: " + stats.avgDepth + "\n\n";
-    
-    var successRate = stats.totalNodes > 0 ? 
-        Math.round((stats.successNodes / stats.totalNodes) * 100) : 0;
-    
-    summary += "Success Rate: " + successRate + "%\n";
-    summary += "Analysis Quality: " + (successRate > 80 ? "Excellent" : 
-                                       successRate > 60 ? "Good" : 
-                                       successRate > 40 ? "Fair" : "Poor") + "\n\n";
-    
-    summary += "Safety Status: " + (stats.timeoutNodes === 0 ? "No timeouts" : 
-                                    stats.timeoutNodes + " timeouts occurred") + "\n";
-    
-    return summary;
-}
-
-$.writeln("Module 4.0: Enhanced Export & Results Display loaded");
+$.writeln("Module 4.0: Export and Results Display loaded (All formats supported)");
