@@ -2,7 +2,7 @@
 // InDesign DOM Discovery Builder v2.0 - COMPLETE ASSEMBLED VERSION
 // All DOM Discovery Modules Combined (Auto-Discovery Build)
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-16T06:24:44.626Z
+// Generated: 2025-06-16T06:50:41.547Z
 // 
 // This file contains all 11 modules assembled in proper order:
 // Module 1 (v1.0): 1.0_safe-foundation.jsx
@@ -1769,7 +1769,7 @@ verifyModuleLoad("3.0_dom-visualizer");
 // 3.0_dom-visualizer.jsx (Fixed Dependencies)
 // InDesign DOM Discovery Builder - Basic DOM Structure Visualization
 // CORE PURPOSE: Display DOM structure in user-friendly interface
-// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx, 6.0_collection-sampler.jsx
+// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx (6.0_collection-sampler.jsx optional)
 // SAFETY: Uses only proven ExtendScript UI patterns
 // ES3 COMPATIBLE: No reserved words, no modern JS features
 // FIXED: Removed illegal dependencies on 7.0 and 8.0 modules

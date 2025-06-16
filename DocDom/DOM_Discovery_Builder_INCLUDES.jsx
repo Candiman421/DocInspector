@@ -3,7 +3,7 @@
 // This script loads all DOM Discovery modules using #include directives
 // USAGE: Open this file in ExtendScript Toolkit and run it
 //
-// Generated: 2025-06-16T06:24:45.650Z
+// Generated: 2025-06-16T06:50:41.722Z
 // APPROACH: Uses ExtendScript #include for modular loading
 // SCOPE: All included files share the same global scope
 // BENEFITS: Easier debugging, individual file editing
