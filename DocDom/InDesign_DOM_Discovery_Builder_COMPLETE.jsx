@@ -2,14 +2,15 @@
 // InDesign DOM Discovery Builder v2.0 - COMPLETE ASSEMBLED VERSION
 // All DOM Discovery Modules Combined (Auto-Discovery Build)
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-16T03:15:36.274Z
+// Generated: 2025-06-16T04:33:33.103Z
 // 
-// This file contains all 5 modules assembled in proper order:
+// This file contains all 6 modules assembled in proper order:
 // Module 1 (v1.0): 1.0_safe-foundation.jsx
 // Module 2 (v2.0): 2.0_dom-enumerator.jsx
 // Module 3 (v3.0): 3.0_dom-visualizer.jsx
 // Module 4 (v4.0): 4.0_property-sampler.jsx
 // Module 5 (v5.0): 5.0_dom-exporter.jsx
+// Module 6 (v6.0): 6.0_collection-sampler.jsx
 //
 // USAGE: Run this script in InDesign or ESTK for DOM structure discovery
 // Automatically shows DOM Explorer interface after loading
@@ -949,9 +950,9 @@ verifyModuleLoad("3.0_dom-visualizer");
 
 //
 // 3.0_dom-visualizer.jsx
-// InDesign DOM Discovery Builder - DOM Structure Visualization
-// CORE PURPOSE: Display DOM structure in user-friendly interface
-// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx
+// InDesign DOM Discovery Builder - DOM Structure Visualization (Enhanced)
+// CORE PURPOSE: Display DOM structure in user-friendly interface with collection sampling
+// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx, 6.0_collection-sampler.jsx
 // SAFETY: Uses only proven ExtendScript UI patterns
 // ES3 COMPATIBLE: No reserved words, no modern JS features
 //
@@ -962,6 +963,7 @@ verifyModuleLoad("3.0_dom-visualizer");
 
 var DOM_VISUALIZER_STATE = {
     currentDOMStructure: null,
+    sourceDocument: null,
     dialog: null,
     displays: {
         domTree: null,
@@ -970,6 +972,7 @@ var DOM_VISUALIZER_STATE = {
     },
     controls: {
         enumerateButton: null,
+        sampleButton: null,
         exportButton: null,
         settingsButton: null
     }
@@ -990,7 +993,7 @@ function createDOMVisualizerUI() {
         dialog.orientation = 'column';
         dialog.alignChildren = 'fill';
         dialog.preferredSize.width = 800;
-        dialog.preferredSize.height = 700;
+        dialog.preferredSize.height = 750;
         
         // Header panel with document info
         var headerPanel = createDocumentInfoPanel(dialog);
@@ -1051,7 +1054,7 @@ function createDocumentInfoPanel(parentWindow) {
 function createDOMDisplayPanel(parentWindow) {
     var panel = parentWindow.add('panel', undefined, 'DOM Structure Tree');
     panel.alignment = 'fill';
-    panel.preferredSize.height = 450;
+    panel.preferredSize.height = 500;
     
     var domDisplay = panel.add('edittext', undefined, 'Click "Enumerate DOM" to discover document structure...', {
         multiline: true,
@@ -1059,7 +1062,7 @@ function createDOMDisplayPanel(parentWindow) {
         scrolling: true
     });
     domDisplay.alignment = 'fill';
-    domDisplay.preferredSize.height = 420;
+    domDisplay.preferredSize.height = 470;
     
     // Store reference
     DOM_VISUALIZER_STATE.displays.domTree = domDisplay;
@@ -1079,18 +1082,26 @@ function createControlPanel(parentWindow) {
     
     var buttonGroup = panel.add('group');
     buttonGroup.alignment = 'center';
-    buttonGroup.spacing = 15;
+    buttonGroup.spacing = 10;
     
     // Enumerate DOM button
     var enumerateBtn = buttonGroup.add('button', undefined, 'Enumerate DOM');
-    enumerateBtn.preferredSize.width = 140;
+    enumerateBtn.preferredSize.width = 120;
     enumerateBtn.onClick = function() {
         runDOMEnumeration();
     };
     
+    // Sample Collections button (new!)
+    var sampleBtn = buttonGroup.add('button', undefined, 'Sample Collections');
+    sampleBtn.preferredSize.width = 120;
+    sampleBtn.enabled = false; // Enable after enumeration
+    sampleBtn.onClick = function() {
+        runCollectionSampling();
+    };
+    
     // Export DOM button
     var exportBtn = buttonGroup.add('button', undefined, 'Export DOM');
-    exportBtn.preferredSize.width = 120;
+    exportBtn.preferredSize.width = 100;
     exportBtn.enabled = false; // Enable after enumeration
     exportBtn.onClick = function() {
         showExportOptions();
@@ -1098,13 +1109,14 @@ function createControlPanel(parentWindow) {
     
     // Settings button
     var settingsBtn = buttonGroup.add('button', undefined, 'Settings');
-    settingsBtn.preferredSize.width = 100;
+    settingsBtn.preferredSize.width = 80;
     settingsBtn.onClick = function() {
         showSettingsDialog();
     };
     
     // Store references
     DOM_VISUALIZER_STATE.controls.enumerateButton = enumerateBtn;
+    DOM_VISUALIZER_STATE.controls.sampleButton = sampleBtn;
     DOM_VISUALIZER_STATE.controls.exportButton = exportBtn;
     DOM_VISUALIZER_STATE.controls.settingsButton = settingsBtn;
     
@@ -1161,6 +1173,7 @@ function runDOMEnumeration() {
         }
         
         var doc = envResult.document;
+        DOM_VISUALIZER_STATE.sourceDocument = doc; // Store for collection sampling
         updateStatus('Enumerating DOM structure - please wait...');
         
         // Update button state during operation
@@ -1193,7 +1206,10 @@ function runDOMEnumeration() {
             var stats = getDOMStatistics(domStructure);
             updateStatus('Enumeration complete - ' + stats.totalProperties + ' properties discovered in ' + stats.enumerationTime + 'ms');
             
-            // Enable export button
+            // Enable sampling and export buttons
+            if (DOM_VISUALIZER_STATE.controls.sampleButton) {
+                DOM_VISUALIZER_STATE.controls.sampleButton.enabled = true;
+            }
             if (DOM_VISUALIZER_STATE.controls.exportButton) {
                 DOM_VISUALIZER_STATE.controls.exportButton.enabled = true;
             }
@@ -1220,7 +1236,89 @@ function runDOMEnumeration() {
 }
 
 /**
- * Format DOM structure for display in UI
+ * Execute collection sampling and display enhanced results
+ */
+function runCollectionSampling() {
+    try {
+        if (!DOM_VISUALIZER_STATE.currentDOMStructure) {
+            alert('Please run DOM enumeration first before sampling collections.');
+            return;
+        }
+        
+        if (!DOM_VISUALIZER_STATE.sourceDocument) {
+            alert('Document reference not available. Please re-run DOM enumeration.');
+            return;
+        }
+        
+        // Check if already sampled
+        if (DOM_VISUALIZER_STATE.currentDOMStructure.metadata.collectionSampling) {
+            var shouldReSample = confirm('Collections already sampled.\n\nWould you like to re-sample?\n\n(Choose "OK" to re-sample, "Cancel" to keep current results)');
+            if (!shouldReSample) {
+                updateStatus('Using cached collection sampling data');
+                return;
+            }
+        }
+        
+        updateStatus('Sampling collection contents - please wait...');
+        
+        // Update button state during operation
+        if (DOM_VISUALIZER_STATE.controls.sampleButton) {
+            DOM_VISUALIZER_STATE.controls.sampleButton.enabled = false;
+            DOM_VISUALIZER_STATE.controls.sampleButton.text = 'Sampling...';
+        }
+        
+        // Run collection sampling
+        var samplingConfig = {
+            maxSamplesPerCollection: 3,
+            timeoutPerCollection: 3000,
+            safetyFilter: 'moderate',
+            enableProgressLogging: true
+        };
+        
+        var enhancedDOMStructure = sampleCollectionContents(
+            DOM_VISUALIZER_STATE.currentDOMStructure,
+            DOM_VISUALIZER_STATE.sourceDocument,
+            samplingConfig
+        );
+        
+        if (enhancedDOMStructure) {
+            // Update stored structure
+            DOM_VISUALIZER_STATE.currentDOMStructure = enhancedDOMStructure;
+            
+            // Display enhanced DOM tree
+            var treeText = formatDOMForDisplay(enhancedDOMStructure);
+            if (DOM_VISUALIZER_STATE.displays.domTree) {
+                DOM_VISUALIZER_STATE.displays.domTree.text = treeText;
+            }
+            
+            // Update status with sampling statistics
+            var samplingStats = getCollectionSamplingStatistics(enhancedDOMStructure);
+            updateStatus('Collection sampling complete - ' + samplingStats.collectionsSampled + ' collections sampled, ' + 
+                         samplingStats.totalItemsSampled + ' items analyzed');
+            
+            // Update document info
+            updateDocumentInfo();
+            
+        } else {
+            updateStatus('ERROR: Collection sampling failed');
+            alert('Collection sampling failed. Check ExtendScript console for details.');
+        }
+        
+    } catch (exc) {
+        updateStatus('ERROR: ' + exc.message);
+        $.writeln('ERROR: Collection sampling failed: ' + exc.message);
+        alert('Collection sampling failed:\n\n' + exc.message);
+    } finally {
+        // Re-enable and restore sample button
+        if (DOM_VISUALIZER_STATE.controls.sampleButton) {
+            DOM_VISUALIZER_STATE.controls.sampleButton.enabled = true;
+            DOM_VISUALIZER_STATE.controls.sampleButton.text = 'Re-sample Collections';
+        }
+    }
+}
+
+/**
+ * Format DOM structure for display in UI (enhanced with collection sampling data)
  * @param {Object} domStructure - DOM structure object
  * @returns {String} - Formatted tree text
  */
@@ -1250,6 +1348,19 @@ function formatDOMForDisplay(domStructure) {
         builder.appendLine('Circular References: ' + domStructure.statistics.circularRefsDetected);
         builder.appendLine('Timeouts: ' + domStructure.statistics.timeouts);
         builder.appendLine('Errors: ' + domStructure.statistics.errors.length);
+        
+        // Collection sampling statistics if available
+        if (domStructure.metadata.collectionSampling) {
+            var samplingStats = getCollectionSamplingStatistics(domStructure);
+            builder.appendLine('');
+            builder.appendLine('COLLECTION SAMPLING:');
+            builder.appendLine('Collections Found: ' + samplingStats.collectionsFound);
+            builder.appendLine('Collections Sampled: ' + samplingStats.collectionsSampled);
+            builder.appendLine('Items Analyzed: ' + samplingStats.totalItemsSampled);
+            builder.appendLine('Properties Discovered: ' + samplingStats.totalPropertiesDiscovered);
+            builder.appendLine('Sampling Time: ' + samplingStats.samplingTime + 'ms');
+        }
+        
         builder.appendLine('');
     }
     
@@ -1259,7 +1370,7 @@ function formatDOMForDisplay(domStructure) {
     builder.appendLine('');
     
     if (domStructure.structure && domStructure.structure.document) {
-        var treeText = generateDOMTreeText(domStructure.structure.document, '', true);
+        var treeText = generateEnhancedDOMTreeText(domStructure.structure.document, '', true);
         builder.append(treeText);
     } else {
         builder.appendLine('No DOM structure available');
@@ -1272,7 +1383,7 @@ function formatDOMForDisplay(domStructure) {
     builder.appendLine('');
     builder.appendLine('// Safe properties (recommended)');
     if (domStructure.structure && domStructure.structure.document) {
-        var examples = generateAccessExamples(domStructure.structure.document);
+        var examples = generateEnhancedAccessExamples(domStructure.structure.document);
         builder.append(examples);
     }
     
@@ -1280,13 +1391,13 @@ function formatDOMForDisplay(domStructure) {
 }
 
 /**
- * Generate tree structure text recursively
+ * Generate enhanced DOM tree text with collection sampling data
  * @param {Object} domNode - DOM node to format
  * @param {String} prefix - Current line prefix
  * @param {Boolean} isLast - Whether this is the last child
  * @returns {String} - Formatted tree lines
  */
-function generateDOMTreeText(domNode, prefix, isLast) {
+function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
     var builder = createStringBuilder();
     
     if (!domNode) return '';
@@ -1315,10 +1426,35 @@ function generateDOMTreeText(domNode, prefix, isLast) {
         var propLine = propPrefix + prop.name + ' (' + prop.type + ') [' + prop.safetyLevel + ']';
         
         if (prop.isCollection) {
-            propLine += ' [COLLECTION]';
+            propLine += ' [COLLECTION';
+            
+            // Add collection sampling info if available
+            if (prop.hasSamplingData && prop.samplingData) {
+                propLine += ', length: ' + prop.samplingData.collectionLength;
+                if (prop.samplingData.commonProperties && prop.samplingData.commonProperties.length > 0) {
+                    propLine += ', ' + prop.samplingData.commonProperties.length + ' common props';
+                }
+            }
+            
+            propLine += ']';
+            
+            // Show common properties if available
+            if (prop.samplingData && prop.samplingData.commonProperties) {
+                for (var j = 0; j < Math.min(prop.samplingData.commonProperties.length, 3); j++) {
+                    var commonProp = prop.samplingData.commonProperties[j];
+                    var commonPrefix = childPrefix + '    ';
+                    var commonLine = commonPrefix + '├── [item].' + commonProp.name + ' (' + commonProp.type + ') [' + commonProp.safetyLevel + ']';
+                    builder.appendLine(commonLine);
+                }
+                if (prop.samplingData.commonProperties.length > 3) {
+                    var morePrefix = childPrefix + '    ';
+                    builder.appendLine(morePrefix + '└── ... and ' + (prop.samplingData.commonProperties.length - 3) + ' more common properties');
+                }
+            }
+            
+        } else {
+            builder.appendLine(propLine);
         }
-        
-        builder.appendLine(propLine);
     }
     
     // Show count if there are more properties
@@ -1331,11 +1467,11 @@ function generateDOMTreeText(domNode, prefix, isLast) {
 }
 
 /**
- * Generate property access examples
+ * Generate enhanced property access examples with collection sampling data
  * @param {Object} domNode - DOM node to analyze
  * @returns {String} - Code examples
  */
-function generateAccessExamples(domNode) {
+function generateEnhancedAccessExamples(domNode) {
     var builder = createStringBuilder();
     
     if (!domNode || !domNode.properties) return '';
@@ -1356,6 +1492,29 @@ function generateAccessExamples(domNode) {
     
     if (safeProps.length === 0) {
         builder.appendLine('// No safe properties found for direct access');
+    }
+    
+    // Enhanced: Show collection access patterns if available
+    if (domNode.collections) {
+        builder.appendLine('');
+        builder.appendLine('// Collection access patterns (from sampling):');
+        
+        for (var i = 0; i < domNode.collections.length; i++) {
+            var collection = domNode.collections[i];
+            if (collection.hasSamplingData && collection.samplingData.accessPatterns) {
+                builder.appendLine('// ' + collection.name + ' collection:');
+                builder.appendLine('var ' + collection.name + 'Count = document.' + collection.name + '.length;  // ' + 
+                                 (collection.samplingData.collectionLength || 'unknown'));
+                
+                for (var j = 0; j < Math.min(collection.samplingData.accessPatterns.length, 3); j++) {
+                    var pattern = collection.samplingData.accessPatterns[j];
+                    var examplePath = pattern.pattern.replace('[index]', '[0]');
+                    var varName = (collection.name + pattern.description.split(' ')[1]).replace(/[^a-zA-Z0-9]/g, '');
+                    builder.appendLine('var ' + varName + ' = ' + examplePath + ';  // ' + pattern.type + ' [' + pattern.safetyLevel + ']');
+                }
+                builder.appendLine('');
+            }
+        }
     }
     
     return builder.toString();
@@ -1408,6 +1567,12 @@ function updateDocumentInfo() {
             if (DOM_VISUALIZER_STATE.currentDOMStructure) {
                 var stats = getDOMStatistics(DOM_VISUALIZER_STATE.currentDOMStructure);
                 infoText += '  |  Properties: ' + stats.totalProperties;
+                
+                // Add collection sampling info if available
+                if (DOM_VISUALIZER_STATE.currentDOMStructure.metadata.collectionSampling) {
+                    var samplingStats = getCollectionSamplingStatistics(DOM_VISUALIZER_STATE.currentDOMStructure);
+                    infoText += '  |  Collections: ' + samplingStats.collectionsSampled + '/' + samplingStats.collectionsFound;
+                }
             }
             
         } else {
@@ -1426,7 +1591,7 @@ function updateDocumentInfo() {
 }
 
 // ============================================================================
-// EXPORT FUNCTIONALITY
+// EXPORT FUNCTIONALITY (unchanged)
 // ============================================================================
 
 /**
@@ -1589,7 +1754,7 @@ function showSettingsDialog() {
     settingsDialog.orientation = 'column';
     settingsDialog.alignChildren = 'fill';
     settingsDialog.preferredSize.width = 350;
-    settingsDialog.preferredSize.height = 250;
+    settingsDialog.preferredSize.height = 300;
     
     // Current settings display
     var currentPanel = settingsDialog.add('panel', undefined, 'Current Settings');
@@ -1597,6 +1762,11 @@ function showSettingsDialog() {
     currentPanel.add('statictext', undefined, 'Timeout: 8 seconds');
     currentPanel.add('statictext', undefined, 'Skip Dangerous Properties: Yes');
     currentPanel.add('statictext', undefined, 'Max Properties: 2000');
+    currentPanel.add('statictext', undefined, '');
+    currentPanel.add('statictext', undefined, 'Collection Sampling:');
+    currentPanel.add('statictext', undefined, '  Max Samples per Collection: 3');
+    currentPanel.add('statictext', undefined, '  Collection Timeout: 3 seconds');
+    currentPanel.add('statictext', undefined, '  Safety Filter: Moderate');
     
     // Future settings note
     var futurePanel = settingsDialog.add('panel', undefined, 'Configuration');
@@ -1662,6 +1832,13 @@ function initializeDOMVisualizer() {
         if (typeof enumerateDocumentDOM !== 'function') {
             $.writeln('ERROR: DOM enumerator module not loaded');
             return false;
+        }
+        
+        // Collection sampler is optional but recommended
+        if (typeof sampleCollectionContents === 'function') {
+            $.writeln('Collection sampler module detected');
+        } else {
+            $.writeln('Collection sampler module not available - some features disabled');
         }
         
         // Test core functions
@@ -3129,11 +3306,739 @@ function initializeDOMExporter() {
 initializeDOMExporter();
 
 // ==============================================================================
+// MODULE 6 (v6.0): 6.0_COLLECTION-SAMPLER.JSX
+// ==============================================================================
+
+verifyModuleLoad("6.0_collection-sampler");
+
+//
+// 6.0_collection-sampler.jsx
+// InDesign DOM Discovery Builder - Collection Content Sampling
+// CORE PURPOSE: Safely drill into discovered collections to map their contents
+// DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx
+// SAFETY: Ultra-safe collection access with timeouts and limits
+// ES3 COMPATIBLE: No reserved words, no modern JS features
+//
+
+// ============================================================================
+// COLLECTION SAMPLING CONFIGURATION
+// ============================================================================
+
+var DEFAULT_COLLECTION_SAMPLING_CONFIG = {
+    maxSamplesPerCollection: 3,     // Sample first 3 items from each collection
+    timeoutPerCollection: 2000,     // 2 seconds max per collection
+    timeoutPerItem: 500,           // 500ms max per collection item
+    maxCollectionSize: 1000,       // Skip collections larger than 1000 items
+    samplingDepth: 2,              // How deep to drill into sampled items
+    skipEmptyCollections: true,     // Skip collections with 0 length
+    safetyFilter: 'moderate',      // Only sample collections marked 'moderate' or safer
+    enableProgressLogging: true    // Log sampling progress
+};
+
+// ============================================================================
+// MAIN COLLECTION SAMPLING FUNCTIONS
+// ============================================================================
+
+/**
+ * Sample contents of discovered collections and enhance DOM structure
+ * @param {Object} domStructure - DOM structure from enumeration
+ * @param {Object} sourceDocument - InDesign document object for sampling
+ * @param {Object} samplingConfig - Sampling configuration
+ * @returns {Object} - Enhanced DOM structure with collection contents
+ */
+function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) {
+    if (!domStructure || !sourceDocument) {
+        $.writeln('ERROR: Invalid parameters for collection sampling');
+        return domStructure;
+    }
+    
+    // Merge configuration
+    var config = mergeCollectionSamplingConfig(DEFAULT_COLLECTION_SAMPLING_CONFIG, samplingConfig);
+    
+    $.writeln('');
+    $.writeln('==========================================');
+    $.writeln('COLLECTION CONTENT SAMPLING STARTED');
+    $.writeln('==========================================');
+    $.writeln('Max samples per collection: ' + config.maxSamplesPerCollection);
+    $.writeln('Timeout per collection: ' + config.timeoutPerCollection + 'ms');
+    $.writeln('Safety filter: ' + config.safetyFilter);
+    $.writeln('');
+    
+    var startTime = new Date().getTime();
+    var samplingStats = {
+        collectionsFound: 0,
+        collectionsSkipped: 0,
+        collectionsSampled: 0,
+        totalItemsSampled: 0,
+        totalPropertiesDiscovered: 0,
+        timeouts: 0,
+        errors: 0,
+        samplingTime: 0
+    };
+    
+    try {
+        // Find all collections in DOM structure
+        var discoveredCollections = findAllCollections(domStructure);
+        samplingStats.collectionsFound = discoveredCollections.length;
+        
+        if (config.enableProgressLogging) {
+            $.writeln('Found ' + discoveredCollections.length + ' collections to potentially sample');
+        }
+        
+        // Sample each discovered collection
+        for (var i = 0; i < discoveredCollections.length; i++) {
+            var collection = discoveredCollections[i];
+            
+            if (config.enableProgressLogging) {
+                $.writeln('Processing collection ' + (i + 1) + '/' + discoveredCollections.length + ': ' + collection.path);
+            }
+            
+            // Check if collection meets safety criteria
+            if (!meetsCollectionSafetyCriteria(collection, config)) {
+                samplingStats.collectionsSkipped++;
+                if (config.enableProgressLogging) {
+                    $.writeln('  Skipped - safety criteria not met');
+                }
+                continue;
+            }
+            
+            // Sample this collection
+            var collectionSamplingResult = sampleSingleCollection(
+                collection, 
+                sourceDocument, 
+                config, 
+                samplingStats
+            );
+            
+            if (collectionSamplingResult.success) {
+                samplingStats.collectionsSampled++;
+                samplingStats.totalItemsSampled += collectionSamplingResult.itemsSampled;
+                samplingStats.totalPropertiesDiscovered += collectionSamplingResult.propertiesDiscovered;
+                
+                // Enhance the original collection with sampling data
+                enhanceCollectionWithSamplingData(collection, collectionSamplingResult.samplingData);
+                
+                if (config.enableProgressLogging) {
+                    $.writeln('  Sampled successfully - ' + collectionSamplingResult.itemsSampled + ' items, ' + 
+                             collectionSamplingResult.propertiesDiscovered + ' properties');
+                }
+            } else {
+                samplingStats.errors++;
+                if (config.enableProgressLogging) {
+                    $.writeln('  Sampling failed: ' + collectionSamplingResult.error);
+                }
+            }
+        }
+        
+        // Add sampling metadata to DOM structure
+        samplingStats.samplingTime = new Date().getTime() - startTime;
+        
+        if (!domStructure.metadata.collectionSampling) {
+            domStructure.metadata.collectionSampling = {};
+        }
+        
+        domStructure.metadata.collectionSampling = {
+            timestamp: getCurrentTimestamp(),
+            config: config,
+            stats: samplingStats
+        };
+        
+        $.writeln('');
+        $.writeln('COLLECTION SAMPLING COMPLETE:');
+        $.writeln('  Collections found: ' + samplingStats.collectionsFound);
+        $.writeln('  Collections sampled: ' + samplingStats.collectionsSampled);
+        $.writeln('  Collections skipped: ' + samplingStats.collectionsSkipped);
+        $.writeln('  Total items sampled: ' + samplingStats.totalItemsSampled);
+        $.writeln('  Properties discovered: ' + samplingStats.totalPropertiesDiscovered);
+        $.writeln('  Errors: ' + samplingStats.errors);
+        $.writeln('  Timeouts: ' + samplingStats.timeouts);
+        $.writeln('  Time: ' + samplingStats.samplingTime + 'ms');
+        $.writeln('==========================================');
+        
+    } catch (exc) {
+        $.writeln('ERROR: Collection sampling failed: ' + exc.message);
+        samplingStats.errors++;
+        
+        // Add error info to metadata even on failure
+        if (!domStructure.metadata.collectionSampling) {
+            domStructure.metadata.collectionSampling = {};
+        }
+        domStructure.metadata.collectionSampling.error = exc.message;
+    }
+    
+    return domStructure;
+}
+
+/**
+ * Sample contents of a single collection
+ * @param {Object} collection - Collection property classification
+ * @param {Object} sourceDocument - InDesign document object
+ * @param {Object} config - Sampling configuration
+ * @param {Object} samplingStats - Statistics tracking object
+ * @returns {Object} - {success: boolean, itemsSampled: number, propertiesDiscovered: number, samplingData: object, error: string}
+ */
+function sampleSingleCollection(collection, sourceDocument, config, samplingStats) {
+    var result = {
+        success: false,
+        itemsSampled: 0,
+        propertiesDiscovered: 0,
+        samplingData: null,
+        error: ''
+    };
+    
+    var timeoutChecker = createTimeoutChecker(config.timeoutPerCollection);
+    
+    try {
+        // Get reference to the actual collection object
+        var collectionObject = safeGetObjectFromPath(sourceDocument, collection.path, config.timeoutPerCollection);
+        
+        if (!collectionObject.success) {
+            result.error = 'Could not access collection: ' + collectionObject.error;
+            return result;
+        }
+        
+        var actualCollection = collectionObject.value;
+        
+        // Get collection length safely
+        var collectionLength = safeGetLength(actualCollection);
+        if (collectionLength < 0) {
+            result.error = 'Could not determine collection length';
+            return result;
+        }
+        
+        if (collectionLength === 0 && config.skipEmptyCollections) {
+            result.error = 'Empty collection skipped by configuration';
+            return result;
+        }
+        
+        if (collectionLength > config.maxCollectionSize) {
+            result.error = 'Collection too large (' + collectionLength + ' items, max ' + config.maxCollectionSize + ')';
+            return result;
+        }
+        
+        // Initialize sampling data
+        var samplingData = {
+            collectionLength: collectionLength,
+            sampledItems: [],
+            commonProperties: [],
+            accessPatterns: []
+        };
+        
+        // Sample first few items from collection
+        var itemsToSample = Math.min(collectionLength, config.maxSamplesPerCollection);
+        
+        for (var itemIndex = 0; itemIndex < itemsToSample; itemIndex++) {
+            if (timeoutChecker()) {
+                samplingStats.timeouts++;
+                result.error = 'Timeout during collection sampling';
+                break;
+            }
+            
+            try {
+                var itemSamplingResult = sampleCollectionItem(
+                    actualCollection, 
+                    itemIndex, 
+                    collection.path + '[' + itemIndex + ']',
+                    config
+                );
+                
+                if (itemSamplingResult.success) {
+                    samplingData.sampledItems.push(itemSamplingResult.itemData);
+                    result.itemsSampled++;
+                    result.propertiesDiscovered += itemSamplingResult.propertiesFound;
+                } else {
+                    // Don't fail entire collection for one bad item
+                    $.writeln('  Warning: Could not sample item [' + itemIndex + ']: ' + itemSamplingResult.error);
+                }
+                
+            } catch (itemExc) {
+                $.writeln('  Warning: Exception sampling item [' + itemIndex + ']: ' + itemExc.message);
+            }
+        }
+        
+        // Analyze sampled items to find common patterns
+        if (samplingData.sampledItems.length > 0) {
+            analyzeCommonPatterns(samplingData);
+        }
+        
+        result.success = true;
+        result.samplingData = samplingData;
+        
+    } catch (exc) {
+        result.error = 'Collection sampling exception: ' + exc.message;
+        samplingStats.errors++;
+    }
+    
+    return result;
+}
+
+/**
+ * Sample individual item from collection
+ * @param {Object} collection - Collection object
+ * @param {Number} itemIndex - Index of item to sample
+ * @param {String} itemPath - Full path to item
+ * @param {Object} config - Sampling configuration
+ * @returns {Object} - {success: boolean, itemData: object, propertiesFound: number, error: string}
+ */
+function sampleCollectionItem(collection, itemIndex, itemPath, config) {
+    var result = {
+        success: false,
+        itemData: null,
+        propertiesFound: 0,
+        error: ''
+    };
+    
+    var timeoutChecker = createTimeoutChecker(config.timeoutPerItem);
+    
+    try {
+        // Access collection item safely
+        var item = null;
+        try {
+            item = collection[itemIndex];
+        } catch (accessExc) {
+            result.error = 'Could not access item at index ' + itemIndex + ': ' + accessExc.message;
+            return result;
+        }
+        
+        if (!item) {
+            result.error = 'Item at index ' + itemIndex + ' is null or undefined';
+            return result;
+        }
+        
+        // Create item data structure
+        var itemData = {
+            index: itemIndex,
+            path: itemPath,
+            type: typeof item,
+            properties: [],
+            collections: [],
+            methods: []
+        };
+        
+        // Enumerate properties of this item (limited depth)
+        try {
+            for (var propName in item) {
+                if (timeoutChecker()) {
+                    break;
+                }
+                
+                try {
+                    // Skip dangerous properties during sampling
+                    if (isDangerousProperty(propName) || isReservedWord(propName)) {
+                        continue;
+                    }
+                    
+                    var propType = safeTypeCheck(item, propName);
+                    if (propType === 'error') {
+                        continue;
+                    }
+                    
+                    var propClassification = createPropertyClassification(propName, propType, itemPath);
+                    result.propertiesFound++;
+                    
+                    if (propClassification.isMethod) {
+                        itemData.methods.push(propClassification);
+                    } else if (propClassification.isCollection) {
+                        itemData.collections.push(propClassification);
+                    } else {
+                        itemData.properties.push(propClassification);
+                    }
+                    
+                } catch (propExc) {
+                    // Skip problematic properties
+                    continue;
+                }
+            }
+            
+        } catch (enumExc) {
+            result.error = 'Property enumeration failed: ' + enumExc.message;
+            return result;
+        }
+        
+        result.success = true;
+        result.itemData = itemData;
+        
+    } catch (exc) {
+        result.error = 'Item sampling exception: ' + exc.message;
+    }
+    
+    return result;
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Safely get object from dot notation path
+ * @param {Object} rootObject - Root object to start from
+ * @param {String} dotPath - Dot notation path (e.g., "document.stories")
+ * @param {Number} timeoutMs - Timeout in milliseconds
+ * @returns {Object} - {success: boolean, value: object, error: string}
+ */
+function safeGetObjectFromPath(rootObject, dotPath, timeoutMs) {
+    var result = {
+        success: false,
+        value: null,
+        error: ''
+    };
+    
+    var timeoutChecker = createTimeoutChecker(timeoutMs || 1000);
+    
+    try {
+        var pathParts = dotPath.split('.');
+        var currentObject = rootObject;
+        
+        // Start from index 1 to skip 'document' part
+        for (var i = 1; i < pathParts.length; i++) {
+            if (timeoutChecker()) {
+                result.error = 'Timeout accessing path: ' + dotPath;
+                return result;
+            }
+            
+            var part = pathParts[i];
+            
+            if (!currentObject) {
+                result.error = 'Null object at path segment: ' + part;
+                return result;
+            }
+            
+            if (!safeHasProperty(currentObject, part)) {
+                result.error = 'Property does not exist: ' + part;
+                return result;
+            }
+            
+            try {
+                currentObject = currentObject[part];
+            } catch (accessExc) {
+                result.error = 'Access failed at path segment ' + part + ': ' + accessExc.message;
+                return result;
+            }
+        }
+        
+        result.success = true;
+        result.value = currentObject;
+        
+    } catch (exc) {
+        result.error = 'Path access exception: ' + exc.message;
+    }
+    
+    return result;
+}
+
+/**
+ * Find all collections in DOM structure
+ * @param {Object} domStructure - DOM structure to search
+ * @returns {Array} - Array of collection property classifications
+ */
+function findAllCollections(domStructure) {
+    var collections = [];
+    
+    try {
+        if (domStructure.structure && domStructure.structure.document) {
+            findCollectionsInNode(domStructure.structure.document, collections);
+        }
+    } catch (exc) {
+        $.writeln('Error finding collections: ' + exc.message);
+    }
+    
+    return collections;
+}
+
+/**
+ * Recursively find collections in DOM node
+ * @param {Object} domNode - DOM node to search
+ * @param {Array} collections - Array to accumulate collections
+ */
+function findCollectionsInNode(domNode, collections) {
+    if (!domNode) return;
+    
+    try {
+        // Add collections from this node
+        if (domNode.collections) {
+            for (var i = 0; i < domNode.collections.length; i++) {
+                collections.push(domNode.collections[i]);
+            }
+        }
+        
+        // Recursively search child nodes
+        if (domNode.childNodes) {
+            for (var i = 0; i < domNode.childNodes.length; i++) {
+                findCollectionsInNode(domNode.childNodes[i], collections);
+            }
+        }
+    } catch (exc) {
+        $.writeln('Error searching node for collections: ' + exc.message);
+    }
+}
+
+/**
+ * Check if collection meets safety criteria for sampling
+ * @param {Object} collection - Collection property classification
+ * @param {Object} config - Sampling configuration
+ * @returns {Boolean} - true if collection is safe to sample
+ */
+function meetsCollectionSafetyCriteria(collection, config) {
+    try {
+        // Check safety level
+        var safetyLevels = {
+            'safe': 1,
+            'moderate': 2,
+            'risky': 3,
+            'dangerous': 4
+        };
+        
+        var collectionSafetyLevel = safetyLevels[collection.safetyLevel] || 4;
+        var requiredSafetyLevel = safetyLevels[config.safetyFilter] || 2;
+        
+        if (collectionSafetyLevel > requiredSafetyLevel) {
+            return false;
+        }
+        
+        // Additional safety checks
+        if (isDangerousProperty(collection.name)) {
+            return false;
+        }
+        
+        return true;
+        
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Analyze sampled items to find common property patterns
+ * @param {Object} samplingData - Sampling data to analyze
+ */
+function analyzeCommonPatterns(samplingData) {
+    try {
+        if (!samplingData.sampledItems || samplingData.sampledItems.length === 0) {
+            return;
+        }
+        
+        // Find properties that exist in all sampled items
+        var firstItem = samplingData.sampledItems[0];
+        var allProperties = [];
+        
+        if (firstItem.properties) allProperties = allProperties.concat(firstItem.properties);
+        if (firstItem.collections) allProperties = allProperties.concat(firstItem.collections);
+        
+        for (var i = 0; i < allProperties.length; i++) {
+            var prop = allProperties[i];
+            var existsInAll = true;
+            
+            // Check if this property exists in all other sampled items
+            for (var j = 1; j < samplingData.sampledItems.length; j++) {
+                var otherItem = samplingData.sampledItems[j];
+                var foundInOther = false;
+                
+                // Check properties
+                if (otherItem.properties) {
+                    for (var k = 0; k < otherItem.properties.length; k++) {
+                        if (otherItem.properties[k].name === prop.name) {
+                            foundInOther = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Check collections
+                if (!foundInOther && otherItem.collections) {
+                    for (var k = 0; k < otherItem.collections.length; k++) {
+                        if (otherItem.collections[k].name === prop.name) {
+                            foundInOther = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!foundInOther) {
+                    existsInAll = false;
+                    break;
+                }
+            }
+            
+            if (existsInAll) {
+                samplingData.commonProperties.push(prop);
+            }
+        }
+        
+        // Generate access patterns for common properties
+        var basePath = samplingData.sampledItems[0].path.replace(/\[\d+\]$/, '');
+        for (var i = 0; i < samplingData.commonProperties.length; i++) {
+            var commonProp = samplingData.commonProperties[i];
+            samplingData.accessPatterns.push({
+                pattern: basePath + '[index].' + commonProp.name,
+                type: commonProp.type,
+                safetyLevel: commonProp.safetyLevel,
+                description: 'Access ' + commonProp.name + ' property of collection items'
+            });
+        }
+        
+    } catch (exc) {
+        $.writeln('Error analyzing common patterns: ' + exc.message);
+    }
+}
+
+/**
+ * Enhance collection property with sampling data
+ * @param {Object} collection - Original collection property classification
+ * @param {Object} samplingData - Sampling data to add
+ */
+function enhanceCollectionWithSamplingData(collection, samplingData) {
+    try {
+        collection.samplingData = samplingData;
+        collection.hasSamplingData = true;
+        collection.collectionLength = samplingData.collectionLength;
+        
+        if (samplingData.commonProperties.length > 0) {
+            collection.commonItemProperties = samplingData.commonProperties;
+        }
+        
+        if (samplingData.accessPatterns.length > 0) {
+            collection.accessPatterns = samplingData.accessPatterns;
+        }
+        
+    } catch (exc) {
+        $.writeln('Error enhancing collection with sampling data: ' + exc.message);
+    }
+}
+
+/**
+ * Merge collection sampling configuration with defaults
+ * @param {Object} defaults - Default configuration
+ * @param {Object} userConfig - User configuration
+ * @returns {Object} - Merged configuration
+ */
+function mergeCollectionSamplingConfig(defaults, userConfig) {
+    var merged = {};
+    
+    // Copy defaults
+    for (var key in defaults) {
+        merged[key] = defaults[key];
+    }
+    
+    // Override with user config
+    if (userConfig) {
+        for (var key in userConfig) {
+            merged[key] = userConfig[key];
+        }
+    }
+    
+    return merged;
+}
+
+// ============================================================================
+// PUBLIC API FUNCTIONS
+// ============================================================================
+
+/**
+ * Quick collection sampling using default configuration
+ * @param {Object} domStructure - DOM structure from enumeration
+ * @param {Object} sourceDocument - InDesign document object
+ * @returns {Object} - Enhanced DOM structure
+ */
+function quickSampleCollections(domStructure, sourceDocument) {
+    var quickConfig = {
+        maxSamplesPerCollection: 2,
+        timeoutPerCollection: 1000,
+        safetyFilter: 'moderate',
+        enableProgressLogging: false
+    };
+    
+    return sampleCollectionContents(domStructure, sourceDocument, quickConfig);
+}
+
+/**
+ * Get collection sampling statistics
+ * @param {Object} domStructure - DOM structure with sampling data
+ * @returns {Object} - Sampling statistics
+ */
+function getCollectionSamplingStatistics(domStructure) {
+    var defaultStats = {
+        collectionsFound: 0,
+        collectionsSampled: 0,
+        totalItemsSampled: 0,
+        totalPropertiesDiscovered: 0,
+        hasSamplingData: false
+    };
+    
+    try {
+        if (domStructure && domStructure.metadata && domStructure.metadata.collectionSampling) {
+            var samplingData = domStructure.metadata.collectionSampling;
+            if (samplingData.stats) {
+                return {
+                    collectionsFound: samplingData.stats.collectionsFound || 0,
+                    collectionsSampled: samplingData.stats.collectionsSampled || 0,
+                    totalItemsSampled: samplingData.stats.totalItemsSampled || 0,
+                    totalPropertiesDiscovered: samplingData.stats.totalPropertiesDiscovered || 0,
+                    errors: samplingData.stats.errors || 0,
+                    timeouts: samplingData.stats.timeouts || 0,
+                    samplingTime: samplingData.stats.samplingTime || 0,
+                    hasSamplingData: true
+                };
+            }
+        }
+    } catch (exc) {
+        $.writeln('Error getting collection sampling statistics: ' + exc.message);
+    }
+    
+    return defaultStats;
+}
+
+// ============================================================================
+// MODULE INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize collection sampler module
+ * @returns {Boolean} - true if initialization successful
+ */
+function initializeCollectionSampler() {
+    try {
+        // Check dependencies
+        if (typeof safeTypeCheck !== 'function') {
+            $.writeln('ERROR: Safe foundation module not loaded');
+            return false;
+        }
+        
+        if (typeof createPropertyClassification !== 'function') {
+            $.writeln('ERROR: DOM enumerator module not loaded');
+            return false;
+        }
+        
+        // Test core functions
+        var requiredFunctions = [
+            'sampleCollectionContents', 'findAllCollections', 'safeGetObjectFromPath'
+        ];
+        
+        for (var i = 0; i < requiredFunctions.length; i++) {
+            if (typeof eval(requiredFunctions[i]) !== 'function') {
+                $.writeln('ERROR: Required function missing: ' + requiredFunctions[i]);
+                return false;
+            }
+        }
+        
+        $.writeln('6.0_collection-sampler.jsx: All functions initialized successfully');
+        $.writeln('Use sampleCollectionContents(domStructure, document, config) to sample collections');
+        return true;
+        
+    } catch (exc) {
+        $.writeln('ERROR: Collection sampler initialization failed: ' + exc.message);
+        return false;
+    }
+}
+
+// Auto-initialize when module loads
+initializeCollectionSampler();
+
+// ==============================================================================
 // BUILD VERIFICATION AND AUTO-START
 // ==============================================================================
 
 $.writeln("🎉 DOM Discovery Builder v2.0 - All " + MODULES_LOADED.length + " modules loaded successfully!");
-if (MODULES_LOADED.length === 5) {
+if (MODULES_LOADED.length === 6) {
     $.writeln("✅ Auto-discovery build verification passed - ready for use");
     
     // Auto-start DOM Discovery interface
@@ -3152,4 +4057,4 @@ if (MODULES_LOADED.length === 5) {
     $.writeln("⚠️  Module count mismatch - check for loading errors");
 }
 $.writeln("📁 Source folder: ./DocDom");
-$.writeln("🔍 Auto-discovery: 5 files included, 3 excluded");
+$.writeln("🔍 Auto-discovery: 6 files included, 3 excluded");

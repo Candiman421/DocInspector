@@ -3,7 +3,7 @@
 // This script loads all DOM Discovery modules using #include directives
 // USAGE: Open this file in ExtendScript Toolkit and run it
 //
-// Generated: 2025-06-16T03:15:37.050Z
+// Generated: 2025-06-16T04:33:33.313Z
 // APPROACH: Uses ExtendScript #include for modular loading
 // SCOPE: All included files share the same global scope
 // BENEFITS: Easier debugging, individual file editing
@@ -28,11 +28,14 @@
 // Module 5: 5.0_dom-exporter.jsx (v5.0)
 #include "5.0_dom-exporter.jsx"
 
+// Module 6: 6.0_collection-sampler.jsx (v6.0)
+#include "6.0_collection-sampler.jsx"
+
 // ============================================================================
 // VERIFICATION AND AUTO-START
 // ============================================================================
 
-$.writeln("🎉 All 5 modules loaded via #include!");
+$.writeln("🎉 All 6 modules loaded via #include!");
 $.writeln("📁 Include-based loading complete");
 
 // Auto-start DOM Discovery interface
