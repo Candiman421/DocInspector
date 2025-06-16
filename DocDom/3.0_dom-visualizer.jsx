@@ -1,10 +1,11 @@
 //
-// 3.0_dom-visualizer.jsx
-// InDesign DOM Discovery Builder - DOM Structure Visualization (Enhanced)
-// CORE PURPOSE: Display DOM structure in user-friendly interface with collection sampling
+// 3.0_dom-visualizer.jsx (Fixed Dependencies)
+// InDesign DOM Discovery Builder - Basic DOM Structure Visualization
+// CORE PURPOSE: Display DOM structure in user-friendly interface
 // DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx, 6.0_collection-sampler.jsx
 // SAFETY: Uses only proven ExtendScript UI patterns
 // ES3 COMPATIBLE: No reserved words, no modern JS features
+// FIXED: Removed illegal dependencies on 7.0 and 8.0 modules
 //
 
 // ============================================================================
@@ -39,7 +40,7 @@ var DOM_VISUALIZER_STATE = {
 function createDOMVisualizerUI() {
     try {
         // Create main dialog
-        var dialog = new Window('dialog', 'InDesign DOM Explorer v2.0');
+        var dialog = new Window('dialog', 'InDesign DOM Explorer v2.1');
         dialog.orientation = 'column';
         dialog.alignChildren = 'fill';
         dialog.preferredSize.width = 850;
@@ -141,7 +142,7 @@ function createControlPanel(parentWindow) {
         runDOMEnumeration();
     };
     
-    // Sample Collections button (enhanced!)
+    // Sample Collections button
     var sampleBtn = buttonGroup.add('button', undefined, 'Sample Collections');
     sampleBtn.preferredSize.width = 120;
     sampleBtn.enabled = false; // Enable after enumeration
@@ -232,12 +233,12 @@ function runDOMEnumeration() {
             DOM_VISUALIZER_STATE.controls.enumerateButton.text = 'Enumerating...';
         }
         
-        // Run enumeration with default config
+        // Enhanced config for deeper analysis
         var config = {
-            maxDepth: 2,
-            timeoutMs: 8000,
+            maxDepth: 4,              // Increased from 2
+            timeoutMs: 10000,         // Increased timeout
             skipDangerous: true,
-            maxProperties: 2000
+            maxProperties: 3000       // Increased limit
         };
         
         var domStructure = enumerateDocumentDOM(doc, config);
@@ -317,7 +318,14 @@ function runCollectionSampling() {
             DOM_VISUALIZER_STATE.controls.sampleButton.text = 'Sampling...';
         }
         
-        // Run collection sampling with discovery-first approach
+        // Check if collection sampler is available (6.0 module)
+        if (typeof sampleCollectionContents !== 'function') {
+            updateStatus('Collection sampler not available');
+            alert('Collection sampler module (6.0) is not loaded.\n\nCollection sampling is not available.');
+            return;
+        }
+        
+        // Run collection sampling
         var samplingConfig = {
             maxSamplesPerCollection: 3,
             timeoutPerCollection: 3000,
@@ -341,9 +349,13 @@ function runCollectionSampling() {
             }
             
             // Update status with sampling statistics
-            var samplingStats = getCollectionSamplingStatistics(enhancedDOMStructure);
-            updateStatus('Collection sampling complete - ' + samplingStats.collectionsSampled + ' collections sampled, ' + 
-                         samplingStats.totalItemsSampled + ' items analyzed');
+            if (typeof getCollectionSamplingStatistics === 'function') {
+                var samplingStats = getCollectionSamplingStatistics(enhancedDOMStructure);
+                updateStatus('Collection sampling complete - ' + samplingStats.collectionsSampled + ' collections sampled, ' + 
+                             samplingStats.totalItemsSampled + ' items analyzed');
+            } else {
+                updateStatus('Collection sampling complete');
+            }
             
             // Update document info
             updateDocumentInfo();
@@ -367,7 +379,7 @@ function runCollectionSampling() {
 }
 
 /**
- * Format DOM structure for display in UI (enhanced with collection sampling data)
+ * Format DOM structure for display in UI
  * @param {Object} domStructure - DOM structure object
  * @returns {String} - Formatted tree text
  */
@@ -399,7 +411,7 @@ function formatDOMForDisplay(domStructure) {
         builder.appendLine('Errors: ' + domStructure.statistics.errors.length);
         
         // Collection sampling statistics if available
-        if (domStructure.metadata.collectionSampling) {
+        if (domStructure.metadata.collectionSampling && typeof getCollectionSamplingStatistics === 'function') {
             var samplingStats = getCollectionSamplingStatistics(domStructure);
             builder.appendLine('');
             builder.appendLine('COLLECTION SAMPLING:');
@@ -407,7 +419,6 @@ function formatDOMForDisplay(domStructure) {
             builder.appendLine('Collections Sampled: ' + samplingStats.collectionsSampled);
             builder.appendLine('Items Analyzed: ' + samplingStats.totalItemsSampled);
             builder.appendLine('Properties Discovered: ' + samplingStats.totalPropertiesDiscovered);
-            builder.appendLine('Sampling Time: ' + samplingStats.samplingTime + 'ms');
         }
         
         builder.appendLine('');
@@ -419,33 +430,23 @@ function formatDOMForDisplay(domStructure) {
     builder.appendLine('');
     
     if (domStructure.structure && domStructure.structure.document) {
-        var treeText = generateEnhancedDOMTreeText(domStructure.structure.document, '', true);
+        var treeText = generateDOMTreeText(domStructure.structure.document, '', true);
         builder.append(treeText);
     } else {
         builder.appendLine('No DOM structure available');
-    }
-    
-    // Property access guide (enhanced with collection data)
-    builder.appendLine('');
-    builder.appendLine('PROPERTY ACCESS EXAMPLES:');
-    builder.appendLine('========================');
-    builder.appendLine('');
-    if (domStructure.structure && domStructure.structure.document) {
-        var examples = generateEnhancedAccessExamples(domStructure.structure.document);
-        builder.append(examples);
     }
     
     return builder.toString();
 }
 
 /**
- * Generate enhanced DOM tree text with collection sampling data
+ * Generate DOM tree text display
  * @param {Object} domNode - DOM node to format
  * @param {String} prefix - Current line prefix
  * @param {Boolean} isLast - Whether this is the last child
  * @returns {String} - Formatted tree lines
  */
-function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
+function generateDOMTreeText(domNode, prefix, isLast) {
     var builder = createStringBuilder();
     
     if (!domNode) return '';
@@ -460,40 +461,16 @@ function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
     
     builder.appendLine(nodeLine);
     
-    // Enhanced: Show safe properties first
+    // Show properties (limited for readability)
     if (domNode.properties && domNode.properties.length > 0) {
-        var safeProps = [];
-        var otherProps = [];
-        
-        for (var i = 0; i < domNode.properties.length; i++) {
-            var prop = domNode.properties[i];
-            if (prop.safetyLevel === 'safe') {
-                safeProps.push(prop);
-            } else {
-                otherProps.push(prop);
-            }
-        }
-        
         var childPrefix = prefix + (isLast ? '    ' : '│   ');
-        var propCount = 0;
-        var maxPropsToShow = 5;
+        var maxPropsToShow = 8;
         
-        // Show safe properties first
-        for (var i = 0; i < safeProps.length && propCount < maxPropsToShow; i++) {
-            var prop = safeProps[i];
+        for (var i = 0; i < Math.min(domNode.properties.length, maxPropsToShow); i++) {
+            var prop = domNode.properties[i];
             var propPrefix = childPrefix + '├── ';
             var propLine = propPrefix + prop.name + ' (' + prop.type + ') [' + prop.safetyLevel + ']';
             builder.appendLine(propLine);
-            propCount++;
-        }
-        
-        // Show some other properties
-        for (var i = 0; i < otherProps.length && propCount < maxPropsToShow; i++) {
-            var prop = otherProps[i];
-            var propPrefix = childPrefix + '├── ';
-            var propLine = propPrefix + prop.name + ' (' + prop.type + ') [' + prop.safetyLevel + ']';
-            builder.appendLine(propLine);
-            propCount++;
         }
         
         if (domNode.properties.length > maxPropsToShow) {
@@ -501,7 +478,7 @@ function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
         }
     }
     
-    // Enhanced: Show collections with sampling data
+    // Show collections with sampling info
     if (domNode.collections && domNode.collections.length > 0) {
         for (var i = 0; i < domNode.collections.length; i++) {
             var collection = domNode.collections[i];
@@ -519,96 +496,6 @@ function generateEnhancedDOMTreeText(domNode, prefix, isLast) {
             
             propLine += ']';
             builder.appendLine(propLine);
-            
-            // Show common properties from sampling if available
-            if (collection.samplingData && collection.samplingData.commonProperties) {
-                for (var j = 0; j < Math.min(collection.samplingData.commonProperties.length, 3); j++) {
-                    var commonProp = collection.samplingData.commonProperties[j];
-                    var commonPrefix = childPrefix + '│   ';
-                    var commonLine = commonPrefix + '├── [item].' + commonProp.name + ' (' + commonProp.type + ') [' + commonProp.safetyLevel + ']';
-                    builder.appendLine(commonLine);
-                }
-                if (collection.samplingData.commonProperties.length > 3) {
-                    var morePrefix = childPrefix + '│   ';
-                    builder.appendLine(morePrefix + '└── ... and ' + (collection.samplingData.commonProperties.length - 3) + ' more common properties');
-                }
-            }
-        }
-    }
-    
-    return builder.toString();
-}
-
-/**
- * Generate enhanced property access examples with collection sampling data
- * @param {Object} domNode - DOM node to analyze
- * @returns {String} - Code examples
- */
-function generateEnhancedAccessExamples(domNode) {
-    var builder = createStringBuilder();
-    
-    if (!domNode) return '';
-    
-    // Safe properties section
-    builder.appendLine('// Safe properties (recommended):');
-    if (domNode.properties) {
-        var safeProps = [];
-        for (var i = 0; i < domNode.properties.length; i++) {
-            var prop = domNode.properties[i];
-            if (prop.safetyLevel === 'safe' && safeProps.length < 5) {
-                safeProps.push(prop);
-            }
-        }
-        
-        for (var i = 0; i < safeProps.length; i++) {
-            var prop = safeProps[i];
-            builder.appendLine('var ' + prop.name.replace(/[^a-zA-Z0-9]/g, '') + ' = document.' + prop.name + ';  // ' + prop.type);
-        }
-        
-        if (safeProps.length === 0) {
-            builder.appendLine('// No safe properties found for direct access');
-        }
-    }
-    
-    // Enhanced: Show collection access patterns from sampling
-    if (domNode.collections) {
-        builder.appendLine('');
-        builder.appendLine('// Collection access patterns (from sampling):');
-        
-        var foundPatterns = false;
-        for (var i = 0; i < domNode.collections.length; i++) {
-            var collection = domNode.collections[i];
-            if (collection.hasSamplingData && collection.samplingData) {
-                foundPatterns = true;
-                builder.appendLine('');
-                builder.appendLine('// ' + collection.name + ' collection (' + collection.samplingData.collectionLength + ' items):');
-                builder.appendLine('var ' + collection.name + 'Count = document.' + collection.name + '.length;');
-                
-                if (collection.samplingData.accessPatterns && collection.samplingData.accessPatterns.length > 0) {
-                    for (var j = 0; j < Math.min(collection.samplingData.accessPatterns.length, 3); j++) {
-                        var pattern = collection.samplingData.accessPatterns[j];
-                        var exampleCode = pattern.pattern.replace('[index]', '[0]');
-                        builder.appendLine('var value = ' + exampleCode + ';  // ' + pattern.type + ' [' + pattern.safetyLevel + ']');
-                    }
-                    
-                    // Safe iteration example
-                    builder.appendLine('// Safe iteration:');
-                    builder.appendLine('for (var i = 0; i < document.' + collection.name + '.length; i++) {');
-                    builder.appendLine('  try {');
-                    builder.appendLine('    var item = document.' + collection.name + '[i];');
-                    if (collection.samplingData.commonProperties && collection.samplingData.commonProperties.length > 0) {
-                        var firstProp = collection.samplingData.commonProperties[0];
-                        builder.appendLine('    var ' + firstProp.name + ' = item.' + firstProp.name + ';');
-                    }
-                    builder.appendLine('  } catch (exc) { /* handle error */ }');
-                    builder.appendLine('}');
-                }
-            }
-        }
-        
-        if (!foundPatterns) {
-            builder.appendLine('// No collection sampling data available yet.');
-            builder.appendLine('// Click "Sample Collections" to generate access patterns.');
         }
     }
     
@@ -664,7 +551,8 @@ function updateDocumentInfo() {
                 infoText += '  |  Properties: ' + stats.totalProperties;
                 
                 // Add collection sampling info if available
-                if (DOM_VISUALIZER_STATE.currentDOMStructure.metadata.collectionSampling) {
+                if (DOM_VISUALIZER_STATE.currentDOMStructure.metadata.collectionSampling && 
+                    typeof getCollectionSamplingStatistics === 'function') {
                     var samplingStats = getCollectionSamplingStatistics(DOM_VISUALIZER_STATE.currentDOMStructure);
                     infoText += '  |  Collections: ' + samplingStats.collectionsSampled + '/' + samplingStats.collectionsFound;
                 }
@@ -700,7 +588,14 @@ function showExportOptions() {
     
     try {
         updateStatus('Showing export options...');
-        showExportDialog();
+        
+        // Check if export module is available
+        if (typeof exportDOMStructure === 'function') {
+            showExportDialog();
+        } else {
+            alert('Export module (5.0) is not loaded.\n\nExport functionality is not available.');
+            updateStatus('Export module not available');
+        }
     } catch (exc) {
         updateStatus('Export failed: ' + exc.message);
         alert('Export failed:\n\n' + exc.message);
@@ -715,11 +610,11 @@ function showExportDialog() {
     exportDialog.orientation = 'column';
     exportDialog.alignChildren = 'fill';
     exportDialog.preferredSize.width = 450;
-    exportDialog.preferredSize.height = 350;
+    exportDialog.preferredSize.height = 300;
     
     // Header
     var headerPanel = exportDialog.add('panel', undefined, 'Export Options');
-    headerPanel.add('statictext', undefined, 'Choose export format and options for DOM structure:');
+    headerPanel.add('statictext', undefined, 'Choose export format for DOM structure:');
     
     // Format selection
     var formatPanel = exportDialog.add('panel', undefined, 'Export Format');
@@ -727,41 +622,11 @@ function showExportDialog() {
     formatGroup.orientation = 'column';
     formatGroup.alignChildren = 'left';
     
-    var textRadio = formatGroup.add('radiobutton', undefined, 'Text (.txt) - Human-readable format with access guide');
-    var jsonRadio = formatGroup.add('radiobutton', undefined, 'JSON (.json) - Machine-readable structured data');
-    var csvRadio = formatGroup.add('radiobutton', undefined, 'CSV (.csv) - Spreadsheet-compatible property list');
+    var textRadio = formatGroup.add('radiobutton', undefined, 'Text (.txt) - Human-readable format');
+    var jsonRadio = formatGroup.add('radiobutton', undefined, 'JSON (.json) - Machine-readable data');
+    var csvRadio = formatGroup.add('radiobutton', undefined, 'CSV (.csv) - Spreadsheet format');
     
     textRadio.value = true; // Default selection
-    
-    // Options
-    var optionsPanel = exportDialog.add('panel', undefined, 'Export Options');
-    var includeValues = optionsPanel.add('checkbox', undefined, 'Include sample values (if available)');
-    var includeStats = optionsPanel.add('checkbox', undefined, 'Include discovery statistics');
-    var includeGuide = optionsPanel.add('checkbox', undefined, 'Include property access guide');
-    var includeCollection = optionsPanel.add('checkbox', undefined, 'Include collection sampling data');
-    
-    includeValues.value = true;
-    includeStats.value = true;
-    includeGuide.value = true;
-    includeCollection.value = true;
-    
-    // File path
-    var pathPanel = exportDialog.add('panel', undefined, 'File Location');
-    var pathGroup = pathPanel.add('group');
-    pathGroup.alignChildren = 'fill';
-    
-    var pathText = pathGroup.add('edittext', undefined, '[Auto-generate next to document]');
-    pathText.enabled = false;
-    var browseBtn = pathGroup.add('button', undefined, 'Browse...');
-    
-    var customPath = null;
-    browseBtn.onClick = function() {
-        var file = File.saveDialog('Save DOM Export As');
-        if (file) {
-            customPath = file.absoluteURI;
-            pathText.text = file.name;
-        }
-    };
     
     // Buttons
     var buttonGroup = exportDialog.add('group');
@@ -778,7 +643,7 @@ function showExportDialog() {
         updateStatus('Exporting DOM structure...');
         exportDialog.close();
         
-        performExport(format, customPath);
+        performExport(format);
     };
     
     cancelBtn.onClick = function() {
@@ -792,59 +657,30 @@ function showExportDialog() {
 /**
  * Perform the actual export operation
  * @param {String} format - Export format
- * @param {String} customPath - Custom file path (optional)
  */
-function performExport(format, customPath) {
+function performExport(format) {
     try {
         updateStatus('Starting ' + format + ' export...');
         
-        // Call the exporter function directly (should be in global scope from 5.0_dom-exporter.jsx)
-        var result = null;
-        
-        // Try to call the exporter module function
-        try {
-            // Direct call to the global function from 5.0_dom-exporter.jsx
-            if (typeof exportDOMStructure === 'function') {
-                $.writeln('Calling exportDOMStructure with format: ' + format);
-                result = exportDOMStructure(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
-                $.writeln('Export function returned: ' + (result ? 'success=' + result.success : 'null'));
-            } else {
-                throw new Error('Export function not found - exportDOMStructure is not defined');
-            }
-        } catch (exc) {
-            result = {
-                success: false,
-                filePath: '',
-                error: 'DOM Exporter module call failed: ' + exc.message
-            };
-            $.writeln('Export function call failed: ' + exc.message);
-        }
+        var result = exportDOMStructure(DOM_VISUALIZER_STATE.currentDOMStructure, format);
         
         if (result && result.success) {
             updateStatus('Export successful: ' + result.filePath);
             alert('DOM structure exported successfully!\n\nFile saved to:\n' + result.filePath);
         } else {
-            var errorMsg = result ? result.error : 'Unknown export error - no result returned';
+            var errorMsg = result ? result.error : 'Unknown export error';
             updateStatus('Export failed: ' + errorMsg);
-            alert('Export failed:\n\n' + errorMsg + '\n\nCheck ExtendScript console for more details.');
-            $.writeln('EXPORT FAILURE DETAILS:');
-            $.writeln('  Format: ' + format);
-            $.writeln('  Custom Path: ' + customPath);
-            $.writeln('  DOM Structure exists: ' + (DOM_VISUALIZER_STATE.currentDOMStructure ? 'Yes' : 'No'));
-            if (DOM_VISUALIZER_STATE.currentDOMStructure) {
-                $.writeln('  DOM Properties: ' + DOM_VISUALIZER_STATE.currentDOMStructure.statistics.totalProperties);
-            }
+            alert('Export failed:\n\n' + errorMsg);
         }
         
     } catch (exc) {
         updateStatus('Export error: ' + exc.message);
         alert('Export error:\n\n' + exc.message);
-        $.writeln('ERROR: Export failed: ' + exc.message);
     }
 }
 
 /**
- * Show settings dialog with collection sampling options
+ * Show settings dialog
  */
 function showSettingsDialog() {
     var settingsDialog = new Window('dialog', 'DOM Discovery Settings');
@@ -856,10 +692,10 @@ function showSettingsDialog() {
     // Current settings display
     var currentPanel = settingsDialog.add('panel', undefined, 'Current Settings');
     currentPanel.add('statictext', undefined, 'DOM Enumeration:');
-    currentPanel.add('statictext', undefined, '  Max Depth: 2 levels');
-    currentPanel.add('statictext', undefined, '  Timeout: 8 seconds');
+    currentPanel.add('statictext', undefined, '  Max Depth: 4 levels (enhanced)');
+    currentPanel.add('statictext', undefined, '  Timeout: 10 seconds');
     currentPanel.add('statictext', undefined, '  Skip Dangerous Properties: Yes');
-    currentPanel.add('statictext', undefined, '  Max Properties: 2000');
+    currentPanel.add('statictext', undefined, '  Max Properties: 3000');
     currentPanel.add('statictext', undefined, '');
     currentPanel.add('statictext', undefined, 'Collection Sampling:');
     currentPanel.add('statictext', undefined, '  Max Samples per Collection: 3');
@@ -868,16 +704,10 @@ function showSettingsDialog() {
     
     // Features panel
     var featuresPanel = settingsDialog.add('panel', undefined, 'Available Features');
-    featuresPanel.add('statictext', undefined, '✓ DOM Structure Discovery');
+    featuresPanel.add('statictext', undefined, '✓ Enhanced DOM Structure Discovery');
     featuresPanel.add('statictext', undefined, '✓ Collection Content Sampling');
-    featuresPanel.add('statictext', undefined, '✓ Property Access Pattern Generation');
     featuresPanel.add('statictext', undefined, '✓ Multi-format Export (Text, JSON, CSV)');
     featuresPanel.add('statictext', undefined, '✓ Safety Classification & Timeout Protection');
-    
-    // Future settings note
-    var futurePanel = settingsDialog.add('panel', undefined, 'Configuration');
-    futurePanel.add('statictext', undefined, 'Advanced configuration options will be added in future updates.');
-    futurePanel.add('statictext', undefined, 'Current settings are optimized for safety and performance.');
     
     // Buttons
     var buttonGroup = settingsDialog.add('group');
@@ -913,7 +743,7 @@ function showDOMVisualizer() {
 }
 
 /**
- * Alias for compatibility with single-file version
+ * Alias for compatibility
  */
 function showDOMExplorer() {
     showDOMVisualizer();
@@ -924,27 +754,34 @@ function showDOMExplorer() {
 // ============================================================================
 
 /**
- * Initialize DOM visualizer module
+ * Initialize DOM visualizer module (fixed dependencies)
  * @returns {Boolean} - true if initialization successful
  */
 function initializeDOMVisualizer() {
     try {
-        // Check dependencies
+        // Check required dependencies (only lower-numbered modules)
         if (typeof safeTypeCheck !== 'function') {
-            $.writeln('ERROR: Safe foundation module not loaded');
+            $.writeln('ERROR: Safe foundation module (1.0) not loaded');
             return false;
         }
         
         if (typeof enumerateDocumentDOM !== 'function') {
-            $.writeln('ERROR: DOM enumerator module not loaded');
+            $.writeln('ERROR: DOM enumerator module (2.0) not loaded');
             return false;
         }
         
         // Collection sampler is optional but recommended
         if (typeof sampleCollectionContents === 'function') {
-            $.writeln('Collection sampler module detected - enhanced features available');
+            $.writeln('Collection sampler module (6.0) detected - enhanced features available');
         } else {
-            $.writeln('Collection sampler module not available - some features disabled');
+            $.writeln('Collection sampler module (6.0) not available - some features disabled');
+        }
+        
+        // Export module is optional
+        if (typeof exportDOMStructure === 'function') {
+            $.writeln('Export module (5.0) detected - export features available');
+        } else {
+            $.writeln('Export module (5.0) not available - export features disabled');
         }
         
         // Test core functions
@@ -959,7 +796,8 @@ function initializeDOMVisualizer() {
             }
         }
         
-        $.writeln('3.0_dom-visualizer.jsx: All functions initialized successfully (ENHANCED VERSION)');
+        $.writeln('3.0_dom-visualizer.jsx: Initialized successfully (FIXED DEPENDENCIES)');
+        $.writeln('Dependencies: 1.0_safe-foundation, 2.0_dom-enumerator, 6.0_collection-sampler (optional)');
         $.writeln('Use showDOMVisualizer() to open the interface');
         return true;
         

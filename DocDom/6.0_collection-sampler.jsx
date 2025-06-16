@@ -1,77 +1,98 @@
 //
-// 6.0_collection-sampler.jsx
-// InDesign DOM Discovery Builder - Collection Content Sampling (FIXED)
-// CORE PURPOSE: Safely drill into discovered collections to map their contents
+// 6.0_collection-sampler.jsx (Enhanced)
+// InDesign DOM Discovery Builder - Enhanced Collection Content Sampling
+// CORE PURPOSE: Deep sample collection contents with object reference tracking
 // DEPENDENCIES: 1.0_safe-foundation.jsx, 2.0_dom-enumerator.jsx
-// SAFETY: Ultra-safe collection access with discovery-first approach
+// SAFETY: Ultra-safe collection access with enhanced discovery-first approach
 // ES3 COMPATIBLE: No reserved words, no modern JS features
+// ENHANCED: Deeper sampling, object identity tracking, comprehensive property analysis
 //
 
 // ============================================================================
-// COLLECTION SAMPLING CONFIGURATION
+// ENHANCED COLLECTION SAMPLING CONFIGURATION
 // ============================================================================
 
-var DEFAULT_COLLECTION_SAMPLING_CONFIG = {
-    maxSamplesPerCollection: 3,     // Sample first 3 items from each collection
-    timeoutPerCollection: 3000,     // 3 seconds max per collection
-    timeoutPerItem: 1000,          // 1 second max per collection item
-    maxCollectionSize: 1000,       // Skip collections larger than 1000 items
-    samplingDepth: 2,              // How deep to drill into sampled items
-    skipEmptyCollections: true,     // Skip collections with 0 length
-    enableProgressLogging: true    // Log sampling progress
+var ENHANCED_DEFAULT_COLLECTION_SAMPLING_CONFIG = {
+    maxSamplesPerCollection: 5,     // Increased from 3 to 5
+    timeoutPerCollection: 5000,     // Increased timeout for deeper analysis
+    timeoutPerItem: 2000,          // Increased per-item timeout
+    maxCollectionSize: 2000,       // Increased collection size limit
+    samplingDepth: 3,              // Increased depth for item property analysis
+    skipEmptyCollections: true,
+    enableProgressLogging: true,
+    enableObjectReferenceTracking: true,  // Track object references in collections
+    enableDeepPropertyAnalysis: true,     // Analyze item properties more deeply
+    enableCrossCollectionTracking: true,  // Track same objects across collections
+    maxItemPropertiesPerSample: 100,     // Limit properties analyzed per item
+    enableValueSampling: false,          // Sample actual values (dangerous, off by default)
+    propertyAnalysisDepth: 2             // How deep to analyze item properties
 };
 
 // ============================================================================
-// MAIN COLLECTION SAMPLING FUNCTIONS
+// ENHANCED MAIN COLLECTION SAMPLING FUNCTIONS
 // ============================================================================
 
 /**
- * Sample contents of discovered collections and enhance DOM structure (FIXED)
+ * Enhanced collection content sampling with deep analysis and object tracking
  * @param {Object} domStructure - DOM structure from enumeration
  * @param {Object} sourceDocument - InDesign document object for sampling
  * @param {Object} samplingConfig - Sampling configuration
- * @returns {Object} - Enhanced DOM structure with collection contents
+ * @returns {Object} - Enhanced DOM structure with deep collection analysis
  */
-function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) {
+function sampleCollectionContentsEnhanced(domStructure, sourceDocument, samplingConfig) {
     if (!domStructure || !sourceDocument) {
-        $.writeln('ERROR: Invalid parameters for collection sampling');
+        $.writeln('ERROR: Invalid parameters for enhanced collection sampling');
         return domStructure;
     }
     
-    // Merge configuration (removed problematic safetyFilter)
-    var config = mergeCollectionSamplingConfig(DEFAULT_COLLECTION_SAMPLING_CONFIG, samplingConfig);
+    // Merge with enhanced configuration
+    var config = mergeEnhancedCollectionSamplingConfig(ENHANCED_DEFAULT_COLLECTION_SAMPLING_CONFIG, samplingConfig);
     
     $.writeln('');
     $.writeln('==========================================');
-    $.writeln('COLLECTION CONTENT SAMPLING STARTED');
+    $.writeln('ENHANCED COLLECTION CONTENT SAMPLING');
     $.writeln('==========================================');
-    $.writeln('🎯 DISCOVERY-FIRST APPROACH: Sampling all discovered collections');
+    $.writeln('🎯 DEEP DISCOVERY APPROACH: Enhanced analysis with object tracking');
     $.writeln('Max samples per collection: ' + config.maxSamplesPerCollection);
-    $.writeln('Timeout per collection: ' + config.timeoutPerCollection + 'ms');
+    $.writeln('Sampling depth: ' + config.samplingDepth);
+    $.writeln('Property analysis depth: ' + config.propertyAnalysisDepth);
+    $.writeln('Object reference tracking: ' + config.enableObjectReferenceTracking);
+    $.writeln('Cross-collection tracking: ' + config.enableCrossCollectionTracking);
     $.writeln('');
     
     var startTime = new Date().getTime();
-    var samplingStats = {
+    var enhancedSamplingStats = {
         collectionsFound: 0,
         collectionsSkipped: 0,
         collectionsSampled: 0,
         totalItemsSampled: 0,
         totalPropertiesDiscovered: 0,
+        totalItemPropertiesAnalyzed: 0,
+        uniqueObjectsFound: 0,
+        crossCollectionReferences: 0,
+        deepAnalysisItems: 0,
+        valuesSampled: 0,
         timeouts: 0,
         errors: 0,
         samplingTime: 0
     };
     
+    // Initialize enhanced object tracking
+    var crossCollectionObjectRegistry = {};
+    if (config.enableCrossCollectionTracking) {
+        initializeCrossCollectionTracking(domStructure, crossCollectionObjectRegistry);
+    }
+    
     try {
         // Find all collections in DOM structure
         var discoveredCollections = findAllCollections(domStructure);
-        samplingStats.collectionsFound = discoveredCollections.length;
+        enhancedSamplingStats.collectionsFound = discoveredCollections.length;
         
         if (config.enableProgressLogging) {
-            $.writeln('Found ' + discoveredCollections.length + ' collections to sample');
+            $.writeln('Found ' + discoveredCollections.length + ' collections for enhanced sampling');
         }
         
-        // Sample each discovered collection
+        // Enhanced sampling of each discovered collection
         for (var i = 0; i < discoveredCollections.length; i++) {
             var collection = discoveredCollections[i];
             
@@ -81,45 +102,58 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
                 $.writeln('  Safety level: ' + collection.safetyLevel);
             }
             
-            // FIXED: Use discovery-first criteria instead of restrictive safety filter
-            if (!meetsDiscoveryFirstCriteria(collection, config)) {
-                samplingStats.collectionsSkipped++;
+            // Enhanced criteria check
+            if (!meetsEnhancedDiscoveryFirstCriteria(collection, config)) {
+                enhancedSamplingStats.collectionsSkipped++;
                 if (config.enableProgressLogging) {
-                    $.writeln('  ❌ Skipped - truly dangerous or problematic');
+                    $.writeln('  ❌ Skipped - safety criteria not met');
                 }
                 continue;
             }
             
-            // Sample this collection with safety-adjusted approach
-            var collectionSamplingResult = sampleSingleCollection(
+            // Enhanced collection sampling
+            var enhancedCollectionResult = sampleSingleCollectionEnhanced(
                 collection, 
                 sourceDocument, 
                 config, 
-                samplingStats
+                enhancedSamplingStats,
+                crossCollectionObjectRegistry
             );
             
-            if (collectionSamplingResult.success) {
-                samplingStats.collectionsSampled++;
-                samplingStats.totalItemsSampled += collectionSamplingResult.itemsSampled;
-                samplingStats.totalPropertiesDiscovered += collectionSamplingResult.propertiesDiscovered;
+            if (enhancedCollectionResult.success) {
+                enhancedSamplingStats.collectionsSampled++;
+                enhancedSamplingStats.totalItemsSampled += enhancedCollectionResult.itemsSampled;
+                enhancedSamplingStats.totalPropertiesDiscovered += enhancedCollectionResult.propertiesDiscovered;
+                enhancedSamplingStats.totalItemPropertiesAnalyzed += enhancedCollectionResult.itemPropertiesAnalyzed;
+                enhancedSamplingStats.deepAnalysisItems += enhancedCollectionResult.deepAnalysisItems;
+                enhancedSamplingStats.valuesSampled += enhancedCollectionResult.valuesSampled;
                 
-                // Enhance the original collection with sampling data
-                enhanceCollectionWithSamplingData(collection, collectionSamplingResult.samplingData);
+                // Enhanced collection data attachment
+                enhanceCollectionWithEnhancedSamplingData(collection, enhancedCollectionResult.enhancedSamplingData);
                 
                 if (config.enableProgressLogging) {
-                    $.writeln('  ✅ Sampled successfully - ' + collectionSamplingResult.itemsSampled + ' items, ' + 
-                             collectionSamplingResult.propertiesDiscovered + ' properties');
+                    $.writeln('  ✅ Enhanced sampling complete:');
+                    $.writeln('    Items sampled: ' + enhancedCollectionResult.itemsSampled);
+                    $.writeln('    Properties discovered: ' + enhancedCollectionResult.propertiesDiscovered);
+                    $.writeln('    Item properties analyzed: ' + enhancedCollectionResult.itemPropertiesAnalyzed);
+                    $.writeln('    Deep analysis items: ' + enhancedCollectionResult.deepAnalysisItems);
                 }
             } else {
-                samplingStats.errors++;
+                enhancedSamplingStats.errors++;
                 if (config.enableProgressLogging) {
-                    $.writeln('  ❌ Sampling failed: ' + collectionSamplingResult.error);
+                    $.writeln('  ❌ Enhanced sampling failed: ' + enhancedCollectionResult.error);
                 }
             }
         }
         
-        // Add sampling metadata to DOM structure
-        samplingStats.samplingTime = new Date().getTime() - startTime;
+        // Cross-collection analysis
+        if (config.enableCrossCollectionTracking) {
+            performCrossCollectionAnalysis(domStructure, crossCollectionObjectRegistry, enhancedSamplingStats);
+        }
+        
+        // Add enhanced sampling metadata
+        enhancedSamplingStats.samplingTime = new Date().getTime() - startTime;
+        enhancedSamplingStats.uniqueObjectsFound = Object.keys(crossCollectionObjectRegistry).length;
         
         if (!domStructure.metadata.collectionSampling) {
             domStructure.metadata.collectionSampling = {};
@@ -128,27 +162,36 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
         domStructure.metadata.collectionSampling = {
             timestamp: getCurrentTimestamp(),
             config: config,
-            stats: samplingStats,
-            approach: 'discovery-first'
+            stats: enhancedSamplingStats,
+            approach: 'enhanced-discovery-first',
+            enhancedFeatures: {
+                deepPropertyAnalysis: config.enableDeepPropertyAnalysis,
+                objectReferenceTracking: config.enableObjectReferenceTracking,
+                crossCollectionTracking: config.enableCrossCollectionTracking,
+                valuesSampled: enhancedSamplingStats.valuesSampled > 0
+            },
+            crossCollectionObjectRegistry: config.enableCrossCollectionTracking ? crossCollectionObjectRegistry : null
         };
         
         $.writeln('');
-        $.writeln('COLLECTION SAMPLING COMPLETE:');
-        $.writeln('  Collections found: ' + samplingStats.collectionsFound);
-        $.writeln('  Collections sampled: ' + samplingStats.collectionsSampled);
-        $.writeln('  Collections skipped: ' + samplingStats.collectionsSkipped);
-        $.writeln('  Total items sampled: ' + samplingStats.totalItemsSampled);
-        $.writeln('  Properties discovered: ' + samplingStats.totalPropertiesDiscovered);
-        $.writeln('  Errors: ' + samplingStats.errors);
-        $.writeln('  Timeouts: ' + samplingStats.timeouts);
-        $.writeln('  Time: ' + samplingStats.samplingTime + 'ms');
+        $.writeln('ENHANCED COLLECTION SAMPLING COMPLETE:');
+        $.writeln('  Collections found: ' + enhancedSamplingStats.collectionsFound);
+        $.writeln('  Collections sampled: ' + enhancedSamplingStats.collectionsSampled);
+        $.writeln('  Total items sampled: ' + enhancedSamplingStats.totalItemsSampled);
+        $.writeln('  Properties discovered: ' + enhancedSamplingStats.totalPropertiesDiscovered);
+        $.writeln('  Item properties analyzed: ' + enhancedSamplingStats.totalItemPropertiesAnalyzed);
+        $.writeln('  Deep analysis items: ' + enhancedSamplingStats.deepAnalysisItems);
+        $.writeln('  Unique objects found: ' + enhancedSamplingStats.uniqueObjectsFound);
+        $.writeln('  Cross-collection refs: ' + enhancedSamplingStats.crossCollectionReferences);
+        $.writeln('  Values sampled: ' + enhancedSamplingStats.valuesSampled);
+        $.writeln('  Errors: ' + enhancedSamplingStats.errors);
+        $.writeln('  Time: ' + enhancedSamplingStats.samplingTime + 'ms');
         $.writeln('==========================================');
         
     } catch (exc) {
-        $.writeln('ERROR: Collection sampling failed: ' + exc.message);
-        samplingStats.errors++;
+        $.writeln('ERROR: Enhanced collection sampling failed: ' + exc.message);
+        enhancedSamplingStats.errors++;
         
-        // Add error info to metadata even on failure
         if (!domStructure.metadata.collectionSampling) {
             domStructure.metadata.collectionSampling = {};
         }
@@ -159,25 +202,36 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
 }
 
 /**
- * FIXED: Discovery-first criteria - sample all discovered collections except truly dangerous ones
+ * Enhanced criteria check for collection sampling
  * @param {Object} collection - Collection property classification
  * @param {Object} config - Sampling configuration
  * @returns {Boolean} - true if collection should be sampled
  */
-function meetsDiscoveryFirstCriteria(collection, config) {
+function meetsEnhancedDiscoveryFirstCriteria(collection, config) {
     try {
-        // Skip only truly dangerous collections (functions, etc.)
+        // Skip truly dangerous collections
         if (collection.safetyLevel === 'dangerous') {
             return false;
         }
         
-        // Skip collections with obviously dangerous names
+        // Skip collections with dangerous names
         if (isDangerousProperty(collection.name)) {
             return false;
         }
         
-        // DISCOVERY-FIRST PRINCIPLE: If enumeration found it, we sample it safely
-        // Safety level affects HOW we sample, not WHETHER we sample
+        // ENHANCED: Additional safety checks for deeper analysis
+        if (config.enableDeepPropertyAnalysis) {
+            // Be more cautious with certain collection types during deep analysis
+            var cautiousCollections = ['selection', 'activeDocument', 'app'];
+            var lowerName = collection.name.toLowerCase();
+            for (var i = 0; i < cautiousCollections.length; i++) {
+                if (lowerName.indexOf(cautiousCollections[i]) !== -1) {
+                    return false;
+                }
+            }
+        }
+        
+        // ENHANCED DISCOVERY-FIRST: Sample all other discovered collections
         return true;
         
     } catch (exc) {
@@ -186,70 +240,32 @@ function meetsDiscoveryFirstCriteria(collection, config) {
 }
 
 /**
- * Get safety-adjusted sampling configuration based on collection safety level
- * @param {Object} collection - Collection property classification
- * @param {Object} baseConfig - Base sampling configuration
- * @returns {Object} - Adjusted configuration
- */
-function getSafetyAdjustedConfig(collection, baseConfig) {
-    var adjustedConfig = {
-        maxSamplesPerCollection: baseConfig.maxSamplesPerCollection,
-        timeoutPerCollection: baseConfig.timeoutPerCollection,
-        timeoutPerItem: baseConfig.timeoutPerItem
-    };
-    
-    // Adjust safety measures based on collection safety level
-    switch (collection.safetyLevel) {
-        case 'safe':
-            // Safe collections - can be more aggressive
-            adjustedConfig.maxSamplesPerCollection = Math.min(baseConfig.maxSamplesPerCollection * 2, 5);
-            break;
-            
-        case 'moderate':
-            // Moderate collections - use base settings
-            break;
-            
-        case 'risky':
-            // Risky collections - be more cautious
-            adjustedConfig.maxSamplesPerCollection = Math.max(Math.floor(baseConfig.maxSamplesPerCollection / 2), 1);
-            adjustedConfig.timeoutPerCollection = Math.floor(baseConfig.timeoutPerCollection / 2);
-            adjustedConfig.timeoutPerItem = Math.floor(baseConfig.timeoutPerItem / 2);
-            break;
-            
-        case 'dangerous':
-            // Should have been filtered out, but just in case
-            adjustedConfig.maxSamplesPerCollection = 1;
-            adjustedConfig.timeoutPerCollection = 500;
-            adjustedConfig.timeoutPerItem = 100;
-            break;
-    }
-    
-    return adjustedConfig;
-}
-
-/**
- * Sample contents of a single collection with safety adjustments
+ * Enhanced single collection sampling with deep analysis
  * @param {Object} collection - Collection property classification
  * @param {Object} sourceDocument - InDesign document object
  * @param {Object} config - Sampling configuration
  * @param {Object} samplingStats - Statistics tracking object
- * @returns {Object} - {success: boolean, itemsSampled: number, propertiesDiscovered: number, samplingData: object, error: string}
+ * @param {Object} crossCollectionRegistry - Cross-collection object registry
+ * @returns {Object} - Enhanced sampling result
  */
-function sampleSingleCollection(collection, sourceDocument, config, samplingStats) {
+function sampleSingleCollectionEnhanced(collection, sourceDocument, config, samplingStats, crossCollectionRegistry) {
     var result = {
         success: false,
         itemsSampled: 0,
         propertiesDiscovered: 0,
-        samplingData: null,
+        itemPropertiesAnalyzed: 0,
+        deepAnalysisItems: 0,
+        valuesSampled: 0,
+        enhancedSamplingData: null,
         error: ''
     };
     
-    // Get safety-adjusted configuration
-    var adjustedConfig = getSafetyAdjustedConfig(collection, config);
+    // Get enhanced safety-adjusted configuration
+    var adjustedConfig = getEnhancedSafetyAdjustedConfig(collection, config);
     var timeoutChecker = createTimeoutChecker(adjustedConfig.timeoutPerCollection);
     
     try {
-        // Get reference to the actual collection object using discovered path
+        // Get reference to the actual collection object
         var collectionObject = safeGetObjectFromPath(sourceDocument, collection.path, adjustedConfig.timeoutPerCollection);
         
         if (!collectionObject.success) {
@@ -276,61 +292,81 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
             return result;
         }
         
-        // Initialize sampling data
-        var samplingData = {
+        // Initialize enhanced sampling data
+        var enhancedSamplingData = {
             collectionLength: collectionLength,
             sampledItems: [],
             commonProperties: [],
             accessPatterns: [],
+            enhancedAnalysis: {
+                itemPropertyCounts: [],
+                deepAnalysisResults: [],
+                objectReferences: [],
+                valueAnalysis: [],
+                crossCollectionLinks: []
+            },
             safetyAdjustments: {
                 originalSafetyLevel: collection.safetyLevel,
                 adjustedMaxSamples: adjustedConfig.maxSamplesPerCollection,
-                adjustedTimeout: adjustedConfig.timeoutPerCollection
+                adjustedTimeout: adjustedConfig.timeoutPerCollection,
+                deepAnalysisEnabled: config.enableDeepPropertyAnalysis
             }
         };
         
-        // Sample items using safety-adjusted limits
+        // Enhanced item sampling
         var itemsToSample = Math.min(collectionLength, adjustedConfig.maxSamplesPerCollection);
         
         for (var itemIndex = 0; itemIndex < itemsToSample; itemIndex++) {
             if (timeoutChecker()) {
                 samplingStats.timeouts++;
-                result.error = 'Timeout during collection sampling';
+                result.error = 'Timeout during enhanced collection sampling';
                 break;
             }
             
             try {
-                var itemSamplingResult = sampleCollectionItem(
+                var enhancedItemResult = sampleCollectionItemEnhanced(
                     actualCollection, 
                     itemIndex, 
                     collection.path + '[' + itemIndex + ']',
-                    adjustedConfig
+                    adjustedConfig,
+                    crossCollectionRegistry
                 );
                 
-                if (itemSamplingResult.success) {
-                    samplingData.sampledItems.push(itemSamplingResult.itemData);
+                if (enhancedItemResult.success) {
+                    enhancedSamplingData.sampledItems.push(enhancedItemResult.enhancedItemData);
                     result.itemsSampled++;
-                    result.propertiesDiscovered += itemSamplingResult.propertiesFound;
+                    result.propertiesDiscovered += enhancedItemResult.propertiesFound;
+                    result.itemPropertiesAnalyzed += enhancedItemResult.itemPropertiesAnalyzed;
+                    result.valuesSampled += enhancedItemResult.valuesSampled;
+                    
+                    if (enhancedItemResult.deepAnalysisPerformed) {
+                        result.deepAnalysisItems++;
+                    }
+                    
+                    // Track enhanced analysis results
+                    if (enhancedItemResult.enhancedAnalysisData) {
+                        enhancedSamplingData.enhancedAnalysis.itemPropertyCounts.push(enhancedItemResult.itemPropertiesAnalyzed);
+                        enhancedSamplingData.enhancedAnalysis.deepAnalysisResults.push(enhancedItemResult.enhancedAnalysisData);
+                    }
                 } else {
-                    // Don't fail entire collection for one bad item
-                    $.writeln('    Warning: Could not sample item [' + itemIndex + ']: ' + itemSamplingResult.error);
+                    $.writeln('    Warning: Enhanced item sampling failed [' + itemIndex + ']: ' + enhancedItemResult.error);
                 }
                 
             } catch (itemExc) {
-                $.writeln('    Warning: Exception sampling item [' + itemIndex + ']: ' + itemExc.message);
+                $.writeln('    Warning: Exception in enhanced item sampling [' + itemIndex + ']: ' + itemExc.message);
             }
         }
         
-        // Analyze sampled items to find common patterns
-        if (samplingData.sampledItems.length > 0) {
-            analyzeCommonPatterns(samplingData);
+        // Enhanced pattern analysis
+        if (enhancedSamplingData.sampledItems.length > 0) {
+            analyzeEnhancedCommonPatterns(enhancedSamplingData, config);
         }
         
         result.success = true;
-        result.samplingData = samplingData;
+        result.enhancedSamplingData = enhancedSamplingData;
         
     } catch (exc) {
-        result.error = 'Collection sampling exception: ' + exc.message;
+        result.error = 'Enhanced collection sampling exception: ' + exc.message;
         samplingStats.errors++;
     }
     
@@ -338,18 +374,23 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
 }
 
 /**
- * Sample individual item from collection
+ * Enhanced collection item sampling with deep property analysis
  * @param {Object} collection - Collection object
  * @param {Number} itemIndex - Index of item to sample
  * @param {String} itemPath - Full path to item
  * @param {Object} config - Sampling configuration
- * @returns {Object} - {success: boolean, itemData: object, propertiesFound: number, error: string}
+ * @param {Object} crossCollectionRegistry - Cross-collection object registry
+ * @returns {Object} - Enhanced item sampling result
  */
-function sampleCollectionItem(collection, itemIndex, itemPath, config) {
+function sampleCollectionItemEnhanced(collection, itemIndex, itemPath, config, crossCollectionRegistry) {
     var result = {
         success: false,
-        itemData: null,
+        enhancedItemData: null,
         propertiesFound: 0,
+        itemPropertiesAnalyzed: 0,
+        valuesSampled: 0,
+        deepAnalysisPerformed: false,
+        enhancedAnalysisData: null,
         error: ''
     };
     
@@ -370,216 +411,345 @@ function sampleCollectionItem(collection, itemIndex, itemPath, config) {
             return result;
         }
         
-        // Create item data structure
-        var itemData = {
+        // Generate enhanced item identity for tracking
+        var itemObjectId = null;
+        if (config.enableObjectReferenceTracking) {
+            itemObjectId = generateObjectIdentityHash(item, itemPath);
+            if (itemObjectId && crossCollectionRegistry) {
+                trackCrossCollectionObject(crossCollectionRegistry, itemObjectId, itemPath, item);
+            }
+        }
+        
+        // Create enhanced item data structure
+        var enhancedItemData = {
             index: itemIndex,
             path: itemPath,
             type: typeof item,
+            objectId: itemObjectId,
             properties: [],
             collections: [],
-            methods: []
+            methods: [],
+            enhancedAnalysis: {
+                propertyCount: 0,
+                nestedObjects: 0,
+                deepProperties: [],
+                valueAnalysis: [],
+                objectReferences: []
+            }
         };
         
-        // Enumerate properties of this item (limited depth)
+        // Enhanced property enumeration with deeper analysis
+        var propertyCount = 0;
         try {
             for (var propName in item) {
                 if (timeoutChecker()) {
                     break;
                 }
                 
+                if (propertyCount >= config.maxItemPropertiesPerSample) {
+                    enhancedItemData.enhancedAnalysis.deepProperties.push('Property limit reached at ' + propertyCount);
+                    break;
+                }
+                
                 try {
-                    // Skip dangerous properties during sampling
-                    if (isDangerousProperty(propName) || isReservedWord(propName)) {
-                        continue;
-                    }
+                    // Enhanced property processing
+                    var enhancedPropResult = processEnhancedItemProperty(
+                        item, propName, itemPath, config, timeoutChecker, crossCollectionRegistry
+                    );
                     
-                    var propType = safeTypeCheck(item, propName);
-                    if (propType === 'error') {
-                        continue;
-                    }
-                    
-                    var propClassification = createPropertyClassification(propName, propType, itemPath);
-                    result.propertiesFound++;
-                    
-                    if (propClassification.isMethod) {
-                        itemData.methods.push(propClassification);
-                    } else if (propClassification.isCollection) {
-                        itemData.collections.push(propClassification);
-                    } else {
-                        itemData.properties.push(propClassification);
+                    if (enhancedPropResult.success) {
+                        var propClassification = enhancedPropResult.propertyClassification;
+                        result.propertiesFound++;
+                        propertyCount++;
+                        
+                        if (propClassification.isMethod) {
+                            enhancedItemData.methods.push(propClassification);
+                        } else if (propClassification.isCollection) {
+                            enhancedItemData.collections.push(propClassification);
+                        } else {
+                            enhancedItemData.properties.push(propClassification);
+                        }
+                        
+                        // Enhanced analysis data
+                        if (enhancedPropResult.enhancedData) {
+                            enhancedItemData.enhancedAnalysis.deepProperties.push(enhancedPropResult.enhancedData);
+                            result.itemPropertiesAnalyzed++;
+                            
+                            if (enhancedPropResult.enhancedData.valuesampled) {
+                                result.valuesSampled++;
+                            }
+                        }
+                        
+                        // Track nested objects
+                        if (propClassification.type === 'object') {
+                            enhancedItemData.enhancedAnalysis.nestedObjects++;
+                        }
                     }
                     
                 } catch (propExc) {
-                    // Skip problematic properties
+                    // Skip problematic properties but continue
                     continue;
                 }
             }
             
+            enhancedItemData.enhancedAnalysis.propertyCount = propertyCount;
+            
+            // Perform deep analysis if enabled and item has sufficient properties
+            if (config.enableDeepPropertyAnalysis && propertyCount > 3) {
+                var deepAnalysisResult = performDeepItemAnalysis(item, itemPath, config, timeoutChecker);
+                if (deepAnalysisResult.success) {
+                    enhancedItemData.enhancedAnalysis.deepAnalysisData = deepAnalysisResult.analysisData;
+                    result.deepAnalysisPerformed = true;
+                    result.enhancedAnalysisData = deepAnalysisResult.analysisData;
+                }
+            }
+            
         } catch (enumExc) {
-            result.error = 'Property enumeration failed: ' + enumExc.message;
+            result.error = 'Enhanced property enumeration failed: ' + enumExc.message;
             return result;
         }
         
         result.success = true;
-        result.itemData = itemData;
+        result.enhancedItemData = enhancedItemData;
         
     } catch (exc) {
-        result.error = 'Item sampling exception: ' + exc.message;
+        result.error = 'Enhanced item sampling exception: ' + exc.message;
     }
     
     return result;
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
 /**
- * Safely get object from dot notation path
- * @param {Object} rootObject - Root object to start from
- * @param {String} dotPath - Dot notation path (e.g., "document.stories")
- * @param {Number} timeoutMs - Timeout in milliseconds
- * @returns {Object} - {success: boolean, value: object, error: string}
+ * Enhanced property processing for collection items
+ * @param {Object} item - Collection item
+ * @param {String} propName - Property name
+ * @param {String} itemPath - Item path
+ * @param {Object} config - Configuration
+ * @param {Function} timeoutChecker - Timeout checker
+ * @param {Object} crossCollectionRegistry - Cross-collection registry
+ * @returns {Object} - Enhanced property processing result
  */
-function safeGetObjectFromPath(rootObject, dotPath, timeoutMs) {
+function processEnhancedItemProperty(item, propName, itemPath, config, timeoutChecker, crossCollectionRegistry) {
     var result = {
         success: false,
-        value: null,
+        propertyClassification: null,
+        enhancedData: null,
         error: ''
     };
     
-    var timeoutChecker = createTimeoutChecker(timeoutMs || 1000);
-    
     try {
-        var pathParts = dotPath.split('.');
-        var currentObject = rootObject;
+        // Skip dangerous properties
+        if (isDangerousProperty(propName) || isReservedWord(propName)) {
+            return result;
+        }
         
-        // Start from index 1 to skip 'document' part
-        for (var i = 1; i < pathParts.length; i++) {
-            if (timeoutChecker()) {
-                result.error = 'Timeout accessing path: ' + dotPath;
-                return result;
-            }
-            
-            var part = pathParts[i];
-            
-            if (!currentObject) {
-                result.error = 'Null object at path segment: ' + part;
-                return result;
-            }
-            
-            if (!safeHasProperty(currentObject, part)) {
-                result.error = 'Property does not exist: ' + part;
-                return result;
-            }
-            
-            try {
-                currentObject = currentObject[part];
-            } catch (accessExc) {
-                result.error = 'Access failed at path segment ' + part + ': ' + accessExc.message;
-                return result;
+        // Get property type safely
+        var propType = safeTypeCheck(item, propName);
+        if (propType === 'error') {
+            return result;
+        }
+        
+        // Create enhanced property classification
+        var propObjectId = null;
+        if (config.enableObjectReferenceTracking && propType === 'object') {
+            // Generate ID for object properties (we'll need to access the value for this)
+            if (config.enableValueSampling) {
+                try {
+                    var propValue = item[propName];
+                    if (propValue) {
+                        propObjectId = generateObjectIdentityHash(propValue, itemPath + '.' + propName);
+                        if (crossCollectionRegistry) {
+                            trackCrossCollectionObject(crossCollectionRegistry, propObjectId, itemPath + '.' + propName, propValue);
+                        }
+                    }
+                } catch (valueExc) {
+                    // Can't access value safely, continue without object ID
+                }
             }
         }
         
+        var propClassification = createEnhancedPropertyClassification(propName, propType, itemPath, propObjectId);
+        
+        // Enhanced data collection
+        var enhancedData = {
+            propertyName: propName,
+            propertyType: propType,
+            safetyLevel: propClassification.safetyLevel,
+            hasObjectId: !!propObjectId,
+            valuesampled: false
+        };
+        
+        // Enhanced value sampling if enabled and safe
+        if (config.enableValueSampling && propClassification.safetyLevel === 'safe') {
+            try {
+                var valueResult = safeGetPropertyValue(item, propName, 500); // 500ms timeout for value sampling
+                if (valueResult.success) {
+                    enhancedData.sampleValue = formatSampleValue(valueResult.value, {
+                        maxStringLength: 100,
+                        maxObjectDepth: 1
+                    });
+                    enhancedData.valuesampled = true;
+                }
+            } catch (valueExc) {
+                enhancedData.valueSamplingError = valueExc.message;
+            }
+        }
+        
+        // Enhanced property analysis for specific types
+        if (config.propertyAnalysisDepth > 1 && propType === 'object' && propClassification.safetyLevel !== 'dangerous') {
+            enhancedData.nestedAnalysis = 'Object property detected - deeper analysis available';
+        }
+        
         result.success = true;
-        result.value = currentObject;
+        result.propertyClassification = propClassification;
+        result.enhancedData = enhancedData;
         
     } catch (exc) {
-        result.error = 'Path access exception: ' + exc.message;
+        result.error = 'Enhanced property processing failed: ' + exc.message;
+    }
+    
+    return result;
+}
+
+// ============================================================================
+// ENHANCED ANALYSIS FUNCTIONS
+// ============================================================================
+
+/**
+ * Perform deep analysis on collection item
+ * @param {Object} item - Collection item to analyze
+ * @param {String} itemPath - Item path
+ * @param {Object} config - Configuration
+ * @param {Function} timeoutChecker - Timeout checker
+ * @returns {Object} - Deep analysis result
+ */
+function performDeepItemAnalysis(item, itemPath, config, timeoutChecker) {
+    var result = {
+        success: false,
+        analysisData: null,
+        error: ''
+    };
+    
+    try {
+        var analysisData = {
+            itemPath: itemPath,
+            analysisType: 'deep-property-analysis',
+            timestamp: getCurrentTimestamp(),
+            findings: [],
+            statistics: {
+                totalProperties: 0,
+                objectProperties: 0,
+                functionProperties: 0,
+                collectionProperties: 0,
+                safeProperties: 0
+            }
+        };
+        
+        // Analyze item structure in depth
+        var propCount = 0;
+        for (var propName in item) {
+            if (timeoutChecker()) {
+                analysisData.findings.push('Analysis timeout reached at property ' + propCount);
+                break;
+            }
+            
+            if (propCount >= 50) { // Limit deep analysis
+                analysisData.findings.push('Deep analysis property limit reached');
+                break;
+            }
+            
+            try {
+                var propType = safeTypeCheck(item, propName);
+                if (propType !== 'error') {
+                    analysisData.statistics.totalProperties++;
+                    propCount++;
+                    
+                    switch (propType) {
+                        case 'object':
+                            analysisData.statistics.objectProperties++;
+                            break;
+                        case 'function':
+                            analysisData.statistics.functionProperties++;
+                            break;
+                        default:
+                            if (isLikelyCollection(propName, propType)) {
+                                analysisData.statistics.collectionProperties++;
+                            }
+                            break;
+                    }
+                    
+                    var safety = classifyPropertySafety(propName, propType);
+                    if (safety === 'safe') {
+                        analysisData.statistics.safeProperties++;
+                    }
+                }
+            } catch (propExc) {
+                // Continue analysis
+            }
+        }
+        
+        // Analysis conclusions
+        if (analysisData.statistics.totalProperties > 20) {
+            analysisData.findings.push('Complex object with ' + analysisData.statistics.totalProperties + ' properties');
+        }
+        
+        if (analysisData.statistics.collectionProperties > 0) {
+            analysisData.findings.push('Contains ' + analysisData.statistics.collectionProperties + ' potential sub-collections');
+        }
+        
+        if (analysisData.statistics.safeProperties > 5) {
+            analysisData.findings.push('Rich object with ' + analysisData.statistics.safeProperties + ' safe properties for access');
+        }
+        
+        result.success = true;
+        result.analysisData = analysisData;
+        
+    } catch (exc) {
+        result.error = 'Deep analysis failed: ' + exc.message;
     }
     
     return result;
 }
 
 /**
- * Find all collections in DOM structure
- * @param {Object} domStructure - DOM structure to search
- * @returns {Array} - Array of collection property classifications
+ * Analyze enhanced common patterns with deep analysis
+ * @param {Object} enhancedSamplingData - Enhanced sampling data to analyze
+ * @param {Object} config - Configuration
  */
-function findAllCollections(domStructure) {
-    var collections = [];
-    
+function analyzeEnhancedCommonPatterns(enhancedSamplingData, config) {
     try {
-        if (domStructure.structure && domStructure.structure.document) {
-            findCollectionsInNode(domStructure.structure.document, collections);
-        }
-    } catch (exc) {
-        $.writeln('Error finding collections: ' + exc.message);
-    }
-    
-    return collections;
-}
-
-/**
- * Recursively find collections in DOM node
- * @param {Object} domNode - DOM node to search
- * @param {Array} collections - Array to accumulate collections
- */
-function findCollectionsInNode(domNode, collections) {
-    if (!domNode) return;
-    
-    try {
-        // Add collections from this node
-        if (domNode.collections) {
-            for (var i = 0; i < domNode.collections.length; i++) {
-                collections.push(domNode.collections[i]);
-            }
-        }
-        
-        // Recursively search child nodes
-        if (domNode.childNodes) {
-            for (var i = 0; i < domNode.childNodes.length; i++) {
-                findCollectionsInNode(domNode.childNodes[i], collections);
-            }
-        }
-    } catch (exc) {
-        $.writeln('Error searching node for collections: ' + exc.message);
-    }
-}
-
-/**
- * Analyze sampled items to find common property patterns
- * @param {Object} samplingData - Sampling data to analyze
- */
-function analyzeCommonPatterns(samplingData) {
-    try {
-        if (!samplingData.sampledItems || samplingData.sampledItems.length === 0) {
+        if (!enhancedSamplingData.sampledItems || enhancedSamplingData.sampledItems.length === 0) {
             return;
         }
         
-        // Find properties that exist in all sampled items
-        var firstItem = samplingData.sampledItems[0];
+        // Enhanced pattern analysis with deeper property examination
+        var firstItem = enhancedSamplingData.sampledItems[0];
         var allProperties = [];
         
         if (firstItem.properties) allProperties = allProperties.concat(firstItem.properties);
         if (firstItem.collections) allProperties = allProperties.concat(firstItem.collections);
         
+        // Find properties common to all sampled items
         for (var i = 0; i < allProperties.length; i++) {
             var prop = allProperties[i];
             var existsInAll = true;
+            var occurrenceCount = 1;
             
-            // Check if this property exists in all other sampled items
-            for (var j = 1; j < samplingData.sampledItems.length; j++) {
-                var otherItem = samplingData.sampledItems[j];
+            // Check existence in all other sampled items
+            for (var j = 1; j < enhancedSamplingData.sampledItems.length; j++) {
+                var otherItem = enhancedSamplingData.sampledItems[j];
                 var foundInOther = false;
                 
-                // Check properties
-                if (otherItem.properties) {
-                    for (var k = 0; k < otherItem.properties.length; k++) {
-                        if (otherItem.properties[k].name === prop.name) {
-                            foundInOther = true;
-                            break;
-                        }
-                    }
-                }
+                // Check in all property arrays
+                var allOtherProps = [];
+                if (otherItem.properties) allOtherProps = allOtherProps.concat(otherItem.properties);
+                if (otherItem.collections) allOtherProps = allOtherProps.concat(otherItem.collections);
                 
-                // Check collections
-                if (!foundInOther && otherItem.collections) {
-                    for (var k = 0; k < otherItem.collections.length; k++) {
-                        if (otherItem.collections[k].name === prop.name) {
-                            foundInOther = true;
-                            break;
-                        }
+                for (var k = 0; k < allOtherProps.length; k++) {
+                    if (allOtherProps[k].name === prop.name) {
+                        foundInOther = true;
+                        occurrenceCount++;
+                        break;
                     }
                 }
                 
@@ -590,58 +760,233 @@ function analyzeCommonPatterns(samplingData) {
             }
             
             if (existsInAll) {
-                samplingData.commonProperties.push(prop);
+                // Enhanced common property with occurrence data
+                var enhancedCommonProp = {
+                    name: prop.name,
+                    type: prop.type,
+                    safetyLevel: prop.safetyLevel,
+                    isCollection: prop.isCollection,
+                    occurrenceCount: occurrenceCount,
+                    coverage: (occurrenceCount / enhancedSamplingData.sampledItems.length) * 100
+                };
+                
+                enhancedSamplingData.commonProperties.push(enhancedCommonProp);
             }
         }
         
-        // Generate access patterns for common properties
-        var basePath = samplingData.sampledItems[0].path.replace(/\[\d+\]$/, '');
-        for (var i = 0; i < samplingData.commonProperties.length; i++) {
-            var commonProp = samplingData.commonProperties[i];
-            samplingData.accessPatterns.push({
+        // Enhanced access pattern generation
+        var basePath = enhancedSamplingData.sampledItems[0].path.replace(/\[\d+\]$/, '');
+        for (var i = 0; i < enhancedSamplingData.commonProperties.length; i++) {
+            var commonProp = enhancedSamplingData.commonProperties[i];
+            
+            var enhancedAccessPattern = {
                 pattern: basePath + '[index].' + commonProp.name,
                 type: commonProp.type,
                 safetyLevel: commonProp.safetyLevel,
-                description: 'Access ' + commonProp.name + ' property of collection items'
+                description: 'Access ' + commonProp.name + ' property of collection items',
+                coverage: commonProp.coverage,
+                isRecommended: commonProp.safetyLevel === 'safe' && commonProp.coverage === 100
+            };
+            
+            enhancedSamplingData.accessPatterns.push(enhancedAccessPattern);
+        }
+        
+        // Sort access patterns by safety and coverage
+        enhancedSamplingData.accessPatterns.sort(function(a, b) {
+            if (a.isRecommended && !b.isRecommended) return -1;
+            if (!a.isRecommended && b.isRecommended) return 1;
+            return b.coverage - a.coverage;
+        });
+        
+    } catch (exc) {
+        $.writeln('Error in enhanced pattern analysis: ' + exc.message);
+    }
+}
+
+// ============================================================================
+// CROSS-COLLECTION TRACKING
+// ============================================================================
+
+/**
+ * Initialize cross-collection object tracking
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} registry - Cross-collection registry to initialize
+ */
+function initializeCrossCollectionTracking(domStructure, registry) {
+    try {
+        // Initialize registry structure
+        registry.metadata = {
+            initialized: getCurrentTimestamp(),
+            documentName: domStructure.metadata.documentName
+        };
+        registry.objects = {};
+        registry.crossReferences = [];
+        
+    } catch (exc) {
+        $.writeln('Error initializing cross-collection tracking: ' + exc.message);
+    }
+}
+
+/**
+ * Track object across collections
+ * @param {Object} registry - Cross-collection registry
+ * @param {String} objectId - Object identifier
+ * @param {String} accessPath - Access path to object
+ * @param {Object} objectRef - Object reference
+ */
+function trackCrossCollectionObject(registry, objectId, accessPath, objectRef) {
+    try {
+        if (!objectId || !registry.objects) return;
+        
+        if (!registry.objects[objectId]) {
+            registry.objects[objectId] = {
+                objectId: objectId,
+                firstSeenPath: accessPath,
+                accessPaths: [accessPath],
+                collections: [],
+                objectType: typeof objectRef
+            };
+        } else {
+            // Object seen before - track cross-collection reference
+            registry.objects[objectId].accessPaths.push(accessPath);
+            
+            // Extract collection name from path
+            var collectionMatch = accessPath.match(/document\.([^.\[]+)/);
+            if (collectionMatch) {
+                var collectionName = collectionMatch[1];
+                if (registry.objects[objectId].collections.indexOf(collectionName) === -1) {
+                    registry.objects[objectId].collections.push(collectionName);
+                }
+            }
+            
+            // Track as cross-reference if in different collections
+            if (registry.objects[objectId].collections.length > 1) {
+                registry.crossReferences.push({
+                    objectId: objectId,
+                    collections: registry.objects[objectId].collections.slice(),
+                    accessPaths: registry.objects[objectId].accessPaths.slice()
+                });
+            }
+        }
+        
+    } catch (exc) {
+        $.writeln('Error tracking cross-collection object: ' + exc.message);
+    }
+}
+
+/**
+ * Perform cross-collection analysis
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} registry - Cross-collection registry
+ * @param {Object} stats - Statistics to update
+ */
+function performCrossCollectionAnalysis(domStructure, registry, stats) {
+    try {
+        var crossRefs = registry.crossReferences || [];
+        stats.crossCollectionReferences = crossRefs.length;
+        
+        if (crossRefs.length > 0) {
+            $.writeln('Cross-collection analysis found ' + crossRefs.length + ' objects appearing in multiple collections:');
+            for (var i = 0; i < Math.min(crossRefs.length, 5); i++) {
+                var ref = crossRefs[i];
+                $.writeln('  Object ' + ref.objectId + ' appears in: ' + ref.collections.join(', '));
+            }
+        }
+        
+    } catch (exc) {
+        $.writeln('Error in cross-collection analysis: ' + exc.message);
+    }
+}
+
+// ============================================================================
+// ENHANCED UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Get enhanced safety-adjusted configuration
+ * @param {Object} collection - Collection to adjust for
+ * @param {Object} baseConfig - Base configuration
+ * @returns {Object} - Adjusted configuration
+ */
+function getEnhancedSafetyAdjustedConfig(collection, baseConfig) {
+    var adjustedConfig = {
+        maxSamplesPerCollection: baseConfig.maxSamplesPerCollection,
+        timeoutPerCollection: baseConfig.timeoutPerCollection,
+        timeoutPerItem: baseConfig.timeoutPerItem,
+        maxItemPropertiesPerSample: baseConfig.maxItemPropertiesPerSample
+    };
+    
+    // Enhanced safety adjustments
+    switch (collection.safetyLevel) {
+        case 'safe':
+            adjustedConfig.maxSamplesPerCollection = Math.min(baseConfig.maxSamplesPerCollection * 2, 8);
+            adjustedConfig.maxItemPropertiesPerSample = Math.min(baseConfig.maxItemPropertiesPerSample * 2, 150);
+            break;
+            
+        case 'moderate':
+            // Use base settings
+            break;
+            
+        case 'risky':
+            adjustedConfig.maxSamplesPerCollection = Math.max(Math.floor(baseConfig.maxSamplesPerCollection / 2), 1);
+            adjustedConfig.timeoutPerCollection = Math.floor(baseConfig.timeoutPerCollection / 2);
+            adjustedConfig.timeoutPerItem = Math.floor(baseConfig.timeoutPerItem / 2);
+            adjustedConfig.maxItemPropertiesPerSample = Math.floor(baseConfig.maxItemPropertiesPerSample / 2);
+            break;
+            
+        case 'dangerous':
+            adjustedConfig.maxSamplesPerCollection = 1;
+            adjustedConfig.timeoutPerCollection = 1000;
+            adjustedConfig.timeoutPerItem = 200;
+            adjustedConfig.maxItemPropertiesPerSample = 10;
+            break;
+    }
+    
+    return adjustedConfig;
+}
+
+/**
+ * Enhanced collection data enhancement
+ * @param {Object} collection - Original collection property
+ * @param {Object} enhancedSamplingData - Enhanced sampling data
+ */
+function enhanceCollectionWithEnhancedSamplingData(collection, enhancedSamplingData) {
+    try {
+        // Original enhancement
+        collection.samplingData = enhancedSamplingData;
+        collection.hasSamplingData = true;
+        collection.collectionLength = enhancedSamplingData.collectionLength;
+        
+        // Enhanced enhancements
+        collection.enhancedSamplingData = enhancedSamplingData.enhancedAnalysis;
+        collection.hasEnhancedAnalysis = true;
+        
+        if (enhancedSamplingData.commonProperties.length > 0) {
+            collection.commonItemProperties = enhancedSamplingData.commonProperties;
+            collection.recommendedProperties = enhancedSamplingData.commonProperties.filter(function(prop) {
+                return prop.safetyLevel === 'safe' && prop.coverage === 100;
+            });
+        }
+        
+        if (enhancedSamplingData.accessPatterns.length > 0) {
+            collection.accessPatterns = enhancedSamplingData.accessPatterns;
+            collection.recommendedAccessPatterns = enhancedSamplingData.accessPatterns.filter(function(pattern) {
+                return pattern.isRecommended;
             });
         }
         
     } catch (exc) {
-        $.writeln('Error analyzing common patterns: ' + exc.message);
+        $.writeln('Error enhancing collection with enhanced sampling data: ' + exc.message);
     }
 }
 
 /**
- * Enhance collection property with sampling data
- * @param {Object} collection - Original collection property classification
- * @param {Object} samplingData - Sampling data to add
- */
-function enhanceCollectionWithSamplingData(collection, samplingData) {
-    try {
-        collection.samplingData = samplingData;
-        collection.hasSamplingData = true;
-        collection.collectionLength = samplingData.collectionLength;
-        
-        if (samplingData.commonProperties.length > 0) {
-            collection.commonItemProperties = samplingData.commonProperties;
-        }
-        
-        if (samplingData.accessPatterns.length > 0) {
-            collection.accessPatterns = samplingData.accessPatterns;
-        }
-        
-    } catch (exc) {
-        $.writeln('Error enhancing collection with sampling data: ' + exc.message);
-    }
-}
-
-/**
- * Merge collection sampling configuration with defaults
+ * Merge enhanced collection sampling configuration
  * @param {Object} defaults - Default configuration
  * @param {Object} userConfig - User configuration
  * @returns {Object} - Merged configuration
  */
-function mergeCollectionSamplingConfig(defaults, userConfig) {
+function mergeEnhancedCollectionSamplingConfig(defaults, userConfig) {
     var merged = {};
     
     // Copy defaults
@@ -660,37 +1005,39 @@ function mergeCollectionSamplingConfig(defaults, userConfig) {
 }
 
 // ============================================================================
-// PUBLIC API FUNCTIONS
+// ENHANCED PUBLIC API
 // ============================================================================
 
 /**
- * Quick collection sampling using default configuration
+ * Quick enhanced collection sampling
  * @param {Object} domStructure - DOM structure from enumeration
  * @param {Object} sourceDocument - InDesign document object
  * @returns {Object} - Enhanced DOM structure
  */
-function quickSampleCollections(domStructure, sourceDocument) {
+function quickSampleCollectionsEnhanced(domStructure, sourceDocument) {
     var quickConfig = {
-        maxSamplesPerCollection: 2,
-        timeoutPerCollection: 2000,
-        enableProgressLogging: false
+        maxSamplesPerCollection: 3,
+        timeoutPerCollection: 3000,
+        enableProgressLogging: false,
+        enableDeepPropertyAnalysis: true,
+        enableObjectReferenceTracking: true
     };
     
-    return sampleCollectionContents(domStructure, sourceDocument, quickConfig);
+    return sampleCollectionContentsEnhanced(domStructure, sourceDocument, quickConfig);
 }
 
 /**
- * Get collection sampling statistics
- * @param {Object} domStructure - DOM structure with sampling data
- * @returns {Object} - Sampling statistics
+ * Get enhanced collection sampling statistics
+ * @param {Object} domStructure - DOM structure with enhanced sampling data
+ * @returns {Object} - Enhanced sampling statistics
  */
-function getCollectionSamplingStatistics(domStructure) {
+function getEnhancedCollectionSamplingStatistics(domStructure) {
     var defaultStats = {
         collectionsFound: 0,
         collectionsSampled: 0,
         totalItemsSampled: 0,
         totalPropertiesDiscovered: 0,
-        hasSamplingData: false
+        hasEnhancedSamplingData: false
     };
     
     try {
@@ -702,18 +1049,39 @@ function getCollectionSamplingStatistics(domStructure) {
                     collectionsSampled: samplingData.stats.collectionsSampled || 0,
                     totalItemsSampled: samplingData.stats.totalItemsSampled || 0,
                     totalPropertiesDiscovered: samplingData.stats.totalPropertiesDiscovered || 0,
+                    totalItemPropertiesAnalyzed: samplingData.stats.totalItemPropertiesAnalyzed || 0,
+                    uniqueObjectsFound: samplingData.stats.uniqueObjectsFound || 0,
+                    crossCollectionReferences: samplingData.stats.crossCollectionReferences || 0,
+                    deepAnalysisItems: samplingData.stats.deepAnalysisItems || 0,
+                    valuesSampled: samplingData.stats.valuesSampled || 0,
                     errors: samplingData.stats.errors || 0,
                     timeouts: samplingData.stats.timeouts || 0,
                     samplingTime: samplingData.stats.samplingTime || 0,
-                    hasSamplingData: true
+                    hasEnhancedSamplingData: true,
+                    enhancedFeatures: samplingData.enhancedFeatures
                 };
             }
         }
     } catch (exc) {
-        $.writeln('Error getting collection sampling statistics: ' + exc.message);
+        $.writeln('Error getting enhanced collection sampling statistics: ' + exc.message);
     }
     
     return defaultStats;
+}
+
+// ============================================================================
+// BACKWARD COMPATIBILITY
+// ============================================================================
+
+/**
+ * Maintain backward compatibility with original collection sampling
+ */
+function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) {
+    return sampleCollectionContentsEnhanced(domStructure, sourceDocument, samplingConfig);
+}
+
+function getCollectionSamplingStatistics(domStructure) {
+    return getEnhancedCollectionSamplingStatistics(domStructure);
 }
 
 // ============================================================================
@@ -721,10 +1089,10 @@ function getCollectionSamplingStatistics(domStructure) {
 // ============================================================================
 
 /**
- * Initialize collection sampler module
+ * Initialize enhanced collection sampler module
  * @returns {Boolean} - true if initialization successful
  */
-function initializeCollectionSampler() {
+function initializeEnhancedCollectionSampler() {
     try {
         // Check dependencies
         if (typeof safeTypeCheck !== 'function') {
@@ -732,14 +1100,14 @@ function initializeCollectionSampler() {
             return false;
         }
         
-        if (typeof createPropertyClassification !== 'function') {
-            $.writeln('ERROR: DOM enumerator module not loaded');
+        if (typeof createEnhancedPropertyClassification !== 'function') {
+            $.writeln('ERROR: Enhanced DOM enumerator module not loaded');
             return false;
         }
         
         // Test core functions
         var requiredFunctions = [
-            'sampleCollectionContents', 'findAllCollections', 'safeGetObjectFromPath'
+            'sampleCollectionContentsEnhanced', 'sampleCollectionItemEnhanced', 'performDeepItemAnalysis'
         ];
         
         for (var i = 0; i < requiredFunctions.length; i++) {
@@ -749,15 +1117,15 @@ function initializeCollectionSampler() {
             }
         }
         
-        $.writeln('6.0_collection-sampler.jsx: All functions initialized successfully (FIXED VERSION)');
-        $.writeln('Use sampleCollectionContents(domStructure, document, config) to sample collections');
+        $.writeln('6.0_collection-sampler.jsx: Enhanced version initialized successfully');
+        $.writeln('Enhanced features: deep analysis, object tracking, cross-collection analysis');
         return true;
         
     } catch (exc) {
-        $.writeln('ERROR: Collection sampler initialization failed: ' + exc.message);
+        $.writeln('ERROR: Enhanced collection sampler initialization failed: ' + exc.message);
         return false;
     }
 }
 
 // Auto-initialize when module loads
-initializeCollectionSampler();
+initializeEnhancedCollectionSampler();

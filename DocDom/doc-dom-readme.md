@@ -2,219 +2,246 @@
 
 ## 🎯 Overview
 
-The **InDesign DOM Discovery Builder** is a safety-first ExtendScript tool that discovers and maps the complete DOM structure of InDesign documents without crashing. Instead of guessing what properties exist, it dynamically discovers what's actually available in your specific document and displays it in a user-friendly interface.
+The **InDesign DOM Discovery Builder** is a safety-first ExtendScript tool that discovers and maps the complete DOM structure of InDesign documents without crashing. It uses a **discovery-first approach** that proves what exists before attempting access, then safely samples collection contents to generate actionable property access patterns.
 
 ### 🚀 Key Features
 
-- **Discovery-First Approach**: Maps document structure before attempting property access
+- **Discovery-First Architecture**: Maps document structure → Samples collection contents → Generates access patterns
+- **Collection Content Sampling**: Safely drills into discovered collections to map their contents and common properties
 - **Safety-First Design**: Never crashes InDesign, even with problematic documents  
 - **Progressive Safety Levels**: Properties classified as Safe, Moderate, Risky, or Dangerous
-- **Visual DOM Tree**: Interactive interface showing complete document structure
-- **Property Access Guide**: Generated code examples for safe property access
-- **Multiple Export Formats**: Text, JSON, and CSV export options
+- **Visual DOM Tree with Collection Data**: Shows collection lengths and common item properties
+- **Actionable Access Patterns**: Generated code examples for safe property access including collections
+- **Multiple Export Formats**: Enhanced text, JSON, and CSV export with collection sampling data
 - **ES3 Compatible**: Works across different InDesign versions
 
 ---
 
-## 📁 File Structure
+## 📁 File Structure & Assembly
 
 ```
 ProjectRoot/
-├── DocDom/                           # Main module directory
+├── DocDom/                           # Sequential module directory
 │   ├── 1.0_safe-foundation.jsx      # Ultra-safe property access functions
 │   ├── 2.0_dom-enumerator.jsx       # Core DOM structure discovery
-│   ├── 3.0_dom-visualizer.jsx       # DOM visualization interface  
-│   ├── 4.0_property-sampler.jsx     # Optional: Sample property values
-│   └── 5.0_dom-exporter.jsx         # Export DOM structure to files
-├── 0_MAIN_DOM_Explorer.jsx          # Main loader and entry point
-├── 9_DEMO_Test_DOM_Discovery.jsx    # Demo and testing script
-└── README_DOM_Discovery_Builder.md  # This file
+│   ├── 3.0_dom-visualizer.jsx       # DOM visualization interface (ENHANCED v2.0)
+│   ├── 4.0_property-sampler.jsx     # Property value sampling
+│   ├── 5.0_dom-exporter.jsx         # Export DOM structure to files (ENHANCED v2.0)
+│   └── 6.0_collection-sampler.jsx   # Collection content sampling (NEW v2.0)
+├── doc-dom-loader.jsx               # Sequential assembly loader
+└── doc-dom-readme.md               # This file
 ```
+
+### 🔧 Sequential Assembly Process
+The system uses **decimal-numbered modules** (1.0, 2.0, 3.0, etc.) that are loaded sequentially. This allows:
+- **Insertion capability**: Can add 2.1, 2.2 between existing modules without renumbering
+- **Dependency management**: Module N can only depend on modules < N  
+- **Build chunk assembly**: All modules combined into single executable script
+- **Modular development**: Individual modules can be updated independently
 
 ---
 
-## 🚀 Quick Start
+## 🎯 Current Development State
 
-### 1. **Load the System**
+### ✅ **Completed (v2.0)**
+- **Discovery-First DOM Enumeration**: Safely maps document structure without value access
+- **Collection Content Sampling**: Discovers what's inside collections (stories, pages, layers, etc.)
+- **Enhanced UI Integration**: "Sample Collections" button and enhanced tree display
+- **Fixed Safety Filter Logic**: Collections discovered during enumeration are sampled with appropriate safety measures
+- **Actionable Export**: Generated access patterns with collection-specific code examples
+- **Enhanced Export Formats**: Text, JSON, CSV with collection sampling data
+
+### 🔄 **Current Status**
+- **Safety architecture validated**: Discovery-first approach prevents crashes while enabling deep exploration
+- **Collection sampling operational**: Successfully samples collection contents and generates access patterns
+- **Export system enhanced**: Comprehensive output with actionable property access guides
+- **All core modules updated**: Latest versions include collection sampling integration
+
+---
+
+## 🚀 Quick Start Workflow
+
+### 1. **Assembly & Loading**
 ```javascript
-// In ExtendScript or Adobe ExtendScript Toolkit (ESTK):
-// #include "0_MAIN_DOM_Explorer.jsx" - I renamed this to below:
+// Load via sequential assembly loader:
 #include "doc-dom-loader.jsx"
-// This automatically loads all modules and shows the interface
+// This loads all DocDom/ modules in sequence and starts the interface
 ```
 
-### 2. **Open DOM Explorer Interface**
-```javascript
-showDOMVisualizer();
-// Opens the DOM Discovery interface
+### 2. **Standard Workflow: Discover → Sample → Export**
+1. **Open InDesign document** (any document)
+2. **Click "Enumerate DOM"** - Discovers document structure safely
+3. **Click "Sample Collections"** - Maps collection contents and generates access patterns  
+4. **Click "Export DOM"** - Saves complete analysis with actionable code examples
+
+### 3. **Results You Get**
 ```
+Before Sampling:
+├── stories (object) [risky] [COLLECTION]
 
-### 3. **Discover Document Structure**
-1. Open an InDesign document
-2. Click **"Enumerate DOM"** in the interface
-3. View the complete DOM structure tree
-4. Export results for development use
+After Sampling:  
+├── stories [risky] [COLLECTION, length: 3, 8 common props]
+    ├── [item].contents (string) [safe]
+    ├── [item].textFrames (object) [moderate]
+    └── [item].parentStory (object) [moderate]
 
-### 4. **Run Demonstrations**
-```javascript
-#include "9_DEMO_Test_DOM_Discovery.jsx"
-runDOMDiscoveryDemo();
-// Tests all functionality and shows examples
+Generated Access Patterns:
+var storyCount = document.stories.length;  // 3
+var content = document.stories[0].contents;  // string [safe]
 ```
 
 ---
 
 ## 🧩 Module Descriptions
 
-### **1.0 Safe Foundation** (Required)
-- Ultra-safe property checking without value access
-- Reserved word detection and dangerous property identification
+### **1.0 Safe Foundation** (Core)
+- Ultra-safe property checking without value access during discovery
+- Reserved word detection and dangerous property identification  
 - Timeout protection and memory management
 - Environment validation for InDesign documents
 
-### **2.0 DOM Enumerator** (Required)
-- Core DOM structure discovery engine
-- Property classification by safety level
-- Circular reference detection
-- Configurable depth and timeout controls
+### **2.0 DOM Enumerator** (Core)
+- Discovery-first DOM structure enumeration
+- Property classification by safety level (safe/moderate/risky/dangerous)
+- Circular reference detection and depth limiting
+- Configurable timeouts and property limits
 
-### **3.0 DOM Visualizer** (Required)
-- User interface for DOM exploration
-- Interactive tree display of document structure
+### **3.0 DOM Visualizer** (Enhanced v2.0)
+- **NEW**: Collection sampling integration with "Sample Collections" button
+- **Enhanced**: Tree display shows collection lengths and common item properties  
+- **Enhanced**: Generated access patterns include collection-specific examples
 - Real-time enumeration with progress tracking
-- Integration with sampling and export modules
 
 ### **4.0 Property Sampler** (Optional)
-- Sample actual property values for safe properties
+- Sample actual property values for safe properties only
 - Configurable safety filters and timeouts
-- Value formatting and truncation for large data
+- Value formatting and truncation for display
 - Enhanced DOM structure with sample values
 
-### **5.0 DOM Exporter** (Optional)
-- Export DOM structure to multiple formats
-- Generated property access guides with code examples
-- Text, JSON, and CSV export options
-- Automatic file naming and safe file operations
+### **5.0 DOM Exporter** (Enhanced v2.0)
+- **Enhanced**: Export includes collection sampling data and access patterns
+- **Fixed**: Robust CSV generation and improved JSON output
+- **Enhanced**: Property access guides with collection iteration examples
+- Text, JSON, and CSV export options with enhanced content
 
----
-
-## 🎮 Usage Examples
-
-### **Basic DOM Discovery**
-```javascript
-// Load system
-#include "0_MAIN_DOM_Explorer.jsx"
-
-// Quick analysis
-var domStructure = quickDOMAnalysis();
-
-// View statistics
-var stats = getDOMStatistics(domStructure);
-$.writeln("Properties found: " + stats.totalProperties);
-```
-
-### **Manual Enumeration**
-```javascript
-// Validate environment
-var envResult = validateInDesignEnvironment();
-if (envResult.valid) {
-    var doc = envResult.document;
-    
-    // Configure enumeration
-    var config = {
-        maxDepth: 2,
-        timeoutMs: 5000,
-        skipDangerous: true,
-        maxProperties: 1000
-    };
-    
-    // Enumerate DOM
-    var domStructure = enumerateDocumentDOM(doc, config);
-    
-    // Show results
-    showDOMVisualizer();
-}
-```
-
-### **Property Value Sampling**
-```javascript
-// After enumeration, sample safe property values
-var samplingConfig = {
-    safetyFilter: 'safe',        // Only sample safe properties
-    maxSamples: 10,              // Limit collection sampling
-    timeoutMs: 1000,             // Timeout per property
-    includeCollectionSamples: false
-};
-
-var sampledDOM = sampleDOMValues(domStructure, samplingConfig);
-```
-
-### **Export Results**
-```javascript
-// Export to different formats
-var textExport = exportDOMStructure(domStructure, 'text');
-var jsonExport = exportDOMStructure(domStructure, 'json');
-var csvExport = exportDOMStructure(domStructure, 'csv');
-
-if (textExport.success) {
-    $.writeln("Export saved to: " + textExport.filePath);
-}
-```
+### **6.0 Collection Sampler** (NEW v2.0)
+- **Discovery-driven**: Only samples collections found during enumeration
+- **Adaptive safety**: Safety level affects HOW to sample, not WHETHER to sample
+- **Pattern analysis**: Identifies common properties across collection items
+- **Access pattern generation**: Creates ready-to-use property access code
 
 ---
 
 ## ⚙️ Configuration Options
 
-### **Enumeration Configuration**
+### **Discovery Configuration**
 ```javascript
 var config = {
-    maxDepth: 2,           // Maximum object nesting depth (1-4)
-    timeoutMs: 5000,       // Total enumeration timeout in milliseconds
+    maxDepth: 2,           // Maximum object nesting depth (1-4)  
+    timeoutMs: 8000,       // Total enumeration timeout in milliseconds
     skipDangerous: true,   // Skip properties known to cause crashes
-    maxProperties: 1000    // Maximum properties to enumerate
+    maxProperties: 2000    // Maximum properties to enumerate
 };
 ```
 
-### **Safety Levels**
-- **Safe** ✅: Basic value types (string, number, boolean) - recommended for direct access
-- **Moderate** ⚠️: Object properties that aren't collections - use with caution
-- **Risky** ⚡: Collections and complex objects - require error handling
-- **Dangerous** ❌: Functions and known crash-prone properties - avoid
-
-### **Sampling Configuration**
+### **Collection Sampling Configuration**
 ```javascript
 var samplingConfig = {
-    safetyFilter: 'safe',           // 'safe' | 'safe_and_moderate' | 'all'
-    maxSamples: 10,                 // Max items to sample from collections
-    timeoutMs: 1000,                // Timeout per property access
-    includeCollectionSamples: false, // Whether to sample collection items
-    maxStringLength: 500,           // Truncate long strings
-    maxObjectDepth: 1               // Depth limit for object display
+    maxSamplesPerCollection: 3,     // Sample first N items from each collection
+    timeoutPerCollection: 3000,     // 3 seconds max per collection
+    timeoutPerItem: 500,           // 500ms max per collection item  
+    maxCollectionSize: 1000,       // Skip collections larger than 1000 items
+    safetyFilter: 'moderate',      // 'safe'|'moderate'|'risky'|'all'
+    enableProgressLogging: true    // Log sampling progress
 };
 ```
+
+### **Safety Level Effects on Sampling**
+- **Safe Collections**: Sample more items (up to 5), longer timeouts
+- **Moderate Collections**: Standard sampling (3 items), normal timeouts  
+- **Risky Collections**: Reduced sampling (1-2 items), shorter timeouts
+- **Dangerous Collections**: Skipped entirely (functions, dangerous property names)
 
 ---
 
-## 🛡️ Safety Features
+## 🛡️ Safety Architecture
+
+### **Discovery-First Principles**
+1. **Prove Existence**: Use `typeof` checks and `in` operator - never access values during discovery
+2. **Classify Safety**: Determine safety level based on property type and name patterns
+3. **Sample Safely**: Use discovered paths with appropriate safety measures for each classification
+4. **Generate Patterns**: Create actionable access code based on proven-safe discovery results
 
 ### **Crash Prevention**
-- Never accesses property values during discovery phase
-- Comprehensive timeout protection on all operations
-- Circular reference detection prevents infinite loops
-- Memory management with explicit cleanup
-- Graceful error handling with detailed logging
+- **Timeout Protection**: All operations have maximum execution time limits
+- **Circular Reference Detection**: Prevents infinite loops in object traversal
+- **Memory Management**: Explicit cleanup and garbage collection hints
+- **Error Isolation**: Individual property failures don't stop overall enumeration
+- **Graceful Degradation**: Partial success better than total failure
 
-### **Document Compatibility** 
-- Works with locked, unsaved, or problematic documents
-- Adapts to different InDesign versions automatically
-- Handles documents with complex graphics and layouts
-- Safe operation even with corrupted or unusual content
+### **Collection Sampling Safety**
+- **Path Validation**: Only access collections discovered during enumeration
+- **Adaptive Timeouts**: Safety level determines timeout duration and sample size
+- **Item-Level Protection**: Each collection item access wrapped in try-catch with timeouts
+- **Memory Limits**: Configurable limits on collection size and sampling depth
 
-### **Error Recovery**
-- Individual property failures don't stop overall enumeration
-- Detailed error reporting with recovery suggestions
-- Fallback mechanisms for critical operations
-- Comprehensive logging for troubleshooting
+---
+
+## 📚 API Reference
+
+### **Core Workflow Functions**
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `validateInDesignEnvironment()` | Check InDesign and document status | `{valid: boolean, error: string, document: object}` |
+| `enumerateDocumentDOM(doc, config)` | Discover complete DOM structure | `DOMStructure object` |
+| `sampleCollectionContents(domStructure, doc, config)` | Sample collection contents safely | `Enhanced DOMStructure` |
+| `showDOMVisualizer()` | Open DOM exploration interface | `Window dialog` |
+| `exportDOMStructure(domStructure, format)` | Export to file with access patterns | `{success: boolean, filePath: string}` |
+
+### **Analysis Functions**
+
+| Function | Purpose |
+|----------|---------|
+| `getDOMStatistics(domStructure)` | Get enumeration statistics |
+| `getCollectionSamplingStatistics(domStructure)` | Get collection sampling statistics |
+| `findAllCollections(domStructure)` | Find all discovered collections |
+| `countPropertiesBySafety(domNode)` | Count properties by safety level |
+
+---
+
+## 🎯 Use Cases & Examples
+
+### **Discover Collections in Your Document**
+```javascript
+// 1. Discover what collections exist
+var domStructure = enumerateDocumentDOM(doc, config);
+
+// 2. Sample collection contents  
+var enhanced = sampleCollectionContents(domStructure, doc, samplingConfig);
+
+// 3. Use generated access patterns
+var samplingStats = getCollectionSamplingStatistics(enhanced);
+$.writeln("Collections sampled: " + samplingStats.collectionsSampled);
+```
+
+### **Generated Access Pattern Example**
+After discovery and sampling, you get actionable code:
+```javascript
+// Generated from actual document structure:
+var storyCount = document.stories.length;  // 3
+var firstStoryContent = document.stories[0].contents;  // string [safe]
+var pageCount = document.pages.length;  // 5  
+var firstPageBounds = document.pages[0].bounds;  // object [moderate]
+
+// Safe iteration patterns:
+try {
+    for (var i = 0; i < document.stories.length; i++) {
+        var story = document.stories[i];
+        var content = story.contents;  // Proven safe from sampling
+    }
+} catch (exc) { /* handle safely */ }
+```
 
 ---
 
@@ -222,144 +249,61 @@ var samplingConfig = {
 
 ### **Common Issues**
 
-**"Module directory not found"**
-- Ensure all `.jsx` files are in the `DocDom` folder
-- Run `0_MAIN_DOM_Explorer.jsx` from the parent directory of `DocDom`
+**"Collections found but 0 sampled"**
+- Previous issue: Safety filter was too restrictive, skipping discovered collections
+- **Fixed in v2.0**: Discovery-first logic samples discovered collections with appropriate safety measures
+- Safety level now affects HOW to sample, not WHETHER to sample
 
-**"No document is currently open"**
-- Open an InDesign document before running enumeration
-- Check that the document is accessible (not locked)
+**"Export failed"**  
+- **Fixed in v2.0**: Enhanced export functions with better error handling
+- All export formats (text, JSON, CSV) now include collection sampling data
 
-**"DOM enumeration failed"**
-- Try with a simpler document first
-- Reduce `maxDepth` and `maxProperties` in configuration
-- Enable `skipDangerous` option
-- Check ExtendScript console for detailed error messages
-
-**"Export failed"**
-- Check file write permissions in target directory
-- Try different export formats (text is most reliable)
-- Ensure sufficient disk space available
-
-### **Performance Optimization**
-
-For large or complex documents:
-- Set `maxDepth: 1` for initial testing
-- Use `maxProperties: 500` to limit scope
-- Enable `skipDangerous: true` 
-- Reduce `timeoutMs` for faster completion
-- Run enumeration on saved documents when possible
-
-### **Debug Mode**
-```javascript
-// Enable verbose logging
-MAIN_LOADER_CONFIG.verboseLoading = true;
-
-// Check system status
-var validation = validateDOMDiscoverySystem();
-$.writeln("System valid: " + validation.valid);
-```
-
----
-
-## 📚 API Reference
-
-### **Core Functions**
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `validateInDesignEnvironment()` | Check InDesign and document status | `{valid: boolean, error: string, document: object}` |
-| `enumerateDocumentDOM(doc, config)` | Discover complete DOM structure | `DOMStructure object` |
-| `showDOMVisualizer()` | Open DOM exploration interface | `Window dialog` |
-| `getDOMStatistics(domStructure)` | Get enumeration statistics | `Statistics object` |
-| `sampleDOMValues(domStructure, config)` | Sample property values safely | `Enhanced DOMStructure` |
-| `exportDOMStructure(domStructure, format)` | Export to file | `{success: boolean, filePath: string}` |
-
-### **Utility Functions**
-
-| Function | Purpose |
-|----------|---------|
-| `safeTypeCheck(obj, propName)` | Get property type without accessing value |
-| `safeHasProperty(obj, propName)` | Check property existence safely |
-| `isReservedWord(propName)` | Detect ES3 reserved words |
-| `isDangerousProperty(propName)` | Identify crash-prone properties |
-| `createTimeoutChecker(maxMs)` | Create timeout protection |
-| `createStringBuilder()` | Memory-efficient string building |
-
----
-
-## 🎯 Use Cases
-
-### **ExtendScript Development**
-- Discover available properties for script development
-- Generate safe property access patterns
-- Understand document structure variations
-- Create adaptive scripts that work across document types
-
-### **InDesign Automation**
-- Map document structures for automated processing
-- Identify safe properties for batch operations
-- Generate property inventories for complex documents
-- Create document analysis and reporting tools
-
-### **Quality Assurance**
-- Validate document structures meet requirements
-- Identify problematic or unusual document patterns
-- Test script compatibility across document types
-- Generate compliance reports for document standards
-
-### **Learning and Research**
-- Explore InDesign's object model interactively
-- Understand property relationships and hierarchies
-- Generate documentation for InDesign APIs
-- Create reference materials for development teams
+**Performance with Large Documents**
+- Reduce `maxSamplesPerCollection` to 1 or 2
+- Set `maxCollectionSize` to 100 for testing
+- Use `timeoutPerCollection: 1000` for faster completion
 
 ---
 
 ## 🔄 Version History
 
-### **v2.0.0** - Current Release
-- Complete rewrite with discovery-first architecture
-- Sequential module loading system
-- Enhanced safety with timeout protection
-- Comprehensive DOM visualization interface
-- Property value sampling with safety filters
-- Multiple export formats with access guides
-- ES3 compatibility across InDesign versions
+### **v2.0.0** - Current Enhanced Release
+- **NEW**: Collection content sampling with discovery-first approach
+- **FIXED**: Safety filter logic - discovered collections are sampled with appropriate safety measures  
+- **ENHANCED**: UI with "Sample Collections" button and enhanced tree display
+- **ENHANCED**: Export formats include collection sampling data and actionable access patterns
+- **ENHANCED**: Property access guides with collection-specific iteration examples
+- Sequential module architecture with decimal versioning for insertion capability
 
-### **Previous Versions**
-- v1.x: Original analysis-first approach (deprecated)
-- Multiple failed attempts with "chunks" and "modules" architectures
+### **v1.x** - Discovery Foundation
+- Basic DOM structure enumeration
+- Safety classification system
+- Simple export functionality
 
 ---
 
-## 📝 License & Support
+## 🎯 Current Capabilities Summary
 
-This is a research and development tool for InDesign ExtendScript development. 
+**What the system does now:**
+1. **Discovers** your document's DOM structure safely without crashing
+2. **Maps** collection contents (stories, pages, layers, etc.) to show what's inside
+3. **Generates** actionable property access code you can copy-paste into your scripts
+4. **Exports** comprehensive analysis with ready-to-use access patterns
+5. **Adapts** to different document types and InDesign versions automatically
 
-**Support:**
-- Check ExtendScript console for detailed error messages
-- Run `9_DEMO_Test_DOM_Discovery.jsx` to validate system functionality
-- Use `validateDOMDiscoverySystem()` to check module loading
-- Review this README for configuration and troubleshooting guidance
-
-**Contributing:**
-- Test with different document types and InDesign versions
-- Report compatibility issues and edge cases
-- Suggest improvements to safety and performance
-- Share use cases and applications
+**Key insight**: The system transforms "I wonder what's available" into "Here's exactly how to access it safely" through discovery-first exploration of your specific document.
 
 ---
 
 ## 🏁 Getting Started Checklist
 
-- [ ] Place all `.jsx` files in correct directory structure
+- [ ] Place all `.jsx` files in `DocDom/` directory  
 - [ ] Open InDesign with a test document
-- [ ] Run `0_MAIN_DOM_Explorer.jsx` to load system
-- [ ] Verify system loads without errors
-- [ ] Click "Enumerate DOM" in the interface
-- [ ] Review discovered DOM structure
-- [ ] Export results to examine property access guide
-- [ ] Run `9_DEMO_Test_DOM_Discovery.jsx` to validate functionality
+- [ ] Run `doc-dom-loader.jsx` to load system sequentially
+- [ ] Verify system loads without errors  
+- [ ] Click "Enumerate DOM" to discover structure
+- [ ] Click "Sample Collections" to map collection contents
+- [ ] Click "Export DOM" to save actionable analysis
+- [ ] Review generated access patterns in exported file
 
-**Ready to discover your InDesign document's DOM structure safely and comprehensively!** 🚀
+**Ready to safely discover and access your InDesign document's complete DOM structure!** 🚀

@@ -1,10 +1,11 @@
 //
-// 1.0_safe-foundation.jsx
+// 1.0_safe-foundation.jsx (Enhanced)
 // InDesign DOM Discovery Builder - Ultra-Safe Foundation Module
-// CORE PURPOSE: Rock-solid safe property access without value retrieval
+// CORE PURPOSE: Rock-solid safe property access with enhanced utilities for deep mapping
 // DEPENDENCIES: NONE (Foundation module)
 // SAFETY: Never crashes, never accesses property values during discovery
 // ES3 COMPATIBLE: No reserved words, no modern JS features
+// ENHANCED: Added object reference tracking and path utilities for v2.1
 //
 
 // ============================================================================
@@ -72,7 +73,367 @@ function safeGetLength(collection) {
 }
 
 // ============================================================================
-// RESERVED WORD AND DANGER DETECTION
+// ENHANCED OBJECT REFERENCE TRACKING
+// ============================================================================
+
+/**
+ * Generate unique object reference ID using memory address approximation
+ * SAFETY: Uses object toString() method which is safe for reference comparison
+ * @param {Object} obj - Object to generate reference for
+ * @returns {String} - Unique reference ID or empty string if error
+ */
+function generateObjectReferenceID(obj) {
+    try {
+        if (!obj || typeof obj !== 'object') {
+            return '';
+        }
+        
+        // Use object's toString which often includes memory reference info
+        var objString = String(obj);
+        
+        // Create hash-like ID from object string representation
+        var hash = 0;
+        for (var i = 0; i < objString.length; i++) {
+            var char = objString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        // Convert to positive hex string
+        var refID = 'ref_' + Math.abs(hash).toString(16);
+        
+        return refID;
+        
+    } catch (exc) {
+        return '';
+    }
+}
+
+/**
+ * Check if two objects are the same reference
+ * SAFETY: Uses strict equality comparison which is safe
+ * @param {Object} obj1 - First object
+ * @param {Object} obj2 - Second object
+ * @returns {Boolean} - true if same reference
+ */
+function isSameObjectReference(obj1, obj2) {
+    try {
+        if (!obj1 || !obj2) return false;
+        if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false;
+        
+        // Strict equality check for same reference
+        return obj1 === obj2;
+        
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Create object reference tracker for deduplication
+ * SAFETY: Manages object reference map with safe cleanup
+ * @returns {Object} - Reference tracker with methods
+ */
+function createObjectReferenceTracker() {
+    var seenObjects = [];
+    var objectPaths = [];
+    var referenceCounter = 0;
+    
+    return {
+        /**
+         * Check if object has been seen before and record it
+         * @param {Object} obj - Object to check
+         * @param {String} path - Current path to object
+         * @returns {Object} - {seen: boolean, refID: string, paths: array}
+         */
+        trackObject: function(obj, path) {
+            try {
+                if (!obj || typeof obj !== 'object') {
+                    return { seen: false, refID: '', paths: [] };
+                }
+                
+                // Check if we've seen this object before
+                for (var i = 0; i < seenObjects.length; i++) {
+                    if (isSameObjectReference(seenObjects[i], obj)) {
+                        // Add this path to existing object
+                        objectPaths[i].push(path);
+                        return {
+                            seen: true,
+                            refID: 'ref_' + i,
+                            paths: objectPaths[i].slice() // Return copy of paths array
+                        };
+                    }
+                }
+                
+                // New object - record it
+                var refID = 'ref_' + referenceCounter;
+                seenObjects.push(obj);
+                objectPaths.push([path]);
+                referenceCounter++;
+                
+                return {
+                    seen: false,
+                    refID: refID,
+                    paths: [path]
+                };
+                
+            } catch (exc) {
+                return { seen: false, refID: '', paths: [] };
+            }
+        },
+        
+        /**
+         * Get all paths to a specific object reference
+         * @param {String} refID - Reference ID to look up
+         * @returns {Array} - Array of paths to this object
+         */
+        getPathsForReference: function(refID) {
+            try {
+                var index = parseInt(refID.replace('ref_', ''), 10);
+                if (index >= 0 && index < objectPaths.length) {
+                    return objectPaths[index].slice(); // Return copy
+                }
+                return [];
+            } catch (exc) {
+                return [];
+            }
+        },
+        
+        /**
+         * Get statistics about tracked objects
+         * @returns {Object} - Statistics object
+         */
+        getStatistics: function() {
+            return {
+                totalObjects: seenObjects.length,
+                totalPaths: objectPaths.reduce(function(sum, paths) { return sum + paths.length; }, 0),
+                duplicateReferences: objectPaths.filter(function(paths) { return paths.length > 1; }).length
+            };
+        },
+        
+        /**
+         * Clean up tracker memory
+         */
+        cleanup: function() {
+            seenObjects = [];
+            objectPaths = [];
+            referenceCounter = 0;
+        }
+    };
+}
+
+// ============================================================================
+// ENHANCED PATH UTILITIES
+// ============================================================================
+
+/**
+ * Split dot notation path into components safely
+ * SAFETY: Pure string manipulation, no object access
+ * @param {String} dotPath - Dot notation path
+ * @returns {Array} - Array of path components
+ */
+function splitPath(dotPath) {
+    try {
+        if (!dotPath || typeof dotPath !== 'string') {
+            return [];
+        }
+        
+        return dotPath.split('.');
+        
+    } catch (exc) {
+        return [];
+    }
+}
+
+/**
+ * Join path components into dot notation
+ * SAFETY: Pure string manipulation
+ * @param {Array} pathComponents - Array of path parts
+ * @returns {String} - Dot notation path
+ */
+function joinPath(pathComponents) {
+    try {
+        if (!pathComponents || typeof pathComponents.length !== 'number') {
+            return '';
+        }
+        
+        var validComponents = [];
+        for (var i = 0; i < pathComponents.length; i++) {
+            if (pathComponents[i] && typeof pathComponents[i] === 'string') {
+                validComponents.push(pathComponents[i]);
+            }
+        }
+        
+        return validComponents.join('.');
+        
+    } catch (exc) {
+        return '';
+    }
+}
+
+/**
+ * Get parent path from dot notation path
+ * SAFETY: String manipulation only
+ * @param {String} dotPath - Full path
+ * @returns {String} - Parent path
+ */
+function getParentPath(dotPath) {
+    try {
+        if (!dotPath || typeof dotPath !== 'string') {
+            return '';
+        }
+        
+        var lastDotIndex = dotPath.lastIndexOf('.');
+        if (lastDotIndex === -1) {
+            return '';
+        }
+        
+        return dotPath.substring(0, lastDotIndex);
+        
+    } catch (exc) {
+        return '';
+    }
+}
+
+/**
+ * Get property name from end of path
+ * SAFETY: String manipulation only
+ * @param {String} dotPath - Full path
+ * @returns {String} - Property name
+ */
+function getPropertyFromPath(dotPath) {
+    try {
+        if (!dotPath || typeof dotPath !== 'string') {
+            return '';
+        }
+        
+        var lastDotIndex = dotPath.lastIndexOf('.');
+        if (lastDotIndex === -1) {
+            return dotPath;
+        }
+        
+        return dotPath.substring(lastDotIndex + 1);
+        
+    } catch (exc) {
+        return '';
+    }
+}
+
+/**
+ * Normalize path by removing empty components and redundancy
+ * SAFETY: String processing only
+ * @param {String} dotPath - Path to normalize
+ * @returns {String} - Normalized path
+ */
+function normalizePath(dotPath) {
+    try {
+        if (!dotPath || typeof dotPath !== 'string') {
+            return '';
+        }
+        
+        var components = splitPath(dotPath);
+        var normalized = [];
+        
+        for (var i = 0; i < components.length; i++) {
+            var component = components[i];
+            if (component && component.length > 0) {
+                normalized.push(component);
+            }
+        }
+        
+        return joinPath(normalized);
+        
+    } catch (exc) {
+        return dotPath;
+    }
+}
+
+// ============================================================================
+// ENHANCED MEMORY MANAGEMENT
+// ============================================================================
+
+/**
+ * Enhanced memory cleanup for large operations with reference tracking
+ * SAFETY: Comprehensive cleanup including object reference tracking
+ * @param {Array} objsToNull - Array of variables to null out
+ * @param {Object} referenceTracker - Optional reference tracker to clean up
+ */
+function enhancedMemoryCleanup(objsToNull, referenceTracker) {
+    try {
+        // Clean up provided objects
+        if (objsToNull && typeof objsToNull.length === 'number') {
+            for (var i = 0; i < objsToNull.length; i++) {
+                objsToNull[i] = null;
+            }
+        }
+        
+        // Clean up reference tracker if provided
+        if (referenceTracker && typeof referenceTracker.cleanup === 'function') {
+            referenceTracker.cleanup();
+        }
+        
+        // Hint garbage collection if available
+        if (typeof $.gc === 'function') {
+            $.gc();
+        }
+        
+    } catch (exc) {
+        // Cleanup failure is not critical, continue silently
+    }
+}
+
+/**
+ * Create memory usage monitor for large operations
+ * SAFETY: Tracks memory indicators without accessing sensitive system info
+ * @returns {Object} - Memory monitor with reporting functions
+ */
+function createMemoryMonitor() {
+    var startTime = new Date().getTime();
+    var checkpoints = [];
+    
+    return {
+        /**
+         * Record a memory checkpoint
+         * @param {String} label - Checkpoint label
+         */
+        checkpoint: function(label) {
+            try {
+                checkpoints.push({
+                    label: label || 'checkpoint',
+                    time: new Date().getTime() - startTime
+                });
+            } catch (exc) {
+                // Silent failure for monitoring
+            }
+        },
+        
+        /**
+         * Get checkpoint report
+         * @returns {Array} - Array of checkpoint data
+         */
+        getReport: function() {
+            return checkpoints.slice(); // Return copy
+        },
+        
+        /**
+         * Get total elapsed time
+         * @returns {Number} - Elapsed time in milliseconds
+         */
+        getElapsedTime: function() {
+            return new Date().getTime() - startTime;
+        },
+        
+        /**
+         * Clean up monitor
+         */
+        cleanup: function() {
+            checkpoints = [];
+        }
+    };
+}
+
+// ============================================================================
+// RESERVED WORD AND DANGER DETECTION (ENHANCED)
 // ============================================================================
 
 /**
@@ -99,7 +460,7 @@ function isReservedWord(propName) {
 }
 
 /**
- * Check if property name matches dangerous patterns
+ * Enhanced dangerous property detection with deeper patterns
  * SAFETY: String pattern matching only, prevents common crash sources
  * @param {String} propName - Property name to check
  * @returns {Boolean} - true if potentially dangerous
@@ -107,20 +468,23 @@ function isReservedWord(propName) {
 function isDangerousProperty(propName) {
     var dangerousPatterns = [
         'parent', 'item', 'selection', 'app', 'activeDocument', 
-        'activeWindow', 'activeLayer', 'activeStory', 'activeSpread'
+        'activeWindow', 'activeLayer', 'activeStory', 'activeSpread',
+        'constructor', 'prototype', '__proto__'
     ];
+    
+    var lowerPropName = propName.toLowerCase();
     
     // Check exact matches
     for (var i = 0; i < dangerousPatterns.length; i++) {
-        if (propName.toLowerCase() === dangerousPatterns[i].toLowerCase()) {
+        if (lowerPropName === dangerousPatterns[i].toLowerCase()) {
             return true;
         }
     }
     
-    // Check if ends with dangerous patterns (like "parentLayer")
+    // Check if contains dangerous patterns
     for (var i = 0; i < dangerousPatterns.length; i++) {
         var pattern = dangerousPatterns[i].toLowerCase();
-        if (propName.toLowerCase().indexOf(pattern) !== -1) {
+        if (lowerPropName.indexOf(pattern) !== -1) {
             return true;
         }
     }
@@ -128,8 +492,50 @@ function isDangerousProperty(propName) {
     return false;
 }
 
+/**
+ * Enhanced dangerous path detection for deep traversal
+ * SAFETY: Path analysis to prevent dangerous traversal routes
+ * @param {String} dotPath - Full path to check
+ * @returns {Boolean} - true if path is dangerous
+ */
+function isDangerousPath(dotPath) {
+    try {
+        if (!dotPath || typeof dotPath !== 'string') {
+            return false;
+        }
+        
+        var pathComponents = splitPath(dotPath);
+        
+        // Check each component for danger
+        for (var i = 0; i < pathComponents.length; i++) {
+            if (isDangerousProperty(pathComponents[i])) {
+                return true;
+            }
+        }
+        
+        // Check for known dangerous path patterns
+        var dangerousPathPatterns = [
+            'app.activeDocument',
+            'document.selection',
+            'window.parent'
+        ];
+        
+        var lowerPath = dotPath.toLowerCase();
+        for (var i = 0; i < dangerousPathPatterns.length; i++) {
+            if (lowerPath.indexOf(dangerousPathPatterns[i].toLowerCase()) !== -1) {
+                return true;
+            }
+        }
+        
+        return false;
+        
+    } catch (exc) {
+        return true; // Err on side of caution
+    }
+}
+
 // ============================================================================
-// TIMEOUT AND EXECUTION CONTROL
+// TIMEOUT AND EXECUTION CONTROL (ENHANCED)
 // ============================================================================
 
 /**
@@ -148,14 +554,15 @@ function createTimeoutChecker(maxMs) {
 }
 
 /**
- * Create operation counter with limit
- * SAFETY: Prevents infinite loops during enumeration
+ * Enhanced operation counter with limit and reporting
+ * SAFETY: Prevents infinite loops during enumeration with enhanced tracking
  * @param {Number} maxOps - Maximum operations allowed
- * @returns {Object} - {check: function, increment: function, getCount: function}
+ * @returns {Object} - Counter with enhanced methods
  */
-function createOperationCounter(maxOps) {
+function createEnhancedOperationCounter(maxOps) {
     var count = 0;
     var limit = maxOps || 1000;
+    var milestones = [];
     
     return {
         check: function() {
@@ -163,53 +570,53 @@ function createOperationCounter(maxOps) {
         },
         increment: function() {
             count++;
+            
+            // Record milestones
+            if (count % 100 === 0) {
+                milestones.push({
+                    count: count,
+                    timestamp: new Date().getTime()
+                });
+            }
         },
         getCount: function() {
             return count;
+        },
+        getLimit: function() {
+            return limit;
+        },
+        getMilestones: function() {
+            return milestones.slice(); // Return copy
+        },
+        getProgress: function() {
+            return {
+                current: count,
+                limit: limit,
+                percentage: Math.floor((count / limit) * 100)
+            };
+        },
+        reset: function() {
+            count = 0;
+            milestones = [];
         }
     };
 }
 
 // ============================================================================
-// MEMORY MANAGEMENT AND CLEANUP
+// DOCUMENT VALIDATION (ENHANCED)
 // ============================================================================
 
 /**
- * Explicit memory cleanup for large operations
- * SAFETY: Sets variables to null and hints garbage collection
- * @param {Array} objsToNull - Array of variables to null out
- */
-function memoryCleanup(objsToNull) {
-    try {
-        if (objsToNull && typeof objsToNull.length === 'number') {
-            for (var i = 0; i < objsToNull.length; i++) {
-                objsToNull[i] = null;
-            }
-        }
-        
-        // Hint garbage collection if available
-        if (typeof $.gc === 'function') {
-            $.gc();
-        }
-    } catch (exc) {
-        // Cleanup failure is not critical, continue silently
-    }
-}
-
-// ============================================================================
-// DOCUMENT VALIDATION
-// ============================================================================
-
-/**
- * Validate InDesign environment and document state
- * SAFETY: Checks basic requirements before any DOM operations
- * @returns {Object} - {valid: boolean, error: string, document: object}
+ * Enhanced InDesign environment and document state validation
+ * SAFETY: Comprehensive checks before any DOM operations
+ * @returns {Object} - {valid: boolean, error: string, document: object, warnings: array}
  */
 function validateInDesignEnvironment() {
     var result = {
         valid: false,
         error: '',
-        document: null
+        document: null,
+        warnings: []
     };
     
     try {
@@ -244,6 +651,14 @@ function validateInDesignEnvironment() {
             return result;
         }
         
+        // Enhanced document state validation
+        var docValidation = validateDocumentState(doc);
+        if (!docValidation.safe) {
+            result.warnings = docValidation.warnings;
+        } else {
+            result.warnings = docValidation.warnings || [];
+        }
+        
         result.valid = true;
         result.document = doc;
         return result;
@@ -255,28 +670,50 @@ function validateInDesignEnvironment() {
 }
 
 /**
- * Check if document is in safe state for enumeration
- * SAFETY: Validates document permissions and state
+ * Enhanced document state validation for safe enumeration
+ * SAFETY: Validates document permissions and state for deep analysis
  * @param {Object} doc - InDesign document object
- * @returns {Object} - {safe: boolean, warnings: array}
+ * @returns {Object} - {safe: boolean, warnings: array, metadata: object}
  */
 function validateDocumentState(doc) {
     var result = {
         safe: true,
-        warnings: []
+        warnings: [],
+        metadata: {}
     };
     
     try {
         // Check if document is saved (safer for enumeration)
         if (safeTypeCheck(doc, 'saved') === 'boolean') {
+            result.metadata.saved = doc.saved;
             if (!doc.saved) {
                 result.warnings.push('Document is not saved - enumeration may be slower');
             }
         }
         
         // Check if document name is accessible
-        if (safeTypeCheck(doc, 'name') !== 'string') {
+        if (safeTypeCheck(doc, 'name') === 'string') {
+            result.metadata.name = doc.name;
+        } else {
             result.warnings.push('Cannot access document name');
+        }
+        
+        // Check document complexity indicators
+        var pageCount = safeGetLength(doc.pages);
+        if (pageCount >= 0) {
+            result.metadata.pageCount = pageCount;
+            if (pageCount > 100) {
+                result.warnings.push('Large document (' + pageCount + ' pages) - enumeration may take longer');
+            }
+        }
+        
+        // Check story count
+        var storyCount = safeGetLength(doc.stories);
+        if (storyCount >= 0) {
+            result.metadata.storyCount = storyCount;
+            if (storyCount > 50) {
+                result.warnings.push('Many stories (' + storyCount + ') - consider focused analysis');
+            }
         }
         
         // Document is considered safe unless proven otherwise
@@ -290,32 +727,57 @@ function validateDocumentState(doc) {
 }
 
 // ============================================================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS (ENHANCED)
 // ============================================================================
 
 /**
- * Safe string builder for large text construction
- * SAFETY: Manages memory during large string operations
- * @returns {Object} - {append: function, toString: function, clear: function}
+ * Enhanced string builder for large text construction with memory management
+ * SAFETY: Manages memory during large string operations with chunking
+ * @returns {Object} - Enhanced string builder with additional methods
  */
 function createStringBuilder() {
     var parts = [];
+    var totalLength = 0;
+    var maxChunkSize = 50000; // 50KB chunks
     
     return {
         append: function(text) {
-            parts.push(String(text));
+            var str = String(text);
+            parts.push(str);
+            totalLength += str.length;
+            
+            // Memory management: consolidate if getting large
+            if (parts.length > 1000) {
+                this.consolidate();
+            }
         },
         appendLine: function(text) {
-            parts.push(String(text) + '\n');
+            this.append(String(text) + '\n');
         },
         toString: function() {
             return parts.join('');
         },
+        consolidate: function() {
+            // Consolidate parts to reduce memory fragmentation
+            try {
+                var consolidated = parts.join('');
+                parts = [consolidated];
+            } catch (exc) {
+                // If consolidation fails, continue with parts array
+            }
+        },
         clear: function() {
             parts = [];
+            totalLength = 0;
         },
         getLength: function() {
+            return totalLength;
+        },
+        getChunkCount: function() {
             return parts.length;
+        },
+        isEmpty: function() {
+            return totalLength === 0;
         }
     };
 }
@@ -335,13 +797,28 @@ function getCurrentTimestamp() {
            ('0' + now.getSeconds()).slice(-2);
 }
 
+/**
+ * Enhanced UUID generation for unique identifiers
+ * SAFETY: Creates unique IDs using time and random elements
+ * @returns {String} - Unique identifier
+ */
+function generateUniqueID() {
+    try {
+        var timestamp = new Date().getTime();
+        var random = Math.floor(Math.random() * 10000);
+        return 'id_' + timestamp + '_' + random;
+    } catch (exc) {
+        return 'id_unknown_' + Math.floor(Math.random() * 100000);
+    }
+}
+
 // ============================================================================
-// MODULE INITIALIZATION
+// MODULE INITIALIZATION (ENHANCED)
 // ============================================================================
 
 /**
- * Initialize safe foundation module
- * SAFETY: Validates all foundation functions are available
+ * Initialize enhanced safe foundation module
+ * SAFETY: Validates all foundation functions are available including new ones
  * @returns {Boolean} - true if initialization successful
  */
 function initializeSafeFoundation() {
@@ -350,7 +827,11 @@ function initializeSafeFoundation() {
         var requiredFunctions = [
             'safeTypeCheck', 'safeHasProperty', 'safeGetLength',
             'isReservedWord', 'isDangerousProperty', 'createTimeoutChecker',
-            'memoryCleanup', 'validateInDesignEnvironment', 'createStringBuilder'
+            'memoryCleanup', 'validateInDesignEnvironment', 'createStringBuilder',
+            // Enhanced functions
+            'generateObjectReferenceID', 'createObjectReferenceTracker',
+            'splitPath', 'joinPath', 'normalizePath', 'isDangerousPath',
+            'createEnhancedOperationCounter', 'enhancedMemoryCleanup'
         ];
         
         for (var i = 0; i < requiredFunctions.length; i++) {
@@ -360,13 +841,19 @@ function initializeSafeFoundation() {
             }
         }
         
-        $.writeln('1.0_safe-foundation.jsx: All functions initialized successfully');
+        $.writeln('1.0_safe-foundation.jsx: Enhanced version initialized successfully');
+        $.writeln('Enhanced features: Object reference tracking, path utilities, memory monitoring');
         return true;
         
     } catch (exc) {
-        $.writeln('ERROR: Safe foundation initialization failed: ' + exc.message);
+        $.writeln('ERROR: Enhanced safe foundation initialization failed: ' + exc.message);
         return false;
     }
+}
+
+// Legacy cleanup function for compatibility
+function memoryCleanup(objsToNull) {
+    enhancedMemoryCleanup(objsToNull, null);
 }
 
 // Auto-initialize when module loads
