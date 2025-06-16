@@ -144,7 +144,7 @@ function createControlPanel(parentWindow) {
     exportBtn.preferredSize.width = 120;
     exportBtn.enabled = false; // Enable after enumeration
     exportBtn.onClick = function() {
-        exportDOMStructure();
+        showExportOptions();
     };
     
     // Settings button
@@ -190,6 +190,17 @@ function createStatusPanel(parentWindow) {
  */
 function runDOMEnumeration() {
     try {
+        // Check if we already have DOM structure
+        if (DOM_VISUALIZER_STATE.currentDOMStructure) {
+            var shouldReEnumerate = confirm('DOM structure already discovered.\n\nWould you like to re-enumerate?\n\n(Choose "OK" to re-discover, "Cancel" to keep current results)');
+            if (!shouldReEnumerate) {
+                updateStatus('Using cached DOM structure - ' + DOM_VISUALIZER_STATE.currentDOMStructure.statistics.totalProperties + ' properties');
+                return;
+            }
+            // Clear existing structure for re-enumeration
+            DOM_VISUALIZER_STATE.currentDOMStructure = null;
+        }
+        
         updateStatus('Validating InDesign environment...');
         
         // Validate environment
@@ -203,9 +214,10 @@ function runDOMEnumeration() {
         var doc = envResult.document;
         updateStatus('Enumerating DOM structure - please wait...');
         
-        // Disable enumerate button during operation
+        // Update button state during operation
         if (DOM_VISUALIZER_STATE.controls.enumerateButton) {
             DOM_VISUALIZER_STATE.controls.enumerateButton.enabled = false;
+            DOM_VISUALIZER_STATE.controls.enumerateButton.text = 'Enumerating...';
         }
         
         // Run enumeration with default config
@@ -250,9 +262,10 @@ function runDOMEnumeration() {
         $.writeln('ERROR: DOM enumeration failed: ' + exc.message);
         alert('DOM enumeration failed:\n\n' + exc.message);
     } finally {
-        // Re-enable enumerate button
+        // Re-enable and restore enumerate button
         if (DOM_VISUALIZER_STATE.controls.enumerateButton) {
             DOM_VISUALIZER_STATE.controls.enumerateButton.enabled = true;
+            DOM_VISUALIZER_STATE.controls.enumerateButton.text = DOM_VISUALIZER_STATE.currentDOMStructure ? 'Re-enumerate DOM' : 'Enumerate DOM';
         }
     }
 }
@@ -464,21 +477,15 @@ function updateDocumentInfo() {
 }
 
 // ============================================================================
-// DIALOG FUNCTIONS (STUBS FOR NOW)
+// EXPORT FUNCTIONALITY
 // ============================================================================
 
 /**
- * Export DOM structure using the exporter module
+ * Show export options dialog (renamed from exportDOMStructure to avoid naming conflict)
  */
-function exportDOMStructure() {
+function showExportOptions() {
     if (!DOM_VISUALIZER_STATE.currentDOMStructure) {
         alert('No DOM structure to export. Please run enumeration first.');
-        return;
-    }
-    
-    // Check if exporter module is available
-    if (typeof exportDOMStructure === 'undefined') {
-        alert('DOM Exporter module not loaded. Please ensure 5.0_dom-exporter.jsx is loaded.');
         return;
     }
     
@@ -578,17 +585,32 @@ function showExportDialog() {
  */
 function performExport(format, customPath) {
     try {
-        // Call the global exportDOMStructure function from 5.0_dom-exporter.jsx
-        // Note: There's a naming conflict here - we need to call the exporter's function
-        // Let's rename our function to avoid conflict
-        var result = exportDOMStructureToFile(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
+        // Call the exporter function directly (should be in global scope from 5.0_dom-exporter.jsx)
+        var result = null;
         
-        if (result.success) {
+        // Try to call the exporter module function
+        try {
+            // Direct call to the global function from 5.0_dom-exporter.jsx
+            if (typeof exportDOMStructure === 'function') {
+                result = exportDOMStructure(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
+            } else {
+                throw new Error('Export function not found');
+            }
+        } catch (exc) {
+            result = {
+                success: false,
+                filePath: '',
+                error: 'DOM Exporter module not available or failed: ' + exc.message
+            };
+        }
+        
+        if (result && result.success) {
             updateStatus('Export successful: ' + result.filePath);
             alert('DOM structure exported successfully!\n\nFile saved to:\n' + result.filePath);
         } else {
-            updateStatus('Export failed: ' + result.error);
-            alert('Export failed:\n\n' + result.error);
+            var errorMsg = result ? result.error : 'Unknown export error';
+            updateStatus('Export failed: ' + errorMsg);
+            alert('Export failed:\n\n' + errorMsg);
         }
         
     } catch (exc) {
@@ -599,33 +621,37 @@ function performExport(format, customPath) {
 }
 
 /**
- * Wrapper function to call the exporter module's function
- * This avoids naming conflicts between our exportDOMStructure and the exporter's
- */
-function exportDOMStructureToFile(domStructure, format, customPath) {
-    // This calls the function from 5.0_dom-exporter.jsx
-    // We check if it exists to avoid errors if module not loaded
-    if (typeof window.exportDOMStructure === 'function') {
-        return window.exportDOMStructure(domStructure, format, customPath);
-    } else {
-        // Try global scope
-        try {
-            return eval('exportDOMStructure')(domStructure, format, customPath);
-        } catch (exc) {
-            return {
-                success: false,
-                filePath: '',
-                error: 'DOM Exporter module not available. Ensure 5.0_dom-exporter.jsx is loaded.'
-            };
-        }
-    }
-}
-
-/**
- * Show settings dialog
+ * Show settings dialog with basic options
  */
 function showSettingsDialog() {
-    alert('Settings functionality will be enhanced in future updates.\n\nCurrent settings:\n• Max Depth: 2\n• Timeout: 8 seconds\n• Skip Dangerous: Yes\n• Max Properties: 2000');
+    var settingsDialog = new Window('dialog', 'DOM Discovery Settings');
+    settingsDialog.orientation = 'column';
+    settingsDialog.alignChildren = 'fill';
+    settingsDialog.preferredSize.width = 350;
+    settingsDialog.preferredSize.height = 250;
+    
+    // Current settings display
+    var currentPanel = settingsDialog.add('panel', undefined, 'Current Settings');
+    currentPanel.add('statictext', undefined, 'Max Depth: 2 levels');
+    currentPanel.add('statictext', undefined, 'Timeout: 8 seconds');
+    currentPanel.add('statictext', undefined, 'Skip Dangerous Properties: Yes');
+    currentPanel.add('statictext', undefined, 'Max Properties: 2000');
+    
+    // Future settings note
+    var futurePanel = settingsDialog.add('panel', undefined, 'Configuration');
+    futurePanel.add('statictext', undefined, 'Advanced configuration options will be added in future updates.');
+    futurePanel.add('statictext', undefined, 'Current settings are optimized for safety and performance.');
+    
+    // Buttons
+    var buttonGroup = settingsDialog.add('group');
+    buttonGroup.alignment = 'center';
+    
+    var okBtn = buttonGroup.add('button', undefined, 'OK');
+    okBtn.onClick = function() {
+        settingsDialog.close();
+    };
+    
+    settingsDialog.show();
 }
 
 // ============================================================================

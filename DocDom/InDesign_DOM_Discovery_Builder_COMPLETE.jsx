@@ -2,7 +2,7 @@
 // InDesign DOM Discovery Builder v2.0 - COMPLETE ASSEMBLED VERSION
 // All DOM Discovery Modules Combined (Auto-Discovery Build)
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-16T00:51:45.339Z
+// Generated: 2025-06-16T02:13:44.473Z
 // 
 // This file contains all 5 modules assembled in proper order:
 // Module 1 (v1.0): 1.0_safe-foundation.jsx
@@ -1093,7 +1093,7 @@ function createControlPanel(parentWindow) {
     exportBtn.preferredSize.width = 120;
     exportBtn.enabled = false; // Enable after enumeration
     exportBtn.onClick = function() {
-        exportDOMStructure();
+        showExportOptions();
     };
     
     // Settings button
@@ -1139,6 +1139,17 @@ function createStatusPanel(parentWindow) {
  */
 function runDOMEnumeration() {
     try {
+        // Check if we already have DOM structure
+        if (DOM_VISUALIZER_STATE.currentDOMStructure) {
+            var shouldReEnumerate = confirm('DOM structure already discovered.\n\nWould you like to re-enumerate?\n\n(Choose "OK" to re-discover, "Cancel" to keep current results)');
+            if (!shouldReEnumerate) {
+                updateStatus('Using cached DOM structure - ' + DOM_VISUALIZER_STATE.currentDOMStructure.statistics.totalProperties + ' properties');
+                return;
+            }
+            // Clear existing structure for re-enumeration
+            DOM_VISUALIZER_STATE.currentDOMStructure = null;
+        }
+        
         updateStatus('Validating InDesign environment...');
         
         // Validate environment
@@ -1152,9 +1163,10 @@ function runDOMEnumeration() {
         var doc = envResult.document;
         updateStatus('Enumerating DOM structure - please wait...');
         
-        // Disable enumerate button during operation
+        // Update button state during operation
         if (DOM_VISUALIZER_STATE.controls.enumerateButton) {
             DOM_VISUALIZER_STATE.controls.enumerateButton.enabled = false;
+            DOM_VISUALIZER_STATE.controls.enumerateButton.text = 'Enumerating...';
         }
         
         // Run enumeration with default config
@@ -1199,9 +1211,10 @@ function runDOMEnumeration() {
         $.writeln('ERROR: DOM enumeration failed: ' + exc.message);
         alert('DOM enumeration failed:\n\n' + exc.message);
     } finally {
-        // Re-enable enumerate button
+        // Re-enable and restore enumerate button
         if (DOM_VISUALIZER_STATE.controls.enumerateButton) {
             DOM_VISUALIZER_STATE.controls.enumerateButton.enabled = true;
+            DOM_VISUALIZER_STATE.controls.enumerateButton.text = DOM_VISUALIZER_STATE.currentDOMStructure ? 'Re-enumerate DOM' : 'Enumerate DOM';
         }
     }
 }
@@ -1413,21 +1426,15 @@ function updateDocumentInfo() {
 }
 
 // ============================================================================
-// DIALOG FUNCTIONS (STUBS FOR NOW)
+// EXPORT FUNCTIONALITY
 // ============================================================================
 
 /**
- * Export DOM structure using the exporter module
+ * Show export options dialog (renamed from exportDOMStructure to avoid naming conflict)
  */
-function exportDOMStructure() {
+function showExportOptions() {
     if (!DOM_VISUALIZER_STATE.currentDOMStructure) {
         alert('No DOM structure to export. Please run enumeration first.');
-        return;
-    }
-    
-    // Check if exporter module is available
-    if (typeof exportDOMStructure === 'undefined') {
-        alert('DOM Exporter module not loaded. Please ensure 5.0_dom-exporter.jsx is loaded.');
         return;
     }
     
@@ -1527,17 +1534,32 @@ function showExportDialog() {
  */
 function performExport(format, customPath) {
     try {
-        // Call the global exportDOMStructure function from 5.0_dom-exporter.jsx
-        // Note: There's a naming conflict here - we need to call the exporter's function
-        // Let's rename our function to avoid conflict
-        var result = exportDOMStructureToFile(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
+        // Call the exporter function directly (should be in global scope from 5.0_dom-exporter.jsx)
+        var result = null;
         
-        if (result.success) {
+        // Try to call the exporter module function
+        try {
+            // Direct call to the global function from 5.0_dom-exporter.jsx
+            if (typeof exportDOMStructure === 'function') {
+                result = exportDOMStructure(DOM_VISUALIZER_STATE.currentDOMStructure, format, customPath);
+            } else {
+                throw new Error('Export function not found');
+            }
+        } catch (exc) {
+            result = {
+                success: false,
+                filePath: '',
+                error: 'DOM Exporter module not available or failed: ' + exc.message
+            };
+        }
+        
+        if (result && result.success) {
             updateStatus('Export successful: ' + result.filePath);
             alert('DOM structure exported successfully!\n\nFile saved to:\n' + result.filePath);
         } else {
-            updateStatus('Export failed: ' + result.error);
-            alert('Export failed:\n\n' + result.error);
+            var errorMsg = result ? result.error : 'Unknown export error';
+            updateStatus('Export failed: ' + errorMsg);
+            alert('Export failed:\n\n' + errorMsg);
         }
         
     } catch (exc) {
@@ -1548,33 +1570,37 @@ function performExport(format, customPath) {
 }
 
 /**
- * Wrapper function to call the exporter module's function
- * This avoids naming conflicts between our exportDOMStructure and the exporter's
- */
-function exportDOMStructureToFile(domStructure, format, customPath) {
-    // This calls the function from 5.0_dom-exporter.jsx
-    // We check if it exists to avoid errors if module not loaded
-    if (typeof window.exportDOMStructure === 'function') {
-        return window.exportDOMStructure(domStructure, format, customPath);
-    } else {
-        // Try global scope
-        try {
-            return eval('exportDOMStructure')(domStructure, format, customPath);
-        } catch (exc) {
-            return {
-                success: false,
-                filePath: '',
-                error: 'DOM Exporter module not available. Ensure 5.0_dom-exporter.jsx is loaded.'
-            };
-        }
-    }
-}
-
-/**
- * Show settings dialog
+ * Show settings dialog with basic options
  */
 function showSettingsDialog() {
-    alert('Settings functionality will be enhanced in future updates.\n\nCurrent settings:\n• Max Depth: 2\n• Timeout: 8 seconds\n• Skip Dangerous: Yes\n• Max Properties: 2000');
+    var settingsDialog = new Window('dialog', 'DOM Discovery Settings');
+    settingsDialog.orientation = 'column';
+    settingsDialog.alignChildren = 'fill';
+    settingsDialog.preferredSize.width = 350;
+    settingsDialog.preferredSize.height = 250;
+    
+    // Current settings display
+    var currentPanel = settingsDialog.add('panel', undefined, 'Current Settings');
+    currentPanel.add('statictext', undefined, 'Max Depth: 2 levels');
+    currentPanel.add('statictext', undefined, 'Timeout: 8 seconds');
+    currentPanel.add('statictext', undefined, 'Skip Dangerous Properties: Yes');
+    currentPanel.add('statictext', undefined, 'Max Properties: 2000');
+    
+    // Future settings note
+    var futurePanel = settingsDialog.add('panel', undefined, 'Configuration');
+    futurePanel.add('statictext', undefined, 'Advanced configuration options will be added in future updates.');
+    futurePanel.add('statictext', undefined, 'Current settings are optimized for safety and performance.');
+    
+    // Buttons
+    var buttonGroup = settingsDialog.add('group');
+    buttonGroup.alignment = 'center';
+    
+    var okBtn = buttonGroup.add('button', undefined, 'OK');
+    okBtn.onClick = function() {
+        settingsDialog.close();
+    };
+    
+    settingsDialog.show();
 }
 
 // ============================================================================
@@ -2401,6 +2427,135 @@ function generateCSVExport(domStructure) {
 // ============================================================================
 
 /**
+ * Simplify DOM structure for JSON export
+ * @param {Object} structure - DOM structure to simplify
+ * @returns {Object} - Simplified structure
+ */
+function simplifyDOMForJSON(structure) {
+    if (!structure) return {};
+    
+    var simplified = {};
+    
+    try {
+        for (var key in structure) {
+            if (structure[key] && typeof structure[key] === 'object') {
+                simplified[key] = simplifyDOMNodeForJSON(structure[key]);
+            } else {
+                simplified[key] = structure[key];
+            }
+        }
+    } catch (exc) {
+        $.writeln('ERROR: Simplifying DOM for JSON: ' + exc.message);
+    }
+    
+    return simplified;
+}
+
+/**
+ * Simplify DOM node for JSON export
+ * @param {Object} domNode - DOM node to simplify
+ * @returns {Object} - Simplified node
+ */
+function simplifyDOMNodeForJSON(domNode) {
+    if (!domNode) return null;
+    
+    var simplified = {
+        name: domNode.name || '',
+        path: domNode.path || '',
+        type: domNode.type || '',
+        depth: domNode.depth || 0,
+        hasCircularRefs: domNode.hasCircularRefs || false
+    };
+    
+    // Simplified properties
+    if (domNode.properties && domNode.properties.length > 0) {
+        simplified.properties = [];
+        for (var i = 0; i < domNode.properties.length; i++) {
+            var prop = domNode.properties[i];
+            simplified.properties.push({
+                name: prop.name,
+                type: prop.type,
+                safetyLevel: prop.safetyLevel,
+                isCollection: prop.isCollection || false,
+                isMethod: prop.isMethod || false
+            });
+        }
+    }
+    
+    // Simplified collections
+    if (domNode.collections && domNode.collections.length > 0) {
+        simplified.collections = [];
+        for (var i = 0; i < domNode.collections.length; i++) {
+            var coll = domNode.collections[i];
+            simplified.collections.push({
+                name: coll.name,
+                type: coll.type,
+                safetyLevel: coll.safetyLevel
+            });
+        }
+    }
+    
+    return simplified;
+}
+
+/**
+ * Generate CSV rows from DOM node
+ * @param {Object} domNode - DOM node to process
+ * @param {Object} builder - String builder for output
+ */
+function generateCSVFromNode(domNode, builder) {
+    if (!domNode) return;
+    
+    // Process properties
+    if (domNode.properties) {
+        for (var i = 0; i < domNode.properties.length; i++) {
+            var prop = domNode.properties[i];
+            var sampleValue = prop.hasSampleValue ? prop.sampleValue : '';
+            var csvLine = '"' + (domNode.path || '') + '","' + prop.name + '","' + prop.type + '","' + 
+                         prop.safetyLevel + '","' + (prop.isCollection ? 'true' : 'false') + '","' + 
+                         (prop.isMethod ? 'true' : 'false') + '","' + (prop.hasSampleValue ? 'true' : 'false') + 
+                         '","' + escapeCsvValue(sampleValue) + '"';
+            builder.appendLine(csvLine);
+        }
+    }
+    
+    // Process collections
+    if (domNode.collections) {
+        for (var i = 0; i < domNode.collections.length; i++) {
+            var coll = domNode.collections[i];
+            var sampleValue = coll.hasSampleValue ? coll.sampleValue : '';
+            var csvLine = '"' + (domNode.path || '') + '","' + coll.name + '","' + coll.type + '","' + 
+                         coll.safetyLevel + '","true","false","' + (coll.hasSampleValue ? 'true' : 'false') + 
+                         '","' + escapeCsvValue(sampleValue) + '"';
+            builder.appendLine(csvLine);
+        }
+    }
+    
+    // Process child nodes recursively
+    if (domNode.childNodes) {
+        for (var i = 0; i < domNode.childNodes.length; i++) {
+            generateCSVFromNode(domNode.childNodes[i], builder);
+        }
+    }
+}
+
+/**
+ * Escape CSV value for safe output
+ * @param {String} value - Value to escape
+ * @returns {String} - Escaped value
+ */
+function escapeCsvValue(value) {
+    if (!value) return '';
+    var str = String(value);
+    // Replace quotes with double quotes and wrap in quotes if contains comma or quote
+    str = str.replace(/"/g, '""');
+    if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+        str = '"' + str + '"';
+    }
+    return str;
+}
+
+/**
  * Generate property access guide
  * @param {Object} domNode - DOM node to analyze
  * @returns {String} - Property access guide
@@ -2625,14 +2780,30 @@ function generateDefaultFilePath(domStructure, extension) {
         var envResult = validateInDesignEnvironment();
         if (envResult.valid && envResult.document) {
             try {
+                // Try to get document file path safely
+                var docFilePath = null;
                 if (safeTypeCheck(envResult.document, 'filePath') === 'string') {
-                    var docFile = new File(envResult.document.filePath);
-                    if (docFile.parent) {
+                    docFilePath = envResult.document.filePath;
+                } else if (safeTypeCheck(envResult.document, 'fullName') === 'object') {
+                    // Try fullName property which might be a File object
+                    var fullNameObj = envResult.document.fullName;
+                    if (fullNameObj && safeTypeCheck(fullNameObj, 'parent') === 'object') {
+                        var parentFolder = fullNameObj.parent;
+                        if (parentFolder && safeTypeCheck(parentFolder, 'absoluteURI') === 'string') {
+                            return parentFolder.absoluteURI + '/' + fileName;
+                        }
+                    }
+                }
+                
+                if (docFilePath) {
+                    var docFile = new File(docFilePath);
+                    if (docFile.parent && docFile.parent.exists) {
                         return docFile.parent.absoluteURI + '/' + fileName;
                     }
                 }
             } catch (exc) {
-                // Fall through to desktop
+                // Fall through to desktop if document path access fails
+                $.writeln('Could not access document path, using desktop: ' + exc.message);
             }
         }
         
@@ -2663,23 +2834,41 @@ function stringifyObject(obj, depth) {
     
     var type = typeof obj;
     
-    if (type === 'string') return '"' + obj + '"';
+    if (type === 'string') return '"' + obj.replace(/"/g, '\\"') + '"';
     if (type === 'number' || type === 'boolean') return String(obj);
     
     if (type === 'object') {
-        var parts = [];
-        parts.push('{');
-        
-        var first = true;
-        for (var key in obj) {
-            if (!first) parts.push(',');
-            parts.push('"' + key + '":');
-            parts.push(stringifyObject(obj[key], depth + 1));
-            first = false;
+        if (obj.constructor === Array || (obj.length !== undefined && typeof obj.length === 'number')) {
+            // Handle arrays
+            var parts = ['['];
+            var arrayLength = obj.length || 0;
+            for (var i = 0; i < Math.min(arrayLength, 10); i++) {  // Limit array size
+                if (i > 0) parts.push(',');
+                parts.push(stringifyObject(obj[i], depth + 1));
+            }
+            if (arrayLength > 10) parts.push(',"[...more items]"');
+            parts.push(']');
+            return parts.join('');
+        } else {
+            // Handle objects
+            var parts = ['{'];
+            var first = true;
+            var count = 0;
+            for (var key in obj) {
+                if (count >= 20) {  // Limit object properties
+                    if (!first) parts.push(',');
+                    parts.push('"[...more properties]":"truncated"');
+                    break;
+                }
+                if (!first) parts.push(',');
+                parts.push('"' + key + '":');
+                parts.push(stringifyObject(obj[key], depth + 1));
+                first = false;
+                count++;
+            }
+            parts.push('}');
+            return parts.join('');
         }
-        
-        parts.push('}');
-        return parts.join('');
     }
     
     return '"[' + type + ']"';
