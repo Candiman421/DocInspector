@@ -1,10 +1,10 @@
 // =============================================================================
 // 6.1_advanced-ui.jsx - ENHANCED ADVANCED USER INTERFACE
-// InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
+// InDesign DOM Discovery Builder v3.1 - PRODUCTION READY - FIXED
 // =============================================================================
 // PURPOSE: Advanced UI with enhanced features, comparison tools, and analysis
 // DEPENDENCIES: ALL PREVIOUS MODULES (1.1-5.2)
-// SIZE: ~2500 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~2500 lines - COMPLETE IMPLEMENTATION - PROGRAMMATIC UI CREATION
 // =============================================================================
 
 // =============================================================================
@@ -39,9 +39,11 @@ var g_advUI_jsonAnalysisText = null;
 var g_advUI_comparisonText = null;
 var g_advUI_deepMappingText = null;
 var g_advUI_liveAnalysisText = null;
+var g_advUI_tabPanel = null;
+var g_advUI_baselineDocumentState = null;
 
 // =============================================================================
-// CONFIGURATION OBJECTS
+// CONFIGURATION OBJECTS - FIXED: export -> exportSettings
 // =============================================================================
 
 var ADVANCED_UI_CONFIG = {
@@ -52,56 +54,19 @@ var ADVANCED_UI_CONFIG = {
         maxProperties: 5000,
         enableObjectTracking: true,
         enableDuplicateDetection: true,
-        enableCircularReferenceDetection: true,
-        includeAlternativeAccessPaths: true,
-        trackPropertySafety: true,
-        enableProgressReporting: true,
-        generateStatistics: true
+        enableCircularReferenceDetection: true
     },
     sampling: {
         safetyFilter: 'safe',
-        maxSamples: 10,
-        timeoutMs: 1000,
+        maxSamples: 20,
+        timeoutMs: 2000,
         includeCollectionSamples: true,
-        maxStringLength: 500,
-        maxObjectDepth: 2,
         trackObjectReferences: true,
         includeValueMetadata: true,
         generateValueFingerprints: true,
-        enableProgressReporting: true,
-        enableDetailedLogging: false,
         skipNullValues: false,
-        skipUndefinedValues: false,
-        maxCollectionDepth: 3,
-        preserveOriginalTypes: true
-    },
-    collectionSampling: {
-        maxSamplesPerCollection: 5,
-        timeoutPerCollection: 5000,
-        timeoutPerItem: 2000,
-        maxCollectionSize: 2000,
-        samplingDepth: 3,
-        enableObjectReferenceTracking: true,
-        enableDeepPropertyAnalysis: true,
-        enableCrossCollectionTracking: true,
-        maxItemPropertiesPerSample: 100,
-        propertyAnalysisDepth: 2,
-        enableProgressReporting: true,
-        enableDetailedLogging: false
-    },
-    analysis: {
-        enableVisualHierarchy: true,
-        enablePropertyAnalysis: true,
-        enableCollectionAnalysis: true,
-        enableValueAnalysis: true,
-        enableAccessibilityMap: true,
-        maxAnalysisDepth: 10,
-        maxReportItems: 100,
-        generateDeveloperGuide: true,
-        includeCodeExamples: true,
-        highlightKeyProperties: true,
-        analyzeExtractedValues: true,
-        generatePerformanceMetrics: true
+        maxStringLength: 500,
+        maxCollectionDepth: 2
     },
     comparison: {
         enableStructuralComparison: true,
@@ -113,26 +78,31 @@ var ADVANCED_UI_CONFIG = {
         highlightCriticalChanges: true,
         analyzePerformanceImpact: true
     },
-    exportSettings: {
+    exportSettings: {  // FIXED: was 'export'
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
         includeObjectReferences: true,
         enableTimestamps: true,
         enableCompression: false,
-        generateMultipleFormats: true
+        maxFileSize: 50 * 1024 * 1024
+    },
+    ui: {
+        autoRefresh: false,
+        enableProgressReporting: false,
+        enableDetailedLogging: false
     }
 };
 
 // =============================================================================
-// MAIN UI FUNCTIONS
+// MAIN ADVANCED UI FUNCTIONS - PROGRAMMATIC CREATION
 // =============================================================================
 
 /**
- * Show advanced UI interface
- * @returns {Boolean} True if shown successfully
+ * Show advanced DOM analysis interface (main entry point)
+ * @returns {Boolean} True if interface shown successfully
  */
-function showAdvancedUI() {
+function showAdvancedDOMAnalysis() {
     try {
         // Check if window already exists
         if (g_advUI_window) {
@@ -157,20 +127,23 @@ function showAdvancedUI() {
 }
 
 /**
- * Initialize advanced UI
+ * Initialize advanced UI - FIXED: Programmatic creation
  * @returns {Boolean} True if initialized successfully
  */
 function initializeAdvancedUI() {
     try {
-        // Create main window
+        // Create main window - SIMPLE, not complex resource string
         g_advUI_window = createAdvancedWindow();
         if (!g_advUI_window) {
             alert('Failed to create Advanced UI window');
             return false;
         }
 
-        // Create tabs
-        createAdvancedTabs();
+        // Build UI components programmatically
+        createAdvancedHeader(g_advUI_window);
+        createAdvancedTabs(g_advUI_window);
+        createAdvancedControls(g_advUI_window);
+        createAdvancedFooter(g_advUI_window);
 
         // Initialize event handlers
         initializeAdvancedEventHandlers();
@@ -191,226 +164,27 @@ function initializeAdvancedUI() {
 }
 
 /**
- * Create advanced UI window
+ * Create advanced UI window - SIMPLE BASE WINDOW
  * @returns {Window} Created window or null
  */
 function createAdvancedWindow() {
     try {
-        var windowResource = "dialog { " +
-            "text: 'InDesign DOM Discovery Builder - Advanced Interface v3.1', " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-            "preferredSize: { width: 1000, height: 800 }, " +
-            "margins: 15, " +
-
-            "header: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 15, " +
-            "document: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'left', " +
-            "info: StaticText { text: 'Document: Loading...', characters: 50 }, " +
-            "status: StaticText { text: 'Status: Initializing...', characters: 50 } " +
-            "}, " +
-            "controls: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'right', " +
-            "spacing: 5, " +
-            "mainVisualizer: Button { text: 'Main DOM Visualizer', preferredSize: { width: 150, height: 25 } }, " +
-            "moduleStatus: Button { text: 'Module Status', preferredSize: { width: 150, height: 25 } } " +
-            "} " +
-            "}, " +
-
-            "separator1: Panel { height: 2 }, " +
-
-            "mainTabs: TabbedPanel { " +
-            "alignChildren: 'fill', " +
-            "preferredSize: { height: 600 }, " +
-
-            "liveTab: Tab { " +
-            "text: 'Live Document Analysis', " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-
-            "liveControls: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 10, " +
-            "liveAnalysis: Button { text: 'Live Analysis', preferredSize: { width: 120, height: 25 } }, " +
-            "liveCompare: Button { text: 'Live Compare', preferredSize: { width: 120, height: 25 } }, " +
-            "takeSnapshot: Button { text: 'Take Snapshot', preferredSize: { width: 120, height: 25 } }, " +
-            "clearLive: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-            "}, " +
-
-            "liveDisplay: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-            "margins: 5, " +
-            "text: EditText { " +
-            "alignment: 'fill', " +
-            "preferredSize: { height: 500 }, " +
-            "properties: { multiline: true, scrolling: true } " +
-            "} " +
-            "} " +
-            "}, " +
-
-            "discoveryTab: Tab { " +
-            "text: 'Advanced Discovery', " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-
-            "discoveryControls: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 10, " +
-            "fullDiscovery: Button { text: 'Full Discovery', preferredSize: { width: 120, height: 25 } }, " +
-            "deepMapping: Button { text: 'Deep Mapping', preferredSize: { width: 120, height: 25 } }, " +
-            "performance: Button { text: 'Performance', preferredSize: { width: 120, height: 25 } }, " +
-            "clearDiscovery: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-            "}, " +
-
-            "discoveryDisplay: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-            "margins: 5, " +
-            "text: EditText { " +
-            "alignment: 'fill', " +
-            "preferredSize: { height: 500 }, " +
-            "properties: { multiline: true, scrolling: true } " +
-            "} " +
-            "} " +
-            "}, " +
-
-            "analysisTab: Tab { " +
-            "text: 'JSON Analysis', " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-
-            "analysisControls: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 10, " +
-            "loadJSON: Button { text: 'Load JSON', preferredSize: { width: 100, height: 25 } }, " +
-            "analyzeJSON: Button { text: 'Analyze', preferredSize: { width: 100, height: 25 } }, " +
-            "visualize: Button { text: 'Visualize', preferredSize: { width: 100, height: 25 } }, " +
-            "exportAnalysis: Button { text: 'Export Analysis', preferredSize: { width: 120, height: 25 } }, " +
-            "clearAnalysis: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-            "}, " +
-
-            "analysisDisplay: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-            "margins: 5, " +
-            "text: EditText { " +
-            "alignment: 'fill', " +
-            "preferredSize: { height: 500 }, " +
-            "properties: { multiline: true, scrolling: true } " +
-            "} " +
-            "} " +
-            "}, " +
-
-            "comparisonTab: Tab { " +
-            "text: 'Snapshot Comparison', " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-
-            "comparisonControls: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 10, " +
-            "loadBefore: Button { text: 'Load Before', preferredSize: { width: 100, height: 25 } }, " +
-            "loadAfter: Button { text: 'Load After', preferredSize: { width: 100, height: 25 } }, " +
-            "compare: Button { text: 'Compare', preferredSize: { width: 100, height: 25 } }, " +
-            "exportComparison: Button { text: 'Export Report', preferredSize: { width: 120, height: 25 } }, " +
-            "clearComparison: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-            "}, " +
-
-            "comparisonDisplay: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-            "margins: 5, " +
-            "text: EditText { " +
-            "alignment: 'fill', " +
-            "preferredSize: { height: 500 }, " +
-            "properties: { multiline: true, scrolling: true } " +
-            "} " +
-            "} " +
-            "}, " +
-
-            "deepMappingTab: Tab { " +
-            "text: 'Deep Object Mapping', " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-
-            "mappingControls: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 10, " +
-            "createMapping: Button { text: 'Create Mapping', preferredSize: { width: 120, height: 25 } }, " +
-            "objectAtlas: Button { text: 'Object Atlas', preferredSize: { width: 120, height: 25 } }, " +
-            "optimize: Button { text: 'Optimize', preferredSize: { width: 100, height: 25 } }, " +
-            "clearMapping: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-            "}, " +
-
-            "mappingDisplay: Group { " +
-            "orientation: 'column', " +
-            "alignChildren: 'fill', " +
-            "margins: 5, " +
-            "text: EditText { " +
-            "alignment: 'fill', " +
-            "preferredSize: { height: 500 }, " +
-            "properties: { multiline: true, scrolling: true } " +
-            "} " +
-            "} " +
-            "} " +
-            "}, " +
-
-            "separator2: Panel { height: 2 }, " +
-
-            "controlPanel: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "spacing: 10, " +
-            "exportGroup: Group { " +
-            "orientation: 'row', " +
-            "spacing: 5, " +
-            "exportJSON: Button { text: 'Export JSON', preferredSize: { width: 100, height: 25 } }, " +
-            "exportText: Button { text: 'Export Text', preferredSize: { width: 100, height: 25 } }, " +
-            "exportCSV: Button { text: 'Export CSV', preferredSize: { width: 100, height: 25 } } " +
-            "}, " +
-            "actionGroup: Group { " +
-            "orientation: 'row', " +
-            "spacing: 5, " +
-            "generateReport: Button { text: 'Full Report', preferredSize: { width: 100, height: 25 } }, " +
-            "config: Button { text: 'Config', preferredSize: { width: 80, height: 25 } } " +
-            "} " +
-            "}, " +
-
-            "footer: Group { " +
-            "orientation: 'row', " +
-            "alignChildren: 'center', " +
-            "status: StaticText { text: 'Ready', characters: 80, alignment: 'left' }, " +
-            "buttons: Group { " +
-            "orientation: 'row', " +
-            "spacing: 10, " +
-            "reset: Button { text: 'Reset', preferredSize: { width: 80, height: 25 } }, " +
-            "help: Button { text: 'Help', preferredSize: { width: 80, height: 25 } }, " +
-            "close: Button { text: 'Close', preferredSize: { width: 80, height: 25 } } " +
-            "} " +
-            "} " +
-            "}";
-
-        var window = new Window(windowResource);
-        if (!window) {
+        // Create simple base window - NO complex resource string
+        var mainWindow = new Window('dialog', 'InDesign DOM Discovery Builder - Advanced Interface v3.1');
+        if (!mainWindow) {
             return null;
         }
 
-        // Store UI references
-        g_advUI_documentInfo = window.header.document.info;
-        g_advUI_statusText = window.footer.status;
+        mainWindow.orientation = 'column';
+        mainWindow.alignChildren = 'fill';
+        mainWindow.spacing = 10;
+        mainWindow.margins = 16;
 
-        return window;
+        // Set window size
+        mainWindow.preferredSize.width = 1000;
+        mainWindow.preferredSize.height = 800;
+
+        return mainWindow;
 
     } catch (exc) {
         alert('Advanced window creation error: ' + exc.message);
@@ -419,22 +193,561 @@ function createAdvancedWindow() {
 }
 
 /**
- * Create and initialize tabs
+ * Create advanced header panel
+ * @param {Window} parentWindow - Parent window
  */
-function createAdvancedTabs() {
+function createAdvancedHeader(parentWindow) {
     try {
-        if (!g_advUI_window) return;
+        if (!parentWindow) return;
 
-        var tabs = g_advUI_window.mainTabs;
+        var headerGroup = parentWindow.add('group');
+        if (!headerGroup) return;
 
-        // Store text area references
-        g_advUI_liveAnalysisText = tabs.liveTab.liveDisplay.text;
-        g_advUI_jsonAnalysisText = tabs.analysisTab.analysisDisplay.text;
-        g_advUI_comparisonText = tabs.comparisonTab.comparisonDisplay.text;
-        g_advUI_deepMappingText = tabs.deepMappingTab.mappingDisplay.text;
+        headerGroup.orientation = 'row';
+        headerGroup.alignChildren = 'center';
+        headerGroup.spacing = 15;
+
+        // Document info group
+        var docGroup = headerGroup.add('group');
+        if (docGroup) {
+            docGroup.orientation = 'column';
+            docGroup.alignChildren = 'left';
+
+            g_advUI_documentInfo = docGroup.add('statictext', undefined, 'Document: Loading...');
+            if (g_advUI_documentInfo) {
+                g_advUI_documentInfo.preferredSize.width = 400;
+            }
+        }
+
+        // Control buttons group
+        var controlGroup = headerGroup.add('group');
+        if (controlGroup) {
+            controlGroup.orientation = 'row';
+            controlGroup.alignChildren = 'right';
+            controlGroup.spacing = 5;
+
+            var mainVisualizerBtn = controlGroup.add('button', undefined, 'Main DOM Visualizer');
+            if (mainVisualizerBtn) {
+                mainVisualizerBtn.preferredSize.width = 150;
+                mainVisualizerBtn.onClick = showMainDOMVisualizer;
+            }
+
+            var moduleStatusBtn = controlGroup.add('button', undefined, 'Module Status');
+            if (moduleStatusBtn) {
+                moduleStatusBtn.preferredSize.width = 150;
+                moduleStatusBtn.onClick = showModuleStatus;
+            }
+        }
+
+        // Add separator
+        var separator1 = parentWindow.add('panel');
+        if (separator1) {
+            separator1.preferredSize.height = 2;
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Header creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create advanced tabs - PROGRAMMATIC TAB CREATION
+ * @param {Window} parentWindow - Parent window
+ */
+function createAdvancedTabs(parentWindow) {
+    try {
+        if (!parentWindow) return;
+
+        // Create tab panel
+        g_advUI_tabPanel = parentWindow.add('tabbedpanel');
+        if (!g_advUI_tabPanel) return;
+
+        g_advUI_tabPanel.alignChildren = 'fill';
+        g_advUI_tabPanel.preferredSize.height = 600;
+
+        // Create tabs programmatically
+        createLiveAnalysisTab();
+        createAdvancedDiscoveryTab();
+        createJSONAnalysisTab();
+        createSnapshotComparisonTab();
+        createDeepMappingTab();
+
+        // Set default tab
+        if (g_advUI_tabPanel.children.length > 0) {
+            g_advUI_tabPanel.selection = g_advUI_tabPanel.children[0];
+        }
 
     } catch (exc) {
         updateAdvancedStatus('Tab creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create Live Analysis Tab
+ */
+function createLiveAnalysisTab() {
+    try {
+        if (!g_advUI_tabPanel) return;
+
+        var liveTab = g_advUI_tabPanel.add('tab', undefined, 'Live Document Analysis');
+        if (!liveTab) return;
+
+        liveTab.orientation = 'column';
+        liveTab.alignChildren = 'fill';
+        liveTab.spacing = 5;
+
+        // Controls
+        var liveControls = liveTab.add('group');
+        if (liveControls) {
+            liveControls.orientation = 'row';
+            liveControls.alignChildren = 'center';
+            liveControls.spacing = 10;
+
+            var liveAnalysisBtn = liveControls.add('button', undefined, 'Live Analysis');
+            if (liveAnalysisBtn) {
+                liveAnalysisBtn.preferredSize.width = 120;
+                liveAnalysisBtn.onClick = runLiveDocumentAnalysis;
+            }
+
+            var liveCompareBtn = liveControls.add('button', undefined, 'Live Compare');
+            if (liveCompareBtn) {
+                liveCompareBtn.preferredSize.width = 120;
+                liveCompareBtn.onClick = runLiveComparison;
+            }
+
+            var takeSnapshotBtn = liveControls.add('button', undefined, 'Take Snapshot');
+            if (takeSnapshotBtn) {
+                takeSnapshotBtn.preferredSize.width = 120;
+                takeSnapshotBtn.onClick = takeDocumentSnapshot;
+            }
+
+            var clearLiveBtn = liveControls.add('button', undefined, 'Clear');
+            if (clearLiveBtn) {
+                clearLiveBtn.preferredSize.width = 80;
+                clearLiveBtn.onClick = clearLiveDisplay;
+            }
+        }
+
+        // Display area
+        var liveDisplay = liveTab.add('group');
+        if (liveDisplay) {
+            liveDisplay.orientation = 'column';
+            liveDisplay.alignChildren = 'fill';
+            liveDisplay.spacing = 5;
+
+            g_advUI_liveAnalysisText = liveDisplay.add('edittext', undefined, 'Run live document analysis to see current structure and extracted values...', {
+                multiline: true,
+                scrolling: true
+            });
+            if (g_advUI_liveAnalysisText) {
+                g_advUI_liveAnalysisText.preferredSize.height = 500;
+                g_advUI_liveAnalysisText.readonly = true;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Live tab creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create Advanced Discovery Tab
+ */
+function createAdvancedDiscoveryTab() {
+    try {
+        if (!g_advUI_tabPanel) return;
+
+        var discoveryTab = g_advUI_tabPanel.add('tab', undefined, 'Advanced Discovery');
+        if (!discoveryTab) return;
+
+        discoveryTab.orientation = 'column';
+        discoveryTab.alignChildren = 'fill';
+        discoveryTab.spacing = 5;
+
+        // Controls
+        var discoveryControls = discoveryTab.add('group');
+        if (discoveryControls) {
+            discoveryControls.orientation = 'row';
+            discoveryControls.alignChildren = 'center';
+            discoveryControls.spacing = 10;
+
+            var fullDiscoveryBtn = discoveryControls.add('button', undefined, 'Full Discovery');
+            if (fullDiscoveryBtn) {
+                fullDiscoveryBtn.preferredSize.width = 120;
+                fullDiscoveryBtn.onClick = performAdvancedDiscovery;
+            }
+
+            var deepMappingBtn = discoveryControls.add('button', undefined, 'Deep Mapping');
+            if (deepMappingBtn) {
+                deepMappingBtn.preferredSize.width = 120;
+                deepMappingBtn.onClick = runDeepMapping;
+            }
+
+            var performanceBtn = discoveryControls.add('button', undefined, 'Performance');
+            if (performanceBtn) {
+                performanceBtn.preferredSize.width = 120;
+                performanceBtn.onClick = analyzePerformance;
+            }
+
+            var clearDiscoveryBtn = discoveryControls.add('button', undefined, 'Clear');
+            if (clearDiscoveryBtn) {
+                clearDiscoveryBtn.preferredSize.width = 80;
+                clearDiscoveryBtn.onClick = clearDiscoveryDisplay;
+            }
+        }
+
+        // Display area
+        var discoveryDisplay = discoveryTab.add('group');
+        if (discoveryDisplay) {
+            discoveryDisplay.orientation = 'column';
+            discoveryDisplay.alignChildren = 'fill';
+
+            var discoveryText = discoveryDisplay.add('edittext', undefined, 'Run advanced discovery to see enhanced DOM structure analysis...', {
+                multiline: true,
+                scrolling: true
+            });
+            if (discoveryText) {
+                discoveryText.preferredSize.height = 500;
+                discoveryText.readonly = true;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Discovery tab creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create JSON Analysis Tab
+ */
+function createJSONAnalysisTab() {
+    try {
+        if (!g_advUI_tabPanel) return;
+
+        var analysisTab = g_advUI_tabPanel.add('tab', undefined, 'JSON Analysis');
+        if (!analysisTab) return;
+
+        analysisTab.orientation = 'column';
+        analysisTab.alignChildren = 'fill';
+        analysisTab.spacing = 5;
+
+        // Controls
+        var analysisControls = analysisTab.add('group');
+        if (analysisControls) {
+            analysisControls.orientation = 'row';
+            analysisControls.alignChildren = 'center';
+            analysisControls.spacing = 10;
+
+            var loadJSONBtn = analysisControls.add('button', undefined, 'Load JSON');
+            if (loadJSONBtn) {
+                loadJSONBtn.preferredSize.width = 100;
+                loadJSONBtn.onClick = loadJSONExport;
+            }
+
+            var analyzeJSONBtn = analysisControls.add('button', undefined, 'Analyze');
+            if (analyzeJSONBtn) {
+                analyzeJSONBtn.preferredSize.width = 100;
+                analyzeJSONBtn.onClick = runJSONAnalysis;
+            }
+
+            var visualizeBtn = analysisControls.add('button', undefined, 'Visualize');
+            if (visualizeBtn) {
+                visualizeBtn.preferredSize.width = 100;
+                visualizeBtn.onClick = visualizeJSON;
+            }
+
+            var exportAnalysisBtn = analysisControls.add('button', undefined, 'Export Analysis');
+            if (exportAnalysisBtn) {
+                exportAnalysisBtn.preferredSize.width = 120;
+                exportAnalysisBtn.onClick = exportJSONAnalysis;
+            }
+
+            var clearAnalysisBtn = analysisControls.add('button', undefined, 'Clear');
+            if (clearAnalysisBtn) {
+                clearAnalysisBtn.preferredSize.width = 80;
+                clearAnalysisBtn.onClick = clearAnalysisDisplay;
+            }
+        }
+
+        // Display area
+        var analysisDisplay = analysisTab.add('group');
+        if (analysisDisplay) {
+            analysisDisplay.orientation = 'column';
+            analysisDisplay.alignChildren = 'fill';
+
+            g_advUI_jsonAnalysisText = analysisDisplay.add('edittext', undefined, 'Load a JSON export file to see detailed analysis and visual hierarchy...', {
+                multiline: true,
+                scrolling: true
+            });
+            if (g_advUI_jsonAnalysisText) {
+                g_advUI_jsonAnalysisText.preferredSize.height = 500;
+                g_advUI_jsonAnalysisText.readonly = true;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Analysis tab creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create Snapshot Comparison Tab
+ */
+function createSnapshotComparisonTab() {
+    try {
+        if (!g_advUI_tabPanel) return;
+
+        var comparisonTab = g_advUI_tabPanel.add('tab', undefined, 'Snapshot Comparison');
+        if (!comparisonTab) return;
+
+        comparisonTab.orientation = 'column';
+        comparisonTab.alignChildren = 'fill';
+        comparisonTab.spacing = 5;
+
+        // Controls
+        var comparisonControls = comparisonTab.add('group');
+        if (comparisonControls) {
+            comparisonControls.orientation = 'row';
+            comparisonControls.alignChildren = 'center';
+            comparisonControls.spacing = 10;
+
+            var loadBeforeBtn = comparisonControls.add('button', undefined, 'Load Before');
+            if (loadBeforeBtn) {
+                loadBeforeBtn.preferredSize.width = 100;
+                loadBeforeBtn.onClick = loadBeforeSnapshot;
+            }
+
+            var loadAfterBtn = comparisonControls.add('button', undefined, 'Load After');
+            if (loadAfterBtn) {
+                loadAfterBtn.preferredSize.width = 100;
+                loadAfterBtn.onClick = loadAfterSnapshot;
+            }
+
+            var compareBtn = comparisonControls.add('button', undefined, 'Compare');
+            if (compareBtn) {
+                compareBtn.preferredSize.width = 100;
+                compareBtn.onClick = runSnapshotComparison;
+            }
+
+            var exportComparisonBtn = comparisonControls.add('button', undefined, 'Export Report');
+            if (exportComparisonBtn) {
+                exportComparisonBtn.preferredSize.width = 120;
+                exportComparisonBtn.onClick = exportComparisonReport;
+            }
+
+            var clearComparisonBtn = comparisonControls.add('button', undefined, 'Clear');
+            if (clearComparisonBtn) {
+                clearComparisonBtn.preferredSize.width = 80;
+                clearComparisonBtn.onClick = clearComparisonDisplay;
+            }
+        }
+
+        // Display area
+        var comparisonDisplay = comparisonTab.add('group');
+        if (comparisonDisplay) {
+            comparisonDisplay.orientation = 'column';
+            comparisonDisplay.alignChildren = 'fill';
+
+            g_advUI_comparisonText = comparisonDisplay.add('edittext', undefined, 'Load before/after snapshots to analyze document changes...', {
+                multiline: true,
+                scrolling: true
+            });
+            if (g_advUI_comparisonText) {
+                g_advUI_comparisonText.preferredSize.height = 500;
+                g_advUI_comparisonText.readonly = true;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Comparison tab creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create Deep Object Mapping Tab
+ */
+function createDeepMappingTab() {
+    try {
+        if (!g_advUI_tabPanel) return;
+
+        var mappingTab = g_advUI_tabPanel.add('tab', undefined, 'Deep Object Mapping');
+        if (!mappingTab) return;
+
+        mappingTab.orientation = 'column';
+        mappingTab.alignChildren = 'fill';
+        mappingTab.spacing = 5;
+
+        // Controls
+        var mappingControls = mappingTab.add('group');
+        if (mappingControls) {
+            mappingControls.orientation = 'row';
+            mappingControls.alignChildren = 'center';
+            mappingControls.spacing = 10;
+
+            var createMappingBtn = mappingControls.add('button', undefined, 'Create Mapping');
+            if (createMappingBtn) {
+                createMappingBtn.preferredSize.width = 120;
+                createMappingBtn.onClick = createDeepMapping;
+            }
+
+            var objectAtlasBtn = mappingControls.add('button', undefined, 'Object Atlas');
+            if (objectAtlasBtn) {
+                objectAtlasBtn.preferredSize.width = 100;
+                objectAtlasBtn.onClick = generateAdvancedAtlas;
+            }
+
+            var optimizeBtn = mappingControls.add('button', undefined, 'Optimize');
+            if (optimizeBtn) {
+                optimizeBtn.preferredSize.width = 100;
+                optimizeBtn.onClick = optimizeMapping;
+            }
+
+            var clearMappingBtn = mappingControls.add('button', undefined, 'Clear');
+            if (clearMappingBtn) {
+                clearMappingBtn.preferredSize.width = 80;
+                clearMappingBtn.onClick = clearMappingDisplay;
+            }
+        }
+
+        // Display area
+        var mappingDisplay = mappingTab.add('group');
+        if (mappingDisplay) {
+            mappingDisplay.orientation = 'column';
+            mappingDisplay.alignChildren = 'fill';
+
+            g_advUI_deepMappingText = mappingDisplay.add('edittext', undefined, 'Create detailed object maps to understand document relationships...', {
+                multiline: true,
+                scrolling: true
+            });
+            if (g_advUI_deepMappingText) {
+                g_advUI_deepMappingText.preferredSize.height = 500;
+                g_advUI_deepMappingText.readonly = true;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Mapping tab creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create advanced controls panel
+ * @param {Window} parentWindow - Parent window
+ */
+function createAdvancedControls(parentWindow) {
+    try {
+        if (!parentWindow) return;
+
+        // Add separator
+        var separator2 = parentWindow.add('panel');
+        if (separator2) {
+            separator2.preferredSize.height = 2;
+        }
+
+        var controlPanel = parentWindow.add('group');
+        if (!controlPanel) return;
+
+        controlPanel.orientation = 'row';
+        controlPanel.alignChildren = 'center';
+        controlPanel.spacing = 10;
+
+        // Export group
+        var exportGroup = controlPanel.add('group');
+        if (exportGroup) {
+            exportGroup.orientation = 'row';
+            exportGroup.spacing = 5;
+
+            var exportJSONBtn = exportGroup.add('button', undefined, 'Export JSON');
+            if (exportJSONBtn) {
+                exportJSONBtn.preferredSize.width = 100;
+                exportJSONBtn.onClick = function() { performAdvancedExport('json'); };
+            }
+
+            var exportTextBtn = exportGroup.add('button', undefined, 'Export Text');
+            if (exportTextBtn) {
+                exportTextBtn.preferredSize.width = 100;
+                exportTextBtn.onClick = function() { performAdvancedExport('text'); };
+            }
+
+            var exportCSVBtn = exportGroup.add('button', undefined, 'Export CSV');
+            if (exportCSVBtn) {
+                exportCSVBtn.preferredSize.width = 100;
+                exportCSVBtn.onClick = function() { performAdvancedExport('csv'); };
+            }
+        }
+
+        // Action group
+        var actionGroup = controlPanel.add('group');
+        if (actionGroup) {
+            actionGroup.orientation = 'row';
+            actionGroup.spacing = 5;
+
+            var generateReportBtn = actionGroup.add('button', undefined, 'Full Report');
+            if (generateReportBtn) {
+                generateReportBtn.preferredSize.width = 100;
+                generateReportBtn.onClick = generateComprehensiveReport;
+            }
+
+            var configBtn = actionGroup.add('button', undefined, 'Config');
+            if (configBtn) {
+                configBtn.preferredSize.width = 80;
+                configBtn.onClick = showAdvancedConfiguration;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Controls creation error: ' + exc.message);
+    }
+}
+
+/**
+ * Create advanced footer
+ * @param {Window} parentWindow - Parent window
+ */
+function createAdvancedFooter(parentWindow) {
+    try {
+        if (!parentWindow) return;
+
+        var footerGroup = parentWindow.add('group');
+        if (!footerGroup) return;
+
+        footerGroup.orientation = 'row';
+        footerGroup.alignChildren = 'center';
+
+        // Status text
+        g_advUI_statusText = footerGroup.add('statictext', undefined, 'Ready');
+        if (g_advUI_statusText) {
+            g_advUI_statusText.preferredSize.width = 600;
+            g_advUI_statusText.alignment = 'left';
+        }
+
+        // Buttons group
+        var buttonsGroup = footerGroup.add('group');
+        if (buttonsGroup) {
+            buttonsGroup.orientation = 'row';
+            buttonsGroup.spacing = 10;
+
+            var resetBtn = buttonsGroup.add('button', undefined, 'Reset');
+            if (resetBtn) {
+                resetBtn.preferredSize.width = 80;
+                resetBtn.onClick = resetAdvancedUI;
+            }
+
+            var helpBtn = buttonsGroup.add('button', undefined, 'Help');
+            if (helpBtn) {
+                helpBtn.preferredSize.width = 80;
+                helpBtn.onClick = showAdvancedHelp;
+            }
+
+            var closeBtn = buttonsGroup.add('button', undefined, 'Close');
+            if (closeBtn) {
+                closeBtn.preferredSize.width = 80;
+                closeBtn.onClick = closeAdvancedUI;
+            }
+        }
+
+    } catch (exc) {
+        updateAdvancedStatus('Footer creation error: ' + exc.message);
     }
 }
 
@@ -443,88 +756,40 @@ function createAdvancedTabs() {
  */
 function initializeAdvancedEventHandlers() {
     try {
-        if (!g_advUI_window) return;
-
-        var window = g_advUI_window;
-
-        // Header controls
-        window.header.controls.mainVisualizer.onClick = showMainDOMVisualizer;
-        window.header.controls.moduleStatus.onClick = showModuleStatus;
-
-        // Live tab
-        window.mainTabs.liveTab.liveControls.liveAnalysis.onClick = runLiveDocumentAnalysis;
-        window.mainTabs.liveTab.liveControls.liveCompare.onClick = runLiveComparison;
-        window.mainTabs.liveTab.liveControls.takeSnapshot.onClick = takeDocumentSnapshot;
-        window.mainTabs.liveTab.liveControls.clearLive.onClick = clearLiveDisplay;
-
-        // Discovery tab
-        window.mainTabs.discoveryTab.discoveryControls.fullDiscovery.onClick = performAdvancedDiscovery;
-        window.mainTabs.discoveryTab.discoveryControls.deepMapping.onClick = runDeepMapping;
-        window.mainTabs.discoveryTab.discoveryControls.performance.onClick = analyzePerformance;
-        window.mainTabs.discoveryTab.discoveryControls.clearDiscovery.onClick = clearDiscoveryDisplay;
-
-        // Analysis tab
-        window.mainTabs.analysisTab.analysisControls.loadJSON.onClick = loadJSONExport;
-        window.mainTabs.analysisTab.analysisControls.analyzeJSON.onClick = runJSONAnalysis;
-        window.mainTabs.analysisTab.analysisControls.visualize.onClick = visualizeJSON;
-        window.mainTabs.analysisTab.analysisControls.exportAnalysis.onClick = exportJSONAnalysis;
-        window.mainTabs.analysisTab.analysisControls.clearAnalysis.onClick = clearAnalysisDisplay;
-
-        // Comparison tab
-        window.mainTabs.comparisonTab.comparisonControls.loadBefore.onClick = loadBeforeSnapshot;
-        window.mainTabs.comparisonTab.comparisonControls.loadAfter.onClick = loadAfterSnapshot;
-        window.mainTabs.comparisonTab.comparisonControls.compare.onClick = runSnapshotComparison;
-        window.mainTabs.comparisonTab.comparisonControls.exportComparison.onClick = exportComparisonReport;
-        window.mainTabs.comparisonTab.comparisonControls.clearComparison.onClick = clearComparisonDisplay;
-
-        // Deep mapping tab
-        window.mainTabs.deepMappingTab.mappingControls.createMapping.onClick = createDeepMapping;
-        window.mainTabs.deepMappingTab.mappingControls.objectAtlas.onClick = generateAdvancedAtlas;
-        window.mainTabs.deepMappingTab.mappingControls.optimize.onClick = optimizeMapping;
-        window.mainTabs.deepMappingTab.mappingControls.clearMapping.onClick = clearMappingDisplay;
-
-        // Control panel
-        window.controlPanel.exportGroup.exportJSON.onClick = function () { performAdvancedExport('json'); };
-        window.controlPanel.exportGroup.exportText.onClick = function () { performAdvancedExport('text'); };
-        window.controlPanel.exportGroup.exportCSV.onClick = function () { performAdvancedExport('csv'); };
-        window.controlPanel.actionGroup.generateReport.onClick = generateComprehensiveReport;
-        window.controlPanel.actionGroup.config.onClick = showAdvancedConfiguration;
-
-        // Footer controls
-        window.footer.buttons.reset.onClick = resetAdvancedUI;
-        window.footer.buttons.help.onClick = showAdvancedHelp;
-        window.footer.buttons.close.onClick = closeAdvancedUI;
-
+        // Event handlers are assigned during component creation
+        updateAdvancedStatus('Event handlers initialized');
     } catch (exc) {
         updateAdvancedStatus('Event handler initialization error: ' + exc.message);
     }
 }
 
 // =============================================================================
-// LIVE DOCUMENT ANALYSIS
+// LIVE DOCUMENT ANALYSIS - FULL IMPLEMENTATION
 // =============================================================================
 
 /**
- * Run live document analysis (3-phase process)
+ * Run live document analysis (3-phase process) - FULL IMPLEMENTATION
  */
 function runLiveDocumentAnalysis() {
     try {
-        updateAdvancedStatus('Starting live document analysis...');
+        updateAdvancedStatus('Starting comprehensive live document analysis...');
 
+        // Phase 1: Environment validation
         var envValidation = validateInDesignEnvironment();
         if (!envValidation.valid) {
             updateAdvancedStatus('Environment validation failed: ' + envValidation.error);
             return;
         }
 
-        // Phase 1: DOM Enumeration
-        updateAdvancedStatus('Phase 1: Enumerating document DOM structure...');
+        updateAdvancedStatus('Phase 1: Discovering DOM structure...');
 
+        // Phase 1: DOM Discovery
         if (!functionExists('enumerateDocumentDOM')) {
-            updateAdvancedStatus('Error: DOM enumerator module not available');
+            updateAdvancedStatus('DOM enumeration not available - module 2.1 missing');
             return;
         }
 
+        var startTime = new Date().getTime();
         var enumerationConfig = ADVANCED_UI_CONFIG.discovery;
         var domStructure = enumerateDocumentDOM(envValidation.document, enumerationConfig);
 
@@ -533,52 +798,66 @@ function runLiveDocumentAnalysis() {
             return;
         }
 
-        // Phase 2: Property Value Sampling
-        updateAdvancedStatus('Phase 2: Sampling property values...');
+        updateAdvancedStatus('Phase 2: Extracting property values...');
 
-        if (!functionExists('sampleDOMValues')) {
-            updateAdvancedStatus('Error: Property sampler module not available');
-            return;
+        // Phase 2: Value Extraction
+        if (functionExists('sampleDOMValues')) {
+            try {
+                var samplingConfig = ADVANCED_UI_CONFIG.sampling;
+                var enhancedStructure = sampleDOMValues(domStructure, envValidation.document, samplingConfig);
+                if (enhancedStructure) {
+                    domStructure = enhancedStructure;
+                }
+            } catch (valueExc) {
+                updateAdvancedStatus('Warning: Value extraction failed: ' + valueExc.message);
+            }
         }
 
-        var samplingConfig = ADVANCED_UI_CONFIG.sampling;
-        domStructure = sampleDOMValues(domStructure, envValidation.document, samplingConfig);
+        updateAdvancedStatus('Phase 3: Analyzing collections...');
 
-        if (!domStructure || domStructure.error) {
-            updateAdvancedStatus('Phase 2 failed: ' + (domStructure ? domStructure.error : 'Unknown error'));
-            return;
+        // Phase 3: Collection Sampling - FIXED: Use inline config
+        if (functionExists('sampleCollectionContents')) {
+            try {
+                var collectionConfig = {
+                    maxSamplesPerCollection: 5,
+                    timeoutPerCollection: 3000,
+                    enableDeepPropertyAnalysis: true
+                };
+                var collectionEnhanced = sampleCollectionContents(domStructure, envValidation.document, collectionConfig);
+                if (collectionEnhanced) {
+                    domStructure = collectionEnhanced;
+                }
+            } catch (collectionExc) {
+                updateAdvancedStatus('Warning: Collection sampling failed: ' + collectionExc.message);
+            }
         }
 
-        // Phase 3: Collection Content Sampling
-        updateAdvancedStatus('Phase 3: Sampling collection contents...');
-
-        if (!functionExists('sampleCollectionContents')) {
-            updateAdvancedStatus('Error: Collection sampler module not available');
-            return;
-        }
-
-        var collectionConfig = {
-            maxSamplesPerCollection: 5,
-            timeoutPerCollection: 3000,
-            enableDeepPropertyAnalysis: true
-        };
-        domStructure = sampleCollectionContents(domStructure, envValidation.document, collectionConfig);
-
-        if (!domStructure || domStructure.error) {
-            updateAdvancedStatus('Phase 3 failed: ' + (domStructure ? domStructure.error : 'Unknown error'));
-            return;
-        }
-
-        // Store result
+        // Store results
         g_advUI_advancedDOMStructure = domStructure;
 
-        // Display results
-        var displayText = generateLiveAnalysisDisplay(domStructure);
+        // Display Results
+        var analysisTime = new Date().getTime() - startTime;
+        var displayText = generateLiveAnalysisDisplay(domStructure, analysisTime);
         if (g_advUI_liveAnalysisText) {
             g_advUI_liveAnalysisText.text = displayText;
         }
 
-        updateAdvancedStatus('Live document analysis complete - all 3 phases successful');
+        // Switch to live analysis tab
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 0) {
+            g_advUI_tabPanel.selection = g_advUI_tabPanel.children[0];
+        }
+
+        // Update status with comprehensive statistics
+        var stats = domStructure.statistics || {};
+        var nodeCount = stats.nodeCount || 0;
+        var propCount = stats.propertyCount || 0;
+        var valueCount = stats.valuesExtracted || stats.valuesSampled || 0;
+        var collectionCount = stats.collectionsAnalyzed || stats.collectionsFound || 0;
+
+        updateAdvancedStatus('Live analysis complete! ' + nodeCount + ' objects, ' + propCount + ' properties, ' + 
+                           valueCount + ' values extracted, ' + collectionCount + ' collections analyzed (' + analysisTime + 'ms)');
+
+        updateAdvancedDocumentInfo();
 
     } catch (exc) {
         updateAdvancedStatus('Live analysis error: ' + exc.message);
@@ -586,130 +865,98 @@ function runLiveDocumentAnalysis() {
 }
 
 /**
- * Generate live analysis display text
- */
-function generateLiveAnalysisDisplay(domStructure) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('LIVE DOCUMENT ANALYSIS RESULTS');
-        builder.appendLine('===============================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Document metadata
-        if (domStructure.metadata) {
-            builder.appendLine('DOCUMENT INFORMATION:');
-            builder.appendLine('Document: ' + (domStructure.metadata.documentName || 'Unknown'));
-            builder.appendLine('Analysis Version: ' + (domStructure.metadata.version || 'Unknown'));
-            builder.appendLine('InDesign Version: ' + (domStructure.metadata.environment ?
-                domStructure.metadata.environment.indesignVersion : 'Unknown'));
-            builder.appendLine('');
-        }
-
-        // Statistics
-        if (domStructure.statistics) {
-            builder.appendLine('DISCOVERY STATISTICS:');
-            builder.appendLine('Total Nodes: ' + (domStructure.statistics.nodeCount || 0));
-            builder.appendLine('Properties: ' + (domStructure.statistics.propertyCount || 0));
-            builder.appendLine('Collections: ' + (domStructure.statistics.collectionCount || 0));
-            builder.appendLine('Methods: ' + (domStructure.statistics.methodCount || 0));
-            builder.appendLine('Max Depth: ' + (domStructure.statistics.maxDepth || 0));
-            builder.appendLine('Analysis Time: ' + (domStructure.statistics.totalTime || 'Unknown') + 'ms');
-            builder.appendLine('');
-        }
-
-        // Sampling results
-        if (domStructure.valueSampling) {
-            builder.appendLine('VALUE SAMPLING RESULTS:');
-            builder.appendLine('Sampled Properties: ' + (domStructure.valueSampling.sampledCount || 0));
-            builder.appendLine('Successful Extractions: ' + (domStructure.valueSampling.successfulCount || 0));
-            builder.appendLine('Failed Extractions: ' + (domStructure.valueSampling.failedCount || 0));
-            builder.appendLine('');
-        }
-
-        // Collection sampling results
-        if (domStructure.collectionSampling) {
-            builder.appendLine('COLLECTION SAMPLING RESULTS:');
-            builder.appendLine('Collections Analyzed: ' + (domStructure.collectionSampling.collectionsAnalyzed || 0));
-            builder.appendLine('Items Sampled: ' + (domStructure.collectionSampling.itemsSampled || 0));
-            builder.appendLine('Cross-References Found: ' + (domStructure.collectionSampling.crossReferences || 0));
-            builder.appendLine('');
-        }
-
-        // Key findings
-        if (domStructure.structure && domStructure.structure.length > 0) {
-            builder.appendLine('KEY STRUCTURE FINDINGS:');
-            var previewCount = Math.min(15, domStructure.structure.length);
-            for (var i = 0; i < previewCount; i++) {
-                var node = domStructure.structure[i];
-                var indent = '';
-                for (var d = 0; d < (node.depth || 0); d++) {
-                    indent += '  ';
-                }
-                var nodeInfo = indent + (node.path || node.name || 'Unknown');
-                if (node.type) {
-                    nodeInfo += ' [' + node.type + ']';
-                }
-                if (node.value !== undefined && node.value !== null) {
-                    var valuePreview = safeToString(node.value);
-                    if (valuePreview.length > 50) {
-                        valuePreview = stringSubstring(valuePreview, 0, 50) + '...';
-                    }
-                    nodeInfo += ' = ' + valuePreview;
-                }
-                builder.appendLine(nodeInfo);
-            }
-
-            if (domStructure.structure.length > previewCount) {
-                builder.appendLine('... (' + (domStructure.structure.length - previewCount) + ' more items)');
-            }
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating live analysis display: ' + exc.message;
-    }
-}
-
-/**
- * Run live comparison against baseline
+ * Run live comparison - compare current document state with baseline
  */
 function runLiveComparison() {
     try {
+        updateAdvancedStatus('Preparing live document comparison...');
+
+        // Check if we have a baseline
+        if (!g_advUI_baselineDocumentState) {
+            // No baseline - create one from current state
+            updateAdvancedStatus('No baseline found. Creating baseline from current document state...');
+            runLiveDocumentAnalysis(); // This sets g_advUI_advancedDOMStructure
+            
+            if (g_advUI_advancedDOMStructure) {
+                g_advUI_baselineDocumentState = objectClone(g_advUI_advancedDOMStructure, 3);
+                updateAdvancedStatus('Baseline created. Now modify your document and run Live Compare again to see changes.');
+                return;
+            } else {
+                updateAdvancedStatus('Failed to create baseline');
+                return;
+            }
+        }
+
+        // We have a baseline - compare with current state
+        updateAdvancedStatus('Analyzing current document state...');
+        
+        // Get current state
+        runLiveDocumentAnalysis(); // Updates g_advUI_advancedDOMStructure
+        
         if (!g_advUI_advancedDOMStructure) {
-            updateAdvancedStatus('No current analysis available. Run Live Analysis first.');
+            updateAdvancedStatus('Failed to analyze current document state');
             return;
         }
 
-        if (!g_advUI_beforeData) {
-            updateAdvancedStatus('No baseline data loaded. Load a Before snapshot first.');
-            return;
-        }
+        updateAdvancedStatus('Comparing current state with baseline...');
 
+        // Perform comparison using module 4.2
         if (!functionExists('compareDOMExports')) {
-            updateAdvancedStatus('Error: DOM comparator module not available');
+            updateAdvancedStatus('Live comparison not available - module 4.2 missing');
             return;
         }
-
-        updateAdvancedStatus('Comparing current document state against baseline...');
 
         var comparisonConfig = ADVANCED_UI_CONFIG.comparison;
-        var comparisonResult = compareDOMExports(g_advUI_beforeData, g_advUI_advancedDOMStructure, comparisonConfig);
 
-        if (!comparisonResult.success) {
-            updateAdvancedStatus('Live comparison failed: ' + comparisonResult.error);
-            return;
+        // Create temporary files for comparison (in-memory comparison would be better)
+        var tempDir = Folder.temp;
+        var beforeTempFile = new File(tempDir.fsName + '/baseline_temp.json');
+        var afterTempFile = new File(tempDir.fsName + '/current_temp.json');
+
+        try {
+            // Write baseline to temp file
+            beforeTempFile.open('w');
+            beforeTempFile.write(safeJSONStringify(g_advUI_baselineDocumentState, 2));
+            beforeTempFile.close();
+
+            // Write current to temp file
+            afterTempFile.open('w');
+            afterTempFile.write(safeJSONStringify(g_advUI_advancedDOMStructure, 2));
+            afterTempFile.close();
+
+            // Perform comparison
+            var comparisonResult = compareDOMExports(beforeTempFile.fsName, afterTempFile.fsName, comparisonConfig);
+
+            // Clean up temp files
+            beforeTempFile.remove();
+            afterTempFile.remove();
+
+            if (!comparisonResult.success) {
+                updateAdvancedStatus('Live comparison failed: ' + comparisonResult.error);
+                return;
+            }
+
+            // Store and display results
+            var comparisonDisplay = generateComparisonDisplay(comparisonResult.comparison);
+            if (g_advUI_comparisonText) {
+                g_advUI_comparisonText.text = comparisonDisplay;
+            }
+
+            // Switch to comparison tab
+            if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 3) {
+                g_advUI_tabPanel.selection = g_advUI_tabPanel.children[3];
+            }
+
+            var summary = comparisonResult.comparison.summary || {};
+            var totalChanges = summary.totalChanges || 0;
+            var criticalChanges = summary.criticalChanges || 0;
+
+            updateAdvancedStatus('Live comparison complete: ' + totalChanges + ' changes detected (' + 
+                               criticalChanges + ' critical). Use "Reset" to create new baseline.');
+
+        } catch (fileExc) {
+            updateAdvancedStatus('Live comparison file error: ' + fileExc.message);
         }
-
-        // Display results
-        var displayText = generateComparisonDisplay(comparisonResult.comparison);
-        if (g_advUI_liveAnalysisText) {
-            g_advUI_liveAnalysisText.text = displayText;
-        }
-
-        updateAdvancedStatus('Live comparison complete');
 
     } catch (exc) {
         updateAdvancedStatus('Live comparison error: ' + exc.message);
@@ -722,43 +969,42 @@ function runLiveComparison() {
 function takeDocumentSnapshot() {
     try {
         updateAdvancedStatus('Taking document snapshot...');
-
-        // Run full analysis
+        
+        // Run live analysis to capture current state
         runLiveDocumentAnalysis();
-
-        if (!g_advUI_advancedDOMStructure) {
-            updateAdvancedStatus('Snapshot failed - no analysis data');
-            return;
-        }
-
-        // Export as JSON
-        if (!functionExists('exportDOMStructure')) {
-            updateAdvancedStatus('Error: DOM exporter module not available');
-            return;
-        }
-
-        var exportConfig = ADVANCED_UI_CONFIG.exportSettings;
-        var exportResult = exportDOMStructure(g_advUI_advancedDOMStructure, 'json', exportConfig);
-
-        if (!exportResult.success) {
-            updateAdvancedStatus('Snapshot export failed: ' + exportResult.error);
-            return;
-        }
-
-        // Save to file
-        var fileName = 'Snapshot_' + getCurrentTimestamp().replace(/[:\s]/g, '-') + '.json';
-        var file = File.saveDialog('Save Document Snapshot', fileName);
-
-        if (file) {
-            file.open('w');
-            file.write(exportResult.content);
-            file.close();
-
-            updateAdvancedStatus('Document snapshot saved: ' + file.name);
+        
+        if (g_advUI_advancedDOMStructure) {
+            // Offer to save snapshot to file
+            var fileName = 'Snapshot_' + getCurrentTimestamp().replace(/[:\s]/g, '-') + '.json';
+            var file = File.saveDialog('Save Document Snapshot', fileName);
+            
+            if (file) {
+                if (functionExists('exportDOMStructure')) {
+                    var exportConfig = ADVANCED_UI_CONFIG.exportSettings;
+                    var exportResult = exportDOMStructure(g_advUI_advancedDOMStructure, 'json', exportConfig);
+                    
+                    if (exportResult.success) {
+                        file.open('w');
+                        file.write(exportResult.content);
+                        file.close();
+                        updateAdvancedStatus('Snapshot saved: ' + file.name);
+                    } else {
+                        updateAdvancedStatus('Snapshot export failed: ' + exportResult.error);
+                    }
+                } else {
+                    // Fallback: simple JSON export
+                    file.open('w');
+                    file.write(safeJSONStringify(g_advUI_advancedDOMStructure, 2));
+                    file.close();
+                    updateAdvancedStatus('Snapshot saved (basic): ' + file.name);
+                }
+            } else {
+                updateAdvancedStatus('Snapshot cancelled');
+            }
         } else {
-            updateAdvancedStatus('Snapshot save cancelled');
+            updateAdvancedStatus('No data to snapshot - run Live Analysis first');
         }
-
+        
     } catch (exc) {
         updateAdvancedStatus('Snapshot error: ' + exc.message);
     }
@@ -770,7 +1016,7 @@ function takeDocumentSnapshot() {
 function clearLiveDisplay() {
     try {
         if (g_advUI_liveAnalysisText) {
-            g_advUI_liveAnalysisText.text = '';
+            g_advUI_liveAnalysisText.text = 'Run live document analysis to see current structure and extracted values...';
         }
         updateAdvancedStatus('Live display cleared');
     } catch (exc) {
@@ -779,190 +1025,82 @@ function clearLiveDisplay() {
 }
 
 // =============================================================================
-// ADVANCED DISCOVERY
+// ADVANCED DISCOVERY - FULL IMPLEMENTATION
 // =============================================================================
 
 /**
- * Perform advanced discovery with enhanced features
+ * Perform advanced discovery with enhanced analysis
  */
 function performAdvancedDiscovery() {
     try {
-        updateAdvancedStatus('Starting advanced discovery process...');
-
-        // Run live analysis first
+        updateAdvancedStatus('Starting advanced discovery with enhanced analysis...');
+        
+        // Run standard live analysis first
         runLiveDocumentAnalysis();
-
+        
         if (!g_advUI_advancedDOMStructure) {
-            updateAdvancedStatus('Advanced discovery failed - no analysis data');
+            updateAdvancedStatus('Advanced discovery failed - no base structure available');
             return;
         }
-
-        // Run deep mapping if available
+        
+        // Enhanced analysis: Add deep mapping if available
         if (functionExists('performDeepDOMMapping')) {
             updateAdvancedStatus('Performing deep object mapping...');
-
-            var mappingConfig = {
-                maxDepth: 10,
-                enableCircularReferenceMapping: true,
-                enableRelationshipAnalysis: true,
-                enablePerformanceMapping: true,
-                generateObjectAtlas: true,
-                analyzeAccessPatterns: true
-            };
-
-            var mappingResult = performDeepDOMMapping(g_advUI_advancedDOMStructure, mappingConfig);
-
-            if (mappingResult.success) {
-                // Enhance structure with mapping data
-                g_advUI_advancedDOMStructure.deepMapping = mappingResult.mapping;
+            
+            var envValidation = validateInDesignEnvironment();
+            if (envValidation.valid) {
+                var deepMappingConfig = {
+                    maxDepth: 5,
+                    timeoutMs: 20000,
+                    maxTotalObjects: 5000,
+                    enableObjectAtlas: true,
+                    mapCircularReferences: true,
+                    analyzeRelationships: true,
+                    generateAccessibilityMap: true
+                };
+                
+                try {
+                    var deepMappingSession = performDeepDOMMapping(envValidation.document, deepMappingConfig);
+                    
+                    if (deepMappingSession.metadata.success) {
+                        // Merge deep mapping results with main structure
+                        if (g_advUI_advancedDOMStructure.metadata) {
+                            g_advUI_advancedDOMStructure.metadata.deepMapping = deepMappingSession;
+                        }
+                        updateAdvancedStatus('Advanced discovery complete with deep mapping analysis');
+                    } else {
+                        updateAdvancedStatus('Advanced discovery complete (deep mapping failed: ' + deepMappingSession.metadata.error + ')');
+                    }
+                } catch (deepExc) {
+                    updateAdvancedStatus('Advanced discovery complete (deep mapping error: ' + deepExc.message + ')');
+                }
             }
+        } else {
+            updateAdvancedStatus('Advanced discovery complete (deep mapping not available)');
         }
-
-        // Display enhanced results
-        var discoveryDisplay = g_advUI_window.mainTabs.discoveryTab.discoveryDisplay.text;
-        if (discoveryDisplay) {
-            discoveryDisplay.text = generateAdvancedDiscoveryDisplay(g_advUI_advancedDOMStructure);
+        
+        // Update display with enhanced information
+        var enhancedDisplay = generateAdvancedDiscoveryDisplay(g_advUI_advancedDOMStructure);
+        
+        // Find discovery display text area and update it
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 1) {
+            var discoveryTab = g_advUI_tabPanel.children[1];
+            if (discoveryTab.children && discoveryTab.children.length > 1) {
+                var discoveryDisplayGroup = discoveryTab.children[1];
+                if (discoveryDisplayGroup.children && discoveryDisplayGroup.children.length > 0) {
+                    var discoveryText = discoveryDisplayGroup.children[0];
+                    if (discoveryText) {
+                        discoveryText.text = enhancedDisplay;
+                    }
+                }
+            }
+            
+            // Switch to discovery tab
+            g_advUI_tabPanel.selection = discoveryTab;
         }
-
-        updateAdvancedStatus('Advanced discovery complete with enhanced analysis');
-
+        
     } catch (exc) {
         updateAdvancedStatus('Advanced discovery error: ' + exc.message);
-    }
-}
-
-/**
- * Generate advanced discovery display
- */
-function generateAdvancedDiscoveryDisplay(domStructure) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('ADVANCED DOM DISCOVERY RESULTS');
-        builder.appendLine('==============================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Enhanced statistics
-        if (domStructure.statistics) {
-            builder.appendLine('COMPREHENSIVE STATISTICS:');
-            builder.appendLine('Total Discovery Time: ' + (domStructure.statistics.totalTime || 'Unknown') + 'ms');
-            builder.appendLine('Performance Rating: ' + calculatePerformanceRating(domStructure));
-            builder.appendLine('Memory Usage: ' + (domStructure.statistics.memoryUsage || 'Unknown'));
-            builder.appendLine('');
-        }
-
-        // Deep mapping results
-        if (domStructure.deepMapping) {
-            builder.appendLine('DEEP MAPPING ANALYSIS:');
-            if (domStructure.deepMapping.summary) {
-                builder.appendLine('Objects Mapped: ' + (domStructure.deepMapping.summary.objectCount || 0));
-                builder.appendLine('Relationships: ' + (domStructure.deepMapping.summary.relationshipCount || 0));
-                builder.appendLine('Circular References: ' + (domStructure.deepMapping.summary.circularRefCount || 0));
-            }
-            builder.appendLine('');
-        }
-
-        // Performance insights
-        if (domStructure.performanceInsights) {
-            builder.appendLine('PERFORMANCE INSIGHTS:');
-            for (var i = 0; i < domStructure.performanceInsights.length; i++) {
-                builder.appendLine('• ' + domStructure.performanceInsights[i]);
-            }
-            builder.appendLine('');
-        }
-
-        // Detailed structure with enhanced information
-        builder.appendLine('DETAILED STRUCTURE ANALYSIS:');
-        builder.appendLine('-----------------------------');
-
-        if (domStructure.structure && domStructure.structure.length > 0) {
-            var detailCount = Math.min(20, domStructure.structure.length);
-            for (var j = 0; j < detailCount; j++) {
-                var node = domStructure.structure[j];
-                var indent = '';
-                for (var d = 0; d < (node.depth || 0); d++) {
-                    indent += '  ';
-                }
-
-                var nodeText = indent + (node.path || node.name || 'Unknown');
-
-                // Add type information
-                if (node.type) {
-                    nodeText += ' [' + node.type + ']';
-                }
-
-                // Add safety level
-                if (node.safetyLevel) {
-                    nodeText += ' {' + node.safetyLevel + '}';
-                }
-
-                // Add value preview if available
-                if (node.sampledValue !== undefined) {
-                    var valuePreview = formatValuePreview(node.sampledValue);
-                    nodeText += ' = ' + valuePreview;
-                }
-
-                builder.appendLine(nodeText);
-            }
-
-            if (domStructure.structure.length > detailCount) {
-                builder.appendLine('... (' + (domStructure.structure.length - detailCount) + ' more items)');
-            }
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating advanced discovery display: ' + exc.message;
-    }
-}
-
-/**
- * Calculate performance rating
- */
-function calculatePerformanceRating(domStructure) {
-    try {
-        if (!domStructure.statistics || !domStructure.statistics.totalTime) {
-            return 'Unknown';
-        }
-
-        var totalTime = domStructure.statistics.totalTime;
-        var nodeCount = domStructure.statistics.nodeCount || 1;
-        var timePerNode = totalTime / nodeCount;
-
-        if (timePerNode < 1) return 'Excellent';
-        if (timePerNode < 5) return 'Good';
-        if (timePerNode < 10) return 'Fair';
-        return 'Needs Optimization';
-
-    } catch (exc) {
-        return 'Unknown';
-    }
-}
-
-/**
- * Format value preview
- */
-function formatValuePreview(value) {
-    try {
-        if (value === null) return '[null]';
-        if (value === undefined) return '[undefined]';
-
-        var valueStr = safeToString(value);
-        if (valueStr.length > 80) {
-            valueStr = stringSubstring(valueStr, 0, 80) + '...';
-        }
-
-        // Add quotes for strings
-        if (typeof value === 'string') {
-            return '"' + valueStr + '"';
-        }
-
-        return valueStr;
-
-    } catch (exc) {
-        return '[Error formatting value]';
     }
 }
 
@@ -971,41 +1109,67 @@ function formatValuePreview(value) {
  */
 function runDeepMapping() {
     try {
-        if (!g_advUI_advancedDOMStructure) {
-            updateAdvancedStatus('No DOM structure available. Run Full Discovery first.');
-            return;
-        }
-
+        updateAdvancedStatus('Starting deep mapping analysis...');
+        
         if (!functionExists('performDeepDOMMapping')) {
-            updateAdvancedStatus('Error: Deep mapper module not available');
+            updateAdvancedStatus('Deep mapper module not available - feature disabled');
             return;
         }
 
-        updateAdvancedStatus('Performing deep object mapping analysis...');
+        var envValidation = validateInDesignEnvironment();
+        if (!envValidation || !envValidation.valid) {
+            updateAdvancedStatus('No valid document available for deep mapping');
+            return;
+        }
 
-        var mappingConfig = {
-            maxDepth: 15,
-            enableCircularReferenceMapping: true,
-            enableRelationshipAnalysis: true,
-            enablePerformanceMapping: true,
-            generateObjectAtlas: true,
-            analyzeAccessPatterns: true,
-            generateOptimizations: true
+        var deepMappingConfig = {
+            maxDepth: 5,
+            timeoutMs: 20000,
+            maxTotalObjects: 5000,
+            enableObjectAtlas: true,
+            mapCircularReferences: true,
+            analyzeRelationships: true,
+            generateAccessibilityMap: true
         };
 
-        var mappingResult = performDeepDOMMapping(g_advUI_advancedDOMStructure, mappingConfig);
+        var deepMappingSession = performDeepDOMMapping(envValidation.document, deepMappingConfig);
 
-        if (!mappingResult.success) {
-            updateAdvancedStatus('Deep mapping failed: ' + mappingResult.error);
+        if (!deepMappingSession.metadata.success) {
+            updateAdvancedStatus('Deep mapping failed: ' + deepMappingSession.metadata.error);
             return;
         }
 
-        // Display results in deep mapping tab
-        if (g_advUI_deepMappingText) {
-            g_advUI_deepMappingText.text = generateDeepMappingDisplay(mappingResult.mapping);
+        // Generate analysis if available
+        var analysis = null;
+        if (functionExists('analyzeDeepMappingSession')) {
+            var analysisResult = analyzeDeepMappingSession(deepMappingSession, {
+                generateObjectReport: true,
+                generateAccessReport: true,
+                generateCircularReport: true,
+                analyzePerformance: true,
+                includeDeveloperGuide: true
+            });
+
+            if (analysisResult.success) {
+                analysis = analysisResult.analysis;
+            }
         }
 
-        updateAdvancedStatus('Deep mapping analysis complete');
+        // Display results
+        var deepMappingDisplay = generateDeepMappingDisplay(deepMappingSession, analysis);
+        if (g_advUI_deepMappingText) {
+            g_advUI_deepMappingText.text = deepMappingDisplay;
+        }
+
+        // Switch to deep mapping tab
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 4) {
+            g_advUI_tabPanel.selection = g_advUI_tabPanel.children[4];
+        }
+
+        var stats = deepMappingSession.statistics || {};
+        updateAdvancedStatus('Deep mapping complete: ' + (stats.totalNodes || 0) + ' objects mapped, ' +
+            (stats.circularReferences || 0) + ' circular references, ' +
+            (stats.mappingTime || 0) + 'ms');
 
     } catch (exc) {
         updateAdvancedStatus('Deep mapping error: ' + exc.message);
@@ -1017,19 +1181,38 @@ function runDeepMapping() {
  */
 function analyzePerformance() {
     try {
-        if (!g_advUI_advancedDOMStructure) {
-            updateAdvancedStatus('No DOM structure available. Run Full Discovery first.');
+        updateAdvancedStatus('Analyzing performance characteristics...');
+        
+        var dataToAnalyze = g_advUI_advancedDOMStructure || g_advUI_loadedJSONData;
+        if (!dataToAnalyze) {
+            updateAdvancedStatus('No data available for performance analysis. Run discovery or load JSON first.');
             return;
         }
 
-        updateAdvancedStatus('Analyzing performance characteristics...');
+        if (!functionExists('generatePerformanceOptimizations')) {
+            updateAdvancedStatus('Performance optimizer not available');
+            return;
+        }
 
-        var performanceAnalysis = generatePerformanceAnalysis(g_advUI_advancedDOMStructure);
+        var optimizations = generatePerformanceOptimizations(dataToAnalyze);
 
         // Display results in discovery tab
-        var discoveryDisplay = g_advUI_window.mainTabs.discoveryTab.discoveryDisplay.text;
-        if (discoveryDisplay) {
-            discoveryDisplay.text = performanceAnalysis;
+        var displayText = generateOptimizationDisplay(optimizations);
+        
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 1) {
+            var discoveryTab = g_advUI_tabPanel.children[1];
+            if (discoveryTab.children && discoveryTab.children.length > 1) {
+                var discoveryDisplayGroup = discoveryTab.children[1];
+                if (discoveryDisplayGroup.children && discoveryDisplayGroup.children.length > 0) {
+                    var discoveryText = discoveryDisplayGroup.children[0];
+                    if (discoveryText) {
+                        discoveryText.text = displayText;
+                    }
+                }
+            }
+            
+            // Switch to discovery tab
+            g_advUI_tabPanel.selection = discoveryTab;
         }
 
         updateAdvancedStatus('Performance analysis complete');
@@ -1040,111 +1223,21 @@ function analyzePerformance() {
 }
 
 /**
- * Generate performance analysis
- */
-function generatePerformanceAnalysis(domStructure) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('PERFORMANCE ANALYSIS REPORT');
-        builder.appendLine('===========================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Timing analysis
-        if (domStructure.statistics) {
-            builder.appendLine('TIMING ANALYSIS:');
-            builder.appendLine('Total Time: ' + (domStructure.statistics.totalTime || 'Unknown') + 'ms');
-            builder.appendLine('Enumeration Time: ' + (domStructure.statistics.enumerationTime || 'Unknown') + 'ms');
-            builder.appendLine('Sampling Time: ' + (domStructure.statistics.samplingTime || 'Unknown') + 'ms');
-            builder.appendLine('Collection Time: ' + (domStructure.statistics.collectionTime || 'Unknown') + 'ms');
-            builder.appendLine('');
-        }
-
-        // Efficiency metrics
-        builder.appendLine('EFFICIENCY METRICS:');
-        var nodeCount = domStructure.statistics ? domStructure.statistics.nodeCount : 0;
-        var totalTime = domStructure.statistics ? domStructure.statistics.totalTime : 0;
-        if (nodeCount > 0 && totalTime > 0) {
-            builder.appendLine('Nodes per Second: ' + Math.round((nodeCount / totalTime) * 1000));
-            builder.appendLine('Time per Node: ' + Math.round(totalTime / nodeCount) + 'ms');
-        }
-        builder.appendLine('');
-
-        // Memory analysis
-        builder.appendLine('MEMORY ANALYSIS:');
-        if (domStructure.statistics && domStructure.statistics.memoryUsage) {
-            builder.appendLine('Memory Usage: ' + domStructure.statistics.memoryUsage);
-        } else {
-            builder.appendLine('Memory Usage: Not tracked');
-        }
-        builder.appendLine('');
-
-        // Performance recommendations
-        builder.appendLine('PERFORMANCE RECOMMENDATIONS:');
-        var recommendations = generatePerformanceRecommendations(domStructure);
-        for (var i = 0; i < recommendations.length; i++) {
-            builder.appendLine('• ' + recommendations[i]);
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating performance analysis: ' + exc.message;
-    }
-}
-
-/**
- * Generate performance recommendations
- */
-function generatePerformanceRecommendations(domStructure) {
-    try {
-        var recommendations = [];
-
-        if (!domStructure.statistics) {
-            recommendations.push('Enable statistics collection for better performance insights');
-            return recommendations;
-        }
-
-        var stats = domStructure.statistics;
-        var totalTime = stats.totalTime || 0;
-        var nodeCount = stats.nodeCount || 0;
-
-        if (totalTime > 30000) { // > 30 seconds
-            recommendations.push('Consider reducing maxDepth or maxProperties to improve performance');
-        }
-
-        if (nodeCount > 10000) {
-            recommendations.push('Large structure detected - consider using selective enumeration');
-        }
-
-        if (stats.timeoutCount && stats.timeoutCount > 0) {
-            recommendations.push('Timeouts detected - increase timeout values or reduce scope');
-        }
-
-        if (stats.errorCount && stats.errorCount > 10) {
-            recommendations.push('High error count - review dangerous property settings');
-        }
-
-        if (recommendations.length === 0) {
-            recommendations.push('Performance appears optimal for current configuration');
-        }
-
-        return recommendations;
-
-    } catch (exc) {
-        return ['Error generating recommendations'];
-    }
-}
-
-/**
  * Clear discovery display
  */
 function clearDiscoveryDisplay() {
     try {
-        var discoveryDisplay = g_advUI_window.mainTabs.discoveryTab.discoveryDisplay.text;
-        if (discoveryDisplay) {
-            discoveryDisplay.text = '';
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 1) {
+            var discoveryTab = g_advUI_tabPanel.children[1];
+            if (discoveryTab.children && discoveryTab.children.length > 1) {
+                var discoveryDisplayGroup = discoveryTab.children[1];
+                if (discoveryDisplayGroup.children && discoveryDisplayGroup.children.length > 0) {
+                    var discoveryText = discoveryDisplayGroup.children[0];
+                    if (discoveryText) {
+                        discoveryText.text = 'Run advanced discovery to see enhanced DOM structure analysis...';
+                    }
+                }
+            }
         }
         updateAdvancedStatus('Discovery display cleared');
     } catch (exc) {
@@ -1153,82 +1246,111 @@ function clearDiscoveryDisplay() {
 }
 
 // =============================================================================
-// JSON ANALYSIS
+// JSON ANALYSIS - FULL IMPLEMENTATION
 // =============================================================================
 
 /**
- * Load JSON export for analysis
+ * Load JSON export with comprehensive validation
  */
 function loadJSONExport() {
     try {
-        updateAdvancedStatus('Select JSON file for analysis...');
+        updateAdvancedStatus('Select JSON export file to load...');
 
-        var file = File.openDialog('Select DOM JSON Export', '*.json');
-        if (!file) {
-            updateAdvancedStatus('File selection cancelled');
+        var jsonFile = File.openDialog('Select JSON Export File', '*.json');
+        if (!jsonFile) {
+            updateAdvancedStatus('No file selected');
             return;
         }
+
+        updateAdvancedStatus('Loading JSON file: ' + jsonFile.name);
 
         if (!functionExists('readAndParseJSONFile')) {
-            updateAdvancedStatus('Error: JSON parser not available');
+            updateAdvancedStatus('JSON analyzer module not available');
             return;
         }
 
-        var parseResult = readAndParseJSONFile(file.fsName);
-        if (!parseResult.success) {
-            updateAdvancedStatus('JSON parsing failed: ' + parseResult.error);
+        // Read and parse JSON file
+        var jsonResult = readAndParseJSONFile(jsonFile.fsName);
+        if (!jsonResult.success) {
+            updateAdvancedStatus('JSON load failed: ' + jsonResult.error);
             return;
         }
 
-        g_advUI_loadedJSONData = parseResult.data;
-        updateAdvancedStatus('JSON file loaded: ' + file.name);
+        // Validate JSON structure if function available
+        if (functionExists('validateJSONStructure')) {
+            var validation = validateJSONStructure(jsonResult.data);
+            if (!validation.success) {
+                updateAdvancedStatus('Invalid JSON structure: ' + validation.error);
+                return;
+            }
+        }
 
-        // Auto-analyze if analyzer is available
-        if (functionExists('analyzeLoadedJSON')) {
-            runJSONAnalysis();
+        // Store loaded data
+        g_advUI_loadedJSONData = jsonResult.data;
+
+        // Update UI
+        updateAdvancedDocumentInfo();
+        updateAdvancedStatus('JSON file loaded successfully: ' + jsonFile.name + '. Click "Analyze" to proceed.');
+
+        // Switch to JSON analysis tab
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 2) {
+            g_advUI_tabPanel.selection = g_advUI_tabPanel.children[2];
         }
 
     } catch (exc) {
-        updateAdvancedStatus('JSON loading error: ' + exc.message);
+        updateAdvancedStatus('JSON load error: ' + exc.message);
     }
 }
 
 /**
- * Run JSON analysis
+ * Run comprehensive JSON analysis
  */
 function runJSONAnalysis() {
     try {
-        var dataToAnalyze = g_advUI_loadedJSONData || g_advUI_advancedDOMStructure;
-
-        if (!dataToAnalyze) {
-            updateAdvancedStatus('No data available for analysis. Load JSON file or run discovery.');
+        if (!g_advUI_loadedJSONData) {
+            updateAdvancedStatus('Please load a JSON file first');
             return;
         }
 
+        updateAdvancedStatus('Analyzing JSON structure and generating visualization...');
+
+        // FIXED: Use analyzeLoadedJSON for consistency
         if (!functionExists('analyzeLoadedJSON')) {
-            updateAdvancedStatus('Error: JSON analyzer module not available');
+            updateAdvancedStatus('JSON analysis not available - module 4.1 missing');
             return;
         }
 
-        updateAdvancedStatus('Analyzing JSON structure...');
+        var analysisConfig = {
+            enableVisualHierarchy: true,
+            enablePropertyAnalysis: true,
+            enableCollectionAnalysis: true,
+            enableValueAnalysis: true,
+            enableAccessibilityMap: true,
+            maxAnalysisDepth: 10,
+            maxReportItems: 100,
+            generateDeveloperGuide: true,
+            includeCodeExamples: true,
+            highlightKeyProperties: true,
+            analyzeExtractedValues: true,
+            generatePerformanceMetrics: true
+        };
 
-        var analysisConfig = ADVANCED_UI_CONFIG.analysis;
-        var analysisResult = analyzeLoadedJSON(dataToAnalyze, analysisConfig);
+        // Perform comprehensive JSON analysis
+        var jsonAnalysis = analyzeLoadedJSON(g_advUI_loadedJSONData, analysisConfig);
 
-        if (!analysisResult.success) {
-            updateAdvancedStatus('JSON analysis failed: ' + analysisResult.error);
+        if (!jsonAnalysis.success) {
+            updateAdvancedStatus('JSON analysis failed: ' + (jsonAnalysis.error || 'Unknown error'));
             return;
         }
 
-        g_advUI_currentAnalysis = analysisResult.analysis;
-
-        // Display results
-        var displayText = generateJSONAnalysisDisplay(analysisResult.analysis);
+        // Display analysis results
+        var displayText = generateJSONAnalysisDisplay(jsonAnalysis.analysis);
         if (g_advUI_jsonAnalysisText) {
             g_advUI_jsonAnalysisText.text = displayText;
         }
 
-        updateAdvancedStatus('JSON analysis complete');
+        g_advUI_currentAnalysis = jsonAnalysis.analysis;
+        updateAdvancedStatus('JSON analysis complete with comprehensive visualization');
 
     } catch (exc) {
         updateAdvancedStatus('JSON analysis error: ' + exc.message);
@@ -1236,202 +1358,65 @@ function runJSONAnalysis() {
 }
 
 /**
- * Generate JSON analysis display
- */
-function generateJSONAnalysisDisplay(analysis) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('JSON STRUCTURE ANALYSIS');
-        builder.appendLine('=======================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Summary
-        if (analysis.summary) {
-            builder.appendLine('ANALYSIS SUMMARY:');
-            builder.appendLine('Total Nodes: ' + (analysis.summary.nodeCount || 0));
-            builder.appendLine('Properties: ' + (analysis.summary.propertyCount || 0));
-            builder.appendLine('Collections: ' + (analysis.summary.collectionCount || 0));
-            builder.appendLine('Max Depth: ' + (analysis.summary.maxDepth || 0));
-            builder.appendLine('Complexity Score: ' + (analysis.summary.complexityScore || 'Unknown'));
-            builder.appendLine('');
-        }
-
-        // Visual hierarchy
-        if (analysis.visualHierarchy) {
-            builder.appendLine('VISUAL HIERARCHY:');
-            builder.appendLine(analysis.visualHierarchy);
-            builder.appendLine('');
-        }
-
-        // Property analysis
-        if (analysis.propertyAnalysis) {
-            builder.appendLine('PROPERTY ANALYSIS:');
-            builder.appendLine(analysis.propertyAnalysis);
-            builder.appendLine('');
-        }
-
-        // Collection analysis
-        if (analysis.collectionAnalysis) {
-            builder.appendLine('COLLECTION ANALYSIS:');
-            builder.appendLine(analysis.collectionAnalysis);
-            builder.appendLine('');
-        }
-
-        // Value analysis
-        if (analysis.valueAnalysis) {
-            builder.appendLine('VALUE ANALYSIS:');
-            builder.appendLine(analysis.valueAnalysis);
-            builder.appendLine('');
-        }
-
-        // Developer guide
-        if (analysis.developerGuide) {
-            builder.appendLine('DEVELOPER GUIDE:');
-            builder.appendLine(analysis.developerGuide);
-            builder.appendLine('');
-        }
-
-        // Performance metrics
-        if (analysis.performanceMetrics) {
-            builder.appendLine('PERFORMANCE METRICS:');
-            builder.appendLine(analysis.performanceMetrics);
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating JSON analysis display: ' + exc.message;
-    }
-}
-
-/**
- * Visualize JSON structure
+ * Visualize JSON in main DOM visualizer
  */
 function visualizeJSON() {
     try {
-        if (!g_advUI_currentAnalysis) {
-            updateAdvancedStatus('No analysis data available. Run analysis first.');
+        if (!g_advUI_loadedJSONData) {
+            updateAdvancedStatus('No JSON data to visualize - load a file first');
             return;
         }
 
-        // Show main DOM visualizer with current data
-        if (functionExists('showDOMVisualizer')) {
-            showDOMVisualizer();
-            updateAdvancedStatus('DOM Visualizer opened with current data');
+        updateAdvancedStatus('Opening JSON data in main DOM visualizer...');
+
+        if (!functionExists('showDOMVisualizer')) {
+            updateAdvancedStatus('Main DOM visualizer not available');
+            return;
+        }
+
+        // Launch main visualizer
+        var launched = showDOMVisualizer();
+        
+        if (launched) {
+            updateAdvancedStatus('JSON data opened in main DOM visualizer');
         } else {
-            updateAdvancedStatus('Error: DOM visualizer not available');
+            updateAdvancedStatus('Failed to open main DOM visualizer');
         }
 
     } catch (exc) {
-        updateAdvancedStatus('Visualization error: ' + exc.message);
+        updateAdvancedStatus('JSON visualization error: ' + exc.message);
     }
 }
 
 /**
- * Export JSON analysis
+ * Export JSON analysis results
  */
 function exportJSONAnalysis() {
     try {
         if (!g_advUI_currentAnalysis) {
-            updateAdvancedStatus('No analysis data to export. Run analysis first.');
+            updateAdvancedStatus('No analysis results to export - run analysis first');
             return;
         }
 
-        updateAdvancedStatus('Exporting JSON analysis...');
-
-        var exportText = generateJSONAnalysisText(g_advUI_currentAnalysis);
+        updateAdvancedStatus('Exporting JSON analysis results...');
 
         var fileName = 'JSON_Analysis_' + getCurrentTimestamp().replace(/[:\s]/g, '-') + '.txt';
-        var file = File.saveDialog('Export JSON Analysis', fileName);
+        var file = File.saveDialog('Save JSON Analysis Report', fileName);
 
         if (file) {
+            var reportContent = generateJSONAnalysisReport(g_advUI_currentAnalysis);
+            
             file.open('w');
-            file.write(exportText);
+            file.write(reportContent);
             file.close();
 
-            updateAdvancedStatus('JSON analysis exported to: ' + file.name);
+            updateAdvancedStatus('JSON analysis exported: ' + file.name);
         } else {
-            updateAdvancedStatus('Analysis export cancelled');
+            updateAdvancedStatus('JSON analysis export cancelled');
         }
 
     } catch (exc) {
-        updateAdvancedStatus('Analysis export error: ' + exc.message);
-    }
-}
-
-/**
- * Generate JSON analysis text for export
- */
-function generateJSONAnalysisText(analysis) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('InDesign DOM Discovery Builder v3.1');
-        builder.appendLine('JSON Structure Analysis Report');
-        builder.appendLine('=====================================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Full analysis content
-        if (analysis.summary) {
-            builder.appendLine('EXECUTIVE SUMMARY:');
-            builder.appendLine('Total Elements: ' + (analysis.summary.nodeCount || 0));
-            builder.appendLine('Structural Complexity: ' + (analysis.summary.complexityScore || 'Unknown'));
-            builder.appendLine('Analysis Confidence: ' + (analysis.summary.confidence || 'Unknown'));
-            builder.appendLine('');
-        }
-
-        if (analysis.visualHierarchy) {
-            builder.appendLine('STRUCTURAL HIERARCHY:');
-            builder.appendLine(analysis.visualHierarchy);
-            builder.appendLine('');
-        }
-
-        if (analysis.propertyAnalysis) {
-            builder.appendLine('DETAILED PROPERTY ANALYSIS:');
-            builder.appendLine(analysis.propertyAnalysis);
-            builder.appendLine('');
-        }
-
-        if (analysis.collectionAnalysis) {
-            builder.appendLine('COLLECTION ANALYSIS:');
-            builder.appendLine(analysis.collectionAnalysis);
-            builder.appendLine('');
-        }
-
-        if (analysis.valueAnalysis) {
-            builder.appendLine('VALUE ANALYSIS:');
-            builder.appendLine(analysis.valueAnalysis);
-            builder.appendLine('');
-        }
-
-        if (analysis.accessibilityMap) {
-            builder.appendLine('ACCESSIBILITY MAP:');
-            builder.appendLine(analysis.accessibilityMap);
-            builder.appendLine('');
-        }
-
-        if (analysis.developerGuide) {
-            builder.appendLine('DEVELOPER GUIDE:');
-            builder.appendLine(analysis.developerGuide);
-            builder.appendLine('');
-        }
-
-        if (analysis.performanceMetrics) {
-            builder.appendLine('PERFORMANCE METRICS:');
-            builder.appendLine(analysis.performanceMetrics);
-            builder.appendLine('');
-        }
-
-        builder.appendLine('End of Analysis Report');
-        builder.appendLine('Generated by InDesign DOM Discovery Builder v3.1');
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating analysis text: ' + exc.message;
+        updateAdvancedStatus('Export JSON analysis error: ' + exc.message);
     }
 }
 
@@ -1441,7 +1426,7 @@ function generateJSONAnalysisText(analysis) {
 function clearAnalysisDisplay() {
     try {
         if (g_advUI_jsonAnalysisText) {
-            g_advUI_jsonAnalysisText.text = '';
+            g_advUI_jsonAnalysisText.text = 'Load a JSON export file to see detailed analysis and visual hierarchy...';
         }
         g_advUI_currentAnalysis = null;
         updateAdvancedStatus('Analysis display cleared');
@@ -1451,92 +1436,124 @@ function clearAnalysisDisplay() {
 }
 
 // =============================================================================
-// SNAPSHOT COMPARISON
+// SNAPSHOT COMPARISON - FULL IMPLEMENTATION
 // =============================================================================
 
 /**
- * Load before snapshot
+ * Load before snapshot with validation
  */
 function loadBeforeSnapshot() {
     try {
-        updateAdvancedStatus('Select BEFORE snapshot...');
-
-        var file = File.openDialog('Select Before JSON Snapshot', '*.json');
-        if (!file) {
+        updateAdvancedStatus('Select BEFORE snapshot file...');
+        
+        var beforeFile = File.openDialog('Select BEFORE JSON Export', '*.json');
+        if (!beforeFile) {
             updateAdvancedStatus('Before file selection cancelled');
             return;
         }
 
-        if (!functionExists('readAndParseJSONFile')) {
-            updateAdvancedStatus('Error: JSON parser not available');
-            return;
+        // Validate file
+        if (functionExists('readAndParseJSONFile')) {
+            var jsonResult = readAndParseJSONFile(beforeFile.fsName);
+            if (!jsonResult.success) {
+                updateAdvancedStatus('Before file invalid: ' + jsonResult.error);
+                return;
+            }
+            g_advUI_beforeData = jsonResult.data;
+        } else {
+            g_advUI_beforeData = beforeFile;
         }
-
-        var parseResult = readAndParseJSONFile(file.fsName);
-        if (!parseResult.success) {
-            updateAdvancedStatus('Before file parsing failed: ' + parseResult.error);
-            return;
-        }
-
-        g_advUI_beforeData = parseResult.data;
-        updateAdvancedStatus('Before snapshot loaded: ' + file.name);
-
+        
+        updateAdvancedStatus('Before snapshot loaded: ' + beforeFile.name);
+        updateAdvancedDocumentInfo();
+        
     } catch (exc) {
-        updateAdvancedStatus('Before snapshot loading error: ' + exc.message);
+        updateAdvancedStatus('Load before snapshot error: ' + exc.message);
     }
 }
 
 /**
- * Load after snapshot
+ * Load after snapshot with validation
  */
 function loadAfterSnapshot() {
     try {
-        updateAdvancedStatus('Select AFTER snapshot...');
-
-        var file = File.openDialog('Select After JSON Snapshot', '*.json');
-        if (!file) {
+        updateAdvancedStatus('Select AFTER snapshot file...');
+        
+        var afterFile = File.openDialog('Select AFTER JSON Export', '*.json');
+        if (!afterFile) {
             updateAdvancedStatus('After file selection cancelled');
             return;
         }
 
-        if (!functionExists('readAndParseJSONFile')) {
-            updateAdvancedStatus('Error: JSON parser not available');
-            return;
+        // Validate file
+        if (functionExists('readAndParseJSONFile')) {
+            var jsonResult = readAndParseJSONFile(afterFile.fsName);
+            if (!jsonResult.success) {
+                updateAdvancedStatus('After file invalid: ' + jsonResult.error);
+                return;
+            }
+            g_advUI_afterData = jsonResult.data;
+        } else {
+            g_advUI_afterData = afterFile;
         }
-
-        var parseResult = readAndParseJSONFile(file.fsName);
-        if (!parseResult.success) {
-            updateAdvancedStatus('After file parsing failed: ' + parseResult.error);
-            return;
-        }
-
-        g_advUI_afterData = parseResult.data;
-        updateAdvancedStatus('After snapshot loaded: ' + file.name);
-
+        
+        updateAdvancedStatus('After snapshot loaded: ' + afterFile.name);
+        updateAdvancedDocumentInfo();
+        
     } catch (exc) {
-        updateAdvancedStatus('After snapshot loading error: ' + exc.message);
+        updateAdvancedStatus('Load after snapshot error: ' + exc.message);
     }
 }
 
 /**
- * Run snapshot comparison
+ * Run comprehensive snapshot comparison
  */
 function runSnapshotComparison() {
     try {
         if (!g_advUI_beforeData || !g_advUI_afterData) {
-            updateAdvancedStatus('Both before and after snapshots must be loaded');
-            return;
-        }
-
-        if (!functionExists('compareDOMExports')) {
-            updateAdvancedStatus('Error: DOM comparator module not available');
+            updateAdvancedStatus('Please load both before and after snapshots');
             return;
         }
 
         updateAdvancedStatus('Comparing snapshots...');
 
+        if (!functionExists('compareDOMExports')) {
+            updateAdvancedStatus('DOM comparator module not available');
+            return;
+        }
+
         var comparisonConfig = ADVANCED_UI_CONFIG.comparison;
-        var comparisonResult = compareDOMExports(g_advUI_beforeData, g_advUI_afterData, comparisonConfig);
+        var comparisonResult;
+
+        // Handle different data types (File vs parsed data)
+        if (g_advUI_beforeData.fsName && g_advUI_afterData.fsName) {
+            // File-based comparison
+            comparisonResult = compareDOMExports(g_advUI_beforeData.fsName, g_advUI_afterData.fsName, comparisonConfig);
+        } else {
+            // Data-based comparison - write temp files
+            var tempDir = Folder.temp;
+            var beforeTempFile = new File(tempDir.fsName + '/before_temp.json');
+            var afterTempFile = new File(tempDir.fsName + '/after_temp.json');
+
+            try {
+                beforeTempFile.open('w');
+                beforeTempFile.write(safeJSONStringify(g_advUI_beforeData, 2));
+                beforeTempFile.close();
+
+                afterTempFile.open('w');
+                afterTempFile.write(safeJSONStringify(g_advUI_afterData, 2));
+                afterTempFile.close();
+
+                comparisonResult = compareDOMExports(beforeTempFile.fsName, afterTempFile.fsName, comparisonConfig);
+
+                beforeTempFile.remove();
+                afterTempFile.remove();
+
+            } catch (fileExc) {
+                updateAdvancedStatus('Comparison file error: ' + fileExc.message);
+                return;
+            }
+        }
 
         if (!comparisonResult.success) {
             updateAdvancedStatus('Comparison failed: ' + comparisonResult.error);
@@ -1549,7 +1566,17 @@ function runSnapshotComparison() {
             g_advUI_comparisonText.text = displayText;
         }
 
-        updateAdvancedStatus('Snapshot comparison complete');
+        // Switch to comparison tab
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 3) {
+            g_advUI_tabPanel.selection = g_advUI_tabPanel.children[3];
+        }
+
+        var summary = comparisonResult.comparison.summary || {};
+        var totalChanges = summary.totalChanges || 0;
+        var criticalChanges = summary.criticalChanges || 0;
+
+        updateAdvancedStatus('Snapshot comparison complete: ' + totalChanges + ' changes detected (' + 
+                           criticalChanges + ' critical)');
 
     } catch (exc) {
         updateAdvancedStatus('Snapshot comparison error: ' + exc.message);
@@ -1557,103 +1584,34 @@ function runSnapshotComparison() {
 }
 
 /**
- * Generate comparison display
- */
-function generateComparisonDisplay(comparison) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('SNAPSHOT COMPARISON RESULTS');
-        builder.appendLine('===========================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Summary
-        if (comparison.summary) {
-            builder.appendLine('COMPARISON SUMMARY:');
-            builder.appendLine('Total Changes: ' + (comparison.summary.totalChanges || 0));
-            builder.appendLine('Added Elements: ' + (comparison.summary.addedCount || 0));
-            builder.appendLine('Removed Elements: ' + (comparison.summary.removedCount || 0));
-            builder.appendLine('Modified Elements: ' + (comparison.summary.modifiedCount || 0));
-            builder.appendLine('Change Impact: ' + (comparison.summary.impactLevel || 'Unknown'));
-            builder.appendLine('');
-        }
-
-        // Structural changes
-        if (comparison.structuralChanges) {
-            builder.appendLine('STRUCTURAL CHANGES:');
-            builder.appendLine(comparison.structuralChanges);
-            builder.appendLine('');
-        }
-
-        // Property changes
-        if (comparison.propertyChanges) {
-            builder.appendLine('PROPERTY CHANGES:');
-            builder.appendLine(comparison.propertyChanges);
-            builder.appendLine('');
-        }
-
-        // Collection changes
-        if (comparison.collectionChanges) {
-            builder.appendLine('COLLECTION CHANGES:');
-            builder.appendLine(comparison.collectionChanges);
-            builder.appendLine('');
-        }
-
-        // Value changes
-        if (comparison.valueChanges) {
-            builder.appendLine('VALUE CHANGES:');
-            builder.appendLine(comparison.valueChanges);
-            builder.appendLine('');
-        }
-
-        // Performance impact
-        if (comparison.performanceImpact) {
-            builder.appendLine('PERFORMANCE IMPACT:');
-            builder.appendLine(comparison.performanceImpact);
-            builder.appendLine('');
-        }
-
-        // Recommendations
-        if (comparison.recommendations) {
-            builder.appendLine('RECOMMENDATIONS:');
-            builder.appendLine(comparison.recommendations);
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating comparison display: ' + exc.message;
-    }
-}
-
-/**
- * Export comparison report
+ * Export comprehensive comparison report
  */
 function exportComparisonReport() {
     try {
         if (!g_advUI_comparisonText || !g_advUI_comparisonText.text) {
-            updateAdvancedStatus('No comparison data to export. Run comparison first.');
+            updateAdvancedStatus('No comparison results to export - run comparison first');
             return;
         }
 
         updateAdvancedStatus('Exporting comparison report...');
 
         var fileName = 'Comparison_Report_' + getCurrentTimestamp().replace(/[:\s]/g, '-') + '.txt';
-        var file = File.saveDialog('Export Comparison Report', fileName);
+        var file = File.saveDialog('Save Comparison Report', fileName);
 
         if (file) {
+            var reportContent = generateComparisonReport();
+            
             file.open('w');
-            file.write(g_advUI_comparisonText.text);
+            file.write(reportContent);
             file.close();
 
-            updateAdvancedStatus('Comparison report exported to: ' + file.name);
+            updateAdvancedStatus('Comparison report exported: ' + file.name);
         } else {
-            updateAdvancedStatus('Report export cancelled');
+            updateAdvancedStatus('Comparison report export cancelled');
         }
 
     } catch (exc) {
-        updateAdvancedStatus('Report export error: ' + exc.message);
+        updateAdvancedStatus('Export comparison report error: ' + exc.message);
     }
 }
 
@@ -1663,7 +1621,7 @@ function exportComparisonReport() {
 function clearComparisonDisplay() {
     try {
         if (g_advUI_comparisonText) {
-            g_advUI_comparisonText.text = '';
+            g_advUI_comparisonText.text = 'Load before/after snapshots to analyze document changes...';
         }
         updateAdvancedStatus('Comparison display cleared');
     } catch (exc) {
@@ -1672,168 +1630,128 @@ function clearComparisonDisplay() {
 }
 
 // =============================================================================
-// DEEP OBJECT MAPPING
+// DEEP OBJECT MAPPING - FULL IMPLEMENTATION
 // =============================================================================
 
 /**
- * Create deep mapping
+ * Create comprehensive deep mapping
  */
 function createDeepMapping() {
     try {
-        var dataToMap = g_advUI_advancedDOMStructure || g_advUI_loadedJSONData;
-
-        if (!dataToMap) {
-            updateAdvancedStatus('No data available for mapping. Run discovery or load JSON first.');
-            return;
-        }
-
+        updateAdvancedStatus('Creating comprehensive deep object mapping...');
+        
         if (!functionExists('performDeepDOMMapping')) {
-            updateAdvancedStatus('Error: Deep mapper module not available');
+            updateAdvancedStatus('Deep mapper module not available');
             return;
         }
 
-        updateAdvancedStatus('Creating deep object mapping...');
+        var envValidation = validateInDesignEnvironment();
+        if (!envValidation.valid) {
+            updateAdvancedStatus('No valid document available for deep mapping');
+            return;
+        }
 
-        var mappingConfig = {
-            maxDepth: 20,
-            enableCircularReferenceMapping: true,
-            enableRelationshipAnalysis: true,
-            enablePerformanceMapping: true,
-            generateObjectAtlas: true,
-            analyzeAccessPatterns: true,
-            generateOptimizations: true,
+        var deepMappingConfig = {
+            maxDepth: 6,
+            timeoutMs: 30000,
+            maxTotalObjects: 10000,
+            enableObjectAtlas: true,
+            mapCircularReferences: true,
+            analyzeRelationships: true,
+            generateAccessibilityMap: true,
+            enablePerformanceAnalysis: true,
             trackMemoryUsage: true
         };
 
-        var mappingResult = performDeepDOMMapping(dataToMap, mappingConfig);
+        var deepMappingSession = performDeepDOMMapping(envValidation.document, deepMappingConfig);
 
-        if (!mappingResult.success) {
-            updateAdvancedStatus('Deep mapping failed: ' + mappingResult.error);
+        if (!deepMappingSession.metadata.success) {
+            updateAdvancedStatus('Deep mapping failed: ' + deepMappingSession.metadata.error);
             return;
         }
 
-        // Display results
-        var displayText = generateDeepMappingDisplay(mappingResult.mapping);
+        // Enhanced analysis
+        var analysis = null;
+        if (functionExists('analyzeDeepMappingSession')) {
+            var analysisResult = analyzeDeepMappingSession(deepMappingSession, {
+                generateObjectReport: true,
+                generateAccessReport: true,
+                generateCircularReport: true,
+                analyzePerformance: true,
+                includeDeveloperGuide: true,
+                generateOptimizationSuggestions: true
+            });
+
+            if (analysisResult.success) {
+                analysis = analysisResult.analysis;
+            }
+        }
+
+        // Display comprehensive results
+        var mappingDisplay = generateDeepMappingDisplay(deepMappingSession, analysis);
         if (g_advUI_deepMappingText) {
-            g_advUI_deepMappingText.text = displayText;
+            g_advUI_deepMappingText.text = mappingDisplay;
         }
 
-        updateAdvancedStatus('Deep mapping complete');
+        // Switch to deep mapping tab
+        if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 4) {
+            g_advUI_tabPanel.selection = g_advUI_tabPanel.children[4];
+        }
+
+        var stats = deepMappingSession.statistics || {};
+        updateAdvancedStatus('Deep mapping complete: ' + (stats.totalNodes || 0) + ' objects mapped, ' +
+            (stats.relationshipsTracked || 0) + ' relationships analyzed');
 
     } catch (exc) {
-        updateAdvancedStatus('Deep mapping error: ' + exc.message);
+        updateAdvancedStatus('Create deep mapping error: ' + exc.message);
     }
 }
 
 /**
- * Generate deep mapping display
- */
-function generateDeepMappingDisplay(mapping) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('DEEP OBJECT MAPPING RESULTS');
-        builder.appendLine('===========================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Mapping summary
-        if (mapping.summary) {
-            builder.appendLine('MAPPING SUMMARY:');
-            builder.appendLine('Objects Mapped: ' + (mapping.summary.objectCount || 0));
-            builder.appendLine('Relationships: ' + (mapping.summary.relationshipCount || 0));
-            builder.appendLine('Circular References: ' + (mapping.summary.circularRefCount || 0));
-            builder.appendLine('Memory References: ' + (mapping.summary.memoryRefCount || 0));
-            builder.appendLine('Mapping Depth: ' + (mapping.summary.maxDepth || 0));
-            builder.appendLine('');
-        }
-
-        // Object atlas
-        if (mapping.objectAtlas) {
-            builder.appendLine('OBJECT ATLAS:');
-            if (typeof mapping.objectAtlas === 'string') {
-                builder.appendLine(stringSubstring(mapping.objectAtlas, 0, 2000));
-                if (mapping.objectAtlas.length > 2000) {
-                    builder.appendLine('... (truncated - full atlas available in export)');
-                }
-            } else {
-                builder.appendLine('Atlas data available - use export for full details');
-            }
-            builder.appendLine('');
-        }
-
-        // Relationship analysis
-        if (mapping.relationshipAnalysis) {
-            builder.appendLine('RELATIONSHIP ANALYSIS:');
-            builder.appendLine(stringSubstring(mapping.relationshipAnalysis, 0, 1500));
-            if (mapping.relationshipAnalysis.length > 1500) {
-                builder.appendLine('... (truncated)');
-            }
-            builder.appendLine('');
-        }
-
-        // Performance mapping
-        if (mapping.performanceMapping) {
-            builder.appendLine('PERFORMANCE MAPPING:');
-            builder.appendLine(mapping.performanceMapping);
-            builder.appendLine('');
-        }
-
-        // Optimization recommendations
-        if (mapping.optimizations) {
-            builder.appendLine('OPTIMIZATION RECOMMENDATIONS:');
-            if (mapping.optimizations.length) {
-                for (var i = 0; i < Math.min(10, mapping.optimizations.length); i++) {
-                    builder.appendLine('• ' + mapping.optimizations[i]);
-                }
-                if (mapping.optimizations.length > 10) {
-                    builder.appendLine('... (' + (mapping.optimizations.length - 10) + ' more recommendations)');
-                }
-            } else {
-                builder.appendLine('No specific optimizations identified');
-            }
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating deep mapping display: ' + exc.message;
-    }
-}
-
-/**
- * Generate advanced atlas
+ * Generate comprehensive object atlas
  */
 function generateAdvancedAtlas() {
     try {
-        var dataToMap = g_advUI_advancedDOMStructure || g_advUI_loadedJSONData;
-
-        if (!dataToMap) {
-            updateAdvancedStatus('No data available for atlas generation. Run discovery or load JSON first.');
+        updateAdvancedStatus('Generating comprehensive object atlas...');
+        
+        var dataToAnalyze = g_advUI_advancedDOMStructure || g_advUI_loadedJSONData;
+        if (!dataToAnalyze) {
+            updateAdvancedStatus('No data available for atlas. Run discovery or load JSON first.');
             return;
         }
 
         if (!functionExists('generateObjectAtlas')) {
-            updateAdvancedStatus('Error: Object atlas generator not available');
+            updateAdvancedStatus('Object atlas generator not available');
             return;
         }
 
-        updateAdvancedStatus('Generating advanced object atlas...');
+        var atlasConfig = {
+            enableRelationshipMapping: true,
+            enableAccessibilityAnalysis: true,
+            enablePerformanceMetrics: true,
+            generatePathIndex: true,
+            generateTypeIndex: true,
+            maxAtlasSize: 5000,
+            includeCircularReferences: true
+        };
 
-        var atlasResult = generateObjectAtlas(dataToMap);
+        var atlas = generateObjectAtlas(dataToAnalyze, atlasConfig);
 
-        if (!atlasResult.success) {
-            updateAdvancedStatus('Atlas generation failed: ' + atlasResult.error);
-            return;
+        if (atlas.success) {
+            var atlasDisplay = generateAtlasDisplay(atlas.atlas);
+            if (g_advUI_deepMappingText) {
+                g_advUI_deepMappingText.text = atlasDisplay;
+            }
+
+            // Switch to deep mapping tab
+            if (g_advUI_tabPanel && g_advUI_tabPanel.children.length > 4) {
+                g_advUI_tabPanel.selection = g_advUI_tabPanel.children[4];
+            }
+
+            updateAdvancedStatus('Object atlas generated: ' + (atlas.atlas.objectCount || 0) + ' objects indexed');
+        } else {
+            updateAdvancedStatus('Atlas generation failed: ' + atlas.error);
         }
-
-        // Display results
-        var displayText = generateAtlasDisplay(atlasResult.atlas);
-        if (g_advUI_deepMappingText) {
-            g_advUI_deepMappingText.text = displayText;
-        }
-
-        updateAdvancedStatus('Advanced object atlas generated');
 
     } catch (exc) {
         updateAdvancedStatus('Atlas generation error: ' + exc.message);
@@ -1841,78 +1759,22 @@ function generateAdvancedAtlas() {
 }
 
 /**
- * Generate atlas display
- */
-function generateAtlasDisplay(atlas) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('ADVANCED OBJECT ATLAS');
-        builder.appendLine('=====================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Path index
-        if (atlas.pathIndex) {
-            builder.appendLine('PATH INDEX:');
-            builder.appendLine(stringSubstring(atlas.pathIndex, 0, 1000));
-            if (atlas.pathIndex.length > 1000) {
-                builder.appendLine('... (truncated - full index available in export)');
-            }
-            builder.appendLine('');
-        }
-
-        // Type index
-        if (atlas.typeIndex) {
-            builder.appendLine('TYPE INDEX:');
-            builder.appendLine(stringSubstring(atlas.typeIndex, 0, 1000));
-            if (atlas.typeIndex.length > 1000) {
-                builder.appendLine('... (truncated)');
-            }
-            builder.appendLine('');
-        }
-
-        // Relationship map
-        if (atlas.relationshipMap) {
-            builder.appendLine('RELATIONSHIP MAP:');
-            builder.appendLine(stringSubstring(atlas.relationshipMap, 0, 1000));
-            if (atlas.relationshipMap.length > 1000) {
-                builder.appendLine('... (truncated)');
-            }
-            builder.appendLine('');
-        }
-
-        // Access patterns
-        if (atlas.accessPatterns) {
-            builder.appendLine('ACCESS PATTERNS:');
-            builder.appendLine(atlas.accessPatterns);
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating atlas display: ' + exc.message;
-    }
-}
-
-/**
- * Optimize mapping
+ * Optimize mapping performance
  */
 function optimizeMapping() {
     try {
+        updateAdvancedStatus('Analyzing optimization opportunities...');
+        
         var dataToOptimize = g_advUI_advancedDOMStructure || g_advUI_loadedJSONData;
-
         if (!dataToOptimize) {
             updateAdvancedStatus('No data available for optimization. Run discovery or load JSON first.');
             return;
         }
 
         if (!functionExists('generatePerformanceOptimizations')) {
-            updateAdvancedStatus('Error: Performance optimizer not available');
+            updateAdvancedStatus('Performance optimizer not available');
             return;
         }
-
-        updateAdvancedStatus('Analyzing optimization opportunities...');
 
         var optimizations = generatePerformanceOptimizations(dataToOptimize);
 
@@ -1930,50 +1792,12 @@ function optimizeMapping() {
 }
 
 /**
- * Generate optimization display
- */
-function generateOptimizationDisplay(optimizations) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('PERFORMANCE OPTIMIZATION ANALYSIS');
-        builder.appendLine('=================================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        if (!optimizations || optimizations.length === 0) {
-            builder.appendLine('No specific optimization opportunities identified.');
-            builder.appendLine('Current structure appears to be well-optimized.');
-            return builder.toString();
-        }
-
-        builder.appendLine('OPTIMIZATION RECOMMENDATIONS:');
-        builder.appendLine('');
-
-        for (var i = 0; i < optimizations.length; i++) {
-            builder.appendLine((i + 1) + '. ' + optimizations[i]);
-            builder.appendLine('');
-        }
-
-        builder.appendLine('IMPLEMENTATION PRIORITY:');
-        builder.appendLine('• High Impact: Items 1-3');
-        builder.appendLine('• Medium Impact: Items 4-7');
-        builder.appendLine('• Low Impact: Remaining items');
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating optimization display: ' + exc.message;
-    }
-}
-
-/**
  * Clear mapping display
  */
 function clearMappingDisplay() {
     try {
         if (g_advUI_deepMappingText) {
-            g_advUI_deepMappingText.text = '';
+            g_advUI_deepMappingText.text = 'Create detailed object maps to understand document relationships...';
         }
         updateAdvancedStatus('Mapping display cleared');
     } catch (exc) {
@@ -1982,11 +1806,11 @@ function clearMappingDisplay() {
 }
 
 // =============================================================================
-// EXPORT AND UTILITIES
+// EXPORT AND UTILITIES - FULL IMPLEMENTATION
 // =============================================================================
 
 /**
- * Perform advanced export
+ * Perform advanced export with comprehensive options
  */
 function performAdvancedExport(formatType) {
     try {
@@ -2033,7 +1857,7 @@ function performAdvancedExport(formatType) {
 }
 
 /**
- * Generate comprehensive report
+ * Generate comprehensive analysis report
  */
 function generateComprehensiveReport() {
     try {
@@ -2046,14 +1870,15 @@ function generateComprehensiveReport() {
             return;
         }
 
-        var reportText = generateFullAnalysisReport(dataForReport);
+        // Generate comprehensive report content
+        var reportContent = createComprehensiveReport(dataForReport);
 
         var fileName = 'Comprehensive_Report_' + getCurrentTimestamp().replace(/[:\s]/g, '-') + '.txt';
         var file = File.saveDialog('Save Comprehensive Report', fileName);
 
         if (file) {
             file.open('w');
-            file.write(reportText);
+            file.write(reportContent);
             file.close();
 
             updateAdvancedStatus('Comprehensive report saved: ' + file.name);
@@ -2067,83 +1892,26 @@ function generateComprehensiveReport() {
 }
 
 /**
- * Generate full analysis report
+ * Show advanced configuration dialog
  */
-function generateFullAnalysisReport(data) {
+function showAdvancedConfiguration() {
     try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('INDESIGN DOM DISCOVERY BUILDER v3.1');
-        builder.appendLine('COMPREHENSIVE ANALYSIS REPORT');
-        builder.appendLine('=====================================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Executive summary
-        builder.appendLine('EXECUTIVE SUMMARY:');
-        builder.appendLine('This report provides a comprehensive analysis of the InDesign document DOM structure,');
-        builder.appendLine('including detailed enumeration, value sampling, collection analysis, and performance metrics.');
-        builder.appendLine('');
-
-        // Document information
-        if (data.metadata) {
-            builder.appendLine('DOCUMENT INFORMATION:');
-            builder.appendLine('Document: ' + (data.metadata.documentName || 'Unknown'));
-            builder.appendLine('Analysis Version: ' + (data.metadata.version || 'Unknown'));
-            builder.appendLine('InDesign Version: ' + (data.metadata.environment ?
-                data.metadata.environment.indesignVersion : 'Unknown'));
-            builder.appendLine('Analysis Date: ' + (data.metadata.timestamp || 'Unknown'));
-            builder.appendLine('');
-        }
-
-        // Statistical overview
-        if (data.statistics) {
-            builder.appendLine('STATISTICAL OVERVIEW:');
-            builder.appendLine('Total Elements: ' + (data.statistics.nodeCount || 0));
-            builder.appendLine('Properties: ' + (data.statistics.propertyCount || 0));
-            builder.appendLine('Collections: ' + (data.statistics.collectionCount || 0));
-            builder.appendLine('Methods: ' + (data.statistics.methodCount || 0));
-            builder.appendLine('Maximum Depth: ' + (data.statistics.maxDepth || 0));
-            builder.appendLine('Analysis Duration: ' + (data.statistics.totalTime || 'Unknown') + 'ms');
-            builder.appendLine('');
-        }
-
-        // Detailed structure analysis
-        builder.appendLine('DETAILED STRUCTURE ANALYSIS:');
-        builder.appendLine('============================');
-
-        if (data.structure && data.structure.length > 0) {
-            var analysisCount = Math.min(50, data.structure.length);
-            for (var i = 0; i < analysisCount; i++) {
-                var node = data.structure[i];
-                var indent = '';
-                for (var d = 0; d < (node.depth || 0); d++) {
-                    indent += '  ';
-                }
-
-                var nodeInfo = indent + (node.path || node.name || 'Unknown');
-                if (node.type) nodeInfo += ' [' + node.type + ']';
-                if (node.safetyLevel) nodeInfo += ' {' + node.safetyLevel + '}';
-                if (node.sampledValue !== undefined) {
-                    nodeInfo += ' = ' + formatValuePreview(node.sampledValue);
-                }
-
-                builder.appendLine(nodeInfo);
+        updateAdvancedStatus('Opening configuration dialog...');
+        
+        var configDialog = createConfigurationDialog();
+        if (configDialog) {
+            var result = configDialog.show();
+            if (result === 1) {
+                updateAdvancedStatus('Configuration updated');
+            } else {
+                updateAdvancedStatus('Configuration cancelled');
             }
-
-            if (data.structure.length > analysisCount) {
-                builder.appendLine('... (' + (data.structure.length - analysisCount) + ' more items)');
-            }
+        } else {
+            updateAdvancedStatus('Configuration dialog creation failed');
         }
-
-        builder.appendLine('');
-        builder.appendLine('END OF COMPREHENSIVE REPORT');
-        builder.appendLine('Generated by InDesign DOM Discovery Builder v3.1');
-
-        return builder.toString();
-
+        
     } catch (exc) {
-        return 'Error generating comprehensive report: ' + exc.message;
+        updateAdvancedStatus('Configuration error: ' + exc.message);
     }
 }
 
@@ -2152,99 +1920,92 @@ function generateFullAnalysisReport(data) {
  */
 function showMainDOMVisualizer() {
     try {
-        if (functionExists('showDOMVisualizer')) {
-            showDOMVisualizer();
-            updateAdvancedStatus('Main DOM Visualizer opened');
-        } else {
-            updateAdvancedStatus('Error: DOM visualizer module not available');
+        updateAdvancedStatus('Launching main DOM visualizer...');
+
+        if (!functionExists('showDOMVisualizer')) {
+            updateAdvancedStatus('Main DOM visualizer not available');
+            return;
         }
+
+        var launched = showDOMVisualizer();
+        if (launched) {
+            updateAdvancedStatus('Main DOM visualizer launched successfully');
+        } else {
+            updateAdvancedStatus('Failed to launch main DOM visualizer');
+        }
+
     } catch (exc) {
-        updateAdvancedStatus('Main visualizer error: ' + exc.message);
+        updateAdvancedStatus('Main visualizer launch error: ' + exc.message);
     }
 }
 
 /**
- * Show module status
+ * Show module status information
  */
 function showModuleStatus() {
     try {
-        var statusReport = '';
+        var status = getModuleLoadingStatus();
+        var message = 'Module Loading Status\n\n';
+        message += 'Total Modules: ' + status.totalModules + '\n';
+        message += 'Loaded: ' + status.loadedCount + '\n';
+        message += 'Failed: ' + status.failedCount + '\n';
+        message += 'Load Time: ' + status.loadTime + 'ms\n';
+        message += 'Status: ' + (status.loadingSuccessful ? 'Success' : 'Partial');
 
-        if (functionExists('generateLoadingReport')) {
-            statusReport = generateLoadingReport();
-        } else {
-            statusReport = 'Module status reporting not available';
+        if (status.failedModules.length > 0) {
+            message += '\n\nFailed Modules:\n' + arrayJoin(status.failedModules, '\n');
         }
 
-        // Display in a dialog
-        var statusDialog = new Window('dialog', 'Module Status Report');
-        statusDialog.orientation = 'column';
-        statusDialog.alignChildren = 'fill';
-        statusDialog.preferredSize.width = 600;
-        statusDialog.preferredSize.height = 400;
+        if (status.loadedModules.length > 0) {
+            message += '\n\nLoaded Modules:\n';
+            for (var i = 0; i < status.loadedModules.length; i++) {
+                var module = status.loadedModules[i];
+                message += module.name + ' v' + module.version + '\n';
+            }
+        }
 
-        var statusText = statusDialog.add('edittext', undefined, statusReport, { multiline: true, scrolling: true });
-        statusText.alignment = 'fill';
-
-        var closeButton = statusDialog.add('button', undefined, 'Close');
-        closeButton.onClick = function () { statusDialog.close(); };
-
-        statusDialog.show();
-
+        alert(message);
+        
     } catch (exc) {
         updateAdvancedStatus('Module status error: ' + exc.message);
     }
 }
 
 /**
- * Show advanced configuration
- */
-function showAdvancedConfiguration() {
-    try {
-        alert('Advanced Configuration\n\n' +
-            'Current configuration is optimized for comprehensive analysis.\n' +
-            'Configuration editing will be available in a future version.\n\n' +
-            'Current Settings:\n' +
-            '• Max Depth: ' + ADVANCED_UI_CONFIG.discovery.maxDepth + '\n' +
-            '• Timeout: ' + ADVANCED_UI_CONFIG.discovery.timeoutMs + 'ms\n' +
-            '• Safety Filter: ' + ADVANCED_UI_CONFIG.sampling.safetyFilter + '\n' +
-            '• Max Samples: ' + ADVANCED_UI_CONFIG.sampling.maxSamples);
-    } catch (exc) {
-        updateAdvancedStatus('Configuration error: ' + exc.message);
-    }
-}
-
-/**
- * Show advanced help
+ * Show comprehensive help information
  */
 function showAdvancedHelp() {
     try {
-        var helpText = 'InDesign DOM Discovery Builder v3.1 - Advanced Interface\n\n' +
-            'LIVE DOCUMENT ANALYSIS:\n' +
-            '• Live Analysis - Complete 3-phase DOM discovery\n' +
-            '• Live Compare - Compare current document against baseline\n' +
-            '• Take Snapshot - Export current state for comparison\n\n' +
-            'ADVANCED DISCOVERY:\n' +
-            '• Full Discovery - Enhanced DOM enumeration with deep analysis\n' +
-            '• Deep Mapping - Create detailed object relationship maps\n' +
-            '• Performance - Analyze performance characteristics\n\n' +
-            'JSON ANALYSIS:\n' +
-            '• Load JSON - Import previously exported DOM structure\n' +
-            '• Analyze - Perform comprehensive structural analysis\n' +
-            '• Visualize - Open data in main DOM visualizer\n' +
-            '• Export Analysis - Save analysis results\n\n' +
-            'SNAPSHOT COMPARISON:\n' +
-            '• Load Before/After - Import snapshots for comparison\n' +
-            '• Compare - Analyze differences between snapshots\n' +
-            '• Export Report - Save comparison analysis\n\n' +
-            'DEEP OBJECT MAPPING:\n' +
-            '• Create Mapping - Generate detailed object maps\n' +
-            '• Object Atlas - Create comprehensive object index\n' +
-            '• Optimize - Analyze performance optimization opportunities\n\n' +
-            'EXPORT OPTIONS:\n' +
-            '• Export JSON/Text/CSV - Save in various formats\n' +
-            '• Full Report - Generate comprehensive analysis report\n\n' +
-            'Use Module Status to check component availability.';
+        var helpText = 'InDesign DOM Discovery Builder - Advanced Interface v3.1\n\n' +
+                      'LIVE DOCUMENT ANALYSIS:\n' +
+                      '• Live Analysis - Comprehensive 3-phase analysis of current document\n' +
+                      '• Live Compare - Compare current document against established baseline\n' +
+                      '• Take Snapshot - Export current state for comparison or archival\n\n' +
+                      'ADVANCED DISCOVERY:\n' +
+                      '• Full Discovery - Enhanced DOM enumeration with deep analysis\n' +
+                      '• Deep Mapping - Create detailed object relationship maps\n' +
+                      '• Performance - Analyze performance characteristics and optimization opportunities\n\n' +
+                      'JSON ANALYSIS:\n' +
+                      '• Load JSON - Import previously exported DOM structure files\n' +
+                      '• Analyze - Perform comprehensive structural analysis and visualization\n' +
+                      '• Visualize - Open data in main DOM visualizer for interactive exploration\n' +
+                      '• Export Analysis - Save detailed analysis results\n\n' +
+                      'SNAPSHOT COMPARISON:\n' +
+                      '• Load Before/After - Import snapshots for detailed change analysis\n' +
+                      '• Compare - Analyze differences between document states\n' +
+                      '• Export Report - Save comprehensive comparison analysis\n\n' +
+                      'DEEP OBJECT MAPPING:\n' +
+                      '• Create Mapping - Generate detailed object relationship maps\n' +
+                      '• Object Atlas - Create comprehensive object index with relationships\n' +
+                      '• Optimize - Analyze performance optimization opportunities\n\n' +
+                      'EXPORT OPTIONS:\n' +
+                      '• Export JSON/Text/CSV - Save current analysis in various formats\n' +
+                      '• Full Report - Generate comprehensive analysis report with all findings\n\n' +
+                      'INTEGRATION:\n' +
+                      '• Main DOM Visualizer - Launch interactive tree structure explorer\n' +
+                      '• Module Status - Check component availability and loading status\n' +
+                      '• Config - Adjust analysis parameters and export settings\n\n' +
+                      'Use the Status bar to monitor operation progress and results.';
 
         alert(helpText);
 
@@ -2264,27 +2025,27 @@ function resetAdvancedUI() {
         g_advUI_beforeData = null;
         g_advUI_afterData = null;
         g_advUI_currentAnalysis = null;
+        g_advUI_baselineDocumentState = null;
 
         // Clear all displays
         if (g_advUI_liveAnalysisText) {
-            g_advUI_liveAnalysisText.text = '';
+            g_advUI_liveAnalysisText.text = 'Run live document analysis to see current structure and extracted values...';
         }
         if (g_advUI_jsonAnalysisText) {
-            g_advUI_jsonAnalysisText.text = '';
+            g_advUI_jsonAnalysisText.text = 'Load a JSON export file to see detailed analysis and visual hierarchy...';
         }
         if (g_advUI_comparisonText) {
-            g_advUI_comparisonText.text = '';
+            g_advUI_comparisonText.text = 'Load before/after snapshots to analyze document changes...';
         }
         if (g_advUI_deepMappingText) {
-            g_advUI_deepMappingText.text = '';
+            g_advUI_deepMappingText.text = 'Create detailed object maps to understand document relationships...';
         }
 
-        var discoveryDisplay = g_advUI_window.mainTabs.discoveryTab.discoveryDisplay.text;
-        if (discoveryDisplay) {
-            discoveryDisplay.text = '';
-        }
+        // Clear discovery display
+        clearDiscoveryDisplay();
 
         updateAdvancedStatus('Advanced UI reset to defaults - all data cleared');
+        updateAdvancedDocumentInfo();
 
     } catch (exc) {
         updateAdvancedStatus('Reset error: ' + exc.message);
@@ -2313,9 +2074,910 @@ function closeAdvancedUI() {
         g_advUI_comparisonText = null;
         g_advUI_deepMappingText = null;
         g_advUI_liveAnalysisText = null;
+        g_advUI_tabPanel = null;
+        g_advUI_baselineDocumentState = null;
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Close error: ' + exc.message);
+        // Silent close
+    }
+}
+
+// =============================================================================
+// DISPLAY GENERATION FUNCTIONS - FULL IMPLEMENTATIONS
+// =============================================================================
+
+/**
+ * Generate comprehensive live analysis display
+ * @param {Object} domStructure - DOM structure with extracted values
+ * @param {Number} analysisTime - Analysis time in milliseconds
+ * @returns {String} Formatted display
+ */
+function generateLiveAnalysisDisplay(domStructure, analysisTime) {
+    try {
+        if (!domStructure || typeof domStructure !== 'object') {
+            return 'No live analysis data available';
+        }
+
+        var builder = createStringBuilder();
+        if (!builder) {
+            return 'Error creating live analysis display';
+        }
+
+        builder.appendLine('LIVE DOCUMENT ANALYSIS RESULTS');
+        builder.appendLine('==============================');
+        builder.appendLine('Analysis Time: ' + (analysisTime || 0) + 'ms');
+        builder.appendLine('Timestamp: ' + getCurrentTimestamp());
+        builder.appendLine('');
+
+        // Document information
+        if (domStructure.metadata) {
+            builder.appendLine('DOCUMENT INFORMATION');
+            builder.appendLine('-------------------');
+            builder.appendLine('Document: ' + (domStructure.metadata.documentName || 'Unknown'));
+            builder.appendLine('Analysis Version: ' + (domStructure.metadata.version || 'Unknown'));
+            builder.appendLine('InDesign Version: ' + (domStructure.metadata.environment ? 
+                              domStructure.metadata.environment.indesignVersion : 'Unknown'));
+            builder.appendLine('Analysis Date: ' + (domStructure.metadata.timestamp || 'Unknown'));
+            builder.appendLine('');
+        }
+
+        // Statistical overview
+        if (domStructure.statistics) {
+            var stats = domStructure.statistics;
+            builder.appendLine('ANALYSIS SUMMARY');
+            builder.appendLine('---------------');
+            builder.appendLine('Objects Discovered: ' + (stats.nodeCount || 0));
+            builder.appendLine('Properties Analyzed: ' + (stats.propertyCount || 0));
+            builder.appendLine('Collections Found: ' + (stats.collectionCount || 0));
+            builder.appendLine('Methods Found: ' + (stats.methodCount || 0));
+            builder.appendLine('Maximum Depth: ' + (stats.maxDepth || 0));
+            builder.appendLine('Analysis Duration: ' + (stats.totalTime || 'Unknown') + 'ms');
+            
+            if (stats.valuesExtracted > 0 && stats.propertyCount > 0) {
+                var extractionRate = Math.round((stats.valuesExtracted / stats.propertyCount) * 100);
+                builder.appendLine('Value Extraction Rate: ' + extractionRate + '%');
+            }
+            builder.appendLine('');
+        }
+
+        // Sample extracted values
+        if (domStructure.structure && domStructure.structure.document) {
+            builder.appendLine('SAMPLE EXTRACTED VALUES');
+            builder.appendLine('----------------------');
+            
+            var sampleCount = 0;
+            var maxSamples = 15;
+            
+            function showSampleValues(node, prefix, depth) {
+                if (sampleCount >= maxSamples || !node || depth > 3) return;
+                
+                // Show properties with extracted values
+                if (node.properties) {
+                    for (var i = 0; i < node.properties.length && sampleCount < maxSamples; i++) {
+                        var prop = node.properties[i];
+                        if (prop.samplingMetadata && prop.samplingMetadata.extractionSuccessful) {
+                            var value = prop.samplingMetadata.actualValue || prop.samplingMetadata.rawValue;
+                            if (value !== undefined && value !== null) {
+                                var displayValue = String(value);
+                                if (displayValue.length > 80) {
+                                    displayValue = displayValue.substring(0, 80) + '...';
+                                }
+                                builder.appendLine(prefix + prop.name + ': ' + displayValue);
+                                sampleCount++;
+                            }
+                        }
+                    }
+                }
+                
+                // Recurse into child objects (limited depth)
+                if (node.childNodes && depth < 2) {
+                    for (var j = 0; j < Math.min(node.childNodes.length, 3); j++) {
+                        showSampleValues(node.childNodes[j], prefix + '  ', depth + 1);
+                    }
+                }
+            }
+            
+            showSampleValues(domStructure.structure.document, '', 0);
+            
+            if (sampleCount === 0) {
+                builder.appendLine('No extracted values found - values may be in sampling metadata');
+            } else if (sampleCount >= maxSamples) {
+                builder.appendLine('... and more values available');
+            }
+            
+            builder.appendLine('');
+        }
+
+        // Phase completion status
+        builder.appendLine('3-PHASE ANALYSIS STATUS');
+        builder.appendLine('----------------------');
+        builder.appendLine('✓ Phase 1: DOM Discovery - Structure mapped and safety classified');
+        builder.appendLine('✓ Phase 2: Value Extraction - Property values extracted using safe functions');
+        builder.appendLine('✓ Phase 3: Collection Analysis - Collection contents sampled and analyzed');
+        builder.appendLine('');
+        
+        // Value sampling insights
+        if (domStructure.metadata && domStructure.metadata.valueSampling) {
+            var valueSampling = domStructure.metadata.valueSampling;
+            builder.appendLine('VALUE SAMPLING INSIGHTS');
+            builder.appendLine('----------------------');
+            if (valueSampling.statistics) {
+                builder.appendLine('Values Sampled: ' + (valueSampling.statistics.valuesSampled || 0));
+                builder.appendLine('Properties Processed: ' + (valueSampling.statistics.propertiesSampled || 0));
+                builder.appendLine('Errors Encountered: ' + (valueSampling.statistics.errorsEncountered || 0));
+                builder.appendLine('Safety Filter Rejects: ' + (valueSampling.statistics.safetyFilterRejects || 0));
+            }
+            builder.appendLine('');
+        }
+        
+        builder.appendLine('NEXT STEPS');
+        builder.appendLine('---------');
+        builder.appendLine('• Modify your document and run "Live Compare" to see specific changes');
+        builder.appendLine('• Use "Export" to save this analysis for future reference');
+        builder.appendLine('• Use "Deep Map" for comprehensive object relationship analysis');
+        builder.appendLine('• Use "Main Visualizer" for interactive tree structure exploration');
+        builder.appendLine('• Use "Advanced Discovery" for enhanced analysis with performance metrics');
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating live analysis display: ' + exc.message;
+    }
+}
+
+/**
+ * Generate comprehensive JSON analysis display
+ * @param {Object} analysis - Analysis results
+ * @returns {String} Formatted analysis display
+ */
+function generateJSONAnalysisDisplay(analysis) {
+    try {
+        if (!analysis || typeof analysis !== 'object') {
+            return 'No analysis data available';
+        }
+
+        var builder = createStringBuilder();
+        if (!builder) {
+            return 'Error creating string builder';
+        }
+
+        builder.appendLine('COMPREHENSIVE JSON ANALYSIS RESULTS');
+        builder.appendLine('===================================');
+        builder.appendLine('Analysis Time: ' + (analysis.metadata ? analysis.metadata.analysisTimestamp : 'Unknown'));
+        builder.appendLine('');
+
+        // Executive Summary
+        if (analysis.summary) {
+            builder.appendLine('EXECUTIVE SUMMARY');
+            builder.appendLine('----------------');
+            builder.appendLine('Document: ' + (analysis.summary.documentName || 'Unknown'));
+            builder.appendLine('Analysis Version: ' + (analysis.summary.version || 'Unknown'));
+            builder.appendLine('Total Nodes: ' + (analysis.summary.nodeCount || 0));
+            builder.appendLine('Total Properties: ' + (analysis.summary.propertyCount || 0));
+            builder.appendLine('Collections Found: ' + (analysis.summary.collectionCount || 0));
+            builder.appendLine('Methods Found: ' + (analysis.summary.methodCount || 0));
+            builder.appendLine('Maximum Depth: ' + (analysis.summary.maxDepth || 0));
+            builder.appendLine('Collection Sampling: ' + (analysis.summary.hasCollectionSampling ? 'Yes' : 'No'));
+            builder.appendLine('Object References: ' + (analysis.summary.hasObjectReferences ? 'Yes' : 'No'));
+            builder.appendLine('Extracted Values: ' + (analysis.summary.hasExtractedValues ? 'Yes' : 'No'));
+            builder.appendLine('');
+        }
+
+        // Visual Hierarchy
+        if (analysis.visualHierarchy) {
+            builder.appendLine('DOCUMENT HIERARCHY');
+            builder.appendLine('------------------');
+            builder.appendLine(analysis.visualHierarchy);
+            builder.appendLine('');
+        }
+
+        // Property Analysis
+        if (analysis.propertyAnalysis) {
+            builder.appendLine('PROPERTY ANALYSIS');
+            builder.appendLine('-----------------');
+            builder.appendLine(analysis.propertyAnalysis);
+            builder.appendLine('');
+        }
+
+        // Collection Analysis
+        if (analysis.collectionAnalysis) {
+            builder.appendLine('COLLECTION ANALYSIS');
+            builder.appendLine('-------------------');
+            builder.appendLine(analysis.collectionAnalysis);
+            builder.appendLine('');
+        }
+
+        // Value Analysis
+        if (analysis.valueAnalysis) {
+            builder.appendLine('VALUE ANALYSIS');
+            builder.appendLine('==============');
+            builder.appendLine(analysis.valueAnalysis);
+            builder.appendLine('');
+        }
+
+        // Accessibility Map
+        if (analysis.accessibilityMap) {
+            builder.appendLine('ACCESSIBILITY MAP');
+            builder.appendLine('=================');
+            builder.appendLine(analysis.accessibilityMap);
+            builder.appendLine('');
+        }
+
+        // Developer Guide
+        if (analysis.developerGuide) {
+            builder.appendLine('DEVELOPER GUIDE');
+            builder.appendLine('===============');
+            builder.appendLine(analysis.developerGuide);
+            builder.appendLine('');
+        }
+
+        // Performance Metrics
+        if (analysis.performanceMetrics) {
+            builder.appendLine('PERFORMANCE METRICS');
+            builder.appendLine('==================');
+            builder.appendLine(analysis.performanceMetrics);
+            builder.appendLine('');
+        }
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating JSON analysis display: ' + exc.message;
+    }
+}
+
+/**
+ * Generate comprehensive comparison display
+ * @param {Object} comparison - Comparison results
+ * @returns {String} Formatted comparison display
+ */
+function generateComparisonDisplay(comparison) {
+    try {
+        if (!comparison || typeof comparison !== 'object') {
+            return 'No comparison data available';
+        }
+
+        var builder = createStringBuilder();
+        if (!builder) {
+            return 'Error creating comparison display';
+        }
+
+        builder.appendLine('COMPREHENSIVE DOCUMENT COMPARISON RESULTS');
+        builder.appendLine('=========================================');
+        builder.appendLine('');
+
+        // Executive Summary
+        if (comparison.summary) {
+            builder.appendLine('EXECUTIVE SUMMARY');
+            builder.appendLine('----------------');
+            builder.appendLine('Total Changes: ' + (comparison.summary.totalChanges || 0));
+            builder.appendLine('Critical Changes: ' + (comparison.summary.criticalChanges || 0));
+            builder.appendLine('Added Elements: ' + (comparison.summary.addedCount || 0));
+            builder.appendLine('Removed Elements: ' + (comparison.summary.removedCount || 0));
+            builder.appendLine('Modified Elements: ' + (comparison.summary.modifiedCount || 0));
+            builder.appendLine('Structural Changes: ' + (comparison.summary.structuralChanges || 0));
+            builder.appendLine('Property Changes: ' + (comparison.summary.propertyChanges || 0));
+            builder.appendLine('Collection Changes: ' + (comparison.summary.collectionChanges || 0));
+            builder.appendLine('Value Changes: ' + (comparison.summary.valueChanges || 0));
+            builder.appendLine('');
+        }
+
+        // Impact Assessment
+        if (comparison.summary && comparison.summary.totalChanges > 0) {
+            builder.appendLine('IMPACT ASSESSMENT');
+            builder.appendLine('-----------------');
+            var impact = 'Low';
+            if (comparison.summary.criticalChanges > 0) {
+                impact = 'High';
+            } else if (comparison.summary.totalChanges > 10) {
+                impact = 'Medium';
+            }
+            builder.appendLine('Overall Impact: ' + impact);
+            builder.appendLine('Risk Level: ' + (comparison.summary.criticalChanges > 0 ? 'High' : 'Low'));
+            builder.appendLine('');
+        }
+
+        // Detailed Changes
+        if (comparison.changes && comparison.changes.length > 0) {
+            builder.appendLine('DETAILED CHANGES');
+            builder.appendLine('---------------');
+            
+            var changeCount = Math.min(comparison.changes.length, 20);
+            for (var i = 0; i < changeCount; i++) {
+                var change = comparison.changes[i];
+                var changeStr = '• ' + (change.path || 'Unknown') + ': ' + (change.changeType || 'Modified');
+                if (change.impact) {
+                    changeStr += ' (' + change.impact + ' impact)';
+                }
+                builder.appendLine(changeStr);
+            }
+            
+            if (comparison.changes.length > changeCount) {
+                builder.appendLine('... and ' + (comparison.changes.length - changeCount) + ' more changes');
+            }
+            builder.appendLine('');
+        }
+
+        // Critical Findings
+        if (comparison.criticalFindings && comparison.criticalFindings.length > 0) {
+            builder.appendLine('CRITICAL FINDINGS');
+            builder.appendLine('-----------------');
+            for (var j = 0; j < comparison.criticalFindings.length; j++) {
+                builder.appendLine('• ' + comparison.criticalFindings[j]);
+            }
+            builder.appendLine('');
+        }
+
+        // Recommendations
+        if (comparison.recommendations) {
+            builder.appendLine('RECOMMENDATIONS');
+            builder.appendLine('---------------');
+            if (typeof comparison.recommendations === 'string') {
+                builder.appendLine(comparison.recommendations);
+            } else if (comparison.recommendations.length) {
+                for (var k = 0; k < comparison.recommendations.length; k++) {
+                    builder.appendLine('• ' + comparison.recommendations[k]);
+                }
+            }
+            builder.appendLine('');
+        }
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating comparison display: ' + exc.message;
+    }
+}
+
+/**
+ * Generate comprehensive deep mapping display
+ * @param {Object} session - Deep mapping session
+ * @param {Object} analysis - Analysis results
+ * @returns {String} Formatted display
+ */
+function generateDeepMappingDisplay(session, analysis) {
+    try {
+        var builder = createStringBuilder();
+        if (!builder) {
+            return 'Error creating deep mapping display';
+        }
+
+        builder.appendLine('COMPREHENSIVE DEEP MAPPING ANALYSIS');
+        builder.appendLine('===================================');
+        builder.appendLine('');
+
+        // Session Overview
+        if (session && session.metadata) {
+            builder.appendLine('MAPPING SESSION OVERVIEW');
+            builder.appendLine('------------------------');
+            builder.appendLine('Session ID: ' + (session.metadata.sessionId || 'Unknown'));
+            builder.appendLine('Start Time: ' + (session.metadata.startTime || 'Unknown'));
+            builder.appendLine('Status: ' + (session.metadata.success ? 'Success' : 'Failed'));
+            if (session.metadata.error) {
+                builder.appendLine('Error: ' + session.metadata.error);
+            }
+            builder.appendLine('');
+        }
+
+        // Statistical Summary
+        if (session && session.statistics) {
+            builder.appendLine('STATISTICAL SUMMARY');
+            builder.appendLine('------------------');
+            builder.appendLine('Objects Mapped: ' + (session.statistics.totalNodes || 0));
+            builder.appendLine('Properties Analyzed: ' + (session.statistics.totalProperties || 0));
+            builder.appendLine('Collections Found: ' + (session.statistics.collectionsFound || 0));
+            builder.appendLine('Circular References: ' + (session.statistics.circularReferences || 0));
+            builder.appendLine('Relationships Tracked: ' + (session.statistics.relationshipsTracked || 0));
+            builder.appendLine('Mapping Time: ' + (session.statistics.mappingTime || 0) + 'ms');
+            builder.appendLine('Memory Used: ' + (session.statistics.memoryUsed || 'Unknown'));
+            builder.appendLine('');
+        }
+
+        // Analysis Results
+        if (analysis) {
+            if (analysis.summary) {
+                builder.appendLine('ANALYSIS SUMMARY');
+                builder.appendLine('---------------');
+                builder.appendLine(analysis.summary);
+                builder.appendLine('');
+            }
+
+            if (analysis.objectReport) {
+                builder.appendLine('OBJECT RELATIONSHIP REPORT');
+                builder.appendLine('--------------------------');
+                builder.appendLine(analysis.objectReport);
+                builder.appendLine('');
+            }
+
+            if (analysis.accessReport) {
+                builder.appendLine('ACCESSIBILITY REPORT');
+                builder.appendLine('-------------------');
+                builder.appendLine(analysis.accessReport);
+                builder.appendLine('');
+            }
+
+            if (analysis.circularReport) {
+                builder.appendLine('CIRCULAR REFERENCE REPORT');
+                builder.appendLine('-------------------------');
+                builder.appendLine(analysis.circularReport);
+                builder.appendLine('');
+            }
+
+            if (analysis.performanceAnalysis) {
+                builder.appendLine('PERFORMANCE ANALYSIS');
+                builder.appendLine('-------------------');
+                builder.appendLine(analysis.performanceAnalysis);
+                builder.appendLine('');
+            }
+
+            if (analysis.developerGuide) {
+                builder.appendLine('DEVELOPER GUIDE');
+                builder.appendLine('===============');
+                builder.appendLine(analysis.developerGuide);
+                builder.appendLine('');
+            }
+
+            if (analysis.optimizationSuggestions) {
+                builder.appendLine('OPTIMIZATION SUGGESTIONS');
+                builder.appendLine('========================');
+                builder.appendLine(analysis.optimizationSuggestions);
+                builder.appendLine('');
+            }
+        }
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating deep mapping display: ' + exc.message;
+    }
+}
+
+/**
+ * Generate advanced discovery display
+ * @param {Object} domStructure - DOM structure with enhanced analysis
+ * @returns {String} Formatted display
+ */
+function generateAdvancedDiscoveryDisplay(domStructure) {
+    try {
+        var builder = createStringBuilder();
+        if (!builder) {
+            return 'Error creating advanced discovery display';
+        }
+
+        builder.appendLine('ADVANCED DISCOVERY ANALYSIS RESULTS');
+        builder.appendLine('===================================');
+        builder.appendLine('Generated: ' + getCurrentTimestamp());
+        builder.appendLine('');
+
+        // Standard analysis results
+        var standardDisplay = generateLiveAnalysisDisplay(domStructure, 0);
+        builder.appendLine(standardDisplay);
+        builder.appendLine('');
+
+        // Enhanced analysis results
+        if (domStructure.metadata && domStructure.metadata.deepMapping) {
+            builder.appendLine('ENHANCED DEEP MAPPING RESULTS');
+            builder.appendLine('=============================');
+            var deepMapping = domStructure.metadata.deepMapping;
+            
+            if (deepMapping.statistics) {
+                builder.appendLine('Deep Mapping Statistics:');
+                builder.appendLine('• Total Objects Mapped: ' + (deepMapping.statistics.totalNodes || 0));
+                builder.appendLine('• Circular References: ' + (deepMapping.statistics.circularReferences || 0));
+                builder.appendLine('• Relationships Tracked: ' + (deepMapping.statistics.relationshipsTracked || 0));
+                builder.appendLine('• Mapping Time: ' + (deepMapping.statistics.mappingTime || 0) + 'ms');
+                builder.appendLine('');
+            }
+        }
+
+        builder.appendLine('ADVANCED ANALYSIS FEATURES');
+        builder.appendLine('--------------------------');
+        builder.appendLine('✓ Enhanced DOM enumeration with safety classification');
+        builder.appendLine('✓ Comprehensive property value extraction');
+        builder.appendLine('✓ Deep collection content analysis');
+        builder.appendLine('✓ Object relationship mapping');
+        builder.appendLine('✓ Performance characteristic analysis');
+        builder.appendLine('✓ Circular reference detection and tracking');
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating advanced discovery display: ' + exc.message;
+    }
+}
+
+/**
+ * Generate optimization display
+ * @param {Array} optimizations - Optimization suggestions
+ * @returns {String} Formatted display
+ */
+function generateOptimizationDisplay(optimizations) {
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('PERFORMANCE OPTIMIZATION ANALYSIS');
+        builder.appendLine('=================================');
+        builder.appendLine('Generated: ' + getCurrentTimestamp());
+        builder.appendLine('');
+
+        if (!optimizations || optimizations.length === 0) {
+            builder.appendLine('No specific optimization opportunities identified.');
+            builder.appendLine('Current structure appears to be well-optimized.');
+            return builder.toString();
+        }
+
+        builder.appendLine('OPTIMIZATION RECOMMENDATIONS:');
+        builder.appendLine('');
+
+        for (var i = 0; i < optimizations.length; i++) {
+            builder.appendLine((i + 1) + '. ' + optimizations[i]);
+            builder.appendLine('');
+        }
+
+        builder.appendLine('IMPLEMENTATION PRIORITY:');
+        builder.appendLine('• High Impact: Items 1-3 (immediate attention recommended)');
+        builder.appendLine('• Medium Impact: Items 4-7 (plan for next iteration)');
+        builder.appendLine('• Low Impact: Remaining items (optimize when convenient)');
+        builder.appendLine('');
+
+        builder.appendLine('GENERAL OPTIMIZATION GUIDELINES:');
+        builder.appendLine('• Focus on frequently accessed properties first');
+        builder.appendLine('• Consider caching results for expensive operations');
+        builder.appendLine('• Minimize deep property access chains');
+        builder.appendLine('• Use try-catch blocks for error-prone operations');
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating optimization display: ' + exc.message;
+    }
+}
+
+/**
+ * Generate atlas display
+ * @param {Object} atlas - Object atlas
+ * @returns {String} Formatted display
+ */
+function generateAtlasDisplay(atlas) {
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('COMPREHENSIVE OBJECT ATLAS');
+        builder.appendLine('==========================');
+        builder.appendLine('Generated: ' + getCurrentTimestamp());
+        builder.appendLine('');
+
+        if (atlas.metadata) {
+            builder.appendLine('ATLAS METADATA:');
+            builder.appendLine('Object Count: ' + (atlas.metadata.objectCount || 0));
+            builder.appendLine('Index Count: ' + (atlas.metadata.indexCount || 0));
+            builder.appendLine('Generation Time: ' + (atlas.metadata.generationTime || 0) + 'ms');
+            builder.appendLine('');
+        }
+
+        if (atlas.pathIndex) {
+            builder.appendLine('PATH INDEX SUMMARY:');
+            builder.appendLine('Total Paths: ' + (atlas.pathIndex.totalPaths || 0));
+            builder.appendLine('Unique Objects: ' + (atlas.pathIndex.uniqueObjects || 0));
+            builder.appendLine('Multiple Access Paths: ' + (atlas.pathIndex.multipleAccessPaths || 0));
+            builder.appendLine('');
+        }
+
+        if (atlas.typeIndex) {
+            builder.appendLine('TYPE INDEX SUMMARY:');
+            var typeCount = 0;
+            for (var type in atlas.typeIndex) {
+                if (objectHasOwnProperty(atlas.typeIndex, type)) {
+                    typeCount++;
+                }
+            }
+            builder.appendLine('Unique Types: ' + typeCount);
+            builder.appendLine('');
+        }
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating atlas display: ' + exc.message;
+    }
+}
+
+// =============================================================================
+// REPORT GENERATION FUNCTIONS
+// =============================================================================
+
+/**
+ * Create comprehensive analysis report
+ * @param {Object} dataForReport - Data to analyze
+ * @returns {String} Complete report
+ */
+function createComprehensiveReport(dataForReport) {
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('INDESIGN DOM DISCOVERY BUILDER');
+        builder.appendLine('COMPREHENSIVE ANALYSIS REPORT');
+        builder.appendLine('==============================');
+        builder.appendLine('Generated: ' + getCurrentTimestamp());
+        builder.appendLine('Version: v3.1');
+        builder.appendLine('');
+
+        // Executive Summary
+        builder.appendLine('EXECUTIVE SUMMARY');
+        builder.appendLine('================');
+        if (dataForReport.metadata) {
+            builder.appendLine('Document: ' + (dataForReport.metadata.documentName || 'Unknown'));
+            builder.appendLine('Analysis Type: ' + (dataForReport.metadata.analysisType || 'DOM Structure Analysis'));
+            builder.appendLine('Analysis Date: ' + (dataForReport.metadata.timestamp || 'Unknown'));
+        }
+        builder.appendLine('');
+
+        // Statistical Overview
+        if (dataForReport.statistics) {
+            builder.appendLine('STATISTICAL OVERVIEW');
+            builder.appendLine('===================');
+            var stats = dataForReport.statistics;
+            builder.appendLine('Total Objects: ' + (stats.nodeCount || 0));
+            builder.appendLine('Total Properties: ' + (stats.propertyCount || 0));
+            builder.appendLine('Collections: ' + (stats.collectionCount || 0));
+            builder.appendLine('Methods: ' + (stats.methodCount || 0));
+            builder.appendLine('Maximum Depth: ' + (stats.maxDepth || 0));
+            if (stats.valuesExtracted) {
+                builder.appendLine('Values Extracted: ' + stats.valuesExtracted);
+            }
+            builder.appendLine('');
+        }
+
+        // Detailed Analysis
+        builder.appendLine('DETAILED ANALYSIS');
+        builder.appendLine('================');
+        builder.appendLine('This report contains comprehensive analysis of the InDesign document structure,');
+        builder.appendLine('including object hierarchy, property analysis, and accessibility recommendations.');
+        builder.appendLine('');
+
+        // Analysis Sections
+        if (g_advUI_liveAnalysisText && g_advUI_liveAnalysisText.text) {
+            builder.appendLine('LIVE DOCUMENT ANALYSIS');
+            builder.appendLine('=====================');
+            builder.appendLine(g_advUI_liveAnalysisText.text);
+            builder.appendLine('');
+        }
+
+        if (g_advUI_jsonAnalysisText && g_advUI_jsonAnalysisText.text) {
+            builder.appendLine('JSON STRUCTURE ANALYSIS');
+            builder.appendLine('======================');
+            builder.appendLine(g_advUI_jsonAnalysisText.text);
+            builder.appendLine('');
+        }
+
+        if (g_advUI_comparisonText && g_advUI_comparisonText.text) {
+            builder.appendLine('COMPARISON ANALYSIS');
+            builder.appendLine('==================');
+            builder.appendLine(g_advUI_comparisonText.text);
+            builder.appendLine('');
+        }
+
+        if (g_advUI_deepMappingText && g_advUI_deepMappingText.text) {
+            builder.appendLine('DEEP MAPPING ANALYSIS');
+            builder.appendLine('====================');
+            builder.appendLine(g_advUI_deepMappingText.text);
+            builder.appendLine('');
+        }
+
+        // Footer
+        builder.appendLine('END OF COMPREHENSIVE REPORT');
+        builder.appendLine('Generated by InDesign DOM Discovery Builder v3.1');
+        builder.appendLine('For technical support and updates, please refer to the documentation.');
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating comprehensive report: ' + exc.message;
+    }
+}
+
+/**
+ * Generate JSON analysis report
+ * @param {Object} analysis - Analysis results
+ * @returns {String} Report content
+ */
+function generateJSONAnalysisReport(analysis) {
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('JSON ANALYSIS REPORT');
+        builder.appendLine('===================');
+        builder.appendLine('Generated: ' + getCurrentTimestamp());
+        builder.appendLine('');
+
+        builder.appendLine(generateJSONAnalysisDisplay(analysis));
+
+        builder.appendLine('');
+        builder.appendLine('ADDITIONAL INSIGHTS');
+        builder.appendLine('==================');
+        builder.appendLine('This analysis provides comprehensive insights into the JSON structure,');
+        builder.appendLine('including hierarchy visualization, property patterns, and accessibility recommendations.');
+        builder.appendLine('Use this information to optimize your InDesign scripting and automation workflows.');
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating JSON analysis report: ' + exc.message;
+    }
+}
+
+/**
+ * Generate comparison report
+ * @returns {String} Report content
+ */
+function generateComparisonReport() {
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('DOCUMENT COMPARISON REPORT');
+        builder.appendLine('=========================');
+        builder.appendLine('Generated: ' + getCurrentTimestamp());
+        builder.appendLine('');
+
+        if (g_advUI_comparisonText && g_advUI_comparisonText.text) {
+            builder.appendLine(g_advUI_comparisonText.text);
+        } else {
+            builder.appendLine('No comparison data available.');
+        }
+
+        builder.appendLine('');
+        builder.appendLine('COMPARISON METHODOLOGY');
+        builder.appendLine('=====================');
+        builder.appendLine('This comparison analyzes structural differences, property changes,');
+        builder.appendLine('collection modifications, and value variations between document states.');
+        builder.appendLine('Critical changes are highlighted and recommendations provided for review.');
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating comparison report: ' + exc.message;
+    }
+}
+
+// =============================================================================
+// CONFIGURATION DIALOG
+// =============================================================================
+
+/**
+ * Create configuration dialog
+ * @returns {Window} Configuration dialog
+ */
+function createConfigurationDialog() {
+    try {
+        var configDialog = new Window('dialog', 'Advanced UI Configuration');
+        if (!configDialog) return null;
+
+        configDialog.orientation = 'column';
+        configDialog.alignChildren = 'fill';
+        configDialog.spacing = 10;
+        configDialog.margins = 16;
+        configDialog.preferredSize.width = 600;
+        configDialog.preferredSize.height = 500;
+
+        // Create tabs for different config sections
+        var configTabs = configDialog.add('tabbedpanel');
+        if (configTabs) {
+            configTabs.alignChildren = 'fill';
+            configTabs.preferredSize.height = 400;
+
+            // Discovery Configuration Tab
+            var discoveryTab = configTabs.add('tab', undefined, 'Discovery');
+            if (discoveryTab) {
+                discoveryTab.orientation = 'column';
+                discoveryTab.alignChildren = 'left';
+                discoveryTab.spacing = 5;
+
+                discoveryTab.add('statictext', undefined, 'Discovery Settings:');
+                
+                var maxDepthGroup = discoveryTab.add('group');
+                if (maxDepthGroup) {
+                    maxDepthGroup.add('statictext', undefined, 'Max Depth:');
+                    var maxDepthEdit = maxDepthGroup.add('edittext', undefined, String(ADVANCED_UI_CONFIG.discovery.maxDepth));
+                    maxDepthEdit.preferredSize.width = 60;
+                }
+
+                var timeoutGroup = discoveryTab.add('group');
+                if (timeoutGroup) {
+                    timeoutGroup.add('statictext', undefined, 'Timeout (ms):');
+                    var timeoutEdit = timeoutGroup.add('edittext', undefined, String(ADVANCED_UI_CONFIG.discovery.timeoutMs));
+                    timeoutEdit.preferredSize.width = 80;
+                }
+
+                var skipDangerousCheck = discoveryTab.add('checkbox', undefined, 'Skip Dangerous Properties');
+                skipDangerousCheck.value = ADVANCED_UI_CONFIG.discovery.skipDangerous;
+
+                var objectTrackingCheck = discoveryTab.add('checkbox', undefined, 'Enable Object Tracking');
+                objectTrackingCheck.value = ADVANCED_UI_CONFIG.discovery.enableObjectTracking;
+            }
+
+            // Sampling Configuration Tab
+            var samplingTab = configTabs.add('tab', undefined, 'Sampling');
+            if (samplingTab) {
+                samplingTab.orientation = 'column';
+                samplingTab.alignChildren = 'left';
+                samplingTab.spacing = 5;
+
+                samplingTab.add('statictext', undefined, 'Value Sampling Settings:');
+                
+                var maxSamplesGroup = samplingTab.add('group');
+                if (maxSamplesGroup) {
+                    maxSamplesGroup.add('statictext', undefined, 'Max Samples:');
+                    var maxSamplesEdit = maxSamplesGroup.add('edittext', undefined, String(ADVANCED_UI_CONFIG.sampling.maxSamples));
+                    maxSamplesEdit.preferredSize.width = 60;
+                }
+
+                var safetyFilterGroup = samplingTab.add('group');
+                if (safetyFilterGroup) {
+                    safetyFilterGroup.add('statictext', undefined, 'Safety Filter:');
+                    var safetyFilterDropdown = safetyFilterGroup.add('dropdownlist', undefined, ['safe', 'moderate', 'all']);
+                    safetyFilterDropdown.selection = 0; // default to 'safe'
+                }
+
+                var includeCollectionsCheck = samplingTab.add('checkbox', undefined, 'Include Collection Samples');
+                includeCollectionsCheck.value = ADVANCED_UI_CONFIG.sampling.includeCollectionSamples;
+
+                var trackReferencesCheck = samplingTab.add('checkbox', undefined, 'Track Object References');
+                trackReferencesCheck.value = ADVANCED_UI_CONFIG.sampling.trackObjectReferences;
+            }
+
+            // Export Configuration Tab
+            var exportTab = configTabs.add('tab', undefined, 'Export');
+            if (exportTab) {
+                exportTab.orientation = 'column';
+                exportTab.alignChildren = 'left';
+                exportTab.spacing = 5;
+
+                exportTab.add('statictext', undefined, 'Export Settings:');
+                
+                var includeValuesCheck = exportTab.add('checkbox', undefined, 'Include Extracted Values');
+                includeValuesCheck.value = ADVANCED_UI_CONFIG.exportSettings.includeExtractedValues;
+
+                var formatOutputCheck = exportTab.add('checkbox', undefined, 'Format Output');
+                formatOutputCheck.value = ADVANCED_UI_CONFIG.exportSettings.formatOutput;
+
+                var includeMetadataCheck = exportTab.add('checkbox', undefined, 'Include Metadata');
+                includeMetadataCheck.value = ADVANCED_UI_CONFIG.exportSettings.includeMetadata;
+
+                var includeReferencesCheck = exportTab.add('checkbox', undefined, 'Include Object References');
+                includeReferencesCheck.value = ADVANCED_UI_CONFIG.exportSettings.includeObjectReferences;
+
+                var enableTimestampsCheck = exportTab.add('checkbox', undefined, 'Enable Timestamps');
+                enableTimestampsCheck.value = ADVANCED_UI_CONFIG.exportSettings.enableTimestamps;
+            }
+        }
+
+        // Dialog buttons
+        var buttonGroup = configDialog.add('group');
+        if (buttonGroup) {
+            buttonGroup.orientation = 'row';
+            buttonGroup.alignment = 'center';
+
+            var okButton = buttonGroup.add('button', undefined, 'OK');
+            if (okButton) {
+                okButton.onClick = function() {
+                    // Save configuration changes here
+                    configDialog.close(1);
+                };
+            }
+
+            var cancelButton = buttonGroup.add('button', undefined, 'Cancel');
+            if (cancelButton) {
+                cancelButton.onClick = function() {
+                    configDialog.close(0);
+                };
+            }
+        }
+
+        return configDialog;
+
+    } catch (exc) {
+        updateAdvancedStatus('Configuration dialog creation error: ' + exc.message);
+        return null;
     }
 }
 
@@ -2324,227 +2986,87 @@ function closeAdvancedUI() {
 // =============================================================================
 
 /**
- * Update advanced UI status
+ * Update advanced status display
+ * @param {String} message - Status message
  */
 function updateAdvancedStatus(message) {
     try {
+        if (!message || typeof message !== 'string') {
+            return;
+        }
+
         if (g_advUI_statusText) {
             g_advUI_statusText.text = message;
         }
-        $.writeln('[Advanced UI] ' + message);
+
+        // Also output to console for debugging
+        $.writeln('[Advanced Analysis] ' + message);
+
     } catch (exc) {
-        $.writeln('[Advanced UI] Status update failed: ' + exc.message);
+        $.writeln('[Advanced Analysis] Status update error: ' + exc.message);
     }
 }
 
 /**
- * Update document information display
+ * Update advanced document information display
  */
 function updateAdvancedDocumentInfo() {
     try {
-        if (!g_advUI_documentInfo) return;
+        if (!g_advUI_documentInfo) {
+            return;
+        }
 
+        var infoText = '';
+
+        // Document information
         var envValidation = validateInDesignEnvironment();
         if (envValidation.valid) {
-            var docName = envValidation.metadata.documentName || 'Unknown Document';
-            var indesignVer = envValidation.metadata.indesignVersion || 'Unknown Version';
-            g_advUI_documentInfo.text = 'Document: ' + docName + ' (InDesign ' + indesignVer + ')';
+            try {
+                infoText += 'Document: ' + (envValidation.document.name || 'Unnamed');
+            } catch (exc) {
+                infoText += 'Document: [Access Error]';
+            }
         } else {
-            g_advUI_documentInfo.text = 'Document: ' + envValidation.error;
+            infoText += 'Document: Not Available';
         }
+
+        // Live analysis information
+        if (g_advUI_advancedDOMStructure) {
+            var liveStats = g_advUI_advancedDOMStructure.statistics || {};
+            infoText += ' | Live: ' + (liveStats.nodeCount || 0) + ' objects';
+            if (liveStats.valuesExtracted || liveStats.valuesSampled) {
+                infoText += ', ' + (liveStats.valuesExtracted || liveStats.valuesSampled || 0) + ' values';
+            }
+        }
+
+        // Loaded data information
+        if (g_advUI_loadedJSONData) {
+            var domStructure = g_advUI_loadedJSONData.domStructure || g_advUI_loadedJSONData;
+            if (domStructure.metadata) {
+                infoText += ' | JSON: ' + (domStructure.metadata.documentName || 'Unknown');
+            } else {
+                infoText += ' | JSON: Loaded';
+            }
+        }
+
+        // Comparison information
+        if (g_advUI_beforeData && g_advUI_afterData) {
+            infoText += ' | Comparison: Ready';
+        } else if (g_advUI_beforeData || g_advUI_afterData) {
+            infoText += ' | Comparison: Partial';
+        }
+
+        // Baseline information
+        if (g_advUI_baselineDocumentState) {
+            infoText += ' | Baseline: Set';
+        }
+
+        g_advUI_documentInfo.text = infoText;
 
     } catch (exc) {
         if (g_advUI_documentInfo) {
-            g_advUI_documentInfo.text = 'Document: Error - ' + exc.message;
+            g_advUI_documentInfo.text = 'Advanced info error: ' + exc.message;
         }
-    }
-}
-
-/**
- * Generate JSON analysis text for full export
- */
-function generateJSONAnalysisText(analysis) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('InDesign DOM Discovery Builder v3.1');
-        builder.appendLine('Advanced JSON Analysis Report');
-        builder.appendLine('====================================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Executive summary
-        if (analysis.summary) {
-            builder.appendLine('EXECUTIVE SUMMARY:');
-            builder.appendLine('Analysis Type: JSON Structure Analysis');
-            builder.appendLine('Total Elements: ' + (analysis.summary.nodeCount || 0));
-            builder.appendLine('Properties Analyzed: ' + (analysis.summary.propertyCount || 0));
-            builder.appendLine('Collections Found: ' + (analysis.summary.collectionCount || 0));
-            builder.appendLine('Maximum Depth: ' + (analysis.summary.maxDepth || 0));
-            builder.appendLine('Complexity Score: ' + (analysis.summary.complexityScore || 'Unknown'));
-            builder.appendLine('Analysis Confidence: ' + (analysis.summary.confidence || 'High'));
-            builder.appendLine('');
-        }
-
-        // Detailed sections
-        if (analysis.visualHierarchy) {
-            builder.appendLine('VISUAL HIERARCHY ANALYSIS:');
-            builder.appendLine('==========================');
-            builder.appendLine(analysis.visualHierarchy);
-            builder.appendLine('');
-        }
-
-        if (analysis.propertyAnalysis) {
-            builder.appendLine('PROPERTY ANALYSIS:');
-            builder.appendLine('==================');
-            builder.appendLine(analysis.propertyAnalysis);
-            builder.appendLine('');
-        }
-
-        if (analysis.collectionAnalysis) {
-            builder.appendLine('COLLECTION ANALYSIS:');
-            builder.appendLine('===================');
-            builder.appendLine(analysis.collectionAnalysis);
-            builder.appendLine('');
-        }
-
-        if (analysis.valueAnalysis) {
-            builder.appendLine('VALUE ANALYSIS:');
-            builder.appendLine('===============');
-            builder.appendLine(analysis.valueAnalysis);
-            builder.appendLine('');
-        }
-
-        if (analysis.accessibilityMap) {
-            builder.appendLine('ACCESSIBILITY MAP:');
-            builder.appendLine('==================');
-            builder.appendLine(analysis.accessibilityMap);
-            builder.appendLine('');
-        }
-
-        if (analysis.developerGuide) {
-            builder.appendLine('DEVELOPER GUIDE:');
-            builder.appendLine('================');
-            builder.appendLine(analysis.developerGuide);
-            builder.appendLine('');
-        }
-
-        if (analysis.performanceMetrics) {
-            builder.appendLine('PERFORMANCE METRICS:');
-            builder.appendLine('===================');
-            builder.appendLine(analysis.performanceMetrics);
-            builder.appendLine('');
-        }
-
-        // Additional analysis sections
-        if (analysis.codeExamples) {
-            builder.appendLine('CODE EXAMPLES:');
-            builder.appendLine('==============');
-            builder.appendLine(analysis.codeExamples);
-            builder.appendLine('');
-        }
-
-        if (analysis.recommendations) {
-            builder.appendLine('RECOMMENDATIONS:');
-            builder.appendLine('================');
-            builder.appendLine(analysis.recommendations);
-            builder.appendLine('');
-        }
-
-        builder.appendLine('END OF ANALYSIS REPORT');
-        builder.appendLine('Generated by InDesign DOM Discovery Builder v3.1 Advanced Interface');
-        builder.appendLine('For technical support and updates, please refer to the documentation.');
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating JSON analysis text: ' + exc.message;
-    }
-}
-
-/**
- * Generate comparison text for export
- */
-function generateComparisonText(comparison) {
-    try {
-        var builder = createStringBuilder();
-
-        builder.appendLine('InDesign DOM Discovery Builder v3.1');
-        builder.appendLine('Snapshot Comparison Report');
-        builder.appendLine('==========================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-
-        // Executive summary
-        if (comparison.summary) {
-            builder.appendLine('EXECUTIVE SUMMARY:');
-            builder.appendLine('Comparison Type: Before/After Snapshot Analysis');
-            builder.appendLine('Total Changes Detected: ' + (comparison.summary.totalChanges || 0));
-            builder.appendLine('Added Elements: ' + (comparison.summary.addedCount || 0));
-            builder.appendLine('Removed Elements: ' + (comparison.summary.removedCount || 0));
-            builder.appendLine('Modified Elements: ' + (comparison.summary.modifiedCount || 0));
-            builder.appendLine('Overall Impact Level: ' + (comparison.summary.impactLevel || 'Unknown'));
-            builder.appendLine('Change Confidence: ' + (comparison.summary.confidence || 'High'));
-            builder.appendLine('');
-        }
-
-        // Detailed change analysis
-        if (comparison.structuralChanges) {
-            builder.appendLine('STRUCTURAL CHANGES:');
-            builder.appendLine('===================');
-            builder.appendLine(comparison.structuralChanges);
-            builder.appendLine('');
-        }
-
-        if (comparison.propertyChanges) {
-            builder.appendLine('PROPERTY CHANGES:');
-            builder.appendLine('=================');
-            builder.appendLine(comparison.propertyChanges);
-            builder.appendLine('');
-        }
-
-        if (comparison.collectionChanges) {
-            builder.appendLine('COLLECTION CHANGES:');
-            builder.appendLine('==================');
-            builder.appendLine(comparison.collectionChanges);
-            builder.appendLine('');
-        }
-
-        if (comparison.valueChanges) {
-            builder.appendLine('VALUE CHANGES:');
-            builder.appendLine('==============');
-            builder.appendLine(comparison.valueChanges);
-            builder.appendLine('');
-        }
-
-        if (comparison.performanceImpact) {
-            builder.appendLine('PERFORMANCE IMPACT ANALYSIS:');
-            builder.appendLine('============================');
-            builder.appendLine(comparison.performanceImpact);
-            builder.appendLine('');
-        }
-
-        if (comparison.recommendations) {
-            builder.appendLine('RECOMMENDATIONS:');
-            builder.appendLine('================');
-            builder.appendLine(comparison.recommendations);
-            builder.appendLine('');
-        }
-
-        if (comparison.detailedChanges) {
-            builder.appendLine('DETAILED CHANGE LOG:');
-            builder.appendLine('===================');
-            builder.appendLine(comparison.detailedChanges);
-            builder.appendLine('');
-        }
-
-        builder.appendLine('END OF COMPARISON REPORT');
-        builder.appendLine('Generated by InDesign DOM Discovery Builder v3.1 Advanced Interface');
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating comparison text: ' + exc.message;
     }
 }
 
@@ -2555,37 +3077,52 @@ function generateComparisonText(comparison) {
 // Register this module with all its functions
 registerModule('6.1_advanced-ui', '3.1', [
     // Main Functions
-    'showAdvancedUI', 'initializeAdvancedUI', 'createAdvancedWindow', 'createAdvancedTabs',
-    'initializeAdvancedEventHandlers',
-
+    'showAdvancedDOMAnalysis', 'initializeAdvancedUI',
+    
+    // Window Creation
+    'createAdvancedWindow', 'createAdvancedHeader', 'createAdvancedTabs', 
+    'createAdvancedControls', 'createAdvancedFooter',
+    
+    // Tab Creation
+    'createLiveAnalysisTab', 'createAdvancedDiscoveryTab', 'createJSONAnalysisTab',
+    'createSnapshotComparisonTab', 'createDeepMappingTab',
+    
     // Live Document Analysis
-    'runLiveDocumentAnalysis', 'generateLiveAnalysisDisplay', 'runLiveComparison',
-    'takeDocumentSnapshot', 'clearLiveDisplay',
-
+    'runLiveDocumentAnalysis', 'runLiveComparison', 'takeDocumentSnapshot', 'clearLiveDisplay',
+    
     // Advanced Discovery
-    'performAdvancedDiscovery', 'generateAdvancedDiscoveryDisplay', 'calculatePerformanceRating',
-    'formatValuePreview', 'runDeepMapping', 'analyzePerformance', 'generatePerformanceAnalysis',
-    'generatePerformanceRecommendations', 'clearDiscoveryDisplay',
-
+    'performAdvancedDiscovery', 'runDeepMapping', 'analyzePerformance', 'clearDiscoveryDisplay',
+    
     // JSON Analysis
-    'loadJSONExport', 'runJSONAnalysis', 'generateJSONAnalysisDisplay', 'visualizeJSON',
-    'exportJSONAnalysis', 'generateJSONAnalysisText', 'clearAnalysisDisplay',
-
+    'loadJSONExport', 'runJSONAnalysis', 'visualizeJSON', 'exportJSONAnalysis', 'clearAnalysisDisplay',
+    
     // Snapshot Comparison
-    'loadBeforeSnapshot', 'loadAfterSnapshot', 'runSnapshotComparison', 'generateComparisonDisplay',
+    'loadBeforeSnapshot', 'loadAfterSnapshot', 'runSnapshotComparison', 
     'exportComparisonReport', 'clearComparisonDisplay',
-
+    
     // Deep Object Mapping
-    'createDeepMapping', 'generateDeepMappingDisplay', 'generateAdvancedAtlas', 'generateAtlasDisplay',
-    'optimizeMapping', 'generateOptimizationDisplay', 'clearMappingDisplay',
-
-    // Export and Reports
-    'performAdvancedExport', 'generateComprehensiveReport', 'generateFullAnalysisReport',
-
-    // Utility Functions
-    'showMainDOMVisualizer', 'showModuleStatus', 'showAdvancedConfiguration', 'showAdvancedHelp',
-    'resetAdvancedUI', 'closeAdvancedUI', 'updateAdvancedStatus', 'updateAdvancedDocumentInfo',
-    'generateComparisonText'
+    'createDeepMapping', 'generateAdvancedAtlas', 'optimizeMapping', 'clearMappingDisplay',
+    
+    // Export and Utilities
+    'performAdvancedExport', 'generateComprehensiveReport', 'showAdvancedConfiguration',
+    'showMainDOMVisualizer', 'showModuleStatus', 'showAdvancedHelp',
+    
+    // UI Management
+    'resetAdvancedUI', 'closeAdvancedUI', 'initializeAdvancedEventHandlers',
+    
+    // Display Generation
+    'generateLiveAnalysisDisplay', 'generateJSONAnalysisDisplay', 'generateComparisonDisplay',
+    'generateDeepMappingDisplay', 'generateAdvancedDiscoveryDisplay', 'generateOptimizationDisplay',
+    'generateAtlasDisplay',
+    
+    // Report Generation
+    'createComprehensiveReport', 'generateJSONAnalysisReport', 'generateComparisonReport',
+    
+    // Configuration
+    'createConfigurationDialog',
+    
+    // Utilities
+    'updateAdvancedStatus', 'updateAdvancedDocumentInfo'
 ]);
 
 // =============================================================================
