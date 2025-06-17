@@ -3,7 +3,7 @@
 // This script loads all modules using #include directives
 // USAGE: Open this file in ExtendScript Toolkit and run it
 //
-// Generated: 2025-06-17T03:21:40.288Z
+// Generated: 2025-06-17T03:27:38.660Z
 // APPROACH: Uses ExtendScript #include for modular loading
 // SCOPE: All included files share the same global scope
 // BENEFITS: Easier debugging, individual file editing

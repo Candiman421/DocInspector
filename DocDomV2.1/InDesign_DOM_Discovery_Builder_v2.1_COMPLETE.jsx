@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T03:21:40.120Z
+// Generated: 2025-06-17T03:27:38.450Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v0.0): 0.0_module-loader.jsx
@@ -10948,6 +10948,66 @@ function attemptManualPropertySampling(domStructure, sourceDocument) {
             if (sourceDocument.pages && sourceDocument.pages.length) {
                 updateStatus('Manual sampling: pages collection has ' + sourceDocument.pages.length + ' items');
                 count++;
+                
+                // FORCE PROPERTY EXTRACTION - BYPASS THE BROKEN PATH SYSTEM
+                if (domStructure && domStructure.structure && domStructure.structure.document) {
+                    var docNode = domStructure.structure.document;
+                    if (docNode.properties) {
+                        updateStatus('DIRECT FIX: Attempting direct property value extraction...');
+                        
+                        for (var i = 0; i < Math.min(docNode.properties.length, 10); i++) {
+                            var prop = docNode.properties[i];
+                            if (prop && prop.name) {
+                                try {
+                                    var directValue = null;
+                                    // Direct property access bypassing broken path system
+                                    if (prop.name === 'name' && sourceDocument.name) {
+                                        directValue = sourceDocument.name;
+                                    } else if (prop.name === 'saved' && typeof sourceDocument.saved !== 'undefined') {
+                                        directValue = sourceDocument.saved;
+                                    } else if (prop.name === 'pages' && sourceDocument.pages) {
+                                        directValue = '[Collection: ' + sourceDocument.pages.length + ' pages]';
+                                    } else if (prop.name === 'stories' && sourceDocument.stories) {
+                                        directValue = '[Collection: ' + sourceDocument.stories.length + ' stories]';
+                                    } else {
+                                        // Try direct property access
+                                        try {
+                                            var val = sourceDocument[prop.name];
+                                            if (val !== null && val !== undefined) {
+                                                if (typeof val === 'object' && val.length !== undefined) {
+                                                    directValue = '[Collection: ' + val.length + ' items]';
+                                                } else if (typeof val === 'string') {
+                                                    directValue = '"' + val + '"';
+                                                } else {
+                                                    directValue = String(val);
+                                                }
+                                            }
+                                        } catch (accessExc) {
+                                            // Property not accessible
+                                        }
+                                    }
+                                    
+                                    if (directValue !== null) {
+                                        // STORE THE VALUE DIRECTLY IN THE PROPERTY OBJECT
+                                        prop.extractedValue = directValue;
+                                        prop.samplingMetadata = {
+                                            actualValue: directValue,
+                                            extractionSuccessful: true,
+                                            method: 'direct_access'
+                                        };
+                                        updateStatus('DIRECT FIX: ' + prop.name + ' = ' + directValue);
+                                        count++;
+                                    }
+                                    
+                                } catch (directExc) {
+                                    updateStatus('DIRECT FIX failed for ' + prop.name + ': ' + directExc.message);
+                                }
+                            }
+                        }
+                        
+                        updateStatus('DIRECT FIX: Completed direct extraction on ' + count + ' properties');
+                    }
+                }
             }
         } catch (pagesExc) {
             updateStatus('Manual sampling: pages access failed: ' + pagesExc.message);
@@ -11923,43 +11983,31 @@ function runDOMEnumeration() {
                     updateStatus('Property value extraction failed');
                 }
                 
+                // IMMEDIATE FIX: Always try direct property extraction as backup
+                updateStatus('IMMEDIATE FIX: Running direct property extraction as backup...');
+                var directCount = attemptManualPropertySampling(g_domViz_currentDOMStructure, envValidation.document);
+                if (directCount > 0) {
+                    updateStatus('IMMEDIATE FIX: Successfully extracted ' + directCount + ' properties via direct access!');
+                    // Force display update
+                    var displayText = formatDOMForDisplay(g_domViz_currentDOMStructure);
+                    if (g_domViz_domDisplay && displayText) {
+                        g_domViz_domDisplay.text = displayText;
+                    }
+                } else {
+                    updateStatus('IMMEDIATE FIX: Direct extraction found no accessible properties');
+                }
+                
             } catch (samplingExc) {
                 updateStatus('Property sampling error: ' + samplingExc.message);
                 
-                // EMERGENCY FALLBACK: Try with 'all' safety filter to bypass filtering
-                try {
-                    updateStatus('Attempting emergency property extraction with all safety levels...');
-                    var emergencyConfig = {
-                        safetyFilter: 'all',  // Override to 'all' to bypass safety filtering
-                        includeCollectionSamples: true,
-                        maxSamples: 10,       // Reduce to be safe
-                        timeoutMs: 3000,      // Shorter timeout 
-                        trackObjectReferences: true,
-                        includeValueMetadata: true,
-                        generateValueFingerprints: false
-                    };
-                    
-                    var emergencyResult = sampleDOMValues(domStructure, envValidation.document, emergencyConfig);
-                    if (emergencyResult) {
-                        g_domViz_currentDOMStructure = emergencyResult;
-                        updateStatus('Emergency property extraction succeeded with safety bypass!');
-                    } else {
-                        updateStatus('Emergency property extraction also failed');
-                    }
-                    
-                } catch (emergencyExc) {
-                    updateStatus('Emergency extraction failed: ' + emergencyExc.message);
-                    
-                    // LAST RESORT: Try manual property sampling
-                    updateStatus('Attempting manual property sampling as last resort...');
-                    try {
-                        var manualCount = 0;
-                        if (domStructure && domStructure.structure && domStructure.structure.document) {
-                            manualCount = attemptManualPropertySampling(domStructure, envValidation.document);
-                        }
-                        updateStatus('Manual sampling attempted on ' + manualCount + ' properties');
-                    } catch (manualExc) {
-                        updateStatus('Manual sampling also failed: ' + manualExc.message);
+                // Run direct extraction as fallback
+                updateStatus('Running direct property extraction as fallback...');
+                var fallbackCount = attemptManualPropertySampling(g_domViz_currentDOMStructure, envValidation.document);
+                if (fallbackCount > 0) {
+                    updateStatus('Fallback extraction succeeded with ' + fallbackCount + ' properties!');
+                    var displayText = formatDOMForDisplay(g_domViz_currentDOMStructure);
+                    if (g_domViz_domDisplay && displayText) {
+                        g_domViz_domDisplay.text = displayText;
                     }
                 }
             }
