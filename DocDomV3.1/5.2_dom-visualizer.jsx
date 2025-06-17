@@ -90,7 +90,7 @@ var DEFAULT_VISUALIZER_CONFIG = {
         enableProgressReporting: false,
         enableDetailedLogging: false
     },
-    export: {
+    exportSettings: {
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
@@ -661,7 +661,7 @@ function exportAsJSON() {
 
         updateStatus('Exporting as JSON...');
 
-        var config = g_domViz_userConfiguration.export;
+        var config = g_domViz_userConfiguration.exportSettings;
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'json', config);
 
         if (!exportResult.success) {
@@ -717,7 +717,7 @@ function exportAsText() {
 
         updateStatus('Exporting as text...');
 
-        var config = g_domViz_userConfiguration.export;
+        var config = g_domViz_userConfiguration.exportSettings;
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'text', config);
 
         if (!exportResult.success) {
@@ -772,7 +772,7 @@ function exportAsCSV() {
 
         updateStatus('Exporting as CSV...');
 
-        var config = g_domViz_userConfiguration.export;
+        var config = g_domViz_userConfiguration.exportSettings;
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'csv', config);
 
         if (!exportResult.success) {
@@ -1477,11 +1477,11 @@ function loadConfigurationValues(dialog) {
         dialog.tabs.samplingTab.options.skipNulls.value = config.sampling.skipNullValues;
 
         // Export tab
-        dialog.tabs.exportTab.options.includeValues.value = config.export.includeExtractedValues;
-        dialog.tabs.exportTab.options.formatOutput.value = config.export.formatOutput;
-        dialog.tabs.exportTab.options.includeMetadata.value = config.export.includeMetadata;
-        dialog.tabs.exportTab.options.includeRefs.value = config.export.includeObjectReferences;
-        dialog.tabs.exportTab.options.enableTimestamps.value = config.export.enableTimestamps;
+        dialog.tabs.exportTab.options.includeValues.value = config.exportSettings.includeExtractedValues;
+        dialog.tabs.exportTab.options.formatOutput.value = config.exportSettings.formatOutput;
+        dialog.tabs.exportTab.options.includeMetadata.value = config.exportSettings.includeMetadata;
+        dialog.tabs.exportTab.options.includeRefs.value = config.exportSettings.includeObjectReferences;
+        dialog.tabs.exportTab.options.enableTimestamps.value = config.exportSettings.enableTimestamps;
 
     } catch (exc) {
         updateStatus('Error loading configuration values: ' + exc.message);
@@ -1517,11 +1517,11 @@ function saveConfigurationValues(dialog) {
         config.sampling.skipNullValues = dialog.tabs.samplingTab.options.skipNulls.value;
 
         // Export tab
-        config.export.includeExtractedValues = dialog.tabs.exportTab.options.includeValues.value;
-        config.export.formatOutput = dialog.tabs.exportTab.options.formatOutput.value;
-        config.export.includeMetadata = dialog.tabs.exportTab.options.includeMetadata.value;
-        config.export.includeObjectReferences = dialog.tabs.exportTab.options.includeRefs.value;
-        config.export.enableTimestamps = dialog.tabs.exportTab.options.enableTimestamps.value;
+        config.exportSettings.includeExtractedValues = dialog.tabs.exportTab.options.includeValues.value;
+        config.exportSettings.formatOutput = dialog.tabs.exportTab.options.formatOutput.value;
+        config.exportSettings.includeMetadata = dialog.tabs.exportTab.options.includeMetadata.value;
+        config.exportSettings.includeObjectReferences = dialog.tabs.exportTab.options.includeRefs.value;
+        config.exportSettings.enableTimestamps = dialog.tabs.exportTab.options.enableTimestamps.value;
 
     } catch (exc) {
         updateStatus('Error saving configuration values: ' + exc.message);

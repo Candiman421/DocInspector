@@ -113,7 +113,7 @@ var ADVANCED_UI_CONFIG = {
         highlightCriticalChanges: true,
         analyzePerformanceImpact: true
     },
-    export: {
+    exportSettings: {
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
@@ -733,7 +733,7 @@ function takeDocumentSnapshot() {
             return;
         }
 
-        var exportConfig = ADVANCED_UI_CONFIG.export;
+        var exportConfig = ADVANCED_UI_CONFIG.exportSettings;
         var exportResult = exportDOMStructure(g_advUI_advancedDOMStructure, 'json', exportConfig);
 
         if (!exportResult.success) {
@@ -2000,7 +2000,7 @@ function performAdvancedExport(formatType) {
 
         updateAdvancedStatus('Exporting as ' + formatType.toUpperCase() + '...');
 
-        var exportConfig = ADVANCED_UI_CONFIG.export;
+        var exportConfig = ADVANCED_UI_CONFIG.exportSettings;
         var exportResult = exportDOMStructure(dataToExport, formatType, exportConfig);
 
         if (!exportResult.success) {

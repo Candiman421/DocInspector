@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T19:57:17.284Z
+// Generated: 2025-06-17T22:25:36.684Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v1.1): 1.1_bootstrap-foundation.jsx
@@ -11716,7 +11716,7 @@ var DEFAULT_VISUALIZER_CONFIG = {
         enableProgressReporting: false,
         enableDetailedLogging: false
     },
-    export: {
+    exportSettings: {
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
@@ -12287,7 +12287,7 @@ function exportAsJSON() {
 
         updateStatus('Exporting as JSON...');
 
-        var config = g_domViz_userConfiguration.export;
+        var config = g_domViz_userConfiguration.exportSettings;
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'json', config);
 
         if (!exportResult.success) {
@@ -12343,7 +12343,7 @@ function exportAsText() {
 
         updateStatus('Exporting as text...');
 
-        var config = g_domViz_userConfiguration.export;
+        var config = g_domViz_userConfiguration.exportSettings;
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'text', config);
 
         if (!exportResult.success) {
@@ -12398,7 +12398,7 @@ function exportAsCSV() {
 
         updateStatus('Exporting as CSV...');
 
-        var config = g_domViz_userConfiguration.export;
+        var config = g_domViz_userConfiguration.exportSettings;
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'csv', config);
 
         if (!exportResult.success) {
@@ -13103,11 +13103,11 @@ function loadConfigurationValues(dialog) {
         dialog.tabs.samplingTab.options.skipNulls.value = config.sampling.skipNullValues;
 
         // Export tab
-        dialog.tabs.exportTab.options.includeValues.value = config.export.includeExtractedValues;
-        dialog.tabs.exportTab.options.formatOutput.value = config.export.formatOutput;
-        dialog.tabs.exportTab.options.includeMetadata.value = config.export.includeMetadata;
-        dialog.tabs.exportTab.options.includeRefs.value = config.export.includeObjectReferences;
-        dialog.tabs.exportTab.options.enableTimestamps.value = config.export.enableTimestamps;
+        dialog.tabs.exportTab.options.includeValues.value = config.exportSettings.includeExtractedValues;
+        dialog.tabs.exportTab.options.formatOutput.value = config.exportSettings.formatOutput;
+        dialog.tabs.exportTab.options.includeMetadata.value = config.exportSettings.includeMetadata;
+        dialog.tabs.exportTab.options.includeRefs.value = config.exportSettings.includeObjectReferences;
+        dialog.tabs.exportTab.options.enableTimestamps.value = config.exportSettings.enableTimestamps;
 
     } catch (exc) {
         updateStatus('Error loading configuration values: ' + exc.message);
@@ -13143,11 +13143,11 @@ function saveConfigurationValues(dialog) {
         config.sampling.skipNullValues = dialog.tabs.samplingTab.options.skipNulls.value;
 
         // Export tab
-        config.export.includeExtractedValues = dialog.tabs.exportTab.options.includeValues.value;
-        config.export.formatOutput = dialog.tabs.exportTab.options.formatOutput.value;
-        config.export.includeMetadata = dialog.tabs.exportTab.options.includeMetadata.value;
-        config.export.includeObjectReferences = dialog.tabs.exportTab.options.includeRefs.value;
-        config.export.enableTimestamps = dialog.tabs.exportTab.options.enableTimestamps.value;
+        config.exportSettings.includeExtractedValues = dialog.tabs.exportTab.options.includeValues.value;
+        config.exportSettings.formatOutput = dialog.tabs.exportTab.options.formatOutput.value;
+        config.exportSettings.includeMetadata = dialog.tabs.exportTab.options.includeMetadata.value;
+        config.exportSettings.includeObjectReferences = dialog.tabs.exportTab.options.includeRefs.value;
+        config.exportSettings.enableTimestamps = dialog.tabs.exportTab.options.enableTimestamps.value;
 
     } catch (exc) {
         updateStatus('Error saving configuration values: ' + exc.message);
@@ -13434,7 +13434,7 @@ var ADVANCED_UI_CONFIG = {
         highlightCriticalChanges: true,
         analyzePerformanceImpact: true
     },
-    export: {
+    exportSettings: {
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
@@ -14054,7 +14054,7 @@ function takeDocumentSnapshot() {
             return;
         }
 
-        var exportConfig = ADVANCED_UI_CONFIG.export;
+        var exportConfig = ADVANCED_UI_CONFIG.exportSettings;
         var exportResult = exportDOMStructure(g_advUI_advancedDOMStructure, 'json', exportConfig);
 
         if (!exportResult.success) {
@@ -15321,7 +15321,7 @@ function performAdvancedExport(formatType) {
 
         updateAdvancedStatus('Exporting as ' + formatType.toUpperCase() + '...');
 
-        var exportConfig = ADVANCED_UI_CONFIG.export;
+        var exportConfig = ADVANCED_UI_CONFIG.exportSettings;
         var exportResult = exportDOMStructure(dataToExport, formatType, exportConfig);
 
         if (!exportResult.success) {
