@@ -1341,7 +1341,7 @@ function generateCollectionAccessExample(path) {
 // Register this module with all its functions
 registerModule('4.1_json-analyzer', '3.1', [
     // Main Analysis Functions
-    'analyzeJSONExport', 'analyzeLoadedJSON',
+    'analyzeLoadedJSON',
     
     // File Operations
     'readAndParseJSONFile', 'parseJSONSafely', 'containsFunctionCallPattern',

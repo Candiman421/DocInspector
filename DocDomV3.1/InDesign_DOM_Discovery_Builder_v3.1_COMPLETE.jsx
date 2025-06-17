@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T22:25:36.684Z
+// Generated: 2025-06-17T23:19:07.809Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v1.1): 1.1_bootstrap-foundation.jsx
@@ -8196,7 +8196,7 @@ function generateCollectionAccessExample(path) {
 // Register this module with all its functions
 registerModule('4.1_json-analyzer', '3.1', [
     // Main Analysis Functions
-    'analyzeJSONExport', 'analyzeLoadedJSON',
+    'analyzeLoadedJSON',
     
     // File Operations
     'readAndParseJSONFile', 'parseJSONSafely', 'containsFunctionCallPattern',
@@ -13523,204 +13523,204 @@ function createAdvancedWindow() {
             "alignChildren: 'fill', " +
             "preferredSize: { width: 1000, height: 800 }, " +
             "margins: 15, " +
-            
+
             "header: Group { " +
-                "orientation: 'row', " +
-                "alignChildren: 'center', " +
-                "spacing: 15, " +
-                "document: Group { " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'left', " +
-                    "info: StaticText { text: 'Document: Loading...', characters: 50 }, " +
-                    "status: StaticText { text: 'Status: Initializing...', characters: 50 } " +
-                "}, " +
-                "controls: Group { " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'right', " +
-                    "spacing: 5, " +
-                    "mainVisualizer: Button { text: 'Main DOM Visualizer', preferredSize: { width: 150, height: 25 } }, " +
-                    "moduleStatus: Button { text: 'Module Status', preferredSize: { width: 150, height: 25 } } " +
-                "} " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 15, " +
+            "document: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'left', " +
+            "info: StaticText { text: 'Document: Loading...', characters: 50 }, " +
+            "status: StaticText { text: 'Status: Initializing...', characters: 50 } " +
             "}, " +
-            
-            "separator1: Panel { height: 2 }, " +
-            
-            "mainTabs: TabbedPanel { " +
-                "alignChildren: 'fill', " +
-                "preferredSize: { height: 600 }, " +
-                
-                "liveTab: Tab { " +
-                    "text: 'Live Document Analysis', " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'fill', " +
-                    
-                    "liveControls: Group { " +
-                        "orientation: 'row', " +
-                        "alignChildren: 'center', " +
-                        "spacing: 10, " +
-                        "liveAnalysis: Button { text: 'Live Analysis', preferredSize: { width: 120, height: 25 } }, " +
-                        "liveCompare: Button { text: 'Live Compare', preferredSize: { width: 120, height: 25 } }, " +
-                        "takeSnapshot: Button { text: 'Take Snapshot', preferredSize: { width: 120, height: 25 } }, " +
-                        "clearLive: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-                    "}, " +
-                    
-                    "liveDisplay: Group { " +
-                        "orientation: 'column', " +
-                        "alignChildren: 'fill', " +
-                        "margins: 5, " +
-                        "text: EditText { " +
-                            "alignment: 'fill', " +
-                            "preferredSize: { height: 500 }, " +
-                            "properties: { multiline: true, scrolling: true } " +
-                        "} " +
-                    "} " +
-                "}, " +
-                
-                "discoveryTab: Tab { " +
-                    "text: 'Advanced Discovery', " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'fill', " +
-                    
-                    "discoveryControls: Group { " +
-                        "orientation: 'row', " +
-                        "alignChildren: 'center', " +
-                        "spacing: 10, " +
-                        "fullDiscovery: Button { text: 'Full Discovery', preferredSize: { width: 120, height: 25 } }, " +
-                        "deepMapping: Button { text: 'Deep Mapping', preferredSize: { width: 120, height: 25 } }, " +
-                        "performance: Button { text: 'Performance', preferredSize: { width: 120, height: 25 } }, " +
-                        "clearDiscovery: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-                    "}, " +
-                    
-                    "discoveryDisplay: Group { " +
-                        "orientation: 'column', " +
-                        "alignChildren: 'fill', " +
-                        "margins: 5, " +
-                        "text: EditText { " +
-                            "alignment: 'fill', " +
-                            "preferredSize: { height: 500 }, " +
-                            "properties: { multiline: true, scrolling: true } " +
-                        "} " +
-                    "} " +
-                "}, " +
-                
-                "analysisTab: Tab { " +
-                    "text: 'JSON Analysis', " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'fill', " +
-                    
-                    "analysisControls: Group { " +
-                        "orientation: 'row', " +
-                        "alignChildren: 'center', " +
-                        "spacing: 10, " +
-                        "loadJSON: Button { text: 'Load JSON', preferredSize: { width: 100, height: 25 } }, " +
-                        "analyzeJSON: Button { text: 'Analyze', preferredSize: { width: 100, height: 25 } }, " +
-                        "visualize: Button { text: 'Visualize', preferredSize: { width: 100, height: 25 } }, " +
-                        "exportAnalysis: Button { text: 'Export Analysis', preferredSize: { width: 120, height: 25 } }, " +
-                        "clearAnalysis: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-                    "}, " +
-                    
-                    "analysisDisplay: Group { " +
-                        "orientation: 'column', " +
-                        "alignChildren: 'fill', " +
-                        "margins: 5, " +
-                        "text: EditText { " +
-                            "alignment: 'fill', " +
-                            "preferredSize: { height: 500 }, " +
-                            "properties: { multiline: true, scrolling: true } " +
-                        "} " +
-                    "} " +
-                "}, " +
-                
-                "comparisonTab: Tab { " +
-                    "text: 'Snapshot Comparison', " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'fill', " +
-                    
-                    "comparisonControls: Group { " +
-                        "orientation: 'row', " +
-                        "alignChildren: 'center', " +
-                        "spacing: 10, " +
-                        "loadBefore: Button { text: 'Load Before', preferredSize: { width: 100, height: 25 } }, " +
-                        "loadAfter: Button { text: 'Load After', preferredSize: { width: 100, height: 25 } }, " +
-                        "compare: Button { text: 'Compare', preferredSize: { width: 100, height: 25 } }, " +
-                        "exportComparison: Button { text: 'Export Report', preferredSize: { width: 120, height: 25 } }, " +
-                        "clearComparison: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-                    "}, " +
-                    
-                    "comparisonDisplay: Group { " +
-                        "orientation: 'column', " +
-                        "alignChildren: 'fill', " +
-                        "margins: 5, " +
-                        "text: EditText { " +
-                            "alignment: 'fill', " +
-                            "preferredSize: { height: 500 }, " +
-                            "properties: { multiline: true, scrolling: true } " +
-                        "} " +
-                    "} " +
-                "}, " +
-                
-                "deepMappingTab: Tab { " +
-                    "text: 'Deep Object Mapping', " +
-                    "orientation: 'column', " +
-                    "alignChildren: 'fill', " +
-                    
-                    "mappingControls: Group { " +
-                        "orientation: 'row', " +
-                        "alignChildren: 'center', " +
-                        "spacing: 10, " +
-                        "createMapping: Button { text: 'Create Mapping', preferredSize: { width: 120, height: 25 } }, " +
-                        "objectAtlas: Button { text: 'Object Atlas', preferredSize: { width: 120, height: 25 } }, " +
-                        "optimize: Button { text: 'Optimize', preferredSize: { width: 100, height: 25 } }, " +
-                        "clearMapping: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
-                    "}, " +
-                    
-                    "mappingDisplay: Group { " +
-                        "orientation: 'column', " +
-                        "alignChildren: 'fill', " +
-                        "margins: 5, " +
-                        "text: EditText { " +
-                            "alignment: 'fill', " +
-                            "preferredSize: { height: 500 }, " +
-                            "properties: { multiline: true, scrolling: true } " +
-                        "} " +
-                    "} " +
-                "} " +
-            "}, " +
-            
-            "separator2: Panel { height: 2 }, " +
-            
-            "controlPanel: Group { " +
-                "orientation: 'row', " +
-                "alignChildren: 'center', " +
-                "spacing: 10, " +
-                "exportGroup: Group { " +
-                    "orientation: 'row', " +
-                    "spacing: 5, " +
-                    "exportJSON: Button { text: 'Export JSON', preferredSize: { width: 100, height: 25 } }, " +
-                    "exportText: Button { text: 'Export Text', preferredSize: { width: 100, height: 25 } }, " +
-                    "exportCSV: Button { text: 'Export CSV', preferredSize: { width: 100, height: 25 } } " +
-                "}, " +
-                "actionGroup: Group { " +
-                    "orientation: 'row', " +
-                    "spacing: 5, " +
-                    "generateReport: Button { text: 'Full Report', preferredSize: { width: 100, height: 25 } }, " +
-                    "config: Button { text: 'Config', preferredSize: { width: 80, height: 25 } } " +
-                "} " +
-            "}, " +
-            
-            "footer: Group { " +
-                "orientation: 'row', " +
-                "alignChildren: 'center', " +
-                "status: StaticText { text: 'Ready', characters: 80, alignment: 'left' }, " +
-                "buttons: Group { " +
-                    "orientation: 'row', " +
-                    "spacing: 10, " +
-                    "reset: Button { text: 'Reset', preferredSize: { width: 80, height: 25 } }, " +
-                    "help: Button { text: 'Help', preferredSize: { width: 80, height: 25 } }, " +
-                    "close: Button { text: 'Close', preferredSize: { width: 80, height: 25 } } " +
-                "} " +
+            "controls: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'right', " +
+            "spacing: 5, " +
+            "mainVisualizer: Button { text: 'Main DOM Visualizer', preferredSize: { width: 150, height: 25 } }, " +
+            "moduleStatus: Button { text: 'Module Status', preferredSize: { width: 150, height: 25 } } " +
             "} " +
-        "}";
+            "}, " +
+
+            "separator1: Panel { height: 2 }, " +
+
+            "mainTabs: TabbedPanel { " +
+            "alignChildren: 'fill', " +
+            "preferredSize: { height: 600 }, " +
+
+            "liveTab: Tab { " +
+            "text: 'Live Document Analysis', " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+
+            "liveControls: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 10, " +
+            "liveAnalysis: Button { text: 'Live Analysis', preferredSize: { width: 120, height: 25 } }, " +
+            "liveCompare: Button { text: 'Live Compare', preferredSize: { width: 120, height: 25 } }, " +
+            "takeSnapshot: Button { text: 'Take Snapshot', preferredSize: { width: 120, height: 25 } }, " +
+            "clearLive: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
+            "}, " +
+
+            "liveDisplay: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+            "margins: 5, " +
+            "text: EditText { " +
+            "alignment: 'fill', " +
+            "preferredSize: { height: 500 }, " +
+            "properties: { multiline: true, scrolling: true } " +
+            "} " +
+            "} " +
+            "}, " +
+
+            "discoveryTab: Tab { " +
+            "text: 'Advanced Discovery', " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+
+            "discoveryControls: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 10, " +
+            "fullDiscovery: Button { text: 'Full Discovery', preferredSize: { width: 120, height: 25 } }, " +
+            "deepMapping: Button { text: 'Deep Mapping', preferredSize: { width: 120, height: 25 } }, " +
+            "performance: Button { text: 'Performance', preferredSize: { width: 120, height: 25 } }, " +
+            "clearDiscovery: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
+            "}, " +
+
+            "discoveryDisplay: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+            "margins: 5, " +
+            "text: EditText { " +
+            "alignment: 'fill', " +
+            "preferredSize: { height: 500 }, " +
+            "properties: { multiline: true, scrolling: true } " +
+            "} " +
+            "} " +
+            "}, " +
+
+            "analysisTab: Tab { " +
+            "text: 'JSON Analysis', " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+
+            "analysisControls: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 10, " +
+            "loadJSON: Button { text: 'Load JSON', preferredSize: { width: 100, height: 25 } }, " +
+            "analyzeJSON: Button { text: 'Analyze', preferredSize: { width: 100, height: 25 } }, " +
+            "visualize: Button { text: 'Visualize', preferredSize: { width: 100, height: 25 } }, " +
+            "exportAnalysis: Button { text: 'Export Analysis', preferredSize: { width: 120, height: 25 } }, " +
+            "clearAnalysis: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
+            "}, " +
+
+            "analysisDisplay: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+            "margins: 5, " +
+            "text: EditText { " +
+            "alignment: 'fill', " +
+            "preferredSize: { height: 500 }, " +
+            "properties: { multiline: true, scrolling: true } " +
+            "} " +
+            "} " +
+            "}, " +
+
+            "comparisonTab: Tab { " +
+            "text: 'Snapshot Comparison', " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+
+            "comparisonControls: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 10, " +
+            "loadBefore: Button { text: 'Load Before', preferredSize: { width: 100, height: 25 } }, " +
+            "loadAfter: Button { text: 'Load After', preferredSize: { width: 100, height: 25 } }, " +
+            "compare: Button { text: 'Compare', preferredSize: { width: 100, height: 25 } }, " +
+            "exportComparison: Button { text: 'Export Report', preferredSize: { width: 120, height: 25 } }, " +
+            "clearComparison: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
+            "}, " +
+
+            "comparisonDisplay: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+            "margins: 5, " +
+            "text: EditText { " +
+            "alignment: 'fill', " +
+            "preferredSize: { height: 500 }, " +
+            "properties: { multiline: true, scrolling: true } " +
+            "} " +
+            "} " +
+            "}, " +
+
+            "deepMappingTab: Tab { " +
+            "text: 'Deep Object Mapping', " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+
+            "mappingControls: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 10, " +
+            "createMapping: Button { text: 'Create Mapping', preferredSize: { width: 120, height: 25 } }, " +
+            "objectAtlas: Button { text: 'Object Atlas', preferredSize: { width: 120, height: 25 } }, " +
+            "optimize: Button { text: 'Optimize', preferredSize: { width: 100, height: 25 } }, " +
+            "clearMapping: Button { text: 'Clear', preferredSize: { width: 80, height: 25 } } " +
+            "}, " +
+
+            "mappingDisplay: Group { " +
+            "orientation: 'column', " +
+            "alignChildren: 'fill', " +
+            "margins: 5, " +
+            "text: EditText { " +
+            "alignment: 'fill', " +
+            "preferredSize: { height: 500 }, " +
+            "properties: { multiline: true, scrolling: true } " +
+            "} " +
+            "} " +
+            "} " +
+            "}, " +
+
+            "separator2: Panel { height: 2 }, " +
+
+            "controlPanel: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "spacing: 10, " +
+            "exportGroup: Group { " +
+            "orientation: 'row', " +
+            "spacing: 5, " +
+            "exportJSON: Button { text: 'Export JSON', preferredSize: { width: 100, height: 25 } }, " +
+            "exportText: Button { text: 'Export Text', preferredSize: { width: 100, height: 25 } }, " +
+            "exportCSV: Button { text: 'Export CSV', preferredSize: { width: 100, height: 25 } } " +
+            "}, " +
+            "actionGroup: Group { " +
+            "orientation: 'row', " +
+            "spacing: 5, " +
+            "generateReport: Button { text: 'Full Report', preferredSize: { width: 100, height: 25 } }, " +
+            "config: Button { text: 'Config', preferredSize: { width: 80, height: 25 } } " +
+            "} " +
+            "}, " +
+
+            "footer: Group { " +
+            "orientation: 'row', " +
+            "alignChildren: 'center', " +
+            "status: StaticText { text: 'Ready', characters: 80, alignment: 'left' }, " +
+            "buttons: Group { " +
+            "orientation: 'row', " +
+            "spacing: 10, " +
+            "reset: Button { text: 'Reset', preferredSize: { width: 80, height: 25 } }, " +
+            "help: Button { text: 'Help', preferredSize: { width: 80, height: 25 } }, " +
+            "close: Button { text: 'Close', preferredSize: { width: 80, height: 25 } } " +
+            "} " +
+            "} " +
+            "}";
 
         var window = new Window(windowResource);
         if (!window) {
@@ -13805,9 +13805,9 @@ function initializeAdvancedEventHandlers() {
         window.mainTabs.deepMappingTab.mappingControls.clearMapping.onClick = clearMappingDisplay;
 
         // Control panel
-        window.controlPanel.exportGroup.exportJSON.onClick = function() { performAdvancedExport('json'); };
-        window.controlPanel.exportGroup.exportText.onClick = function() { performAdvancedExport('text'); };
-        window.controlPanel.exportGroup.exportCSV.onClick = function() { performAdvancedExport('csv'); };
+        window.controlPanel.exportGroup.exportJSON.onClick = function () { performAdvancedExport('json'); };
+        window.controlPanel.exportGroup.exportText.onClick = function () { performAdvancedExport('text'); };
+        window.controlPanel.exportGroup.exportCSV.onClick = function () { performAdvancedExport('csv'); };
         window.controlPanel.actionGroup.generateReport.onClick = generateComprehensiveReport;
         window.controlPanel.actionGroup.config.onClick = showAdvancedConfiguration;
 
@@ -13840,7 +13840,7 @@ function runLiveDocumentAnalysis() {
 
         // Phase 1: DOM Enumeration
         updateAdvancedStatus('Phase 1: Enumerating document DOM structure...');
-        
+
         if (!functionExists('enumerateDocumentDOM')) {
             updateAdvancedStatus('Error: DOM enumerator module not available');
             return;
@@ -13856,7 +13856,7 @@ function runLiveDocumentAnalysis() {
 
         // Phase 2: Property Value Sampling
         updateAdvancedStatus('Phase 2: Sampling property values...');
-        
+
         if (!functionExists('sampleDOMValues')) {
             updateAdvancedStatus('Error: Property sampler module not available');
             return;
@@ -13872,13 +13872,17 @@ function runLiveDocumentAnalysis() {
 
         // Phase 3: Collection Content Sampling
         updateAdvancedStatus('Phase 3: Sampling collection contents...');
-        
+
         if (!functionExists('sampleCollectionContents')) {
             updateAdvancedStatus('Error: Collection sampler module not available');
             return;
         }
 
-        var collectionConfig = ADVANCED_UI_CONFIG.collectionSampling;
+        var collectionConfig = {
+            maxSamplesPerCollection: 5,
+            timeoutPerCollection: 3000,
+            enableDeepPropertyAnalysis: true
+        };
         domStructure = sampleCollectionContents(domStructure, envValidation.document, collectionConfig);
 
         if (!domStructure || domStructure.error) {
@@ -13919,8 +13923,8 @@ function generateLiveAnalysisDisplay(domStructure) {
             builder.appendLine('DOCUMENT INFORMATION:');
             builder.appendLine('Document: ' + (domStructure.metadata.documentName || 'Unknown'));
             builder.appendLine('Analysis Version: ' + (domStructure.metadata.version || 'Unknown'));
-            builder.appendLine('InDesign Version: ' + (domStructure.metadata.environment ? 
-                              domStructure.metadata.environment.indesignVersion : 'Unknown'));
+            builder.appendLine('InDesign Version: ' + (domStructure.metadata.environment ?
+                domStructure.metadata.environment.indesignVersion : 'Unknown'));
             builder.appendLine('');
         }
 
@@ -13977,7 +13981,7 @@ function generateLiveAnalysisDisplay(domStructure) {
                 }
                 builder.appendLine(nodeInfo);
             }
-            
+
             if (domStructure.structure.length > previewCount) {
                 builder.appendLine('... (' + (domStructure.structure.length - previewCount) + ' more items)');
             }
@@ -14117,7 +14121,7 @@ function performAdvancedDiscovery() {
         // Run deep mapping if available
         if (functionExists('performDeepDOMMapping')) {
             updateAdvancedStatus('Performing deep object mapping...');
-            
+
             var mappingConfig = {
                 maxDepth: 10,
                 enableCircularReferenceMapping: true,
@@ -14128,7 +14132,7 @@ function performAdvancedDiscovery() {
             };
 
             var mappingResult = performDeepDOMMapping(g_advUI_advancedDOMStructure, mappingConfig);
-            
+
             if (mappingResult.success) {
                 // Enhance structure with mapping data
                 g_advUI_advancedDOMStructure.deepMapping = mappingResult.mapping;
@@ -14192,7 +14196,7 @@ function generateAdvancedDiscoveryDisplay(domStructure) {
         // Detailed structure with enhanced information
         builder.appendLine('DETAILED STRUCTURE ANALYSIS:');
         builder.appendLine('-----------------------------');
-        
+
         if (domStructure.structure && domStructure.structure.length > 0) {
             var detailCount = Math.min(20, domStructure.structure.length);
             for (var j = 0; j < detailCount; j++) {
@@ -14201,28 +14205,28 @@ function generateAdvancedDiscoveryDisplay(domStructure) {
                 for (var d = 0; d < (node.depth || 0); d++) {
                     indent += '  ';
                 }
-                
+
                 var nodeText = indent + (node.path || node.name || 'Unknown');
-                
+
                 // Add type information
                 if (node.type) {
                     nodeText += ' [' + node.type + ']';
                 }
-                
+
                 // Add safety level
                 if (node.safetyLevel) {
                     nodeText += ' {' + node.safetyLevel + '}';
                 }
-                
+
                 // Add value preview if available
                 if (node.sampledValue !== undefined) {
                     var valuePreview = formatValuePreview(node.sampledValue);
                     nodeText += ' = ' + valuePreview;
                 }
-                
+
                 builder.appendLine(nodeText);
             }
-            
+
             if (domStructure.structure.length > detailCount) {
                 builder.appendLine('... (' + (domStructure.structure.length - detailCount) + ' more items)');
             }
@@ -14265,17 +14269,17 @@ function formatValuePreview(value) {
     try {
         if (value === null) return '[null]';
         if (value === undefined) return '[undefined]';
-        
+
         var valueStr = safeToString(value);
         if (valueStr.length > 80) {
             valueStr = stringSubstring(valueStr, 0, 80) + '...';
         }
-        
+
         // Add quotes for strings
         if (typeof value === 'string') {
             return '"' + valueStr + '"';
         }
-        
+
         return valueStr;
 
     } catch (exc) {
@@ -15407,8 +15411,8 @@ function generateFullAnalysisReport(data) {
             builder.appendLine('DOCUMENT INFORMATION:');
             builder.appendLine('Document: ' + (data.metadata.documentName || 'Unknown'));
             builder.appendLine('Analysis Version: ' + (data.metadata.version || 'Unknown'));
-            builder.appendLine('InDesign Version: ' + (data.metadata.environment ? 
-                              data.metadata.environment.indesignVersion : 'Unknown'));
+            builder.appendLine('InDesign Version: ' + (data.metadata.environment ?
+                data.metadata.environment.indesignVersion : 'Unknown'));
             builder.appendLine('Analysis Date: ' + (data.metadata.timestamp || 'Unknown'));
             builder.appendLine('');
         }
@@ -15428,7 +15432,7 @@ function generateFullAnalysisReport(data) {
         // Detailed structure analysis
         builder.appendLine('DETAILED STRUCTURE ANALYSIS:');
         builder.appendLine('============================');
-        
+
         if (data.structure && data.structure.length > 0) {
             var analysisCount = Math.min(50, data.structure.length);
             for (var i = 0; i < analysisCount; i++) {
@@ -15437,17 +15441,17 @@ function generateFullAnalysisReport(data) {
                 for (var d = 0; d < (node.depth || 0); d++) {
                     indent += '  ';
                 }
-                
+
                 var nodeInfo = indent + (node.path || node.name || 'Unknown');
                 if (node.type) nodeInfo += ' [' + node.type + ']';
                 if (node.safetyLevel) nodeInfo += ' {' + node.safetyLevel + '}';
                 if (node.sampledValue !== undefined) {
                     nodeInfo += ' = ' + formatValuePreview(node.sampledValue);
                 }
-                
+
                 builder.appendLine(nodeInfo);
             }
-            
+
             if (data.structure.length > analysisCount) {
                 builder.appendLine('... (' + (data.structure.length - analysisCount) + ' more items)');
             }
@@ -15486,7 +15490,7 @@ function showMainDOMVisualizer() {
 function showModuleStatus() {
     try {
         var statusReport = '';
-        
+
         if (functionExists('generateLoadingReport')) {
             statusReport = generateLoadingReport();
         } else {
@@ -15500,11 +15504,11 @@ function showModuleStatus() {
         statusDialog.preferredSize.width = 600;
         statusDialog.preferredSize.height = 400;
 
-        var statusText = statusDialog.add('edittext', undefined, statusReport, {multiline: true, scrolling: true});
+        var statusText = statusDialog.add('edittext', undefined, statusReport, { multiline: true, scrolling: true });
         statusText.alignment = 'fill';
 
         var closeButton = statusDialog.add('button', undefined, 'Close');
-        closeButton.onClick = function() { statusDialog.close(); };
+        closeButton.onClick = function () { statusDialog.close(); };
 
         statusDialog.show();
 
@@ -15519,13 +15523,13 @@ function showModuleStatus() {
 function showAdvancedConfiguration() {
     try {
         alert('Advanced Configuration\n\n' +
-              'Current configuration is optimized for comprehensive analysis.\n' +
-              'Configuration editing will be available in a future version.\n\n' +
-              'Current Settings:\n' +
-              '• Max Depth: ' + ADVANCED_UI_CONFIG.discovery.maxDepth + '\n' +
-              '• Timeout: ' + ADVANCED_UI_CONFIG.discovery.timeoutMs + 'ms\n' +
-              '• Safety Filter: ' + ADVANCED_UI_CONFIG.sampling.safetyFilter + '\n' +
-              '• Max Samples: ' + ADVANCED_UI_CONFIG.sampling.maxSamples);
+            'Current configuration is optimized for comprehensive analysis.\n' +
+            'Configuration editing will be available in a future version.\n\n' +
+            'Current Settings:\n' +
+            '• Max Depth: ' + ADVANCED_UI_CONFIG.discovery.maxDepth + '\n' +
+            '• Timeout: ' + ADVANCED_UI_CONFIG.discovery.timeoutMs + 'ms\n' +
+            '• Safety Filter: ' + ADVANCED_UI_CONFIG.sampling.safetyFilter + '\n' +
+            '• Max Samples: ' + ADVANCED_UI_CONFIG.sampling.maxSamples);
     } catch (exc) {
         updateAdvancedStatus('Configuration error: ' + exc.message);
     }
@@ -15537,31 +15541,31 @@ function showAdvancedConfiguration() {
 function showAdvancedHelp() {
     try {
         var helpText = 'InDesign DOM Discovery Builder v3.1 - Advanced Interface\n\n' +
-                      'LIVE DOCUMENT ANALYSIS:\n' +
-                      '• Live Analysis - Complete 3-phase DOM discovery\n' +
-                      '• Live Compare - Compare current document against baseline\n' +
-                      '• Take Snapshot - Export current state for comparison\n\n' +
-                      'ADVANCED DISCOVERY:\n' +
-                      '• Full Discovery - Enhanced DOM enumeration with deep analysis\n' +
-                      '• Deep Mapping - Create detailed object relationship maps\n' +
-                      '• Performance - Analyze performance characteristics\n\n' +
-                      'JSON ANALYSIS:\n' +
-                      '• Load JSON - Import previously exported DOM structure\n' +
-                      '• Analyze - Perform comprehensive structural analysis\n' +
-                      '• Visualize - Open data in main DOM visualizer\n' +
-                      '• Export Analysis - Save analysis results\n\n' +
-                      'SNAPSHOT COMPARISON:\n' +
-                      '• Load Before/After - Import snapshots for comparison\n' +
-                      '• Compare - Analyze differences between snapshots\n' +
-                      '• Export Report - Save comparison analysis\n\n' +
-                      'DEEP OBJECT MAPPING:\n' +
-                      '• Create Mapping - Generate detailed object maps\n' +
-                      '• Object Atlas - Create comprehensive object index\n' +
-                      '• Optimize - Analyze performance optimization opportunities\n\n' +
-                      'EXPORT OPTIONS:\n' +
-                      '• Export JSON/Text/CSV - Save in various formats\n' +
-                      '• Full Report - Generate comprehensive analysis report\n\n' +
-                      'Use Module Status to check component availability.';
+            'LIVE DOCUMENT ANALYSIS:\n' +
+            '• Live Analysis - Complete 3-phase DOM discovery\n' +
+            '• Live Compare - Compare current document against baseline\n' +
+            '• Take Snapshot - Export current state for comparison\n\n' +
+            'ADVANCED DISCOVERY:\n' +
+            '• Full Discovery - Enhanced DOM enumeration with deep analysis\n' +
+            '• Deep Mapping - Create detailed object relationship maps\n' +
+            '• Performance - Analyze performance characteristics\n\n' +
+            'JSON ANALYSIS:\n' +
+            '• Load JSON - Import previously exported DOM structure\n' +
+            '• Analyze - Perform comprehensive structural analysis\n' +
+            '• Visualize - Open data in main DOM visualizer\n' +
+            '• Export Analysis - Save analysis results\n\n' +
+            'SNAPSHOT COMPARISON:\n' +
+            '• Load Before/After - Import snapshots for comparison\n' +
+            '• Compare - Analyze differences between snapshots\n' +
+            '• Export Report - Save comparison analysis\n\n' +
+            'DEEP OBJECT MAPPING:\n' +
+            '• Create Mapping - Generate detailed object maps\n' +
+            '• Object Atlas - Create comprehensive object index\n' +
+            '• Optimize - Analyze performance optimization opportunities\n\n' +
+            'EXPORT OPTIONS:\n' +
+            '• Export JSON/Text/CSV - Save in various formats\n' +
+            '• Full Report - Generate comprehensive analysis report\n\n' +
+            'Use Module Status to check component availability.';
 
         alert(helpText);
 
@@ -15874,31 +15878,31 @@ registerModule('6.1_advanced-ui', '3.1', [
     // Main Functions
     'showAdvancedUI', 'initializeAdvancedUI', 'createAdvancedWindow', 'createAdvancedTabs',
     'initializeAdvancedEventHandlers',
-    
+
     // Live Document Analysis
-    'runLiveDocumentAnalysis', 'generateLiveAnalysisDisplay', 'runLiveComparison', 
+    'runLiveDocumentAnalysis', 'generateLiveAnalysisDisplay', 'runLiveComparison',
     'takeDocumentSnapshot', 'clearLiveDisplay',
-    
+
     // Advanced Discovery
     'performAdvancedDiscovery', 'generateAdvancedDiscoveryDisplay', 'calculatePerformanceRating',
     'formatValuePreview', 'runDeepMapping', 'analyzePerformance', 'generatePerformanceAnalysis',
     'generatePerformanceRecommendations', 'clearDiscoveryDisplay',
-    
+
     // JSON Analysis
     'loadJSONExport', 'runJSONAnalysis', 'generateJSONAnalysisDisplay', 'visualizeJSON',
     'exportJSONAnalysis', 'generateJSONAnalysisText', 'clearAnalysisDisplay',
-    
+
     // Snapshot Comparison
     'loadBeforeSnapshot', 'loadAfterSnapshot', 'runSnapshotComparison', 'generateComparisonDisplay',
     'exportComparisonReport', 'clearComparisonDisplay',
-    
+
     // Deep Object Mapping
     'createDeepMapping', 'generateDeepMappingDisplay', 'generateAdvancedAtlas', 'generateAtlasDisplay',
     'optimizeMapping', 'generateOptimizationDisplay', 'clearMappingDisplay',
-    
+
     // Export and Reports
     'performAdvancedExport', 'generateComprehensiveReport', 'generateFullAnalysisReport',
-    
+
     // Utility Functions
     'showMainDOMVisualizer', 'showModuleStatus', 'showAdvancedConfiguration', 'showAdvancedHelp',
     'resetAdvancedUI', 'closeAdvancedUI', 'updateAdvancedStatus', 'updateAdvancedDocumentInfo',
