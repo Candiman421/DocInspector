@@ -20,15 +20,6 @@ var ADVANCED_UI_DEPENDENCIES = [
 var dependencyCheck = validateDependencies(ADVANCED_UI_DEPENDENCIES);
 if (!dependencyCheck.success) {
     var missingModules = getMissingDependencies(ADVANCED_UI_DEPENDENCIES);
-    if (typeof updateStatus === 'undefined') {
-        function updateStatus(message) {
-            try {
-                $.writeln('[Advanced UI] ' + message);
-            } catch (exc) {
-                // Silent fallback
-            }
-        }
-    }
     updateStatus('Warning: Some modules unavailable: ' + arrayJoin(missingModules, ', '));
 }
 

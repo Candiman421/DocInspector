@@ -24,16 +24,6 @@ var dependencyCheck = validateDependencies(DOM_VISUALIZER_DEPENDENCIES);
 if (!dependencyCheck.success) {
     // Continue with reduced functionality - UI should still be usable
     var missingModules = getMissingDependencies(DOM_VISUALIZER_DEPENDENCIES);
-    if (typeof updateStatus === 'undefined') {
-        // Define minimal status function if not available
-        function updateStatus(message) {
-            try {
-                $.writeln('[DOM Visualizer] ' + message);
-            } catch (exc) {
-                // Silent fallback
-            }
-        }
-    }
     updateStatus('Warning: Some modules unavailable: ' + arrayJoin(missingModules, ', '));
 }
 
@@ -1561,20 +1551,6 @@ function updateDocumentInfo() {
         if (g_domViz_documentInfo) {
             g_domViz_documentInfo.text = 'Document: Error - ' + exc.message;
         }
-    }
-}
-
-/**
- * Update status display
- */
-function updateStatus(message) {
-    try {
-        if (g_domViz_statusText) {
-            g_domViz_statusText.text = message;
-        }
-        $.writeln('[DOM Visualizer] ' + message);
-    } catch (exc) {
-        $.writeln('[DOM Visualizer] Status update failed: ' + exc.message);
     }
 }
 

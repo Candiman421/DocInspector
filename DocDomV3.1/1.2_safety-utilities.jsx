@@ -1806,6 +1806,18 @@ function retryOperation(operation, maxAttempts, baseDelay) {
     }
 }
 
+/**
+ * Standard status update function
+ * @param {String} message - Status message
+ */
+function updateStatus(message) {
+    try {
+        $.writeln('[Module System] ' + message);
+    } catch (exc) {
+        // Silent fallback for environments without writeln
+    }
+}
+
 // =============================================================================
 // MODULE REGISTRATION
 // =============================================================================
@@ -1856,7 +1868,7 @@ registerModule('1.2_safety-utilities', '3.1', [
     
     // Utilities
     'createStringBuilder', 'getCurrentTimestamp', 'generateUniqueID', 
-    'createErrorResult', 'createSuccessResult', 'retryOperation'
+    'createErrorResult', 'createSuccessResult', 'retryOperation', 'updateStatus'
 ]);
 
 // =============================================================================
