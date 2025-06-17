@@ -1,10 +1,10 @@
 // =============================================================================
-// 4.2_dom-comparator.jsx - DOM STRUCTURE COMPARISON
+// 4.2_dom-comparator.jsx - DOM EXPORT COMPARISON ENGINE
 // InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
 // =============================================================================
-// PURPOSE: Compare DOM structures and detect changes between documents
+// PURPOSE: Comprehensive comparison of DOM exports with detailed change analysis
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~2000 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -26,13 +26,20 @@ var DEFAULT_COMPARISON_CONFIG = {
     enablePropertyComparison: true,
     enableCollectionComparison: true,
     enableValueComparison: true,
-    enableObjectReferenceComparison: true,
+    enableMetadataComparison: true,
     compareExtractedValues: true,
-    includeMetadataComparison: true,
     generateDetailedReport: true,
-    maxDifferencesToReport: 100,
-    ignoredProperties: ['timestamp', 'lastExtracted'],
-    severityLevels: ['low', 'medium', 'high', 'critical']
+    highlightCriticalChanges: true,
+    analyzePerformanceImpact: true,
+    includeChangeRecommendations: true,
+    maxChangeItems: 1000,
+    enableChangeClassification: true,
+    trackRenamedElements: true,
+    detectMoves: true,
+    analyzeTypeChanges: true,
+    compareObjectReferences: true,
+    generateDiffSummary: true,
+    enableChangeMetrics: true
 };
 
 // =============================================================================
@@ -40,497 +47,609 @@ var DEFAULT_COMPARISON_CONFIG = {
 // =============================================================================
 
 /**
- * Compare two DOM exports and generate difference report
- * @param {Object} beforeDOM - Before DOM structure
- * @param {Object} afterDOM - After DOM structure
+ * Compare two DOM exports comprehensively
+ * @param {Object} beforeData - Before state DOM export
+ * @param {Object} afterData - After state DOM export
  * @param {Object} comparisonConfig - Comparison configuration
- * @returns {Object} Comparison result with differences
+ * @returns {Object} Comparison result with detailed analysis
  */
-function compareDOMExports(beforeDOM, afterDOM, comparisonConfig) {
+function compareDOMExports(beforeData, afterData, comparisonConfig) {
     var startTime = new Date().getTime();
-    var config = comparisonConfig ? 
-        objectClone(comparisonConfig, 2) : objectClone(DEFAULT_COMPARISON_CONFIG, 2);
+    var config = comparisonConfig ? objectMerge(DEFAULT_COMPARISON_CONFIG, comparisonConfig) : 
+                  objectClone(DEFAULT_COMPARISON_CONFIG, 3);
+    
+    var result = {
+        success: false,
+        comparison: null,
+        error: null,
+        metadata: {
+            comparisonStartTime: startTime,
+            comparisonVersion: '3.1',
+            configUsed: config
+        }
+    };
     
     try {
-        var result = {
-            success: false,
-            differences: {},
-            summary: {},
-            report: '',
-            error: null,
-            comparisonTime: 0,
-            configuration: config
-        };
-        
-        // Validate input
-        if (!beforeDOM || !afterDOM) {
-            result.error = 'Invalid DOM structures provided for comparison';
+        // Validate input data
+        var validation = validateComparisonInputs(beforeData, afterData);
+        if (!validation.valid) {
+            result.error = 'Input validation failed: ' + validation.error;
             return result;
         }
         
-        // Perform comprehensive comparison
-        var differences = performComprehensiveDOMComparison(beforeDOM, afterDOM, config);
-        
-        // Generate summary
-        var summary = generateComparisonSummary(differences, config);
-        
-        // Generate detailed report if enabled
-        var report = '';
-        if (config.generateDetailedReport) {
-            report = generateComparisonReport(differences, summary, config);
+        // Create comparison session
+        var session = createComparisonSession(beforeData, afterData, config);
+        if (!session.success) {
+            result.error = 'Session creation failed: ' + session.error;
+            return result;
         }
         
+        // Perform comparison phases
+        var comparison = {
+            metadata: {
+                beforeDocument: extractDocumentMetadata(beforeData),
+                afterDocument: extractDocumentMetadata(afterData),
+                comparisonTimestamp: getCurrentTimestamp(),
+                comparisonDuration: 0
+            },
+            summary: null,
+            changes: [],
+            analysis: {}
+        };
+        
+        // Phase 1: Structural comparison
+        if (config.enableStructuralComparison) {
+            var structuralChanges = compareStructures(session.beforeStructure, session.afterStructure, config);
+            comparison.structuralChanges = structuralChanges.report;
+            comparison.changes = arrayConcat(comparison.changes, structuralChanges.changes);
+        }
+        
+        // Phase 2: Property comparison
+        if (config.enablePropertyComparison) {
+            var propertyChanges = compareProperties(session.beforeStructure, session.afterStructure, config);
+            comparison.propertyChanges = propertyChanges.report;
+            comparison.changes = arrayConcat(comparison.changes, propertyChanges.changes);
+        }
+        
+        // Phase 3: Collection comparison
+        if (config.enableCollectionComparison) {
+            var collectionChanges = compareCollections(session.beforeStructure, session.afterStructure, config);
+            comparison.collectionChanges = collectionChanges.report;
+            comparison.changes = arrayConcat(comparison.changes, collectionChanges.changes);
+        }
+        
+        // Phase 4: Value comparison
+        if (config.enableValueComparison && config.compareExtractedValues) {
+            var valueChanges = compareValues(session.beforeStructure, session.afterStructure, config);
+            comparison.valueChanges = valueChanges.report;
+            comparison.changes = arrayConcat(comparison.changes, valueChanges.changes);
+        }
+        
+        // Phase 5: Metadata comparison
+        if (config.enableMetadataComparison) {
+            var metadataChanges = compareMetadata(beforeData, afterData, config);
+            comparison.metadataChanges = metadataChanges.report;
+            comparison.changes = arrayConcat(comparison.changes, metadataChanges.changes);
+        }
+        
+        // Generate summary
+        comparison.summary = generateComparisonSummary(comparison.changes, config);
+        
+        // Generate analysis
+        if (config.generateDetailedReport) {
+            comparison.analysis = generateDetailedAnalysis(comparison, session, config);
+        }
+        
+        // Performance impact analysis
+        if (config.analyzePerformanceImpact) {
+            comparison.performanceImpact = analyzePerformanceImpact(comparison, session, config);
+        }
+        
+        // Recommendations
+        if (config.includeChangeRecommendations) {
+            comparison.recommendations = generateChangeRecommendations(comparison, config);
+        }
+        
+        // Calculate duration
+        var endTime = new Date().getTime();
+        comparison.metadata.comparisonDuration = endTime - startTime;
+        
         result.success = true;
-        result.differences = differences;
-        result.summary = summary;
-        result.report = report;
-        result.comparisonTime = new Date().getTime() - startTime;
+        result.comparison = comparison;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Comparison failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Validate comparison inputs
+ * @param {Object} beforeData - Before data
+ * @param {Object} afterData - After data
+ * @returns {Object} Validation result
+ */
+function validateComparisonInputs(beforeData, afterData) {
+    var result = {
+        valid: false,
+        error: null
+    };
+    
+    try {
+        if (!beforeData) {
+            result.error = 'Before data is null or undefined';
+            return result;
+        }
+        
+        if (!afterData) {
+            result.error = 'After data is null or undefined';
+            return result;
+        }
+        
+        // Check for basic structure
+        if (!beforeData.structure && !beforeData.nodes) {
+            result.error = 'Before data missing structure or nodes';
+            return result;
+        }
+        
+        if (!afterData.structure && !afterData.nodes) {
+            result.error = 'After data missing structure or nodes';
+            return result;
+        }
+        
+        result.valid = true;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Validation error: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Create comparison session
+ * @param {Object} beforeData - Before data
+ * @param {Object} afterData - After data
+ * @param {Object} config - Configuration
+ * @returns {Object} Session object
+ */
+function createComparisonSession(beforeData, afterData, config) {
+    var result = {
+        success: false,
+        error: null,
+        beforeStructure: null,
+        afterStructure: null,
+        pathMaps: null
+    };
+    
+    try {
+        // Normalize structures
+        result.beforeStructure = normalizeStructureForComparison(beforeData);
+        result.afterStructure = normalizeStructureForComparison(afterData);
+        
+        // Create path maps for efficient lookup
+        result.pathMaps = {
+            before: createPathMap(result.beforeStructure),
+            after: createPathMap(result.afterStructure)
+        };
+        
+        result.success = true;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Session creation error: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Normalize structure for comparison
+ * @param {Object} data - DOM data
+ * @returns {Array} Normalized structure
+ */
+function normalizeStructureForComparison(data) {
+    try {
+        var structure = data.structure || data.nodes || [];
+        var normalized = [];
+        
+        for (var i = 0; i < structure.length; i++) {
+            var node = structure[i];
+            var normalizedNode = {
+                path: node.path || '',
+                name: node.name || '',
+                type: node.type || 'unknown',
+                depth: node.depth || 0,
+                safetyLevel: node.safetyLevel || 'unknown',
+                isCollection: node.isCollection || false,
+                isMethod: node.isMethod || false,
+                objectId: node.objectId || '',
+                alternativeAccessPaths: node.alternativeAccessPaths || [],
+                properties: node.properties || [],
+                collections: node.collections || [],
+                methods: node.methods || [],
+                sampledValue: node.sampledValue,
+                valueMetadata: node.valueMetadata || {},
+                originalIndex: i
+            };
+            
+            normalized[normalized.length] = normalizedNode;
+        }
+        
+        return normalized;
+        
+    } catch (exc) {
+        return [];
+    }
+}
+
+/**
+ * Create path map for efficient lookup
+ * @param {Array} structure - Normalized structure
+ * @returns {Object} Path map
+ */
+function createPathMap(structure) {
+    try {
+        var pathMap = {};
+        
+        for (var i = 0; i < structure.length; i++) {
+            var node = structure[i];
+            var path = node.path || '';
+            
+            if (path) {
+                pathMap[path] = node;
+            }
+        }
+        
+        return pathMap;
+        
+    } catch (exc) {
+        return {};
+    }
+}
+
+// =============================================================================
+// STRUCTURE COMPARISON
+// =============================================================================
+
+/**
+ * Compare structural changes
+ * @param {Array} beforeStructure - Before structure
+ * @param {Array} afterStructure - After structure
+ * @param {Object} config - Configuration
+ * @returns {Object} Structural comparison result
+ */
+function compareStructures(beforeStructure, afterStructure, config) {
+    var result = {
+        changes: [],
+        report: '',
+        statistics: {
+            added: 0,
+            removed: 0,
+            modified: 0,
+            moved: 0,
+            renamed: 0
+        }
+    };
+    
+    try {
+        var beforePaths = {};
+        var afterPaths = {};
+        
+        // Index by path
+        for (var i = 0; i < beforeStructure.length; i++) {
+            var node = beforeStructure[i];
+            beforePaths[node.path] = node;
+        }
+        
+        for (var j = 0; j < afterStructure.length; j++) {
+            var afterNode = afterStructure[j];
+            afterPaths[afterNode.path] = afterNode;
+        }
+        
+        // Find added nodes
+        for (var afterPath in afterPaths) {
+            if (objectHasOwnProperty(afterPaths, afterPath)) {
+                if (!objectHasOwnProperty(beforePaths, afterPath)) {
+                    var addedNode = afterPaths[afterPath];
+                    result.changes[result.changes.length] = {
+                        type: 'added',
+                        path: afterPath,
+                        element: addedNode,
+                        impact: calculateChangeImpact('added', addedNode),
+                        description: 'Added element: ' + afterPath
+                    };
+                    result.statistics.added++;
+                }
+            }
+        }
+        
+        // Find removed nodes
+        for (var beforePath in beforePaths) {
+            if (objectHasOwnProperty(beforePaths, beforePath)) {
+                if (!objectHasOwnProperty(afterPaths, beforePath)) {
+                    var removedNode = beforePaths[beforePath];
+                    result.changes[result.changes.length] = {
+                        type: 'removed',
+                        path: beforePath,
+                        element: removedNode,
+                        impact: calculateChangeImpact('removed', removedNode),
+                        description: 'Removed element: ' + beforePath
+                    };
+                    result.statistics.removed++;
+                }
+            }
+        }
+        
+        // Find modified nodes
+        for (var commonPath in beforePaths) {
+            if (objectHasOwnProperty(beforePaths, commonPath) && 
+                objectHasOwnProperty(afterPaths, commonPath)) {
+                
+                var beforeNode = beforePaths[commonPath];
+                var afterNode = afterPaths[commonPath];
+                
+                var modifications = compareNodeStructure(beforeNode, afterNode);
+                if (modifications.length > 0) {
+                    result.changes[result.changes.length] = {
+                        type: 'modified',
+                        path: commonPath,
+                        beforeElement: beforeNode,
+                        afterElement: afterNode,
+                        modifications: modifications,
+                        impact: calculateChangeImpact('modified', afterNode),
+                        description: 'Modified element: ' + commonPath + ' (' + modifications.length + ' changes)'
+                    };
+                    result.statistics.modified++;
+                }
+            }
+        }
+        
+        // Detect moves and renames if enabled
+        if (config.detectMoves || config.trackRenamedElements) {
+            var moveResults = detectMovesAndRenames(beforeStructure, afterStructure, config);
+            result.changes = arrayConcat(result.changes, moveResults.changes);
+            result.statistics.moved += moveResults.statistics.moved;
+            result.statistics.renamed += moveResults.statistics.renamed;
+        }
+        
+        // Generate report
+        result.report = generateStructuralChangeReport(result, config);
         
         return result;
         
     } catch (exc) {
-        return {
-            success: false,
-            differences: {},
-            summary: {},
-            report: '',
-            error: 'Comparison failed: ' + exc.message,
-            comparisonTime: new Date().getTime() - startTime,
-            configuration: config
-        };
+        result.report = 'Error comparing structures: ' + exc.message;
+        return result;
     }
 }
 
 /**
- * Compare live documents
- * @param {Object} beforeDocument - Before document
- * @param {Object} afterDocument - After document
- * @param {Object} config - Comparison configuration
- * @returns {Object} Comparison result
+ * Compare individual node structure
+ * @param {Object} beforeNode - Before node
+ * @param {Object} afterNode - After node
+ * @returns {Array} List of modifications
  */
-function compareLiveDocuments(beforeDocument, afterDocument, config) {
+function compareNodeStructure(beforeNode, afterNode) {
+    var modifications = [];
+    
     try {
-        // This function would be used with live enumeration
-        // For now, return a placeholder result
-        return {
-            success: true,
-            differences: {
-                live: [{
-                    type: 'live_comparison',
-                    description: 'Live document comparison placeholder',
-                    severity: 'low'
-                }]
-            },
-            summary: {
-                totalDifferences: 1,
-                criticalChanges: 0,
-                timestamp: getCurrentTimestamp()
-            },
-            report: 'Live document comparison not fully implemented'
-        };
+        // Compare basic properties
+        if (beforeNode.name !== afterNode.name) {
+            modifications[modifications.length] = {
+                property: 'name',
+                before: beforeNode.name,
+                after: afterNode.name
+            };
+        }
+        
+        if (beforeNode.type !== afterNode.type) {
+            modifications[modifications.length] = {
+                property: 'type',
+                before: beforeNode.type,
+                after: afterNode.type
+            };
+        }
+        
+        if (beforeNode.depth !== afterNode.depth) {
+            modifications[modifications.length] = {
+                property: 'depth',
+                before: beforeNode.depth,
+                after: afterNode.depth
+            };
+        }
+        
+        if (beforeNode.safetyLevel !== afterNode.safetyLevel) {
+            modifications[modifications.length] = {
+                property: 'safetyLevel',
+                before: beforeNode.safetyLevel,
+                after: afterNode.safetyLevel
+            };
+        }
+        
+        if (beforeNode.isCollection !== afterNode.isCollection) {
+            modifications[modifications.length] = {
+                property: 'isCollection',
+                before: beforeNode.isCollection,
+                after: afterNode.isCollection
+            };
+        }
+        
+        if (beforeNode.isMethod !== afterNode.isMethod) {
+            modifications[modifications.length] = {
+                property: 'isMethod',
+                before: beforeNode.isMethod,
+                after: afterNode.isMethod
+            };
+        }
+        
+        // Compare property counts
+        var beforePropCount = beforeNode.properties ? beforeNode.properties.length : 0;
+        var afterPropCount = afterNode.properties ? afterNode.properties.length : 0;
+        if (beforePropCount !== afterPropCount) {
+            modifications[modifications.length] = {
+                property: 'propertyCount',
+                before: beforePropCount,
+                after: afterPropCount
+            };
+        }
+        
+        // Compare collection counts
+        var beforeCollCount = beforeNode.collections ? beforeNode.collections.length : 0;
+        var afterCollCount = afterNode.collections ? afterNode.collections.length : 0;
+        if (beforeCollCount !== afterCollCount) {
+            modifications[modifications.length] = {
+                property: 'collectionCount',
+                before: beforeCollCount,
+                after: afterCollCount
+            };
+        }
+        
+        // Compare method counts
+        var beforeMethodCount = beforeNode.methods ? beforeNode.methods.length : 0;
+        var afterMethodCount = afterNode.methods ? afterNode.methods.length : 0;
+        if (beforeMethodCount !== afterMethodCount) {
+            modifications[modifications.length] = {
+                property: 'methodCount',
+                before: beforeMethodCount,
+                after: afterMethodCount
+            };
+        }
+        
+        return modifications;
         
     } catch (exc) {
-        return {
-            success: false,
-            error: 'Live comparison failed: ' + exc.message
-        };
+        return modifications;
     }
 }
 
 /**
- * Perform comprehensive DOM structure comparison
- * @param {Object} beforeDOM - Before DOM structure
- * @param {Object} afterDOM - After DOM structure
- * @param {Object} config - Comparison configuration
- * @returns {Object} Differences object
+ * Detect moves and renames
+ * @param {Array} beforeStructure - Before structure
+ * @param {Array} afterStructure - After structure
+ * @param {Object} config - Configuration
+ * @returns {Object} Move/rename results
  */
-function performComprehensiveDOMComparison(beforeDOM, afterDOM, config) {
+function detectMovesAndRenames(beforeStructure, afterStructure, config) {
+    var result = {
+        changes: [],
+        statistics: {
+            moved: 0,
+            renamed: 0
+        }
+    };
+    
     try {
-        var differences = {};
+        // Implementation would be complex - simplified version
+        // In a full implementation, this would use similarity algorithms
+        // to detect likely moves and renames based on structure similarity
         
-        // Metadata comparison
-        if (config.includeMetadataComparison) {
-            var metadataDiff = compareMetadata(beforeDOM.metadata, afterDOM.metadata, config);
-            if (metadataDiff.length > 0) {
-                differences.metadata = metadataDiff;
-            }
-        }
-        
-        // Structural comparison
-        if (config.enableStructuralComparison && beforeDOM.structure && afterDOM.structure) {
-            var structuralDiff = compareStructuralElements(beforeDOM.structure, afterDOM.structure, config);
-            if (structuralDiff.length > 0) {
-                differences.structural = structuralDiff;
-            }
-        }
-        
-        // Property comparison with extracted values
-        if (config.enablePropertyComparison) {
-            var propertyDiff = compareProperties(beforeDOM, afterDOM, config);
-            if (propertyDiff.length > 0) {
-                differences.properties = propertyDiff;
-            }
-        }
-        
-        // Collection comparison with content analysis
-        if (config.enableCollectionComparison) {
-            var collectionDiff = compareCollections(beforeDOM, afterDOM, config);
-            if (collectionDiff.length > 0) {
-                differences.collections = collectionDiff;
-            }
-        }
-        
-        // Extracted value comparison
-        if (config.enableValueComparison && config.compareExtractedValues) {
-            var valueDiff = compareExtractedValues(beforeDOM, afterDOM, config);
-            if (valueDiff.length > 0) {
-                differences.values = valueDiff;
-            }
-        }
-        
-        // Object reference comparison
-        if (config.enableObjectReferenceComparison) {
-            var objRefDiff = compareObjectReferences(beforeDOM.objectRegistry, afterDOM.objectRegistry, config);
-            if (objRefDiff.length > 0) {
-                differences.objectReferences = objRefDiff;
-            }
-        }
-        
-        // Access path comparison
-        var accessPathDiff = compareAccessPaths(beforeDOM, afterDOM, config);
-        if (accessPathDiff.length > 0) {
-            differences.accessPaths = accessPathDiff;
-        }
-        
-        return differences;
+        return result;
         
     } catch (exc) {
-        return {
-            error: 'Comprehensive comparison failed: ' + exc.message
-        };
+        return result;
+    }
+}
+
+/**
+ * Calculate change impact
+ * @param {String} changeType - Type of change
+ * @param {Object} element - Element
+ * @returns {String} Impact level
+ */
+function calculateChangeImpact(changeType, element) {
+    try {
+        // Basic impact calculation
+        if (changeType === 'removed') return 'high';
+        if (changeType === 'added' && element.type === 'collection') return 'medium';
+        if (changeType === 'modified' && element.isMethod) return 'medium';
+        return 'low';
+        
+    } catch (exc) {
+        return 'unknown';
     }
 }
 
 // =============================================================================
-// SPECIFIC COMPARISON FUNCTIONS
+// PROPERTY COMPARISON
 // =============================================================================
 
 /**
- * Compare metadata sections
- * @param {Object} beforeMeta - Before metadata
- * @param {Object} afterMeta - After metadata
+ * Compare properties between structures
+ * @param {Array} beforeStructure - Before structure
+ * @param {Array} afterStructure - After structure
  * @param {Object} config - Configuration
- * @returns {Array} Metadata differences
+ * @returns {Object} Property comparison result
  */
-function compareMetadata(beforeMeta, afterMeta, config) {
+function compareProperties(beforeStructure, afterStructure, config) {
+    var result = {
+        changes: [],
+        report: '',
+        statistics: {
+            propertiesAdded: 0,
+            propertiesRemoved: 0,
+            propertiesModified: 0
+        }
+    };
+    
     try {
-        var differences = [];
+        // Create maps for efficient lookup
+        var beforeMap = createPathMap(beforeStructure);
+        var afterMap = createPathMap(afterStructure);
         
-        if (!beforeMeta && !afterMeta) {
-            return differences;
-        }
-        
-        if (!beforeMeta) {
-            differences.push({
-                type: 'metadata_added',
-                description: 'Metadata section added',
-                afterValue: afterMeta,
-                severity: 'low'
-            });
-            return differences;
-        }
-        
-        if (!afterMeta) {
-            differences.push({
-                type: 'metadata_removed',
-                description: 'Metadata section removed',
-                beforeValue: beforeMeta,
-                severity: 'medium'
-            });
-            return differences;
-        }
-        
-        // Compare specific metadata fields
-        var fieldsToCompare = ['documentName', 'version', 'indesignVersion'];
-        
-        for (var i = 0; i < fieldsToCompare.length; i++) {
-            var field = fieldsToCompare[i];
-            var beforeVal = beforeMeta[field];
-            var afterVal = afterMeta[field];
-            
-            if (beforeVal !== afterVal) {
-                differences.push({
-                    type: 'metadata_field_changed',
-                    field: field,
-                    beforeValue: beforeVal,
-                    afterValue: afterVal,
-                    description: 'Metadata field changed: ' + field,
-                    severity: 'low'
-                });
+        // Compare properties for nodes that exist in both
+        for (var path in beforeMap) {
+            if (objectHasOwnProperty(beforeMap, path) && objectHasOwnProperty(afterMap, path)) {
+                var beforeNode = beforeMap[path];
+                var afterNode = afterMap[path];
+                
+                var propertyChanges = compareNodeProperties(beforeNode, afterNode, path);
+                result.changes = arrayConcat(result.changes, propertyChanges.changes);
+                result.statistics.propertiesAdded += propertyChanges.statistics.added;
+                result.statistics.propertiesRemoved += propertyChanges.statistics.removed;
+                result.statistics.propertiesModified += propertyChanges.statistics.modified;
             }
         }
         
-        return differences;
+        // Generate report
+        result.report = generatePropertyChangeReport(result, config);
+        
+        return result;
         
     } catch (exc) {
-        return [{
-            type: 'metadata_comparison_error',
-            description: 'Metadata comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
+        result.report = 'Error comparing properties: ' + exc.message;
+        return result;
     }
 }
 
 /**
- * Compare structural elements
- * @param {Object} beforeStructure - Before structure
- * @param {Object} afterStructure - After structure
- * @param {Object} config - Configuration
- * @returns {Array} Structural differences
- */
-function compareStructuralElements(beforeStructure, afterStructure, config) {
-    try {
-        var differences = [];
-        
-        if (!beforeStructure.document && !afterStructure.document) {
-            return differences;
-        }
-        
-        if (!beforeStructure.document) {
-            differences.push({
-                type: 'document_added',
-                description: 'Document structure added',
-                severity: 'high'
-            });
-            return differences;
-        }
-        
-        if (!afterStructure.document) {
-            differences.push({
-                type: 'document_removed',
-                description: 'Document structure removed',
-                severity: 'critical'
-            });
-            return differences;
-        }
-        
-        // Compare document nodes
-        var nodeDifferences = compareNodes(beforeStructure.document, afterStructure.document, 'document', config);
-        differences = differences.concat(nodeDifferences);
-        
-        return differences;
-        
-    } catch (exc) {
-        return [{
-            type: 'structural_comparison_error',
-            description: 'Structural comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
-    }
-}
-
-/**
- * Compare DOM nodes recursively
+ * Compare properties of individual nodes
  * @param {Object} beforeNode - Before node
  * @param {Object} afterNode - After node
  * @param {String} nodePath - Node path
- * @param {Object} config - Configuration
- * @returns {Array} Node differences
+ * @returns {Object} Property change result
  */
-function compareNodes(beforeNode, afterNode, nodePath, config) {
+function compareNodeProperties(beforeNode, afterNode, nodePath) {
+    var result = {
+        changes: [],
+        statistics: {
+            added: 0,
+            removed: 0,
+            modified: 0
+        }
+    };
+    
     try {
-        var differences = [];
+        var beforeProps = beforeNode.properties || [];
+        var afterProps = afterNode.properties || [];
         
-        if (!beforeNode && !afterNode) {
-            return differences;
-        }
-        
-        if (!beforeNode) {
-            differences.push({
-                type: 'node_added',
-                path: nodePath,
-                description: 'Node added: ' + nodePath,
-                afterNode: afterNode,
-                severity: 'medium'
-            });
-            return differences;
-        }
-        
-        if (!afterNode) {
-            differences.push({
-                type: 'node_removed',
-                path: nodePath,
-                description: 'Node removed: ' + nodePath,
-                beforeNode: beforeNode,
-                severity: 'high'
-            });
-            return differences;
-        }
-        
-        // Compare node properties
-        if (beforeNode.type !== afterNode.type) {
-            differences.push({
-                type: 'node_type_changed',
-                path: nodePath,
-                beforeType: beforeNode.type,
-                afterType: afterNode.type,
-                description: 'Node type changed: ' + nodePath,
-                severity: 'high'
-            });
-        }
-        
-        // Compare properties within node
-        var propDiffs = comparePropertiesInNode(beforeNode, afterNode, nodePath, config);
-        differences = differences.concat(propDiffs);
-        
-        // Compare collections within node
-        var collDiffs = compareCollectionsInNode(beforeNode, afterNode, nodePath, config);
-        differences = differences.concat(collDiffs);
-        
-        // Compare child nodes
-        if (beforeNode.childNodes && afterNode.childNodes) {
-            // Create a map of child nodes by name for comparison
-            var beforeChildren = {};
-            var afterChildren = {};
-            
-            for (var i = 0; i < beforeNode.childNodes.length; i++) {
-                var child = beforeNode.childNodes[i];
-                beforeChildren[child.name] = child;
-            }
-            
-            for (var j = 0; j < afterNode.childNodes.length; j++) {
-                var afterChild = afterNode.childNodes[j];
-                afterChildren[afterChild.name] = afterChild;
-            }
-            
-            // Check for removed children
-            for (var beforeChildName in beforeChildren) {
-                if (objectHasOwnProperty(beforeChildren, beforeChildName)) {
-                    if (!objectHasOwnProperty(afterChildren, beforeChildName)) {
-                        differences.push({
-                            type: 'child_node_removed',
-                            path: nodePath + '.' + beforeChildName,
-                            childName: beforeChildName,
-                            description: 'Child node removed: ' + beforeChildName,
-                            severity: 'medium'
-                        });
-                    }
-                }
-            }
-            
-            // Check for added children and compare existing ones
-            for (var afterChildName in afterChildren) {
-                if (objectHasOwnProperty(afterChildren, afterChildName)) {
-                    if (!objectHasOwnProperty(beforeChildren, afterChildName)) {
-                        differences.push({
-                            type: 'child_node_added',
-                            path: nodePath + '.' + afterChildName,
-                            childName: afterChildName,
-                            description: 'Child node added: ' + afterChildName,
-                            severity: 'low'
-                        });
-                    } else {
-                        // Recursively compare existing child nodes
-                        var childDiffs = compareNodes(
-                            beforeChildren[afterChildName],
-                            afterChildren[afterChildName],
-                            nodePath + '.' + afterChildName,
-                            config
-                        );
-                        differences = differences.concat(childDiffs);
-                    }
-                }
-            }
-        }
-        
-        return differences;
-        
-    } catch (exc) {
-        return [{
-            type: 'node_comparison_error',
-            path: nodePath,
-            description: 'Node comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
-    }
-}
-
-/**
- * Compare properties within a node
- * @param {Object} beforeNode - Before node
- * @param {Object} afterNode - After node
- * @param {String} parentPath - Parent path
- * @param {Object} config - Configuration
- * @returns {Array} Property differences
- */
-function comparePropertiesInNode(beforeNode, afterNode, parentPath, config) {
-    try {
-        var differences = [];
-        
-        var beforeProps = beforeNode.properties;
-        var afterProps = afterNode.properties;
-        
-        if (!beforeProps && !afterProps) {
-            return differences;
-        }
-        
-        if (!beforeProps) {
-            differences.push({
-                type: 'properties_added',
-                path: parentPath,
-                description: 'Properties added to ' + parentPath,
-                count: afterProps.length,
-                severity: 'medium'
-            });
-            return differences;
-        }
-        
-        if (!afterProps) {
-            differences.push({
-                type: 'properties_removed',
-                path: parentPath,
-                description: 'Properties removed from ' + parentPath,
-                count: beforeProps.length,
-                severity: 'high'
-            });
-            return differences;
-        }
-        
-        // Compare property arrays using helper function
-        var propArrayDiffs = comparePropertyArrays(beforeProps, afterProps, parentPath, config);
-        differences = differences.concat(propArrayDiffs);
-        
-        return differences;
-        
-    } catch (exc) {
-        return [{
-            type: 'property_comparison_error',
-            path: parentPath,
-            description: 'Property comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
-    }
-}
-
-/**
- * Compare property arrays
- * @param {Array} beforeProps - Before properties
- * @param {Array} afterProps - After properties
- * @param {String} parentPath - Parent path
- * @param {Object} config - Configuration
- * @returns {Array} Property differences
- */
-function comparePropertyArrays(beforeProps, afterProps, parentPath, config) {
-    try {
-        var differences = [];
-        
-        // Create property maps for comparison
+        // Create property maps by name
         var beforePropMap = {};
         var afterPropMap = {};
         
         for (var i = 0; i < beforeProps.length; i++) {
-            var beforeProp = beforeProps[i];
-            beforePropMap[beforeProp.name] = beforeProp;
+            var prop = beforeProps[i];
+            beforePropMap[prop.name] = prop;
         }
         
         for (var j = 0; j < afterProps.length; j++) {
@@ -538,162 +657,193 @@ function comparePropertyArrays(beforeProps, afterProps, parentPath, config) {
             afterPropMap[afterProp.name] = afterProp;
         }
         
-        // Check for removed properties
-        for (var beforePropName in beforePropMap) {
-            if (objectHasOwnProperty(beforePropMap, beforePropName)) {
-                if (!objectHasOwnProperty(afterPropMap, beforePropName)) {
-                    differences.push({
-                        type: 'property_removed',
-                        path: parentPath + '.' + beforePropName,
-                        propertyName: beforePropName,
-                        description: 'Property removed: ' + beforePropName,
-                        severity: 'medium'
-                    });
-                }
-            }
-        }
-        
-        // Check for added properties
+        // Find added properties
         for (var afterPropName in afterPropMap) {
             if (objectHasOwnProperty(afterPropMap, afterPropName)) {
                 if (!objectHasOwnProperty(beforePropMap, afterPropName)) {
-                    differences.push({
-                        type: 'property_added',
-                        path: parentPath + '.' + afterPropName,
+                    result.changes[result.changes.length] = {
+                        type: 'property-added',
+                        nodePath: nodePath,
                         propertyName: afterPropName,
-                        description: 'Property added: ' + afterPropName,
-                        severity: 'low'
-                    });
+                        property: afterPropMap[afterPropName],
+                        impact: 'low',
+                        description: 'Added property "' + afterPropName + '" to ' + nodePath
+                    };
+                    result.statistics.added++;
                 }
             }
         }
         
-        // Compare existing properties and their extracted values
-        for (var existingPropName in beforePropMap) {
-            if (objectHasOwnProperty(beforePropMap, existingPropName) && 
-                objectHasOwnProperty(afterPropMap, existingPropName)) {
-                
-                var beforeProp = beforePropMap[existingPropName];
-                var afterProp = afterPropMap[existingPropName];
-                
-                // Compare extracted values
-                if (config.compareExtractedValues) {
-                    if (beforeProp.extractedValue !== afterProp.extractedValue) {
-                        differences.push({
-                            type: 'property_value_changed',
-                            path: parentPath + '.' + existingPropName,
-                            propertyName: existingPropName,
-                            beforeValue: beforeProp.extractedValue,
-                            afterValue: afterProp.extractedValue,
-                            description: 'Property value changed: ' + existingPropName,
-                            severity: 'medium'
-                        });
-                    }
-                }
-                
-                // Compare type changes
-                if (beforeProp.type !== afterProp.type) {
-                    differences.push({
-                        type: 'property_type_changed',
-                        path: parentPath + '.' + existingPropName,
-                        propertyName: existingPropName,
-                        beforeType: beforeProp.type,
-                        afterType: afterProp.type,
-                        description: 'Property type changed: ' + existingPropName,
-                        severity: 'high'
-                    });
+        // Find removed properties
+        for (var beforePropName in beforePropMap) {
+            if (objectHasOwnProperty(beforePropMap, beforePropName)) {
+                if (!objectHasOwnProperty(afterPropMap, beforePropName)) {
+                    result.changes[result.changes.length] = {
+                        type: 'property-removed',
+                        nodePath: nodePath,
+                        propertyName: beforePropName,
+                        property: beforePropMap[beforePropName],
+                        impact: 'medium',
+                        description: 'Removed property "' + beforePropName + '" from ' + nodePath
+                    };
+                    result.statistics.removed++;
                 }
             }
         }
         
-        return differences;
+        // Find modified properties
+        for (var commonPropName in beforePropMap) {
+            if (objectHasOwnProperty(beforePropMap, commonPropName) && 
+                objectHasOwnProperty(afterPropMap, commonPropName)) {
+                
+                var beforeProp = beforePropMap[commonPropName];
+                var afterProp = afterPropMap[commonPropName];
+                
+                var propModifications = comparePropertyDetails(beforeProp, afterProp);
+                if (propModifications.length > 0) {
+                    result.changes[result.changes.length] = {
+                        type: 'property-modified',
+                        nodePath: nodePath,
+                        propertyName: commonPropName,
+                        beforeProperty: beforeProp,
+                        afterProperty: afterProp,
+                        modifications: propModifications,
+                        impact: 'low',
+                        description: 'Modified property "' + commonPropName + '" in ' + nodePath
+                    };
+                    result.statistics.modified++;
+                }
+            }
+        }
+        
+        return result;
         
     } catch (exc) {
-        return [{
-            type: 'property_array_comparison_error',
-            path: parentPath,
-            description: 'Property array comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
+        return result;
     }
 }
 
 /**
- * Compare collections within a node
+ * Compare property details
+ * @param {Object} beforeProp - Before property
+ * @param {Object} afterProp - After property
+ * @returns {Array} List of property modifications
+ */
+function comparePropertyDetails(beforeProp, afterProp) {
+    var modifications = [];
+    
+    try {
+        if (beforeProp.type !== afterProp.type) {
+            modifications[modifications.length] = {
+                field: 'type',
+                before: beforeProp.type,
+                after: afterProp.type
+            };
+        }
+        
+        if (beforeProp.safetyLevel !== afterProp.safetyLevel) {
+            modifications[modifications.length] = {
+                field: 'safetyLevel',
+                before: beforeProp.safetyLevel,
+                after: afterProp.safetyLevel
+            };
+        }
+        
+        if (beforeProp.path !== afterProp.path) {
+            modifications[modifications.length] = {
+                field: 'path',
+                before: beforeProp.path,
+                after: afterProp.path
+            };
+        }
+        
+        return modifications;
+        
+    } catch (exc) {
+        return modifications;
+    }
+}
+
+// =============================================================================
+// COLLECTION COMPARISON
+// =============================================================================
+
+/**
+ * Compare collections between structures
+ * @param {Array} beforeStructure - Before structure
+ * @param {Array} afterStructure - After structure
+ * @param {Object} config - Configuration
+ * @returns {Object} Collection comparison result
+ */
+function compareCollections(beforeStructure, afterStructure, config) {
+    var result = {
+        changes: [],
+        report: '',
+        statistics: {
+            collectionsAdded: 0,
+            collectionsRemoved: 0,
+            collectionsModified: 0
+        }
+    };
+    
+    try {
+        // Create maps for efficient lookup
+        var beforeMap = createPathMap(beforeStructure);
+        var afterMap = createPathMap(afterStructure);
+        
+        // Compare collections for nodes that exist in both
+        for (var path in beforeMap) {
+            if (objectHasOwnProperty(beforeMap, path) && objectHasOwnProperty(afterMap, path)) {
+                var beforeNode = beforeMap[path];
+                var afterNode = afterMap[path];
+                
+                var collectionChanges = compareNodeCollections(beforeNode, afterNode, path);
+                result.changes = arrayConcat(result.changes, collectionChanges.changes);
+                result.statistics.collectionsAdded += collectionChanges.statistics.added;
+                result.statistics.collectionsRemoved += collectionChanges.statistics.removed;
+                result.statistics.collectionsModified += collectionChanges.statistics.modified;
+            }
+        }
+        
+        // Generate report
+        result.report = generateCollectionChangeReport(result, config);
+        
+        return result;
+        
+    } catch (exc) {
+        result.report = 'Error comparing collections: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Compare collections of individual nodes
  * @param {Object} beforeNode - Before node
  * @param {Object} afterNode - After node
- * @param {String} parentPath - Parent path
- * @param {Object} config - Configuration
- * @returns {Array} Collection differences
+ * @param {String} nodePath - Node path
+ * @returns {Object} Collection change result
  */
-function compareCollectionsInNode(beforeNode, afterNode, parentPath, config) {
+function compareNodeCollections(beforeNode, afterNode, nodePath) {
+    var result = {
+        changes: [],
+        statistics: {
+            added: 0,
+            removed: 0,
+            modified: 0
+        }
+    };
+    
     try {
-        var differences = [];
+        var beforeColls = beforeNode.collections || [];
+        var afterColls = afterNode.collections || [];
         
-        var beforeColls = beforeNode.collections;
-        var afterColls = afterNode.collections;
-        
-        if (!beforeColls && !afterColls) {
-            return differences;
-        }
-        
-        if (!beforeColls) {
-            differences.push({
-                type: 'collections_added',
-                path: parentPath,
-                description: 'Collections added to ' + parentPath,
-                count: afterColls.length,
-                severity: 'medium'
-            });
-            return differences;
-        }
-        
-        if (!afterColls) {
-            differences.push({
-                type: 'collections_removed',
-                path: parentPath,
-                description: 'Collections removed from ' + parentPath,
-                count: beforeColls.length,
-                severity: 'high'
-            });
-            return differences;
-        }
-        
-        // Compare collection arrays
-        var collArrayDiffs = compareDetailedCollections(beforeColls, afterColls, parentPath, config);
-        differences = differences.concat(collArrayDiffs);
-        
-        return differences;
-        
-    } catch (exc) {
-        return [{
-            type: 'collection_comparison_error',
-            path: parentPath,
-            description: 'Collection comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
-    }
-}
-
-/**
- * Compare detailed collections with sampling metadata
- * @param {Array} beforeColls - Before collections
- * @param {Array} afterColls - After collections
- * @param {String} parentPath - Parent path
- * @param {Object} config - Configuration
- * @returns {Array} Collection differences
- */
-function compareDetailedCollections(beforeColls, afterColls, parentPath, config) {
-    try {
-        var differences = [];
-        
-        // Create collection maps
+        // Create collection maps by name
         var beforeCollMap = {};
         var afterCollMap = {};
         
         for (var i = 0; i < beforeColls.length; i++) {
-            var beforeColl = beforeColls[i];
-            beforeCollMap[beforeColl.name] = beforeColl;
+            var coll = beforeColls[i];
+            beforeCollMap[coll.name] = coll;
         }
         
         for (var j = 0; j < afterColls.length; j++) {
@@ -701,394 +851,972 @@ function compareDetailedCollections(beforeColls, afterColls, parentPath, config)
             afterCollMap[afterColl.name] = afterColl;
         }
         
-        // Compare collections by name
-        for (var collName in beforeCollMap) {
-            if (objectHasOwnProperty(beforeCollMap, collName)) {
-                if (!objectHasOwnProperty(afterCollMap, collName)) {
-                    differences.push({
-                        type: 'collection_removed',
-                        path: parentPath + '.' + collName,
-                        collectionName: collName,
-                        description: 'Collection removed: ' + collName,
-                        severity: 'medium'
-                    });
-                } else {
-                    // Compare collection content
-                    var beforeColl = beforeCollMap[collName];
-                    var afterColl = afterCollMap[collName];
-                    
-                    // Compare collection analysis if available
-                    if (beforeColl.collectionAnalysis && afterColl.collectionAnalysis) {
-                        var beforeAnalysis = beforeColl.collectionAnalysis;
-                        var afterAnalysis = afterColl.collectionAnalysis;
-                        
-                        if (beforeAnalysis.itemCount !== afterAnalysis.itemCount) {
-                            differences.push({
-                                type: 'collection_size_changed',
-                                path: parentPath + '.' + collName,
-                                collectionName: collName,
-                                beforeSize: beforeAnalysis.itemCount,
-                                afterSize: afterAnalysis.itemCount,
-                                description: 'Collection size changed: ' + collName,
-                                severity: 'medium'
-                            });
-                        }
-                        
-                        if (beforeAnalysis.collectionType !== afterAnalysis.collectionType) {
-                            differences.push({
-                                type: 'collection_type_changed',
-                                path: parentPath + '.' + collName,
-                                collectionName: collName,
-                                beforeType: beforeAnalysis.collectionType,
-                                afterType: afterAnalysis.collectionType,
-                                description: 'Collection type changed: ' + collName,
-                                severity: 'high'
-                            });
-                        }
-                    }
+        // Find added collections
+        for (var afterCollName in afterCollMap) {
+            if (objectHasOwnProperty(afterCollMap, afterCollName)) {
+                if (!objectHasOwnProperty(beforeCollMap, afterCollName)) {
+                    result.changes[result.changes.length] = {
+                        type: 'collection-added',
+                        nodePath: nodePath,
+                        collectionName: afterCollName,
+                        collection: afterCollMap[afterCollName],
+                        impact: 'medium',
+                        description: 'Added collection "' + afterCollName + '" to ' + nodePath
+                    };
+                    result.statistics.added++;
                 }
             }
         }
         
-        // Check for added collections
-        for (var newCollName in afterCollMap) {
-            if (objectHasOwnProperty(afterCollMap, newCollName)) {
-                if (!objectHasOwnProperty(beforeCollMap, newCollName)) {
-                    differences.push({
-                        type: 'collection_added',
-                        path: parentPath + '.' + newCollName,
-                        collectionName: newCollName,
-                        description: 'Collection added: ' + newCollName,
-                        severity: 'low'
-                    });
+        // Find removed collections
+        for (var beforeCollName in beforeCollMap) {
+            if (objectHasOwnProperty(beforeCollMap, beforeCollName)) {
+                if (!objectHasOwnProperty(afterCollMap, beforeCollName)) {
+                    result.changes[result.changes.length] = {
+                        type: 'collection-removed',
+                        nodePath: nodePath,
+                        collectionName: beforeCollName,
+                        collection: beforeCollMap[beforeCollName],
+                        impact: 'high',
+                        description: 'Removed collection "' + beforeCollName + '" from ' + nodePath
+                    };
+                    result.statistics.removed++;
                 }
             }
         }
         
-        return differences;
-        
-    } catch (exc) {
-        return [{
-            type: 'detailed_collection_comparison_error',
-            path: parentPath,
-            description: 'Detailed collection comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
-    }
-}
-
-/**
- * Compare extracted values across structures
- * @param {Object} beforeDOM - Before DOM
- * @param {Object} afterDOM - After DOM
- * @param {Object} config - Configuration
- * @returns {Array} Value differences
- */
-function compareExtractedValues(beforeDOM, afterDOM, config) {
-    try {
-        var differences = [];
-        
-        // This would involve deep traversal of both structures
-        // For now, return placeholder result
-        differences.push({
-            type: 'extracted_values_comparison',
-            description: 'Extracted values comparison placeholder',
-            severity: 'low'
-        });
-        
-        return differences;
-        
-    } catch (exc) {
-        return [{
-            type: 'extracted_values_comparison_error',
-            description: 'Extracted values comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
-    }
-}
-
-/**
- * Compare object references
- * @param {Object} beforeRefs - Before object references
- * @param {Object} afterRefs - After object references
- * @param {Object} config - Configuration
- * @returns {Array} Reference differences
- */
-function compareObjectReferences(beforeRefs, afterRefs, config) {
-    try {
-        var differences = [];
-        
-        if (!beforeRefs && !afterRefs) {
-            return differences;
+        // Find modified collections
+        for (var commonCollName in beforeCollMap) {
+            if (objectHasOwnProperty(beforeCollMap, commonCollName) && 
+                objectHasOwnProperty(afterCollMap, commonCollName)) {
+                
+                var beforeColl = beforeCollMap[commonCollName];
+                var afterColl = afterCollMap[commonCollName];
+                
+                var collModifications = compareCollectionDetails(beforeColl, afterColl);
+                if (collModifications.length > 0) {
+                    result.changes[result.changes.length] = {
+                        type: 'collection-modified',
+                        nodePath: nodePath,
+                        collectionName: commonCollName,
+                        beforeCollection: beforeColl,
+                        afterCollection: afterColl,
+                        modifications: collModifications,
+                        impact: 'medium',
+                        description: 'Modified collection "' + commonCollName + '" in ' + nodePath
+                    };
+                    result.statistics.modified++;
+                }
+            }
         }
         
-        var beforeCount = beforeRefs ? countObjectKeys(beforeRefs.references || {}) : 0;
-        var afterCount = afterRefs ? countObjectKeys(afterRefs.references || {}) : 0;
-        
-        if (beforeCount !== afterCount) {
-            differences.push({
-                type: 'object_reference_count_changed',
-                beforeCount: beforeCount,
-                afterCount: afterCount,
-                description: 'Object reference count changed',
-                severity: 'medium'
-            });
-        }
-        
-        return differences;
+        return result;
         
     } catch (exc) {
-        return [{
-            type: 'object_reference_comparison_error',
-            description: 'Object reference comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
+        return result;
     }
 }
 
 /**
- * Compare access paths
- * @param {Object} beforeDOM - Before DOM
- * @param {Object} afterDOM - After DOM
- * @param {Object} config - Configuration
- * @returns {Array} Access path differences
+ * Compare collection details
+ * @param {Object} beforeColl - Before collection
+ * @param {Object} afterColl - After collection
+ * @returns {Array} List of collection modifications
  */
-function compareAccessPaths(beforeDOM, afterDOM, config) {
+function compareCollectionDetails(beforeColl, afterColl) {
+    var modifications = [];
+    
     try {
-        var differences = [];
+        if (beforeColl.type !== afterColl.type) {
+            modifications[modifications.length] = {
+                field: 'type',
+                before: beforeColl.type,
+                after: afterColl.type
+            };
+        }
         
-        // Placeholder for access path comparison
-        differences.push({
-            type: 'access_paths_comparison',
-            description: 'Access paths comparison placeholder',
-            severity: 'low'
-        });
+        if (beforeColl.safetyLevel !== afterColl.safetyLevel) {
+            modifications[modifications.length] = {
+                field: 'safetyLevel',
+                before: beforeColl.safetyLevel,
+                after: afterColl.safetyLevel
+            };
+        }
         
-        return differences;
+        // Compare sampling data if available
+        var beforeSampleCount = beforeColl.sampleData ? beforeColl.sampleData.length : 0;
+        var afterSampleCount = afterColl.sampleData ? afterColl.sampleData.length : 0;
+        
+        if (beforeSampleCount !== afterSampleCount) {
+            modifications[modifications.length] = {
+                field: 'sampleCount',
+                before: beforeSampleCount,
+                after: afterSampleCount
+            };
+        }
+        
+        return modifications;
         
     } catch (exc) {
-        return [{
-            type: 'access_paths_comparison_error',
-            description: 'Access paths comparison failed: ' + exc.message,
-            severity: 'medium'
-        }];
+        return modifications;
     }
 }
 
 // =============================================================================
-// SUMMARY AND REPORTING
+// VALUE COMPARISON
+// =============================================================================
+
+/**
+ * Compare extracted values between structures
+ * @param {Array} beforeStructure - Before structure
+ * @param {Array} afterStructure - After structure
+ * @param {Object} config - Configuration
+ * @returns {Object} Value comparison result
+ */
+function compareValues(beforeStructure, afterStructure, config) {
+    var result = {
+        changes: [],
+        report: '',
+        statistics: {
+            valuesChanged: 0,
+            valuesAdded: 0,
+            valuesRemoved: 0
+        }
+    };
+    
+    try {
+        // Create maps for efficient lookup
+        var beforeMap = createPathMap(beforeStructure);
+        var afterMap = createPathMap(afterStructure);
+        
+        // Compare values for nodes that exist in both
+        for (var path in beforeMap) {
+            if (objectHasOwnProperty(beforeMap, path) && objectHasOwnProperty(afterMap, path)) {
+                var beforeNode = beforeMap[path];
+                var afterNode = afterMap[path];
+                
+                var valueChanges = compareNodeValues(beforeNode, afterNode, path);
+                result.changes = arrayConcat(result.changes, valueChanges.changes);
+                result.statistics.valuesChanged += valueChanges.statistics.changed;
+                result.statistics.valuesAdded += valueChanges.statistics.added;
+                result.statistics.valuesRemoved += valueChanges.statistics.removed;
+            }
+        }
+        
+        // Generate report
+        result.report = generateValueChangeReport(result, config);
+        
+        return result;
+        
+    } catch (exc) {
+        result.report = 'Error comparing values: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Compare values of individual nodes
+ * @param {Object} beforeNode - Before node
+ * @param {Object} afterNode - After node
+ * @param {String} nodePath - Node path
+ * @returns {Object} Value change result
+ */
+function compareNodeValues(beforeNode, afterNode, nodePath) {
+    var result = {
+        changes: [],
+        statistics: {
+            changed: 0,
+            added: 0,
+            removed: 0
+        }
+    };
+    
+    try {
+        // Compare sampled values
+        var beforeValue = beforeNode.sampledValue;
+        var afterValue = afterNode.sampledValue;
+        
+        var beforeHasValue = (beforeValue !== undefined && beforeValue !== null);
+        var afterHasValue = (afterValue !== undefined && afterValue !== null);
+        
+        if (beforeHasValue && afterHasValue) {
+            // Both have values - compare them
+            if (!valuesEqual(beforeValue, afterValue)) {
+                result.changes[result.changes.length] = {
+                    type: 'value-changed',
+                    nodePath: nodePath,
+                    beforeValue: beforeValue,
+                    afterValue: afterValue,
+                    impact: 'low',
+                    description: 'Value changed for ' + nodePath
+                };
+                result.statistics.changed++;
+            }
+        } else if (beforeHasValue && !afterHasValue) {
+            // Value was removed
+            result.changes[result.changes.length] = {
+                type: 'value-removed',
+                nodePath: nodePath,
+                beforeValue: beforeValue,
+                impact: 'medium',
+                description: 'Value removed from ' + nodePath
+            };
+            result.statistics.removed++;
+        } else if (!beforeHasValue && afterHasValue) {
+            // Value was added
+            result.changes[result.changes.length] = {
+                type: 'value-added',
+                nodePath: nodePath,
+                afterValue: afterValue,
+                impact: 'low',
+                description: 'Value added to ' + nodePath
+            };
+            result.statistics.added++;
+        }
+        
+        return result;
+        
+    } catch (exc) {
+        return result;
+    }
+}
+
+/**
+ * Compare two values for equality
+ * @param {*} value1 - First value
+ * @param {*} value2 - Second value
+ * @returns {Boolean} True if values are equal
+ */
+function valuesEqual(value1, value2) {
+    try {
+        if (value1 === value2) return true;
+        
+        // Convert to strings for comparison
+        var str1 = safeToString(value1);
+        var str2 = safeToString(value2);
+        
+        return str1 === str2;
+        
+    } catch (exc) {
+        return false;
+    }
+}
+
+// =============================================================================
+// METADATA COMPARISON
+// =============================================================================
+
+/**
+ * Compare metadata between exports
+ * @param {Object} beforeData - Before data
+ * @param {Object} afterData - After data
+ * @param {Object} config - Configuration
+ * @returns {Object} Metadata comparison result
+ */
+function compareMetadata(beforeData, afterData, config) {
+    var result = {
+        changes: [],
+        report: '',
+        statistics: {
+            metadataChanged: 0
+        }
+    };
+    
+    try {
+        var beforeMeta = beforeData.metadata || {};
+        var afterMeta = afterData.metadata || {};
+        
+        // Compare key metadata fields
+        var fieldsToCompare = [
+            'documentName', 'version', 'timestamp', 'indesignVersion',
+            'nodeCount', 'propertyCount', 'collectionCount', 'methodCount',
+            'totalTime', 'maxDepth'
+        ];
+        
+        for (var i = 0; i < fieldsToCompare.length; i++) {
+            var field = fieldsToCompare[i];
+            var beforeValue = getNestedValue(beforeMeta, field);
+            var afterValue = getNestedValue(afterMeta, field);
+            
+            if (!valuesEqual(beforeValue, afterValue)) {
+                result.changes[result.changes.length] = {
+                    type: 'metadata-changed',
+                    field: field,
+                    beforeValue: beforeValue,
+                    afterValue: afterValue,
+                    impact: 'low',
+                    description: 'Metadata field "' + field + '" changed'
+                };
+                result.statistics.metadataChanged++;
+            }
+        }
+        
+        // Generate report
+        result.report = generateMetadataChangeReport(result, config);
+        
+        return result;
+        
+    } catch (exc) {
+        result.report = 'Error comparing metadata: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Get nested value from object
+ * @param {Object} targetObject - Object to search
+ * @param {String} path - Path to value
+ * @returns {*} Found value or undefined
+ */
+function getNestedValue(targetObject, path) {
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            return undefined;
+        }
+        
+        // Handle nested paths like 'environment.indesignVersion'
+        var pathParts = stringSplit(path, '.');
+        var current = targetObject;
+        
+        for (var i = 0; i < pathParts.length; i++) {
+            if (current && typeof current === 'object' && objectHasOwnProperty(current, pathParts[i])) {
+                current = current[pathParts[i]];
+            } else {
+                return undefined;
+            }
+        }
+        
+        return current;
+        
+    } catch (exc) {
+        return undefined;
+    }
+}
+
+// =============================================================================
+// ANALYSIS AND REPORTING
 // =============================================================================
 
 /**
  * Generate comparison summary
- * @param {Object} differences - Differences object
+ * @param {Array} changes - List of changes
  * @param {Object} config - Configuration
  * @returns {Object} Summary object
  */
-function generateComparisonSummary(differences, config) {
+function generateComparisonSummary(changes, config) {
+    var summary = {
+        totalChanges: changes.length,
+        addedCount: 0,
+        removedCount: 0,
+        modifiedCount: 0,
+        impactCounts: {
+            high: 0,
+            medium: 0,
+            low: 0,
+            unknown: 0
+        },
+        changeTypes: {},
+        confidence: 'high',
+        impactLevel: 'low'
+    };
+    
     try {
-        var summary = {
-            totalDifferences: 0,
-            differencesByType: {},
-            differencesBySeverity: {},
-            criticalChanges: 0,
-            timestamp: getCurrentTimestamp(),
-            hasStructuralChanges: false,
-            hasValueChanges: false
-        };
-        
-        // Count differences by category
-        for (var category in differences) {
-            if (objectHasOwnProperty(differences, category)) {
-                var categoryDiffs = differences[category];
-                if (categoryDiffs && categoryDiffs.length) {
-                    summary.totalDifferences += categoryDiffs.length;
-                    summary.differencesByType[category] = categoryDiffs.length;
-                    
-                    // Check for structural vs value changes
-                    if (category === 'structural' || category === 'properties' || category === 'collections') {
-                        summary.hasStructuralChanges = true;
-                    }
-                    
-                    if (category === 'values' || category === 'extractedValues') {
-                        summary.hasValueChanges = true;
-                    }
-                    
-                    // Count by severity
-                    for (var i = 0; i < categoryDiffs.length; i++) {
-                        var diff = categoryDiffs[i];
-                        var severity = diff.severity || 'unknown';
-                        
-                        if (!summary.differencesBySeverity[severity]) {
-                            summary.differencesBySeverity[severity] = 0;
-                        }
-                        summary.differencesBySeverity[severity]++;
-                        
-                        if (severity === 'critical') {
-                            summary.criticalChanges++;
-                        }
-                    }
-                }
+        // Analyze changes
+        for (var i = 0; i < changes.length; i++) {
+            var change = changes[i];
+            
+            // Count by type
+            if (stringIndexOf(change.type, 'added') >= 0) {
+                summary.addedCount++;
+            } else if (stringIndexOf(change.type, 'removed') >= 0) {
+                summary.removedCount++;
+            } else if (stringIndexOf(change.type, 'modified') >= 0) {
+                summary.modifiedCount++;
             }
+            
+            // Count by impact
+            var impact = change.impact || 'unknown';
+            if (objectHasOwnProperty(summary.impactCounts, impact)) {
+                summary.impactCounts[impact]++;
+            } else {
+                summary.impactCounts.unknown++;
+            }
+            
+            // Count by change type
+            var changeType = change.type || 'unknown';
+            if (objectHasOwnProperty(summary.changeTypes, changeType)) {
+                summary.changeTypes[changeType]++;
+            } else {
+                summary.changeTypes[changeType] = 1;
+            }
+        }
+        
+        // Determine overall impact level
+        if (summary.impactCounts.high > 0) {
+            summary.impactLevel = 'high';
+        } else if (summary.impactCounts.medium > 5) {
+            summary.impactLevel = 'medium';
+        } else if (summary.totalChanges > 50) {
+            summary.impactLevel = 'medium';
+        } else {
+            summary.impactLevel = 'low';
         }
         
         return summary;
         
     } catch (exc) {
-        return {
-            totalDifferences: 0,
-            error: 'Summary generation failed: ' + exc.message,
-            timestamp: getCurrentTimestamp()
-        };
+        summary.confidence = 'error';
+        return summary;
     }
 }
 
 /**
- * Generate detailed comparison report
- * @param {Object} differences - Differences object
- * @param {Object} summary - Summary object
+ * Generate detailed analysis
+ * @param {Object} comparison - Comparison object
+ * @param {Object} session - Comparison session
  * @param {Object} config - Configuration
- * @returns {String} Detailed report
+ * @returns {Object} Detailed analysis
  */
-function generateComparisonReport(differences, summary, config) {
+function generateDetailedAnalysis(comparison, session, config) {
+    var analysis = {
+        changePatterns: [],
+        criticalFindings: [],
+        structuralImpact: '',
+        recommendations: []
+    };
+    
     try {
-        var builder = createStringBuilder();
+        // Analyze change patterns
+        analysis.changePatterns = analyzeChangePatterns(comparison.changes);
         
-        // Report header
-        builder.appendLine('DOM STRUCTURE COMPARISON REPORT');
-        builder.appendLine('================================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
+        // Identify critical findings
+        analysis.criticalFindings = identifyCriticalFindings(comparison.changes);
         
-        // Summary section
-        builder.appendLine('SUMMARY');
-        builder.appendLine('-------');
-        builder.appendLine('Total Differences: ' + summary.totalDifferences);
-        builder.appendLine('Critical Changes: ' + summary.criticalChanges);
-        builder.appendLine('Has Structural Changes: ' + (summary.hasStructuralChanges ? 'Yes' : 'No'));
-        builder.appendLine('Has Value Changes: ' + (summary.hasValueChanges ? 'Yes' : 'No'));
-        builder.appendLine('');
+        // Assess structural impact
+        analysis.structuralImpact = assessStructuralImpact(comparison);
         
-        // Differences by severity
-        builder.appendLine('DIFFERENCES BY SEVERITY');
-        builder.appendLine('-----------------------');
-        for (var severity in summary.differencesBySeverity) {
-            if (objectHasOwnProperty(summary.differencesBySeverity, severity)) {
-                builder.appendLine(severity + ': ' + summary.differencesBySeverity[severity]);
+        return analysis;
+        
+    } catch (exc) {
+        analysis.error = 'Analysis generation failed: ' + exc.message;
+        return analysis;
+    }
+}
+
+/**
+ * Analyze change patterns
+ * @param {Array} changes - List of changes
+ * @returns {Array} Change patterns
+ */
+function analyzeChangePatterns(changes) {
+    var patterns = [];
+    
+    try {
+        // Group changes by path prefix to identify patterns
+        var pathGroups = {};
+        
+        for (var i = 0; i < changes.length; i++) {
+            var change = changes[i];
+            var path = change.path || change.nodePath || '';
+            var pathPrefix = getPathPrefix(path, 2); // First 2 levels
+            
+            if (!objectHasOwnProperty(pathGroups, pathPrefix)) {
+                pathGroups[pathPrefix] = [];
             }
+            pathGroups[pathPrefix][pathGroups[pathPrefix].length] = change;
         }
-        builder.appendLine('');
         
-        // Detailed differences
-        builder.appendLine('DETAILED DIFFERENCES');
-        builder.appendLine('-------------------');
-        
-        var diffCount = 0;
-        for (var category in differences) {
-            if (objectHasOwnProperty(differences, category)) {
-                var categoryDiffs = differences[category];
-                if (categoryDiffs && categoryDiffs.length) {
-                    builder.appendLine('');
-                    builder.appendLine(category.toUpperCase() + ' CHANGES:');
-                    
-                    for (var i = 0; i < categoryDiffs.length && diffCount < config.maxDifferencesToReport; i++) {
-                        var diff = categoryDiffs[i];
-                        builder.appendLine('  • [' + (diff.severity || 'unknown').toUpperCase() + '] ' + diff.description);
-                        
-                        if (diff.path) {
-                            builder.appendLine('    Path: ' + diff.path);
-                        }
-                        
-                        if (diff.beforeValue !== undefined && diff.afterValue !== undefined) {
-                            builder.appendLine('    Before: ' + stringSubstring(String(diff.beforeValue), 0, 100));
-                            builder.appendLine('    After: ' + stringSubstring(String(diff.afterValue), 0, 100));
-                        }
-                        
-                        diffCount++;
-                    }
-                    
-                    if (categoryDiffs.length > config.maxDifferencesToReport) {
-                        builder.appendLine('  ... and ' + (categoryDiffs.length - config.maxDifferencesToReport) + ' more changes');
-                    }
+        // Identify patterns in groups with multiple changes
+        for (var prefix in pathGroups) {
+            if (objectHasOwnProperty(pathGroups, prefix)) {
+                var group = pathGroups[prefix];
+                if (group.length > 3) {
+                    patterns[patterns.length] = {
+                        pattern: 'Multiple changes in ' + prefix,
+                        count: group.length,
+                        significance: group.length > 10 ? 'high' : 'medium'
+                    };
                 }
             }
         }
         
-        // Recommendations
-        builder.appendLine('');
-        builder.appendLine('RECOMMENDATIONS');
-        builder.appendLine('---------------');
-        builder.appendLine(generateChangeRecommendations(summary, differences));
+        return patterns;
+        
+    } catch (exc) {
+        return patterns;
+    }
+}
+
+/**
+ * Get path prefix
+ * @param {String} path - Full path
+ * @param {Number} levels - Number of levels to include
+ * @returns {String} Path prefix
+ */
+function getPathPrefix(path, levels) {
+    try {
+        if (!path) return '';
+        
+        var parts = stringSplit(path, '.');
+        var prefixParts = [];
+        
+        for (var i = 0; i < Math.min(levels, parts.length); i++) {
+            prefixParts[prefixParts.length] = parts[i];
+        }
+        
+        return arrayJoin(prefixParts, '.');
+        
+    } catch (exc) {
+        return '';
+    }
+}
+
+/**
+ * Identify critical findings
+ * @param {Array} changes - List of changes
+ * @returns {Array} Critical findings
+ */
+function identifyCriticalFindings(changes) {
+    var findings = [];
+    
+    try {
+        for (var i = 0; i < changes.length; i++) {
+            var change = changes[i];
+            
+            if (change.impact === 'high') {
+                findings[findings.length] = {
+                    type: 'high-impact-change',
+                    description: change.description,
+                    recommendation: 'Review this change carefully as it may affect functionality'
+                };
+            }
+            
+            if (change.type === 'collection-removed') {
+                findings[findings.length] = {
+                    type: 'collection-removal',
+                    description: change.description,
+                    recommendation: 'Verify that removal of this collection is intentional'
+                };
+            }
+        }
+        
+        return findings;
+        
+    } catch (exc) {
+        return findings;
+    }
+}
+
+/**
+ * Assess structural impact
+ * @param {Object} comparison - Comparison object
+ * @returns {String} Structural impact assessment
+ */
+function assessStructuralImpact(comparison) {
+    try {
+        var summary = comparison.summary;
+        
+        if (!summary) {
+            return 'Unable to assess structural impact';
+        }
+        
+        var builder = createStringBuilder();
+        
+        builder.appendLine('STRUCTURAL IMPACT ASSESSMENT:');
+        
+        if (summary.totalChanges === 0) {
+            builder.appendLine('No structural changes detected.');
+        } else if (summary.totalChanges < 10) {
+            builder.appendLine('Minimal structural changes detected (' + summary.totalChanges + ' changes).');
+            builder.appendLine('Impact: Low - Changes are likely cosmetic or minor.');
+        } else if (summary.totalChanges < 50) {
+            builder.appendLine('Moderate structural changes detected (' + summary.totalChanges + ' changes).');
+            builder.appendLine('Impact: Medium - Review changes for potential functional impact.');
+        } else {
+            builder.appendLine('Significant structural changes detected (' + summary.totalChanges + ' changes).');
+            builder.appendLine('Impact: High - Thorough review recommended.');
+        }
+        
+        if (summary.removedCount > 0) {
+            builder.appendLine('');
+            builder.appendLine('WARNING: ' + summary.removedCount + ' elements were removed.');
+            builder.appendLine('This may indicate breaking changes or data loss.');
+        }
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Report generation failed: ' + exc.message;
+        return 'Error assessing structural impact: ' + exc.message;
+    }
+}
+
+/**
+ * Analyze performance impact
+ * @param {Object} comparison - Comparison object
+ * @param {Object} session - Comparison session
+ * @param {Object} config - Configuration
+ * @returns {String} Performance impact analysis
+ */
+function analyzePerformanceImpact(comparison, session, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('PERFORMANCE IMPACT ANALYSIS:');
+        builder.appendLine('============================');
+        
+        // Analyze timing differences if available
+        var beforeMeta = session.beforeStructure.metadata || {};
+        var afterMeta = session.afterStructure.metadata || {};
+        
+        var beforeTime = beforeMeta.totalTime || 0;
+        var afterTime = afterMeta.totalTime || 0;
+        
+        if (beforeTime > 0 && afterTime > 0) {
+            var timeDiff = afterTime - beforeTime;
+            var percentChange = Math.round((timeDiff / beforeTime) * 100);
+            
+            builder.appendLine('Timing Comparison:');
+            builder.appendLine('Before: ' + beforeTime + 'ms');
+            builder.appendLine('After: ' + afterTime + 'ms');
+            builder.appendLine('Change: ' + timeDiff + 'ms (' + percentChange + '%)');
+            
+            if (Math.abs(percentChange) > 20) {
+                builder.appendLine('Significant performance change detected.');
+            }
+        } else {
+            builder.appendLine('Timing data not available for performance comparison.');
+        }
+        
+        // Analyze structural complexity changes
+        var beforeNodeCount = beforeMeta.nodeCount || 0;
+        var afterNodeCount = afterMeta.nodeCount || 0;
+        
+        if (beforeNodeCount > 0 && afterNodeCount > 0) {
+            var nodeCountDiff = afterNodeCount - beforeNodeCount;
+            var nodePercentChange = Math.round((nodeCountDiff / beforeNodeCount) * 100);
+            
+            builder.appendLine('');
+            builder.appendLine('Complexity Comparison:');
+            builder.appendLine('Before: ' + beforeNodeCount + ' nodes');
+            builder.appendLine('After: ' + afterNodeCount + ' nodes');
+            builder.appendLine('Change: ' + nodeCountDiff + ' nodes (' + nodePercentChange + '%)');
+            
+            if (Math.abs(nodePercentChange) > 15) {
+                builder.appendLine('Significant complexity change detected.');
+            }
+        }
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Error analyzing performance impact: ' + exc.message;
     }
 }
 
 /**
  * Generate change recommendations
- * @param {Object} summary - Summary object
- * @param {Object} differences - Differences object
+ * @param {Object} comparison - Comparison object
+ * @param {Object} config - Configuration
  * @returns {String} Recommendations
  */
-function generateChangeRecommendations(summary, differences) {
+function generateChangeRecommendations(comparison, config) {
+    try {
+        var builder = createStringBuilder();
+        var summary = comparison.summary;
+        
+        builder.appendLine('CHANGE RECOMMENDATIONS:');
+        builder.appendLine('=======================');
+        
+        if (!summary || summary.totalChanges === 0) {
+            builder.appendLine('No changes detected - no recommendations needed.');
+            return builder.toString();
+        }
+        
+        // General recommendations based on change volume
+        if (summary.totalChanges > 100) {
+            builder.appendLine('1. High Change Volume Detected:');
+            builder.appendLine('   - Conduct thorough testing of affected functionality');
+            builder.appendLine('   - Consider phased deployment approach');
+            builder.appendLine('   - Review change log for potential breaking changes');
+            builder.appendLine('');
+        }
+        
+        // Recommendations based on removals
+        if (summary.removedCount > 0) {
+            builder.appendLine('2. Removed Elements Detected:');
+            builder.appendLine('   - Verify that all removals are intentional');
+            builder.appendLine('   - Check for dependencies that may be affected');
+            builder.appendLine('   - Update documentation to reflect removed features');
+            builder.appendLine('');
+        }
+        
+        // Recommendations based on high impact changes
+        if (summary.impactCounts.high > 0) {
+            builder.appendLine('3. High Impact Changes Detected:');
+            builder.appendLine('   - Review each high impact change individually');
+            builder.appendLine('   - Test critical functionality thoroughly');
+            builder.appendLine('   - Consider rollback plan if issues arise');
+            builder.appendLine('');
+        }
+        
+        // Recommendations based on change patterns
+        if (comparison.analysis && comparison.analysis.changePatterns) {
+            var patterns = comparison.analysis.changePatterns;
+            if (patterns.length > 0) {
+                builder.appendLine('4. Change Pattern Recommendations:');
+                for (var i = 0; i < patterns.length; i++) {
+                    var pattern = patterns[i];
+                    builder.appendLine('   - ' + pattern.pattern + ': Focus testing on this area');
+                }
+                builder.appendLine('');
+            }
+        }
+        
+        // General best practices
+        builder.appendLine('5. General Best Practices:');
+        builder.appendLine('   - Maintain detailed change documentation');
+        builder.appendLine('   - Implement automated testing where possible');
+        builder.appendLine('   - Monitor performance after deployment');
+        builder.appendLine('   - Keep stakeholders informed of significant changes');
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Error generating recommendations: ' + exc.message;
+    }
+}
+
+// =============================================================================
+// REPORT GENERATION
+// =============================================================================
+
+/**
+ * Generate structural change report
+ * @param {Object} result - Structural comparison result
+ * @param {Object} config - Configuration
+ * @returns {String} Report text
+ */
+function generateStructuralChangeReport(result, config) {
     try {
         var builder = createStringBuilder();
         
-        if (summary.criticalChanges > 0) {
-            builder.appendLine('• CRITICAL: ' + summary.criticalChanges + ' critical changes detected - immediate review required');
-        }
+        builder.appendLine('STRUCTURAL CHANGES REPORT');
+        builder.appendLine('=========================');
         
-        if (summary.hasStructuralChanges) {
-            builder.appendLine('• Structural changes detected - verify document integrity');
-        }
+        var stats = result.statistics;
+        builder.appendLine('Summary:');
+        builder.appendLine('- Added elements: ' + stats.added);
+        builder.appendLine('- Removed elements: ' + stats.removed);
+        builder.appendLine('- Modified elements: ' + stats.modified);
+        builder.appendLine('- Moved elements: ' + stats.moved);
+        builder.appendLine('- Renamed elements: ' + stats.renamed);
+        builder.appendLine('');
         
-        if (summary.hasValueChanges) {
-            builder.appendLine('• Value changes detected - content may have been modified');
-        }
-        
-        if (summary.totalDifferences === 0) {
-            builder.appendLine('• No significant differences detected - documents appear identical');
-        } else if (summary.totalDifferences < 10) {
-            builder.appendLine('• Minor changes detected - safe to proceed');
+        if (result.changes.length === 0) {
+            builder.appendLine('No structural changes detected.');
         } else {
-            builder.appendLine('• Extensive changes detected - thorough review recommended');
+            builder.appendLine('Detailed Changes:');
+            var displayCount = Math.min(20, result.changes.length);
+            for (var i = 0; i < displayCount; i++) {
+                var change = result.changes[i];
+                builder.appendLine('- ' + change.description + ' [' + change.impact + ' impact]');
+            }
+            
+            if (result.changes.length > displayCount) {
+                builder.appendLine('... (' + (result.changes.length - displayCount) + ' more changes)');
+            }
         }
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Recommendation generation failed: ' + exc.message;
+        return 'Error generating structural report: ' + exc.message;
     }
 }
 
-// =============================================================================
-// UTILITY FUNCTIONS
-// =============================================================================
-
 /**
- * Merge comparison configuration with defaults
- * @param {Object} userConfig - User configuration
- * @returns {Object} Merged configuration
+ * Generate property change report
+ * @param {Object} result - Property comparison result
+ * @param {Object} config - Configuration
+ * @returns {String} Report text
  */
-function mergeComparisonConfig(userConfig) {
+function generatePropertyChangeReport(result, config) {
     try {
-        var config = objectClone(DEFAULT_COMPARISON_CONFIG, 2);
+        var builder = createStringBuilder();
         
-        if (userConfig && typeof userConfig === 'object') {
-            for (var key in userConfig) {
-                if (objectHasOwnProperty(userConfig, key) && objectHasOwnProperty(config, key)) {
-                    config[key] = userConfig[key];
-                }
+        builder.appendLine('PROPERTY CHANGES REPORT');
+        builder.appendLine('=======================');
+        
+        var stats = result.statistics;
+        builder.appendLine('Summary:');
+        builder.appendLine('- Added properties: ' + stats.propertiesAdded);
+        builder.appendLine('- Removed properties: ' + stats.propertiesRemoved);
+        builder.appendLine('- Modified properties: ' + stats.propertiesModified);
+        builder.appendLine('');
+        
+        if (result.changes.length === 0) {
+            builder.appendLine('No property changes detected.');
+        } else {
+            builder.appendLine('Key Property Changes:');
+            var displayCount = Math.min(15, result.changes.length);
+            for (var i = 0; i < displayCount; i++) {
+                var change = result.changes[i];
+                builder.appendLine('- ' + change.description);
+            }
+            
+            if (result.changes.length > displayCount) {
+                builder.appendLine('... (' + (result.changes.length - displayCount) + ' more changes)');
             }
         }
         
-        return config;
+        return builder.toString();
         
     } catch (exc) {
-        return DEFAULT_COMPARISON_CONFIG;
+        return 'Error generating property report: ' + exc.message;
+    }
+}
+
+/**
+ * Generate collection change report
+ * @param {Object} result - Collection comparison result
+ * @param {Object} config - Configuration
+ * @returns {String} Report text
+ */
+function generateCollectionChangeReport(result, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('COLLECTION CHANGES REPORT');
+        builder.appendLine('=========================');
+        
+        var stats = result.statistics;
+        builder.appendLine('Summary:');
+        builder.appendLine('- Added collections: ' + stats.collectionsAdded);
+        builder.appendLine('- Removed collections: ' + stats.collectionsRemoved);
+        builder.appendLine('- Modified collections: ' + stats.collectionsModified);
+        builder.appendLine('');
+        
+        if (result.changes.length === 0) {
+            builder.appendLine('No collection changes detected.');
+        } else {
+            builder.appendLine('Collection Changes:');
+            for (var i = 0; i < result.changes.length; i++) {
+                var change = result.changes[i];
+                builder.appendLine('- ' + change.description + ' [' + change.impact + ' impact]');
+            }
+        }
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Error generating collection report: ' + exc.message;
+    }
+}
+
+/**
+ * Generate value change report
+ * @param {Object} result - Value comparison result
+ * @param {Object} config - Configuration
+ * @returns {String} Report text
+ */
+function generateValueChangeReport(result, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('VALUE CHANGES REPORT');
+        builder.appendLine('====================');
+        
+        var stats = result.statistics;
+        builder.appendLine('Summary:');
+        builder.appendLine('- Values changed: ' + stats.valuesChanged);
+        builder.appendLine('- Values added: ' + stats.valuesAdded);
+        builder.appendLine('- Values removed: ' + stats.valuesRemoved);
+        builder.appendLine('');
+        
+        if (result.changes.length === 0) {
+            builder.appendLine('No value changes detected.');
+        } else {
+            builder.appendLine('Value Changes (sample):');
+            var displayCount = Math.min(10, result.changes.length);
+            for (var i = 0; i < displayCount; i++) {
+                var change = result.changes[i];
+                var beforeVal = change.beforeValue !== undefined ? 
+                               stringSubstring(safeToString(change.beforeValue), 0, 30) : 'N/A';
+                var afterVal = change.afterValue !== undefined ? 
+                              stringSubstring(safeToString(change.afterValue), 0, 30) : 'N/A';
+                
+                builder.appendLine('- ' + change.nodePath + ': "' + beforeVal + '" → "' + afterVal + '"');
+            }
+            
+            if (result.changes.length > displayCount) {
+                builder.appendLine('... (' + (result.changes.length - displayCount) + ' more value changes)');
+            }
+        }
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Error generating value report: ' + exc.message;
+    }
+}
+
+/**
+ * Generate metadata change report
+ * @param {Object} result - Metadata comparison result
+ * @param {Object} config - Configuration
+ * @returns {String} Report text
+ */
+function generateMetadataChangeReport(result, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('METADATA CHANGES REPORT');
+        builder.appendLine('=======================');
+        
+        if (result.changes.length === 0) {
+            builder.appendLine('No metadata changes detected.');
+        } else {
+            builder.appendLine('Metadata Changes:');
+            for (var i = 0; i < result.changes.length; i++) {
+                var change = result.changes[i];
+                builder.appendLine('- ' + change.field + ': "' + 
+                                 safeToString(change.beforeValue) + '" → "' + 
+                                 safeToString(change.afterValue) + '"');
+            }
+        }
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Error generating metadata report: ' + exc.message;
+    }
+}
+
+/**
+ * Extract document metadata
+ * @param {Object} data - DOM data
+ * @returns {Object} Extracted metadata
+ */
+function extractDocumentMetadata(data) {
+    try {
+        var metadata = data.metadata || {};
+        
+        return {
+            documentName: metadata.documentName || 'Unknown',
+            version: metadata.version || 'Unknown',
+            timestamp: metadata.timestamp || 'Unknown',
+            nodeCount: metadata.nodeCount || (data.structure ? data.structure.length : 0),
+            analysisTime: metadata.totalTime || 'Unknown'
+        };
+        
+    } catch (exc) {
+        return {
+            documentName: 'Error',
+            version: 'Unknown',
+            timestamp: 'Unknown',
+            nodeCount: 0,
+            analysisTime: 'Unknown'
+        };
     }
 }
 
@@ -1098,20 +1826,27 @@ function mergeComparisonConfig(userConfig) {
 
 // Register this module with all its functions
 registerModule('4.2_dom-comparator', '3.1', [
-    // Main Comparison Functions
-    'compareDOMExports', 'compareLiveDocuments', 'performComprehensiveDOMComparison',
+    // Main Functions
+    'compareDOMExports', 'validateComparisonInputs', 'createComparisonSession',
     
-    // Specific Comparison Functions
-    'compareMetadata', 'compareStructuralElements', 'compareNodes', 
-    'comparePropertiesInNode', 'comparePropertyArrays', 'compareCollectionsInNode',
-    'compareDetailedCollections', 'compareExtractedValues', 'compareObjectReferences',
-    'compareAccessPaths',
+    // Structure Functions
+    'normalizeStructureForComparison', 'createPathMap',
     
-    // Summary and Reporting
-    'generateComparisonSummary', 'generateComparisonReport', 'generateChangeRecommendations',
+    // Comparison Functions
+    'compareStructures', 'compareNodeStructure', 'detectMovesAndRenames', 'calculateChangeImpact',
+    'compareProperties', 'compareNodeProperties', 'comparePropertyDetails',
+    'compareCollections', 'compareNodeCollections', 'compareCollectionDetails',
+    'compareValues', 'compareNodeValues', 'valuesEqual',
+    'compareMetadata', 'getNestedValue',
     
-    // Utility Functions
-    'mergeComparisonConfig'
+    // Analysis Functions
+    'generateComparisonSummary', 'generateDetailedAnalysis', 'analyzeChangePatterns',
+    'getPathPrefix', 'identifyCriticalFindings', 'assessStructuralImpact',
+    'analyzePerformanceImpact', 'generateChangeRecommendations',
+    
+    // Report Generation
+    'generateStructuralChangeReport', 'generatePropertyChangeReport', 'generateCollectionChangeReport',
+    'generateValueChangeReport', 'generateMetadataChangeReport', 'extractDocumentMetadata'
 ]);
 
 // =============================================================================

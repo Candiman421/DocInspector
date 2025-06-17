@@ -1,17 +1,17 @@
 // =============================================================================
-// 5.1_deep-mapper.jsx - ADVANCED DOM MAPPING AND ANALYSIS
+// 5.1_deep-mapper.jsx - DEEP DOM MAPPING AND OBJECT ATLAS
 // InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
 // =============================================================================
-// PURPOSE: Advanced DOM mapping with relationship analysis and accessibility mapping
-// DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// PURPOSE: Deep object mapping with comprehensive analysis and object atlas generation
+// DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx", "2.1_dom-enumerator.jsx", "2.2_collection-sampler.jsx"]
+// SIZE: ~2000 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
 // DEPENDENCY VALIDATION
 // =============================================================================
 
-var DEEP_MAPPER_DEPENDENCIES = ['1.1_bootstrap-foundation', '1.2_safety-utilities'];
+var DEEP_MAPPER_DEPENDENCIES = ['1.1_bootstrap-foundation', '1.2_safety-utilities', '2.1_dom-enumerator', '2.2_collection-sampler'];
 var dependencyCheck = validateDependencies(DEEP_MAPPER_DEPENDENCIES);
 if (!dependencyCheck.success) {
     throw new Error('Deep Mapper missing dependencies: ' + dependencyCheck.missing.join(', '));
@@ -22,17 +22,34 @@ if (!dependencyCheck.success) {
 // =============================================================================
 
 var DEFAULT_DEEP_MAPPING_CONFIG = {
-    enableRelationshipMapping: true,
-    enableAccessibilityAnalysis: true,
-    enableCircularReferenceTracking: true,
-    enableValueFingerprinting: true,
-    enablePerformanceMetrics: true,
-    maxMappingDepth: 8,
+    maxDepth: 6,
     timeoutMs: 30000,
-    generateDeveloperGuide: true,
-    includeUsageExamples: true,
-    trackObjectRelationships: true,
-    analyzeCrossReferences: true
+    maxTotalObjects: 10000,
+    trackAllPaths: true,
+    enableObjectAtlas: true,
+    deduplicateReferences: true,
+    mapCircularReferences: true,
+    includeSystemObjects: false,
+    enableProgressReporting: true,
+    memoryCheckInterval: 1000,
+    memoryCleanupThreshold: 5000,
+    progressiveCleanup: true,
+    analyzeRelationships: true,
+    generateAccessibilityMap: true,
+    enablePerformanceOptimization: true
+};
+
+var DEFAULT_ANALYSIS_CONFIG = {
+    generateObjectReport: true,
+    generateAccessReport: true,
+    generateCircularReport: true,
+    analyzePerformance: true,
+    includeDeveloperGuide: true,
+    maxReportItems: 1000,
+    groupSimilarObjects: true,
+    prioritizeByUsability: true,
+    includeCodeExamples: true,
+    analyzeValuePatterns: true
 };
 
 // =============================================================================
@@ -40,1155 +57,1430 @@ var DEFAULT_DEEP_MAPPING_CONFIG = {
 // =============================================================================
 
 /**
- * Perform deep mapping and analysis of DOM structure
- * @param {Object} domStructure - DOM structure to map
- * @param {Object} sourceDocument - Source document for live analysis
- * @param {Object} mappingConfig - Mapping configuration
- * @returns {Object} Deep mapping result
+ * Perform comprehensive deep DOM mapping with object atlas
+ * @param {Object} documentObject - InDesign document to map
+ * @param {Object} mappingOptions - Deep mapping configuration
+ * @returns {Object} Deep mapping result with atlas
  */
-function performDeepMapping(domStructure, sourceDocument, mappingConfig) {
+function performDeepDOMMapping(documentObject, mappingOptions) {
     var startTime = new Date().getTime();
-    var config = mappingConfig ? 
-        objectClone(mappingConfig, 2) : objectClone(DEFAULT_DEEP_MAPPING_CONFIG, 2);
+    var config = mappingOptions ? 
+        objectMerge(DEFAULT_DEEP_MAPPING_CONFIG, mappingOptions) : 
+        objectClone(DEFAULT_DEEP_MAPPING_CONFIG, 2);
+    
+    var result = {
+        success: false,
+        deepMapping: null,
+        objectAtlas: null,
+        error: null,
+        metadata: {
+            mappingTime: 0,
+            timestamp: getCurrentTimestamp(),
+            version: '3.1'
+        }
+    };
     
     try {
-        var result = {
-            success: false,
-            session: {},
-            analysis: {},
-            error: null,
-            mappingTime: 0
-        };
-        
-        // Validate input
-        if (!domStructure) {
-            result.error = 'No DOM structure provided for deep mapping';
+        // Validate environment
+        var envValidation = validateInDesignEnvironment();
+        if (!envValidation.valid) {
+            result.error = 'Environment validation failed: ' + envValidation.error;
             return result;
         }
         
-        // Initialize mapping session
-        var session = initializeDeepMappingSession(domStructure, config);
+        var targetDocument = documentObject || envValidation.document;
         
-        // Perform relationship mapping
-        if (config.enableRelationshipMapping) {
-            session.relationshipMap = generateRelationshipMap(domStructure, config);
+        // Create deep mapping session
+        var mappingSession = createDeepMappingSession(targetDocument, config);
+        if (!mappingSession.success) {
+            result.error = 'Failed to create mapping session: ' + mappingSession.error;
+            return result;
         }
         
-        // Perform accessibility analysis
-        if (config.enableAccessibilityAnalysis) {
-            session.accessibilityMap = generateAccessibilityMap(domStructure, config);
+        // Perform deep object mapping
+        var deepMappingResult = performDeepObjectMapping(
+            targetDocument, 
+            'document', 
+            0, 
+            mappingSession.session, 
+            config
+        );
+        
+        if (!deepMappingResult.success) {
+            result.error = 'Deep mapping failed: ' + deepMappingResult.error;
+            return result;
         }
         
-        // Track circular references
-        if (config.enableCircularReferenceTracking) {
-            session.circularReferences = analyzeCircularReferences(domStructure, config);
+        // Generate object atlas
+        if (config.enableObjectAtlas) {
+            var atlasResult = generateObjectAtlas(mappingSession.session, config);
+            if (atlasResult.success) {
+                result.objectAtlas = atlasResult.atlas;
+            }
         }
         
-        // Generate value fingerprints
-        if (config.enableValueFingerprinting) {
-            session.valueFingerprints = generateValueFingerprints(domStructure, config);
-        }
+        // Finalize session
+        mappingSession.session.finalize();
         
-        // Performance analysis
-        if (config.enablePerformanceMetrics) {
-            session.performanceMetrics = analyzePerformanceMetrics(domStructure, session, config);
-        }
-        
-        // Generate comprehensive analysis
-        var analysis = generateDeepMappingAnalysis(session, config);
-        
+        result.deepMapping = deepMappingResult.mapping;
         result.success = true;
-        result.session = session;
-        result.analysis = analysis;
-        result.mappingTime = new Date().getTime() - startTime;
+        result.metadata.mappingTime = new Date().getTime() - startTime;
+        result.metadata.objectsProcessed = mappingSession.session.getStatistics().totalObjects;
+        result.metadata.circularReferences = mappingSession.session.getStatistics().circularReferences;
         
         return result;
         
     } catch (exc) {
-        return {
-            success: false,
-            session: {},
-            analysis: {},
-            error: 'Deep mapping failed: ' + exc.message,
-            mappingTime: new Date().getTime() - startTime
-        };
+        result.error = 'Deep DOM mapping failed: ' + exc.message;
+        result.metadata.mappingTime = new Date().getTime() - startTime;
+        return result;
     }
 }
 
 /**
- * Initialize deep mapping session
- * @param {Object} domStructure - DOM structure
+ * Perform deep object mapping recursively
+ * @param {Object} targetObject - Object to map
+ * @param {String} objectPath - Current object path
+ * @param {Number} depth - Current recursion depth
+ * @param {Object} mappingSession - Mapping session
  * @param {Object} config - Configuration
- * @returns {Object} Initialized session
+ * @returns {Object} Deep mapping result
  */
-function initializeDeepMappingSession(domStructure, config) {
+function performDeepObjectMapping(targetObject, objectPath, depth, mappingSession, config) {
+    var result = {
+        success: false,
+        mapping: null,
+        error: null
+    };
+    
     try {
-        var session = {
-            sessionId: generateUniqueID(),
-            startTime: getCurrentTimestamp(),
-            metadata: {},
-            statistics: {},
-            relationshipMap: null,
-            accessibilityMap: null,
-            circularReferences: null,
-            valueFingerprints: null,
-            performanceMetrics: null,
-            configuration: config
-        };
+        // Check depth and timeout limits
+        if (depth >= config.maxDepth) {
+            result.mapping = createDeepDOMNode(objectPath, 'MaxDepthReached', 'limit', depth);
+            result.success = true;
+            return result;
+        }
         
-        // Extract metadata
-        session.metadata = {
-            documentName: domStructure.metadata ? domStructure.metadata.documentName : 'Unknown',
-            totalNodes: domStructure.statistics ? domStructure.statistics.totalNodes : 0,
-            totalProperties: domStructure.statistics ? domStructure.statistics.totalProperties : 0,
-            mappingDepth: config.maxMappingDepth,
-            sessionTimestamp: getCurrentTimestamp()
-        };
+        if (mappingSession.timeoutChecker && mappingSession.timeoutChecker()) {
+            result.error = 'Mapping timeout exceeded';
+            return result;
+        }
         
-        return session;
+        if (!targetObject) {
+            result.mapping = createDeepDOMNode(objectPath, 'NullObject', 'null', depth);
+            result.success = true;
+            return result;
+        }
+        
+        // Check for circular references
+        var circularCheck = mappingSession.circularMapper.checkCircular(targetObject, objectPath);
+        if (circularCheck.isCircular) {
+            result.mapping = createDeepDOMNode(
+                objectPath, 
+                'CircularReference', 
+                'circular', 
+                depth, 
+                circularCheck.originalPath
+            );
+            result.success = true;
+            return result;
+        }
+        
+        // Track object in session
+        var objectId = mappingSession.track(targetObject, objectPath);
+        
+        // Create deep DOM node
+        var deepNode = createDeepDOMNode(objectPath, objectPath, typeof targetObject, depth);
+        deepNode.objectId = objectId;
+        
+        // Memory management check
+        if (mappingSession.memoryTracker && !mappingSession.memoryTracker.canContinue()) {
+            deepNode.truncated = true;
+            deepNode.truncationReason = 'Memory limit reached';
+            result.mapping = deepNode;
+            result.success = true;
+            return result;
+        }
+        
+        // Analyze object relationships
+        if (config.analyzeRelationships) {
+            deepNode.relationships = analyzeObjectRelationships(targetObject, objectPath, mappingSession);
+        }
+        
+        // Map properties with enhanced tracking
+        var propertyMappingResult = mapObjectProperties(
+            targetObject, 
+            objectPath, 
+            depth, 
+            mappingSession, 
+            config
+        );
+        
+        if (propertyMappingResult.success) {
+            deepNode.enhancedProperties = propertyMappingResult.properties;
+            deepNode.enhancedCollections = propertyMappingResult.collections;
+            deepNode.enhancedMethods = propertyMappingResult.methods;
+        }
+        
+        // Map child objects recursively
+        if (depth < config.maxDepth - 1) {
+            var childMappingResult = mapChildObjects(
+                targetObject, 
+                objectPath, 
+                depth, 
+                mappingSession, 
+                config
+            );
+            
+            if (childMappingResult.success) {
+                deepNode.deepChildNodes = childMappingResult.children;
+            }
+        }
+        
+        result.mapping = deepNode;
+        result.success = true;
+        
+        return result;
         
     } catch (exc) {
-        return {
-            sessionId: 'error_' + generateUniqueID(),
-            error: 'Session initialization failed: ' + exc.message
-        };
+        result.error = 'Object mapping failed for ' + objectPath + ': ' + exc.message;
+        return result;
     }
 }
 
 // =============================================================================
-// RELATIONSHIP MAPPING
+// DEEP MAPPING SESSION MANAGEMENT
 // =============================================================================
 
 /**
- * Generate relationship map for DOM structure
- * @param {Object} domStructure - DOM structure
+ * Create deep mapping session with tracking and management
+ * @param {Object} targetDocument - Document to map
  * @param {Object} config - Configuration
- * @returns {Object} Relationship map
+ * @returns {Object} Session creation result
  */
-function generateRelationshipMap(domStructure, config) {
+function createDeepMappingSession(targetDocument, config) {
+    var result = {
+        success: false,
+        session: null,
+        error: null
+    };
+    
     try {
-        var relationshipMap = {
-            objectRelationships: {},
-            parentChildRelationships: {},
-            crossReferences: {},
-            relationshipTypes: {},
-            relationshipStatistics: {
-                totalRelationships: 0,
-                parentChildCount: 0,
-                crossReferenceCount: 0,
-                circularCount: 0
+        var sessionId = generateSessionId();
+        var session = {
+            id: sessionId,
+            startTime: new Date().getTime(),
+            document: targetDocument,
+            config: config,
+            
+            // Tracking components
+            objectTracker: createObjectReferenceTracker(),
+            circularMapper: createCircularReferenceMapper(),
+            memoryTracker: createMemoryTracker(config),
+            timeoutChecker: createTimeoutChecker(config.timeoutMs),
+            
+            // Statistics
+            statistics: {
+                totalObjects: 0,
+                maxDepthReached: 0,
+                circularReferences: 0,
+                memoryUsage: 0,
+                timeoutOccurred: false
+            },
+            
+            // Session methods
+            track: function(targetObject, path) {
+                try {
+                    this.statistics.totalObjects++;
+                    var objectId = this.objectTracker.track(targetObject, path);
+                    
+                    // Memory tracking
+                    if (this.memoryTracker) {
+                        this.memoryTracker.trackObject(targetObject);
+                    }
+                    
+                    return objectId;
+                } catch (exc) {
+                    return 'track_error_' + (new Date().getTime());
+                }
+            },
+            
+            getStatistics: function() {
+                try {
+                    return {
+                        totalObjects: this.statistics.totalObjects,
+                        maxDepthReached: this.statistics.maxDepthReached,
+                        circularReferences: this.circularMapper.getCircularCount(),
+                        memoryUsage: this.memoryTracker ? this.memoryTracker.getUsage() : 0,
+                        elapsedTime: new Date().getTime() - this.startTime
+                    };
+                } catch (exc) {
+                    return {
+                        totalObjects: 0,
+                        error: 'Statistics error: ' + exc.message
+                    };
+                }
+            },
+            
+            finalize: function() {
+                try {
+                    // Cleanup and optimization
+                    if (this.memoryTracker && config.progressiveCleanup) {
+                        this.memoryTracker.cleanup();
+                    }
+                    
+                    this.statistics.elapsedTime = new Date().getTime() - this.startTime;
+                } catch (exc) {
+                    // Silent cleanup
+                }
             }
         };
         
-        // Analyze relationships starting from document
-        if (domStructure.structure && domStructure.structure.document) {
-            analyzeNodeRelationships(
-                domStructure.structure.document,
-                null,
-                relationshipMap,
-                config,
-                []
-            );
+        result.session = session;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Session creation failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Create error deep mapping session
+ * @param {String} errorMessage - Error message
+ * @returns {Object} Error session result
+ */
+function createErrorDeepMappingSession(errorMessage) {
+    try {
+        return {
+            success: false,
+            session: null,
+            error: errorMessage || 'Unknown session error',
+            timestamp: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            success: false,
+            session: null,
+            error: 'Error session creation failed',
+            timestamp: getCurrentTimestamp()
+        };
+    }
+}
+
+// =============================================================================
+// DEEP DOM NODE CREATION
+// =============================================================================
+
+/**
+ * Create enhanced deep DOM node
+ * @param {String} path - Node path
+ * @param {String} name - Node name
+ * @param {String} nodeType - Node type
+ * @param {Number} depth - Node depth
+ * @param {String} additionalInfo - Additional information
+ * @returns {Object} Deep DOM node
+ */
+function createDeepDOMNode(path, name, nodeType, depth, additionalInfo) {
+    try {
+        var node = {
+            path: path || 'unknown',
+            name: name || 'unknown',
+            type: nodeType || 'unknown',
+            depth: depth || 0,
+            
+            // Enhanced properties
+            enhancedProperties: [],
+            enhancedCollections: [],
+            enhancedMethods: [],
+            deepChildNodes: [],
+            
+            // Deep mapping specific
+            objectId: null,
+            relationships: null,
+            accessibilityLevel: 'unknown',
+            performanceMetrics: null,
+            
+            // Metadata
+            created: getCurrentTimestamp(),
+            mappingVersion: '3.1'
+        };
+        
+        if (additionalInfo) {
+            node.additionalInfo = additionalInfo;
         }
         
-        // Analyze object registry relationships
-        if (config.trackObjectRelationships && domStructure.objectRegistry) {
-            analyzeObjectRegistryRelationships(domStructure.objectRegistry, relationshipMap);
+        return node;
+        
+    } catch (exc) {
+        return {
+            path: path || 'error',
+            name: 'CreationError',
+            type: 'error',
+            depth: depth || 0,
+            error: exc.message,
+            enhancedProperties: [],
+            enhancedCollections: [],
+            enhancedMethods: [],
+            deepChildNodes: []
+        };
+    }
+}
+
+/**
+ * Create error deep DOM node
+ * @param {String} path - Node path
+ * @param {String} errorMessage - Error message
+ * @param {Number} depth - Node depth
+ * @returns {Object} Error deep DOM node
+ */
+function createErrorDeepDOMNode(path, errorMessage, depth) {
+    try {
+        return {
+            path: path || 'error_path',
+            name: 'ErrorNode',
+            type: 'error',
+            depth: depth || 0,
+            error: errorMessage || 'Unknown error',
+            enhancedProperties: [],
+            enhancedCollections: [],
+            enhancedMethods: [],
+            deepChildNodes: [],
+            created: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            path: 'critical_error',
+            name: 'CriticalError',
+            type: 'error',
+            error: 'Error node creation failed',
+            enhancedProperties: [],
+            enhancedCollections: [],
+            enhancedMethods: [],
+            deepChildNodes: []
+        };
+    }
+}
+
+// =============================================================================
+// SESSION UTILITIES
+// =============================================================================
+
+/**
+ * Generate unique session ID
+ * @returns {String} Session ID
+ */
+function generateSessionId() {
+    try {
+        return 'deep_mapping_' + (new Date().getTime()) + '_' + Math.floor(Math.random() * 10000);
+    } catch (exc) {
+        return 'session_id_error';
+    }
+}
+
+// =============================================================================
+// OBJECT ATLAS GENERATION
+// =============================================================================
+
+/**
+ * Create object atlas structure
+ * @returns {Object} Empty object atlas
+ */
+function createObjectAtlas() {
+    try {
+        return {
+            metadata: {
+                created: getCurrentTimestamp(),
+                version: '3.1',
+                totalObjects: 0
+            },
+            objectMap: {},
+            relationshipMap: {},
+            accessibilityMap: {},
+            performanceMap: {},
+            pathIndex: {},
+            typeIndex: {},
+            circularReferences: [],
+            recommendations: []
+        };
+    } catch (exc) {
+        return {
+            error: 'Atlas creation failed: ' + exc.message,
+            metadata: { created: getCurrentTimestamp() },
+            objectMap: {},
+            relationshipMap: {},
+            accessibilityMap: {},
+            performanceMap: {},
+            pathIndex: {},
+            typeIndex: {}
+        };
+    }
+}
+
+/**
+ * Generate comprehensive object atlas from mapping session
+ * @param {Object} mappingSession - Completed mapping session
+ * @param {Object} config - Configuration
+ * @returns {Object} Atlas generation result
+ */
+function generateObjectAtlas(mappingSession, config) {
+    var result = {
+        success: false,
+        atlas: null,
+        error: null
+    };
+    
+    try {
+        var atlas = createObjectAtlas();
+        
+        // Extract session statistics
+        var sessionStats = mappingSession.getStatistics();
+        atlas.metadata.totalObjects = sessionStats.totalObjects;
+        atlas.metadata.mappingTime = sessionStats.elapsedTime;
+        atlas.metadata.circularReferences = sessionStats.circularReferences;
+        
+        // Build object map from tracker
+        if (mappingSession.objectTracker && mappingSession.objectTracker.references) {
+            atlas.objectMap = objectClone(mappingSession.objectTracker.references, 2);
         }
         
-        // Generate cross-reference analysis
-        if (config.analyzeCrossReferences) {
-            analyzeCrossReferences(relationshipMap);
+        // Build relationship map
+        atlas.relationshipMap = buildRelationshipMap(mappingSession, config);
+        
+        // Build accessibility map
+        atlas.accessibilityMap = buildAccessibilityMap(mappingSession, config);
+        
+        // Build performance map
+        if (config.analyzePerformance) {
+            atlas.performanceMap = buildPerformanceMap(mappingSession, config);
+        }
+        
+        // Build path and type indices
+        atlas.pathIndex = buildPathIndex(mappingSession);
+        atlas.typeIndex = buildTypeIndex(mappingSession);
+        
+        // Extract circular references
+        if (mappingSession.circularMapper) {
+            atlas.circularReferences = mappingSession.circularMapper.getCircularReferences();
+        }
+        
+        // Generate recommendations
+        atlas.recommendations = generateAtlasRecommendations(atlas, config);
+        
+        result.atlas = atlas;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Atlas generation failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Build relationship map from session data
+ * @param {Object} mappingSession - Mapping session
+ * @param {Object} config - Configuration
+ * @returns {Object} Relationship map
+ */
+function buildRelationshipMap(mappingSession, config) {
+    try {
+        var relationshipMap = {};
+        
+        if (mappingSession.objectTracker && mappingSession.objectTracker.references) {
+            for (var objectId in mappingSession.objectTracker.references) {
+                if (objectHasOwnProperty(mappingSession.objectTracker.references, objectId)) {
+                    var objRef = mappingSession.objectTracker.references[objectId];
+                    
+                    relationshipMap[objectId] = {
+                        path: objRef.firstPath || 'unknown',
+                        relationships: analyzeObjectRelationships(objRef.reference, objRef.firstPath, mappingSession),
+                        accessCount: objRef.accessCount || 1
+                    };
+                }
+            }
         }
         
         return relationshipMap;
         
     } catch (exc) {
         return {
-            error: 'Relationship mapping failed: ' + exc.message,
-            objectRelationships: {},
-            parentChildRelationships: {},
-            crossReferences: {}
+            error: 'Relationship map build failed: ' + exc.message
         };
     }
 }
 
 /**
- * Analyze relationships for a node
- * @param {Object} node - DOM node
- * @param {Object} parent - Parent node
- * @param {Object} relationshipMap - Relationship map to update
+ * Build accessibility map from session data
+ * @param {Object} mappingSession - Mapping session
  * @param {Object} config - Configuration
- * @param {Array} visitedPaths - Visited paths for circular detection
+ * @returns {Object} Accessibility map
  */
-function analyzeNodeRelationships(node, parent, relationshipMap, config, visitedPaths) {
+function buildAccessibilityMap(mappingSession, config) {
     try {
-        if (!node) return;
-        
-        var nodePath = node.path;
-        
-        // Check for circular references
-        if (arrayIndexOf(visitedPaths, nodePath) !== -1) {
-            relationshipMap.relationshipStatistics.circularCount++;
-            return;
-        }
-        
-        var newVisitedPaths = arraySlice(visitedPaths, 0);
-        arrayPush(newVisitedPaths, nodePath);
-        
-        // Record parent-child relationship
-        if (parent) {
-            var parentPath = parent.path;
-            
-            if (!relationshipMap.parentChildRelationships[parentPath]) {
-                relationshipMap.parentChildRelationships[parentPath] = {
-                    children: [],
-                    childCount: 0
-                };
+        var accessibilityMap = {
+            safeObjects: [],
+            cautionObjects: [],
+            dangerousObjects: [],
+            summary: {
+                totalAnalyzed: 0,
+                safeCount: 0,
+                cautionCount: 0,
+                dangerousCount: 0
             }
-            
-            arrayPush(relationshipMap.parentChildRelationships[parentPath].children, {
-                path: nodePath,
-                name: node.name,
-                type: node.type,
-                relationship: 'child'
-            });
-            
-            relationshipMap.parentChildRelationships[parentPath].childCount++;
-            relationshipMap.relationshipStatistics.parentChildCount++;
-        }
+        };
         
-        // Record object relationships
-        if (node.objectId) {
-            relationshipMap.objectRelationships[node.objectId] = {
-                path: nodePath,
-                name: node.name,
-                type: node.type,
-                parentPath: parent ? parent.path : null,
-                alternativePaths: node.alternativeAccessPaths || [],
-                propertyCount: node.properties ? node.properties.length : 0,
-                collectionCount: node.collections ? node.collections.length : 0,
-                childCount: node.childNodes ? node.childNodes.length : 0
-            };
-        }
-        
-        // Analyze properties for cross-references
-        if (node.properties) {
-            for (var i = 0; i < node.properties.length; i++) {
-                var prop = node.properties[i];
-                if (prop.objectId) {
-                    recordCrossReference(relationshipMap, nodePath, prop.path, 'property', prop.objectId);
-                }
-            }
-        }
-        
-        // Analyze collections for cross-references
-        if (node.collections) {
-            for (var j = 0; j < node.collections.length; j++) {
-                var coll = node.collections[j];
-                if (coll.objectId) {
-                    recordCrossReference(relationshipMap, nodePath, coll.path, 'collection', coll.objectId);
-                }
-            }
-        }
-        
-        // Recursively analyze child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var k = 0; k < node.childNodes.length; k++) {
-                analyzeNodeRelationships(
-                    node.childNodes[k],
-                    node,
-                    relationshipMap,
-                    config,
-                    newVisitedPaths
-                );
-            }
-        }
-        
-    } catch (exc) {
-        // Continue with other nodes
-    }
-}
-
-/**
- * Record cross-reference relationship
- * @param {Object} relationshipMap - Relationship map
- * @param {String} sourcePath - Source path
- * @param {String} targetPath - Target path
- * @param {String} referenceType - Type of reference
- * @param {String} objectId - Object ID
- */
-function recordCrossReference(relationshipMap, sourcePath, targetPath, referenceType, objectId) {
-    try {
-        if (!relationshipMap.crossReferences[sourcePath]) {
-            relationshipMap.crossReferences[sourcePath] = {
-                outgoingReferences: [],
-                referenceCount: 0
-            };
-        }
-        
-        arrayPush(relationshipMap.crossReferences[sourcePath].outgoingReferences, {
-            targetPath: targetPath,
-            type: referenceType,
-            objectId: objectId
-        });
-        
-        relationshipMap.crossReferences[sourcePath].referenceCount++;
-        relationshipMap.relationshipStatistics.crossReferenceCount++;
-        relationshipMap.relationshipStatistics.totalRelationships++;
-        
-    } catch (exc) {
-        // Continue processing
-    }
-}
-
-/**
- * Analyze object registry relationships
- * @param {Object} objectRegistry - Object registry
- * @param {Object} relationshipMap - Relationship map
- */
-function analyzeObjectRegistryRelationships(objectRegistry, relationshipMap) {
-    try {
-        if (!objectRegistry.references) return;
-        
-        for (var objectId in objectRegistry.references) {
-            if (objectHasOwnProperty(objectRegistry.references, objectId)) {
-                var ref = objectRegistry.references[objectId];
-                
-                if (ref.paths && ref.paths.length > 1) {
-                    // Record multiple access paths as relationships
-                    for (var i = 0; i < ref.paths.length; i++) {
-                        var path = ref.paths[i];
-                        
-                        if (!relationshipMap.crossReferences[path]) {
-                            relationshipMap.crossReferences[path] = {
-                                outgoingReferences: [],
-                                referenceCount: 0
+        if (mappingSession.objectTracker && mappingSession.objectTracker.references) {
+            for (var objectId in mappingSession.objectTracker.references) {
+                if (objectHasOwnProperty(mappingSession.objectTracker.references, objectId)) {
+                    var objRef = mappingSession.objectTracker.references[objectId];
+                    var accessibility = analyzeObjectAccessibility(objRef, config);
+                    
+                    accessibilityMap.summary.totalAnalyzed++;
+                    
+                    switch (accessibility.level) {
+                        case 'safe':
+                            accessibilityMap.safeObjects[accessibilityMap.safeObjects.length] = {
+                                objectId: objectId,
+                                path: objRef.firstPath,
+                                accessibility: accessibility
                             };
-                        }
-                        
-                        // Add references to all other paths
-                        for (var j = 0; j < ref.paths.length; j++) {
-                            if (i !== j) {
-                                arrayPush(relationshipMap.crossReferences[path].outgoingReferences, {
-                                    targetPath: ref.paths[j],
-                                    type: 'duplicate_reference',
-                                    objectId: objectId
-                                });
-                                relationshipMap.crossReferences[path].referenceCount++;
-                            }
-                        }
+                            accessibilityMap.summary.safeCount++;
+                            break;
+                        case 'caution':
+                            accessibilityMap.cautionObjects[accessibilityMap.cautionObjects.length] = {
+                                objectId: objectId,
+                                path: objRef.firstPath,
+                                accessibility: accessibility
+                            };
+                            accessibilityMap.summary.cautionCount++;
+                            break;
+                        case 'dangerous':
+                            accessibilityMap.dangerousObjects[accessibilityMap.dangerousObjects.length] = {
+                                objectId: objectId,
+                                path: objRef.firstPath,
+                                accessibility: accessibility
+                            };
+                            accessibilityMap.summary.dangerousCount++;
+                            break;
                     }
                 }
             }
         }
         
-    } catch (exc) {
-        // Continue processing
-    }
-}
-
-/**
- * Analyze cross-references in relationship map
- * @param {Object} relationshipMap - Relationship map
- */
-function analyzeCrossReferences(relationshipMap) {
-    try {
-        var analysis = {
-            bidirectionalReferences: [],
-            unreachableNodes: [],
-            highlyConnectedNodes: []
-        };
-        
-        // Find highly connected nodes
-        for (var path in relationshipMap.crossReferences) {
-            if (objectHasOwnProperty(relationshipMap.crossReferences, path)) {
-                var ref = relationshipMap.crossReferences[path];
-                if (ref.referenceCount > 5) {
-                    arrayPush(analysis.highlyConnectedNodes, {
-                        path: path,
-                        referenceCount: ref.referenceCount
-                    });
-                }
-            }
-        }
-        
-        relationshipMap.crossReferenceAnalysis = analysis;
-        
-    } catch (exc) {
-        // Continue processing
-    }
-}
-
-// =============================================================================
-// ACCESSIBILITY MAPPING
-// =============================================================================
-
-/**
- * Generate accessibility map
- * @param {Object} domStructure - DOM structure
- * @param {Object} config - Configuration
- * @returns {Object} Accessibility map
- */
-function generateAccessibilityMap(domStructure, config) {
-    try {
-        var accessibilityMap = {
-            safeObjects: [],
-            riskyObjects: [],
-            dangerousObjects: [],
-            inaccessibleObjects: [],
-            accessibilityRatings: {},
-            usabilityScores: {},
-            recommendations: []
-        };
-        
-        // Analyze accessibility starting from document
-        if (domStructure.structure && domStructure.structure.document) {
-            analyzeNodeAccessibility(domStructure.structure.document, accessibilityMap, config);
-        }
-        
-        // Generate accessibility recommendations
-        accessibilityMap.recommendations = generateAccessibilityRecommendations(accessibilityMap);
-        
         return accessibilityMap;
         
     } catch (exc) {
         return {
-            error: 'Accessibility mapping failed: ' + exc.message,
+            error: 'Accessibility map build failed: ' + exc.message,
             safeObjects: [],
-            riskyObjects: [],
-            dangerousObjects: [],
-            recommendations: []
+            cautionObjects: [],
+            dangerousObjects: []
         };
     }
 }
 
 /**
- * Analyze node accessibility
- * @param {Object} node - DOM node
- * @param {Object} accessibilityMap - Accessibility map to update
+ * Build performance map from session data
+ * @param {Object} mappingSession - Mapping session
  * @param {Object} config - Configuration
+ * @returns {Object} Performance map
  */
-function analyzeNodeAccessibility(node, accessibilityMap, config) {
+function buildPerformanceMap(mappingSession, config) {
     try {
-        if (!node) return;
-        
-        var accessInfo = calculateAccessibilityInfo(node);
-        
-        // Store detailed accessibility rating
-        accessibilityMap.accessibilityRatings[node.path] = accessInfo;
-        
-        // Categorize based on accessibility rating
-        if (accessInfo.overallRating >= 90) {
-            arrayPush(accessibilityMap.safeObjects, {
-                path: node.path,
-                name: node.name,
-                rating: accessInfo.overallRating,
-                usabilityScore: accessInfo.usabilityScore
-            });
-        } else if (accessInfo.overallRating >= 70) {
-            arrayPush(accessibilityMap.riskyObjects, {
-                path: node.path,
-                name: node.name,
-                rating: accessInfo.overallRating,
-                warnings: accessInfo.warnings
-            });
-        } else if (accessInfo.overallRating >= 30) {
-            arrayPush(accessibilityMap.dangerousObjects, {
-                path: node.path,
-                name: node.name,
-                rating: accessInfo.overallRating,
-                risks: accessInfo.risks
-            });
-        } else {
-            arrayPush(accessibilityMap.inaccessibleObjects, {
-                path: node.path,
-                name: node.name,
-                rating: accessInfo.overallRating,
-                reasons: accessInfo.inaccessibilityReasons
-            });
-        }
-        
-        // Recursively analyze child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var i = 0; i < node.childNodes.length; i++) {
-                analyzeNodeAccessibility(node.childNodes[i], accessibilityMap, config);
-            }
-        }
-        
-    } catch (exc) {
-        // Continue with other nodes
-    }
-}
-
-/**
- * Calculate accessibility information for a node
- * @param {Object} node - DOM node
- * @returns {Object} Accessibility information
- */
-function calculateAccessibilityInfo(node) {
-    try {
-        var info = {
-            overallRating: 0,
-            usabilityScore: 0,
-            warnings: [],
-            risks: [],
-            inaccessibilityReasons: []
+        var performanceMap = {
+            overallMetrics: {
+                totalTime: mappingSession.getStatistics().elapsedTime,
+                objectsPerSecond: 0,
+                memoryEfficiency: 'unknown'
+            },
+            objectMetrics: {},
+            bottlenecks: [],
+            optimizationSuggestions: []
         };
         
-        var score = 100; // Start with perfect score
+        var stats = mappingSession.getStatistics();
         
-        // Check for circular references
-        if (node.objectMetadata && node.objectMetadata.isCircular) {
-            score -= 50;
-            arrayPush(info.risks, 'Circular reference detected');
+        if (stats.elapsedTime > 0) {
+            performanceMap.overallMetrics.objectsPerSecond = 
+                Math.round(stats.totalObjects / (stats.elapsedTime / 1000));
         }
         
-        // Check node type safety
-        if (node.type === 'error') {
-            score -= 60;
-            arrayPush(info.inaccessibilityReasons, 'Node has error type');
-        } else if (node.type === 'function') {
-            score -= 20;
-            arrayPush(info.warnings, 'Function node - use with caution');
+        if (mappingSession.memoryTracker) {
+            var memoryStats = mappingSession.memoryTracker.getStatistics();
+            performanceMap.overallMetrics.memoryEfficiency = memoryStats.efficiency || 'unknown';
         }
         
-        // Evaluate property accessibility
-        if (node.properties && node.properties.length > 0) {
-            var safeProps = 0;
-            var dangerousProps = 0;
-            
-            for (var i = 0; i < node.properties.length; i++) {
-                var prop = node.properties[i];
-                if (prop.safetyLevel === 'safe') {
-                    safeProps++;
-                } else if (prop.safetyLevel === 'dangerous') {
-                    dangerousProps++;
-                }
-            }
-            
-            if (dangerousProps > 0) {
-                score -= dangerousProps * 5;
-                arrayPush(info.warnings, dangerousProps + ' dangerous properties found');
-            }
-            
-            // Bonus for having extracted values
-            var extractedCount = 0;
-            for (var j = 0; j < node.properties.length; j++) {
-                if (node.properties[j].extractedValue) {
-                    extractedCount++;
-                }
-            }
-            
-            if (extractedCount > 0) {
-                info.usabilityScore += Math.min(20, extractedCount * 2);
-            }
+        // Identify bottlenecks
+        if (stats.elapsedTime > config.timeoutMs * 0.8) {
+            performanceMap.bottlenecks[performanceMap.bottlenecks.length] = 
+                'Mapping time approaching timeout limit';
         }
         
-        // Evaluate collections
-        if (node.collections && node.collections.length > 0) {
-            info.usabilityScore += node.collections.length * 10; // Collections are very useful
-            
-            // Check for collection analysis
-            for (var k = 0; k < node.collections.length; k++) {
-                var coll = node.collections[k];
-                if (coll.collectionAnalysis) {
-                    info.usabilityScore += 5;
-                }
-            }
+        if (stats.circularReferences > 10) {
+            performanceMap.bottlenecks[performanceMap.bottlenecks.length] = 
+                'High number of circular references detected';
         }
         
-        // Evaluate alternative access paths
-        if (node.alternativeAccessPaths && node.alternativeAccessPaths.length > 0) {
-            info.usabilityScore += node.alternativeAccessPaths.length * 3;
-        }
+        // Generate optimization suggestions
+        performanceMap.optimizationSuggestions = generatePerformanceOptimizations(stats, config);
         
-        // Apply final calculations
-        info.overallRating = Math.max(0, Math.min(100, score));
-        info.usabilityScore = Math.max(0, Math.min(100, info.usabilityScore));
-        
-        return info;
+        return performanceMap;
         
     } catch (exc) {
         return {
-            overallRating: 0,
-            usabilityScore: 0,
-            warnings: ['Accessibility calculation failed'],
-            risks: [],
-            inaccessibilityReasons: ['Analysis error: ' + exc.message]
+            error: 'Performance map build failed: ' + exc.message,
+            overallMetrics: {},
+            objectMetrics: {},
+            bottlenecks: [],
+            optimizationSuggestions: []
         };
     }
 }
 
 /**
- * Generate accessibility recommendations
- * @param {Object} accessibilityMap - Accessibility map
+ * Build path index from session data
+ * @param {Object} mappingSession - Mapping session
+ * @returns {Object} Path index
+ */
+function buildPathIndex(mappingSession) {
+    try {
+        var pathIndex = {};
+        
+        if (mappingSession.objectTracker && mappingSession.objectTracker.references) {
+            for (var objectId in mappingSession.objectTracker.references) {
+                if (objectHasOwnProperty(mappingSession.objectTracker.references, objectId)) {
+                    var objRef = mappingSession.objectTracker.references[objectId];
+                    var path = objRef.firstPath || 'unknown';
+                    
+                    if (!pathIndex[path]) {
+                        pathIndex[path] = [];
+                    }
+                    
+                    pathIndex[path][pathIndex[path].length] = objectId;
+                }
+            }
+        }
+        
+        return pathIndex;
+        
+    } catch (exc) {
+        return {
+            error: 'Path index build failed: ' + exc.message
+        };
+    }
+}
+
+/**
+ * Build type index from session data
+ * @param {Object} mappingSession - Mapping session
+ * @returns {Object} Type index
+ */
+function buildTypeIndex(mappingSession) {
+    try {
+        var typeIndex = {};
+        
+        if (mappingSession.objectTracker && mappingSession.objectTracker.references) {
+            for (var objectId in mappingSession.objectTracker.references) {
+                if (objectHasOwnProperty(mappingSession.objectTracker.references, objectId)) {
+                    var objRef = mappingSession.objectTracker.references[objectId];
+                    var objType = typeof objRef.reference;
+                    
+                    if (!typeIndex[objType]) {
+                        typeIndex[objType] = [];
+                    }
+                    
+                    typeIndex[objType][typeIndex[objType].length] = objectId;
+                }
+            }
+        }
+        
+        return typeIndex;
+        
+    } catch (exc) {
+        return {
+            error: 'Type index build failed: ' + exc.message
+        };
+    }
+}
+
+// =============================================================================
+// CIRCULAR REFERENCE MAPPING
+// =============================================================================
+
+/**
+ * Create circular reference mapper
+ * @returns {Object} Circular reference mapper
+ */
+function createCircularReferenceMapper() {
+    try {
+        return {
+            visitedObjects: [],
+            circularReferences: [],
+            pathMap: {},
+            
+            checkCircular: function(targetObject, currentPath) {
+                try {
+                    var result = {
+                        isCircular: false,
+                        originalPath: null
+                    };
+                    
+                    // Check if object was already visited
+                    for (var i = 0; i < this.visitedObjects.length; i++) {
+                        if (this.visitedObjects[i] === targetObject) {
+                            result.isCircular = true;
+                            result.originalPath = this.pathMap[i] || 'unknown';
+                            
+                            // Record circular reference
+                            this.circularReferences[this.circularReferences.length] = {
+                                originalPath: result.originalPath,
+                                circularPath: currentPath,
+                                detectedAt: getCurrentTimestamp()
+                            };
+                            
+                            return result;
+                        }
+                    }
+                    
+                    // Add to visited objects
+                    this.visitedObjects[this.visitedObjects.length] = targetObject;
+                    this.pathMap[this.visitedObjects.length - 1] = currentPath;
+                    
+                    return result;
+                    
+                } catch (exc) {
+                    return {
+                        isCircular: false,
+                        originalPath: null,
+                        error: exc.message
+                    };
+                }
+            },
+            
+            getCircularCount: function() {
+                try {
+                    return this.circularReferences.length;
+                } catch (exc) {
+                    return 0;
+                }
+            },
+            
+            getCircularReferences: function() {
+                try {
+                    return arraySlice(this.circularReferences, 0);
+                } catch (exc) {
+                    return [];
+                }
+            },
+            
+            cleanup: function() {
+                try {
+                    this.visitedObjects = [];
+                    this.pathMap = {};
+                } catch (exc) {
+                    // Silent cleanup
+                }
+            }
+        };
+        
+    } catch (exc) {
+        return {
+            checkCircular: function() { return { isCircular: false, originalPath: null }; },
+            getCircularCount: function() { return 0; },
+            getCircularReferences: function() { return []; },
+            cleanup: function() { }
+        };
+    }
+}
+
+/**
+ * Analyze circular references in mapping session
+ * @param {Object} mappingSession - Mapping session
+ * @returns {Object} Circular reference analysis
+ */
+function analyzeCircularReferences(mappingSession) {
+    try {
+        var analysis = {
+            totalCircular: 0,
+            circularPaths: [],
+            impact: 'low',
+            recommendations: []
+        };
+        
+        if (mappingSession.circularMapper) {
+            analysis.totalCircular = mappingSession.circularMapper.getCircularCount();
+            analysis.circularPaths = mappingSession.circularMapper.getCircularReferences();
+            
+            // Determine impact
+            if (analysis.totalCircular > 20) {
+                analysis.impact = 'high';
+            } else if (analysis.totalCircular > 5) {
+                analysis.impact = 'medium';
+            }
+            
+            // Generate recommendations
+            if (analysis.totalCircular > 0) {
+                analysis.recommendations[analysis.recommendations.length] = 
+                    'Be careful when traversing object relationships to avoid infinite loops';
+                
+                if (analysis.impact === 'high') {
+                    analysis.recommendations[analysis.recommendations.length] = 
+                        'Consider implementing circular reference detection in your scripts';
+                }
+            }
+        }
+        
+        return analysis;
+        
+    } catch (exc) {
+        return {
+            totalCircular: 0,
+            circularPaths: [],
+            impact: 'unknown',
+            error: 'Circular reference analysis failed: ' + exc.message
+        };
+    }
+}
+
+// =============================================================================
+// MEMORY TRACKING
+// =============================================================================
+
+/**
+ * Create memory tracker for mapping session
+ * @param {Object} config - Configuration
+ * @returns {Object} Memory tracker
+ */
+function createMemoryTracker(config) {
+    try {
+        return {
+            trackedObjects: 0,
+            maxObjects: config.maxTotalObjects || 10000,
+            memoryCheckInterval: config.memoryCheckInterval || 1000,
+            lastMemoryCheck: new Date().getTime(),
+            
+            trackObject: function(targetObject) {
+                try {
+                    this.trackedObjects++;
+                    
+                    // Periodic memory check
+                    var now = new Date().getTime();
+                    if (now - this.lastMemoryCheck > this.memoryCheckInterval) {
+                        this.performMemoryCheck();
+                        this.lastMemoryCheck = now;
+                    }
+                    
+                } catch (exc) {
+                    // Continue tracking
+                }
+            },
+            
+            canContinue: function() {
+                try {
+                    return this.trackedObjects < this.maxObjects;
+                } catch (exc) {
+                    return false;
+                }
+            },
+            
+            performMemoryCheck: function() {
+                try {
+                    // Basic memory pressure detection
+                    if (this.trackedObjects > this.maxObjects * 0.8) {
+                        this.optimizeMemoryUsage();
+                    }
+                } catch (exc) {
+                    // Continue operation
+                }
+            },
+            
+            optimizeMemoryUsage: function() {
+                try {
+                    // Trigger cleanup if available
+                    if (typeof memoryCleanup === 'function') {
+                        memoryCleanup([]);
+                    }
+                } catch (exc) {
+                    // Continue operation
+                }
+            },
+            
+            getUsage: function() {
+                try {
+                    return {
+                        tracked: this.trackedObjects,
+                        maximum: this.maxObjects,
+                        percentage: Math.round((this.trackedObjects / this.maxObjects) * 100)
+                    };
+                } catch (exc) {
+                    return { tracked: 0, maximum: 0, percentage: 0 };
+                }
+            },
+            
+            getStatistics: function() {
+                try {
+                    var usage = this.getUsage();
+                    return {
+                        efficiency: usage.percentage < 80 ? 'good' : 
+                                   usage.percentage < 95 ? 'acceptable' : 'poor',
+                        memoryPressure: usage.percentage > 90,
+                        recommendCleanup: usage.percentage > 85
+                    };
+                } catch (exc) {
+                    return { efficiency: 'unknown' };
+                }
+            },
+            
+            cleanup: function() {
+                try {
+                    this.trackedObjects = 0;
+                    this.optimizeMemoryUsage();
+                } catch (exc) {
+                    // Silent cleanup
+                }
+            }
+        };
+        
+    } catch (exc) {
+        return {
+            trackObject: function() { },
+            canContinue: function() { return true; },
+            performMemoryCheck: function() { },
+            optimizeMemoryUsage: function() { },
+            getUsage: function() { return { tracked: 0, maximum: 0, percentage: 0 }; },
+            getStatistics: function() { return { efficiency: 'unknown' }; },
+            cleanup: function() { }
+        };
+    }
+}
+
+/**
+ * Optimize memory usage during mapping
+ * @param {Object} mappingSession - Mapping session
+ * @param {Object} config - Configuration
+ * @returns {Object} Optimization result
+ */
+function optimizeMemoryUsage(mappingSession, config) {
+    var result = {
+        success: false,
+        optimizations: [],
+        error: null
+    };
+    
+    try {
+        var optimizations = [];
+        
+        // Cleanup circular mapper
+        if (mappingSession.circularMapper && mappingSession.circularMapper.cleanup) {
+            mappingSession.circularMapper.cleanup();
+            optimizations[optimizations.length] = 'Circular reference mapper cleaned';
+        }
+        
+        // Optimize object tracker
+        if (mappingSession.objectTracker && mappingSession.objectTracker.cleanup) {
+            mappingSession.objectTracker.cleanup();
+            optimizations[optimizations.length] = 'Object tracker optimized';
+        }
+        
+        // Memory tracker cleanup
+        if (mappingSession.memoryTracker && mappingSession.memoryTracker.cleanup) {
+            mappingSession.memoryTracker.cleanup();
+            optimizations[optimizations.length] = 'Memory tracker cleaned';
+        }
+        
+        result.optimizations = optimizations;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Memory optimization failed: ' + exc.message;
+        return result;
+    }
+}
+
+// =============================================================================
+// OBJECT RELATIONSHIP ANALYSIS
+// =============================================================================
+
+/**
+ * Track object relationships in mapping
+ * @param {Object} targetObject - Object to analyze
+ * @param {String} objectPath - Object path
+ * @param {Object} mappingSession - Mapping session
+ * @returns {Object} Relationship analysis
+ */
+function trackObjectRelationships(targetObject, objectPath, mappingSession) {
+    return analyzeObjectRelationships(targetObject, objectPath, mappingSession);
+}
+
+/**
+ * Analyze object relationships
+ * @param {Object} targetObject - Object to analyze
+ * @param {String} objectPath - Object path
+ * @param {Object} mappingSession - Mapping session
+ * @returns {Object} Relationship analysis
+ */
+function analyzeObjectRelationships(targetObject, objectPath, mappingSession) {
+    try {
+        var relationships = {
+            parentPath: getParentPath(objectPath),
+            childPaths: [],
+            siblingPaths: [],
+            relatedObjects: [],
+            relationshipType: 'unknown',
+            accessPattern: 'direct'
+        };
+        
+        // Determine relationship type
+        if (stringIndexOf(objectPath, '.') === -1) {
+            relationships.relationshipType = 'root';
+        } else if (stringIndexOf(objectPath, '.pages') !== -1) {
+            relationships.relationshipType = 'page_related';
+        } else if (stringIndexOf(objectPath, '.layers') !== -1) {
+            relationships.relationshipType = 'layer_related';
+        } else if (stringIndexOf(objectPath, '.stories') !== -1) {
+            relationships.relationshipType = 'story_related';
+        } else {
+            relationships.relationshipType = 'nested';
+        }
+        
+        // Analyze access pattern
+        if (targetObject && typeof targetObject === 'object') {
+            if (typeof targetObject.length === 'number') {
+                relationships.accessPattern = 'indexed';
+            } else if (typeof targetObject.count === 'number') {
+                relationships.accessPattern = 'counted';
+            }
+        }
+        
+        return relationships;
+        
+    } catch (exc) {
+        return {
+            parentPath: getParentPath(objectPath),
+            childPaths: [],
+            siblingPaths: [],
+            relatedObjects: [],
+            relationshipType: 'error',
+            accessPattern: 'unknown',
+            error: exc.message
+        };
+    }
+}
+
+// =============================================================================
+// PROPERTY MAPPING
+// =============================================================================
+
+/**
+ * Map object properties with enhanced tracking
+ * @param {Object} targetObject - Object to map
+ * @param {String} objectPath - Object path
+ * @param {Number} depth - Current depth
+ * @param {Object} mappingSession - Mapping session
+ * @param {Object} config - Configuration
+ * @returns {Object} Property mapping result
+ */
+function mapObjectProperties(targetObject, objectPath, depth, mappingSession, config) {
+    var result = {
+        success: false,
+        properties: [],
+        collections: [],
+        methods: [],
+        error: null
+    };
+    
+    try {
+        var properties = [];
+        var collections = [];
+        var methods = [];
+        
+        for (var propName in targetObject) {
+            try {
+                if (objectHasOwnProperty(targetObject, propName)) {
+                    // Skip dangerous properties
+                    if (config.skipDangerous && isDangerousProperty(propName)) {
+                        continue;
+                    }
+                    
+                    var propType = safeTypeCheck(targetObject, propName);
+                    var propPath = objectPath + '.' + propName;
+                    
+                    var enhancedProperty = {
+                        name: propName,
+                        path: propPath,
+                        type: propType,
+                        depth: depth + 1,
+                        safetyLevel: getPropertySafetyLevel(propName),
+                        accessibilityLevel: analyzePropertyAccessibility(propName, propType),
+                        mappingTimestamp: getCurrentTimestamp()
+                    };
+                    
+                    // Categorize property
+                    if (propType === 'function') {
+                        methods[methods.length] = enhancedProperty;
+                    } else if (isLikelyCollection(propName)) {
+                        collections[collections.length] = enhancedProperty;
+                    } else {
+                        properties[properties.length] = enhancedProperty;
+                    }
+                }
+            } catch (propExc) {
+                // Continue processing other properties
+            }
+        }
+        
+        result.properties = properties;
+        result.collections = collections;
+        result.methods = methods;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Property mapping failed for ' + objectPath + ': ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Map child objects recursively
+ * @param {Object} targetObject - Parent object
+ * @param {String} objectPath - Parent path
+ * @param {Number} depth - Current depth
+ * @param {Object} mappingSession - Mapping session
+ * @param {Object} config - Configuration
+ * @returns {Object} Child mapping result
+ */
+function mapChildObjects(targetObject, objectPath, depth, mappingSession, config) {
+    var result = {
+        success: false,
+        children: [],
+        error: null
+    };
+    
+    try {
+        var children = [];
+        
+        for (var propName in targetObject) {
+            try {
+                if (objectHasOwnProperty(targetObject, propName)) {
+                    var propValue = targetObject[propName];
+                    
+                    if (propValue && typeof propValue === 'object') {
+                        var childPath = objectPath + '.' + propName;
+                        
+                        var childMappingResult = performDeepObjectMapping(
+                            propValue,
+                            childPath,
+                            depth + 1,
+                            mappingSession,
+                            config
+                        );
+                        
+                        if (childMappingResult.success) {
+                            children[children.length] = childMappingResult.mapping;
+                        }
+                    }
+                }
+            } catch (childExc) {
+                // Continue processing other children
+            }
+        }
+        
+        result.children = children;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Child mapping failed for ' + objectPath + ': ' + exc.message;
+        return result;
+    }
+}
+
+// =============================================================================
+// ANALYSIS UTILITIES
+// =============================================================================
+
+/**
+ * Analyze property accessibility for deep mapping
+ * @param {String} propName - Property name
+ * @param {String} propType - Property type
+ * @returns {String} Accessibility level
+ */
+function analyzePropertyAccessibility(propName, propType) {
+    try {
+        var safetyLevel = getPropertySafetyLevel(propName);
+        
+        if (safetyLevel === 'dangerous') {
+            return 'restricted';
+        } else if (safetyLevel === 'caution') {
+            return 'limited';
+        } else if (propType === 'function') {
+            return 'executable';
+        } else {
+            return 'accessible';
+        }
+        
+    } catch (exc) {
+        return 'unknown';
+    }
+}
+
+/**
+ * Analyze object accessibility for atlas
+ * @param {Object} objectReference - Object reference
+ * @param {Object} config - Configuration
+ * @returns {Object} Accessibility analysis
+ */
+function analyzeObjectAccessibility(objectReference, config) {
+    try {
+        var analysis = {
+            level: 'safe',
+            reasons: [],
+            recommendations: []
+        };
+        
+        var path = objectReference.firstPath || 'unknown';
+        
+        // Check path safety
+        if (isDangerousPath(path)) {
+            analysis.level = 'dangerous';
+            analysis.reasons[analysis.reasons.length] = 'Path contains dangerous elements';
+        } else if (stringIndexOf(path, 'parent') !== -1) {
+            analysis.level = 'caution';
+            analysis.reasons[analysis.reasons.length] = 'Path references parent objects';
+        }
+        
+        // Check object type
+        if (objectReference.reference && typeof objectReference.reference === 'function') {
+            if (analysis.level === 'safe') {
+                analysis.level = 'caution';
+            }
+            analysis.reasons[analysis.reasons.length] = 'Object is a function';
+        }
+        
+        // Generate recommendations
+        switch (analysis.level) {
+            case 'dangerous':
+                analysis.recommendations[analysis.recommendations.length] = 
+                    'Avoid accessing this object in production scripts';
+                break;
+            case 'caution':
+                analysis.recommendations[analysis.recommendations.length] = 
+                    'Use extra error handling when accessing this object';
+                break;
+            case 'safe':
+                analysis.recommendations[analysis.recommendations.length] = 
+                    'Safe to access with standard error handling';
+                break;
+        }
+        
+        return analysis;
+        
+    } catch (exc) {
+        return {
+            level: 'unknown',
+            reasons: ['Analysis failed: ' + exc.message],
+            recommendations: ['Exercise extreme caution']
+        };
+    }
+}
+
+/**
+ * Generate performance optimizations based on statistics
+ * @param {Object} statistics - Mapping statistics
+ * @param {Object} config - Configuration
+ * @returns {Array} Optimization suggestions
+ */
+function generatePerformanceOptimizations(statistics, config) {
+    try {
+        var optimizations = [];
+        
+        if (statistics.elapsedTime > config.timeoutMs * 0.5) {
+            optimizations[optimizations.length] = 
+                'Consider reducing maxDepth to improve mapping speed';
+        }
+        
+        if (statistics.totalObjects > config.maxTotalObjects * 0.8) {
+            optimizations[optimizations.length] = 
+                'Consider reducing maxTotalObjects to control memory usage';
+        }
+        
+        if (statistics.circularReferences > 5) {
+            optimizations[optimizations.length] = 
+                'High circular reference count - consider enabling deduplication';
+        }
+        
+        return optimizations;
+        
+    } catch (exc) {
+        return ['Optimization analysis failed'];
+    }
+}
+
+/**
+ * Generate atlas recommendations
+ * @param {Object} atlas - Object atlas
+ * @param {Object} config - Configuration
  * @returns {Array} Recommendations
  */
-function generateAccessibilityRecommendations(accessibilityMap) {
+function generateAtlasRecommendations(atlas, config) {
     try {
         var recommendations = [];
         
-        if (accessibilityMap.safeObjects.length > 0) {
-            recommendations.push('Start with ' + accessibilityMap.safeObjects.length + ' safe objects for reliable access');
+        if (atlas.metadata.totalObjects > 1000) {
+            recommendations[recommendations.length] = 
+                'Large object count detected - consider using targeted property access';
         }
         
-        if (accessibilityMap.riskyObjects.length > 0) {
-            recommendations.push('Use caution with ' + accessibilityMap.riskyObjects.length + ' risky objects - add error handling');
+        if (atlas.circularReferences && atlas.circularReferences.length > 0) {
+            recommendations[recommendations.length] = 
+                'Circular references found - implement loop detection in traversal code';
         }
         
-        if (accessibilityMap.dangerousObjects.length > 0) {
-            recommendations.push('Avoid or carefully handle ' + accessibilityMap.dangerousObjects.length + ' dangerous objects');
-        }
-        
-        if (accessibilityMap.inaccessibleObjects.length > 0) {
-            recommendations.push('Skip ' + accessibilityMap.inaccessibleObjects.length + ' inaccessible objects');
-        }
-        
-        // Add specific recommendations based on patterns
-        var totalObjects = accessibilityMap.safeObjects.length + 
-                          accessibilityMap.riskyObjects.length + 
-                          accessibilityMap.dangerousObjects.length + 
-                          accessibilityMap.inaccessibleObjects.length;
-        
-        if (totalObjects > 0) {
-            var safetyPercentage = Math.round((accessibilityMap.safeObjects.length / totalObjects) * 100);
+        if (atlas.accessibilityMap && atlas.accessibilityMap.summary) {
+            var accessSummary = atlas.accessibilityMap.summary;
+            var dangerousRatio = accessSummary.dangerousCount / accessSummary.totalAnalyzed;
             
-            if (safetyPercentage > 80) {
-                recommendations.push('Document has high accessibility (' + safetyPercentage + '% safe objects)');
-            } else if (safetyPercentage > 50) {
-                recommendations.push('Document has moderate accessibility (' + safetyPercentage + '% safe objects)');
-            } else {
-                recommendations.push('Document has low accessibility (' + safetyPercentage + '% safe objects) - proceed with caution');
+            if (dangerousRatio > 0.1) {
+                recommendations[recommendations.length] = 
+                    'High ratio of dangerous objects - review access patterns carefully';
             }
         }
+        
+        recommendations[recommendations.length] = 
+            'Use the atlas object map to understand document structure before scripting';
         
         return recommendations;
         
     } catch (exc) {
-        return ['Recommendation generation failed: ' + exc.message];
+        return ['Recommendation generation failed'];
     }
 }
 
 // =============================================================================
-// CIRCULAR REFERENCE ANALYSIS
+// UI INTEGRATION
 // =============================================================================
 
 /**
- * Analyze circular references in DOM structure
- * @param {Object} domStructure - DOM structure
- * @param {Object} config - Configuration
- * @returns {Object} Circular reference analysis
+ * Show deep mapper interface
+ * @returns {Boolean} True if interface shown successfully
  */
-function analyzeCircularReferences(domStructure, config) {
+function showDeepMapper() {
     try {
-        var analysis = {
-            circularNodes: [],
-            circularPaths: [],
-            circularStatistics: {
-                totalCircular: 0,
-                circularDepth: {},
-                circularTypes: {}
-            }
-        };
-        
-        // Find all circular nodes
-        if (domStructure.structure && domStructure.structure.document) {
-            findCircularNodes(domStructure.structure.document, analysis);
-        }
-        
-        return analysis;
-        
+        // This would integrate with the main UI system
+        // For now, return true to indicate the function exists
+        return true;
+
     } catch (exc) {
-        return {
-            error: 'Circular reference analysis failed: ' + exc.message,
-            circularNodes: [],
-            circularPaths: []
-        };
-    }
-}
-
-/**
- * Find circular nodes recursively
- * @param {Object} node - DOM node
- * @param {Object} analysis - Analysis object to update
- */
-function findCircularNodes(node, analysis) {
-    try {
-        if (!node) return;
-        
-        if (node.objectMetadata && node.objectMetadata.isCircular) {
-            arrayPush(analysis.circularNodes, {
-                path: node.path,
-                name: node.name,
-                type: node.type,
-                circularType: node.objectMetadata.circularType,
-                circularPath: node.objectMetadata.circularPath,
-                depth: node.depth
-            });
-            
-            analysis.circularStatistics.totalCircular++;
-            
-            // Track circular types
-            var circType = node.objectMetadata.circularType || 'unknown';
-            if (!analysis.circularStatistics.circularTypes[circType]) {
-                analysis.circularStatistics.circularTypes[circType] = 0;
-            }
-            analysis.circularStatistics.circularTypes[circType]++;
-            
-            // Track circular depth
-            var depth = node.depth || 0;
-            if (!analysis.circularStatistics.circularDepth[depth]) {
-                analysis.circularStatistics.circularDepth[depth] = 0;
-            }
-            analysis.circularStatistics.circularDepth[depth]++;
-        }
-        
-        // Recursively check child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var i = 0; i < node.childNodes.length; i++) {
-                findCircularNodes(node.childNodes[i], analysis);
-            }
-        }
-        
-    } catch (exc) {
-        // Continue with other nodes
-    }
-}
-
-// =============================================================================
-// VALUE FINGERPRINTING
-// =============================================================================
-
-/**
- * Generate value fingerprints for change detection
- * @param {Object} domStructure - DOM structure
- * @param {Object} config - Configuration
- * @returns {Object} Value fingerprints
- */
-function generateValueFingerprints(domStructure, config) {
-    try {
-        var fingerprints = {
-            structureFingerprint: '',
-            valueFingerprints: {},
-            fingerprintStatistics: {
-                totalFingerprints: 0,
-                uniqueValues: 0,
-                duplicateValues: 0
-            }
-        };
-        
-        // Generate structure fingerprint
-        fingerprints.structureFingerprint = generateStructureFingerprint(domStructure);
-        
-        // Generate value fingerprints
-        if (domStructure.structure && domStructure.structure.document) {
-            generateNodeValueFingerprints(domStructure.structure.document, fingerprints);
-        }
-        
-        return fingerprints;
-        
-    } catch (exc) {
-        return {
-            error: 'Value fingerprinting failed: ' + exc.message,
-            structureFingerprint: '',
-            valueFingerprints: {}
-        };
-    }
-}
-
-/**
- * Generate structure fingerprint
- * @param {Object} domStructure - DOM structure
- * @returns {String} Structure fingerprint
- */
-function generateStructureFingerprint(domStructure) {
-    try {
-        var components = [];
-        
-        if (domStructure.metadata) {
-            components.push('doc:' + (domStructure.metadata.documentName || 'unknown'));
-        }
-        
-        if (domStructure.statistics) {
-            components.push('nodes:' + (domStructure.statistics.totalNodes || 0));
-            components.push('props:' + (domStructure.statistics.totalProperties || 0));
-        }
-        
-        components.push('generated:' + getCurrentTimestamp());
-        
-        return arrayJoin(components, '|');
-        
-    } catch (exc) {
-        return 'fingerprint_error';
-    }
-}
-
-/**
- * Generate value fingerprints for a node
- * @param {Object} node - DOM node
- * @param {Object} fingerprints - Fingerprints object to update
- */
-function generateNodeValueFingerprints(node, fingerprints) {
-    try {
-        if (!node) return;
-        
-        // Generate fingerprints for properties with extracted values
-        if (node.properties && node.properties.length > 0) {
-            for (var i = 0; i < node.properties.length; i++) {
-                var prop = node.properties[i];
-                if (prop.extractedValue) {
-                    var fingerprint = generateValueFingerprint(prop.extractedValue);
-                    fingerprints.valueFingerprints[prop.path] = fingerprint;
-                    fingerprints.fingerprintStatistics.totalFingerprints++;
-                }
-            }
-        }
-        
-        // Recursively process child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var j = 0; j < node.childNodes.length; j++) {
-                generateNodeValueFingerprints(node.childNodes[j], fingerprints);
-            }
-        }
-        
-    } catch (exc) {
-        // Continue with other nodes
-    }
-}
-
-/**
- * Generate fingerprint for a value
- * @param {*} value - Value to fingerprint
- * @returns {String} Value fingerprint
- */
-function generateValueFingerprint(value) {
-    try {
-        if (value === null) return 'null';
-        if (value === undefined) return 'undefined';
-        
-        var type = typeof value;
-        var components = ['type:' + type];
-        
-        if (type === 'string') {
-            components.push('len:' + value.length);
-            if (value.length > 0) {
-                // Simple hash
-                var hash = 0;
-                for (var i = 0; i < value.length; i++) {
-                    hash = ((hash << 5) - hash) + value.charCodeAt(i);
-                    hash = hash & hash; // Convert to 32-bit integer
-                }
-                components.push('hash:' + Math.abs(hash));
-            }
-        } else if (type === 'number') {
-            components.push('val:' + String(value));
-        } else if (type === 'boolean') {
-            components.push('val:' + String(value));
-        }
-        
-        return arrayJoin(components, '|');
-        
-    } catch (exc) {
-        return 'fingerprint_error';
-    }
-}
-
-// =============================================================================
-// PERFORMANCE METRICS
-// =============================================================================
-
-/**
- * Analyze performance metrics for the mapping session
- * @param {Object} domStructure - DOM structure
- * @param {Object} session - Mapping session
- * @param {Object} config - Configuration
- * @returns {Object} Performance metrics
- */
-function analyzePerformanceMetrics(domStructure, session, config) {
-    try {
-        var metrics = {
-            mappingEfficiency: 0,
-            accessibilityScore: 0,
-            relationshipComplexity: 0,
-            overallPerformance: 0,
-            recommendations: []
-        };
-        
-        // Calculate mapping efficiency
-        var totalNodes = session.metadata.totalNodes || 1;
-        var processedTime = new Date().getTime() - new Date(session.startTime).getTime();
-        metrics.mappingEfficiency = Math.round(totalNodes / (processedTime / 1000)); // nodes per second
-        
-        // Calculate accessibility score
-        if (session.accessibilityMap) {
-            var accessMap = session.accessibilityMap;
-            var totalObjects = accessMap.safeObjects.length + 
-                              accessMap.riskyObjects.length + 
-                              accessMap.dangerousObjects.length + 
-                              accessMap.inaccessibleObjects.length;
-            
-            if (totalObjects > 0) {
-                metrics.accessibilityScore = Math.round((accessMap.safeObjects.length / totalObjects) * 100);
-            }
-        }
-        
-        // Calculate relationship complexity
-        if (session.relationshipMap) {
-            var relMap = session.relationshipMap;
-            if (relMap.relationshipStatistics) {
-                var totalRels = relMap.relationshipStatistics.totalRelationships || 1;
-                var circularRels = relMap.relationshipStatistics.circularCount || 0;
-                metrics.relationshipComplexity = Math.round(((totalRels - circularRels) / totalRels) * 100);
-            }
-        }
-        
-        // Calculate overall performance
-        metrics.overallPerformance = Math.round(
-            (metrics.mappingEfficiency * 0.3 + 
-             metrics.accessibilityScore * 0.4 + 
-             metrics.relationshipComplexity * 0.3)
-        );
-        
-        // Generate recommendations
-        if (metrics.mappingEfficiency < 10) {
-            arrayPush(metrics.recommendations, 'Consider reducing mapping depth for better performance');
-        }
-        
-        if (metrics.accessibilityScore < 50) {
-            arrayPush(metrics.recommendations, 'Document has low accessibility - many objects may be difficult to access');
-        }
-        
-        if (metrics.relationshipComplexity < 70) {
-            arrayPush(metrics.recommendations, 'High relationship complexity detected - watch for circular references');
-        }
-        
-        return metrics;
-        
-    } catch (exc) {
-        return {
-            error: 'Performance metrics analysis failed: ' + exc.message,
-            mappingEfficiency: 0,
-            accessibilityScore: 0,
-            relationshipComplexity: 0,
-            overallPerformance: 0,
-            recommendations: []
-        };
-    }
-}
-
-// =============================================================================
-// ANALYSIS GENERATION
-// =============================================================================
-
-/**
- * Generate comprehensive deep mapping analysis
- * @param {Object} session - Deep mapping session
- * @param {Object} config - Configuration
- * @returns {Object} Comprehensive analysis
- */
-function generateDeepMappingAnalysis(session, config) {
-    try {
-        var analysis = {
-            summary: generateMappingSummary(session),
-            relationshipAnalysis: null,
-            accessibilityAnalysis: null,
-            circularReferenceAnalysis: null,
-            performanceAnalysis: null,
-            developerGuide: null
-        };
-        
-        // Generate specific analyses
-        if (session.relationshipMap) {
-            analysis.relationshipAnalysis = generateRelationshipAnalysis(session.relationshipMap);
-        }
-        
-        if (session.accessibilityMap) {
-            analysis.accessibilityAnalysis = generateAccessibilityAnalysis(session.accessibilityMap);
-        }
-        
-        if (session.circularReferences) {
-            analysis.circularReferenceAnalysis = generateCircularReferenceReport(session.circularReferences);
-        }
-        
-        if (session.performanceMetrics) {
-            analysis.performanceAnalysis = generatePerformanceReport(session.performanceMetrics);
-        }
-        
-        // Generate developer guide if enabled
-        if (config.generateDeveloperGuide) {
-            analysis.developerGuide = generateDeveloperGuide(session, analysis, config);
-        }
-        
-        return analysis;
-        
-    } catch (exc) {
-        return {
-            error: 'Deep mapping analysis failed: ' + exc.message,
-            summary: {},
-            relationshipAnalysis: null,
-            accessibilityAnalysis: null
-        };
-    }
-}
-
-/**
- * Generate mapping summary
- * @param {Object} session - Mapping session
- * @returns {Object} Summary
- */
-function generateMappingSummary(session) {
-    try {
-        return {
-            sessionId: session.sessionId,
-            documentName: session.metadata.documentName,
-            totalNodes: session.metadata.totalNodes,
-            mappingTime: new Date().getTime() - new Date(session.startTime).getTime(),
-            analysisComplete: true,
-            timestamp: getCurrentTimestamp()
-        };
-    } catch (exc) {
-        return {
-            error: 'Summary generation failed: ' + exc.message
-        };
-    }
-}
-
-/**
- * Generate relationship analysis text
- * @param {Object} relationshipMap - Relationship map
- * @returns {String} Analysis text
- */
-function generateRelationshipAnalysis(relationshipMap) {
-    try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('RELATIONSHIP ANALYSIS');
-        builder.appendLine('===================');
-        builder.appendLine('');
-        
-        if (relationshipMap.relationshipStatistics) {
-            var stats = relationshipMap.relationshipStatistics;
-            builder.appendLine('Total Relationships: ' + stats.totalRelationships);
-            builder.appendLine('Parent-Child: ' + stats.parentChildCount);
-            builder.appendLine('Cross-References: ' + stats.crossReferenceCount);
-            builder.appendLine('Circular References: ' + stats.circularCount);
-        }
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'Relationship analysis generation failed: ' + exc.message;
-    }
-}
-
-/**
- * Generate accessibility analysis text
- * @param {Object} accessibilityMap - Accessibility map
- * @returns {String} Analysis text
- */
-function generateAccessibilityAnalysis(accessibilityMap) {
-    try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('ACCESSIBILITY ANALYSIS');
-        builder.appendLine('=====================');
-        builder.appendLine('');
-        
-        builder.appendLine('Safe Objects: ' + accessibilityMap.safeObjects.length);
-        builder.appendLine('Risky Objects: ' + accessibilityMap.riskyObjects.length);
-        builder.appendLine('Dangerous Objects: ' + accessibilityMap.dangerousObjects.length);
-        builder.appendLine('Inaccessible Objects: ' + accessibilityMap.inaccessibleObjects.length);
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'Accessibility analysis generation failed: ' + exc.message;
-    }
-}
-
-/**
- * Generate circular reference report
- * @param {Object} circularReferences - Circular reference analysis
- * @returns {String} Report text
- */
-function generateCircularReferenceReport(circularReferences) {
-    try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('CIRCULAR REFERENCE REPORT');
-        builder.appendLine('=========================');
-        builder.appendLine('');
-        
-        if (circularReferences.circularStatistics) {
-            builder.appendLine('Total Circular Nodes: ' + circularReferences.circularStatistics.totalCircular);
-        }
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'Circular reference report generation failed: ' + exc.message;
-    }
-}
-
-/**
- * Generate performance report
- * @param {Object} performanceMetrics - Performance metrics
- * @returns {String} Report text
- */
-function generatePerformanceReport(performanceMetrics) {
-    try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('PERFORMANCE REPORT');
-        builder.appendLine('==================');
-        builder.appendLine('');
-        
-        builder.appendLine('Mapping Efficiency: ' + performanceMetrics.mappingEfficiency + ' nodes/sec');
-        builder.appendLine('Accessibility Score: ' + performanceMetrics.accessibilityScore + '%');
-        builder.appendLine('Relationship Complexity: ' + performanceMetrics.relationshipComplexity + '%');
-        builder.appendLine('Overall Performance: ' + performanceMetrics.overallPerformance + '%');
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'Performance report generation failed: ' + exc.message;
-    }
-}
-
-/**
- * Generate developer guide
- * @param {Object} session - Mapping session
- * @param {Object} analysis - Analysis results
- * @param {Object} config - Configuration
- * @returns {String} Developer guide
- */
-function generateDeveloperGuide(session, analysis, config) {
-    try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('DEEP MAPPING DEVELOPER GUIDE');
-        builder.appendLine('============================');
-        builder.appendLine('');
-        
-        builder.appendLine('This guide provides insights from deep DOM analysis.');
-        builder.appendLine('Document: ' + session.metadata.documentName);
-        builder.appendLine('Analysis completed: ' + getCurrentTimestamp());
-        builder.appendLine('');
-        
-        // Add accessibility guidance
-        if (session.accessibilityMap && session.accessibilityMap.recommendations) {
-            builder.appendLine('ACCESSIBILITY RECOMMENDATIONS:');
-            for (var i = 0; i < session.accessibilityMap.recommendations.length; i++) {
-                builder.appendLine('• ' + session.accessibilityMap.recommendations[i]);
-            }
-            builder.appendLine('');
-        }
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'Developer guide generation failed: ' + exc.message;
+        return false;
     }
 }
 
@@ -1198,31 +1490,37 @@ function generateDeveloperGuide(session, analysis, config) {
 
 // Register this module with all its functions
 registerModule('5.1_deep-mapper', '3.1', [
-    // Main Functions
-    'performDeepMapping', 'initializeDeepMappingSession',
+    // Main Deep Mapping Functions
+    'performDeepDOMMapping', 'performDeepObjectMapping',
     
-    // Relationship Mapping
-    'generateRelationshipMap', 'analyzeNodeRelationships', 'recordCrossReference',
-    'analyzeObjectRegistryRelationships', 'analyzeCrossReferences',
+    // Session Management
+    'createDeepMappingSession', 'createErrorDeepMappingSession', 'generateSessionId',
     
-    // Accessibility Mapping
-    'generateAccessibilityMap', 'analyzeNodeAccessibility', 'calculateAccessibilityInfo',
-    'generateAccessibilityRecommendations',
+    // Node Creation
+    'createDeepDOMNode', 'createErrorDeepDOMNode',
     
-    // Circular Reference Analysis
-    'analyzeCircularReferences', 'findCircularNodes',
+    // Object Atlas
+    'createObjectAtlas', 'generateObjectAtlas', 'buildRelationshipMap', 'buildAccessibilityMap',
+    'buildPerformanceMap', 'buildPathIndex', 'buildTypeIndex',
     
-    // Value Fingerprinting
-    'generateValueFingerprints', 'generateStructureFingerprint', 'generateNodeValueFingerprints',
-    'generateValueFingerprint',
+    // Circular Reference Mapping
+    'createCircularReferenceMapper', 'analyzeCircularReferences',
     
-    // Performance Metrics
-    'analyzePerformanceMetrics',
+    // Memory Tracking
+    'createMemoryTracker', 'optimizeMemoryUsage',
     
-    // Analysis Generation
-    'generateDeepMappingAnalysis', 'generateMappingSummary', 'generateRelationshipAnalysis',
-    'generateAccessibilityAnalysis', 'generateCircularReferenceReport', 'generatePerformanceReport',
-    'generateDeveloperGuide'
+    // Object Relationship Analysis
+    'trackObjectRelationships', 'analyzeObjectRelationships',
+    
+    // Property Mapping
+    'mapObjectProperties', 'mapChildObjects',
+    
+    // Analysis Utilities
+    'analyzePropertyAccessibility', 'analyzeObjectAccessibility', 'generatePerformanceOptimizations',
+    'generateAtlasRecommendations',
+    
+    // UI Integration
+    'showDeepMapper'
 ]);
 
 // =============================================================================

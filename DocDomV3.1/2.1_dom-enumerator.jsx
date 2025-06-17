@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Complete DOM structure discovery with object reference tracking
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1400 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -27,7 +27,12 @@ var DEFAULT_ENUMERATION_CONFIG = {
     skipDangerous: true,
     maxProperties: 5000,
     enableObjectTracking: true,
-    enableDuplicateDetection: true
+    enableDuplicateDetection: true,
+    enableCircularReferenceDetection: true,
+    includeAlternativeAccessPaths: true,
+    trackPropertySafety: true,
+    enableProgressReporting: false,
+    generateStatistics: true
 };
 
 // =============================================================================
@@ -36,14 +41,15 @@ var DEFAULT_ENUMERATION_CONFIG = {
 
 /**
  * Complete DOM enumeration with object tracking
- * @param {Object} documentObj - InDesign document to enumerate
+ * @param {Object} documentObject - InDesign document to enumerate
  * @param {Object} config - Enumeration configuration
  * @returns {Object} Complete DOMStructure object
  */
-function enumerateDocumentDOM(documentObj, config) {
+function enumerateDocumentDOM(documentObject, config) {
     var startTime = new Date().getTime();
     var enumerationConfig = config ? 
-        objectClone(config, 2) : objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
+        objectMerge(DEFAULT_ENUMERATION_CONFIG, config) : 
+        objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
     
     try {
         // Validate environment
@@ -52,7 +58,7 @@ function enumerateDocumentDOM(documentObj, config) {
             return createErrorDOMStructure(envValidation.error);
         }
         
-        var targetDocument = documentObj || envValidation.document;
+        var targetDocument = documentObject || envValidation.document;
         var docValidation = validateDocumentState(targetDocument);
         
         // Create DOM structure container
@@ -62,7 +68,7 @@ function enumerateDocumentDOM(documentObj, config) {
         domStructure.metadata = {
             timestamp: getCurrentTimestamp(),
             documentName: docValidation.metadata.name || 'Unknown Document',
-            version: '2.1.1',
+            version: '3.1',
             config: enumerationConfig,
             enhancedFeatures: {
                 objectTracking: enumerationConfig.enableObjectTracking,
@@ -78,533 +84,223 @@ function enumerateDocumentDOM(documentObj, config) {
             }
         };
         
-        // Set up tracking and monitoring
-        var timeoutChecker = createTimeoutChecker(enumerationConfig.timeoutMs);
-        var operationCounter = createOperationCounter(enumerationConfig.maxProperties);
-        var memoryMonitor = createMemoryMonitor();
+        // Add document validation warnings
+        if (docValidation.warnings && docValidation.warnings.length > 0) {
+            domStructure.metadata.warnings = docValidation.warnings;
+        }
         
-        memoryMonitor.checkpoint('enumeration_start');
+        // Initialize object registry for tracking
+        if (enumerationConfig.enableObjectTracking) {
+            domStructure.objectRegistry = {
+                references: {},
+                duplicateDetections: {},
+                circularReferences: [],
+                totalTracked: 0
+            };
+        }
         
-        // Progress reporting
-        var progressReporter = createProgressReporter('DOM Enumeration', enumerationConfig.maxProperties);
+        // Create progress reporter if enabled
+        var progressReporter = enumerationConfig.enableProgressReporting ? 
+            createProgressReporter() : null;
         
-        // Enumerate the document
-        var documentNode = enumerateObjectStructure(
-            targetDocument,
-            'document',
-            'document',
-            0,
-            enumerationConfig,
-            domStructure,
-            timeoutChecker,
-            operationCounter,
-            [],
-            [],
-            progressReporter
-        );
-        
-        domStructure.structure.document = documentNode;
-        
-        // Update statistics
-        domStructure.statistics = getDOMStatistics(domStructure);
-        domStructure.statistics.enumerationTime = new Date().getTime() - startTime;
-        domStructure.statistics.memoryReport = memoryMonitor.getReport();
+        // Enumerate document structure
+        domStructure.structure = {
+            document: enumerateObjectStructure(
+                targetDocument, 
+                'document', 
+                0, 
+                enumerationConfig, 
+                domStructure,
+                progressReporter
+            )
+        };
         
         // Post-processing
-        if (enumerationConfig.enableDuplicateDetection) {
-            progressReporter.updateProgress('Post-processing object references...');
+        if (enumerationConfig.includeAlternativeAccessPaths) {
             updateAlternativeAccessPaths(domStructure);
         }
         
-        memoryMonitor.checkpoint('enumeration_complete');
-        progressReporter.complete();
+        // Generate statistics
+        if (enumerationConfig.generateStatistics) {
+            domStructure.statistics = getDOMStatistics(domStructure);
+        }
+        
+        // Final metadata
+        domStructure.metadata.enumerationTime = new Date().getTime() - startTime;
+        domStructure.metadata.completed = true;
+        
+        if (progressReporter) {
+            progressReporter.complete();
+        }
         
         return domStructure;
         
     } catch (exc) {
-        return createErrorDOMStructure('Enumeration failed: ' + exc.message);
+        return createErrorDOMStructure('DOM enumeration failed: ' + exc.message);
     }
 }
 
 /**
- * Create progress reporter for user feedback
- * @param {String} operationName - Name of the operation
- * @param {Number} maxOperations - Maximum expected operations
- * @returns {Object} Progress reporter with update methods
- */
-function createProgressReporter(operationName, maxOperations) {
-    var reporter = {
-        operationName: operationName,
-        maxOperations: maxOperations || 1000,
-        currentOperation: 0,
-        lastReportTime: new Date().getTime(),
-        reportInterval: 2000 // Report every 2 seconds
-    };
-    
-    reporter.updateProgress = function(message, operationCount) {
-        try {
-            var now = new Date().getTime();
-            
-            if (operationCount !== undefined) {
-                this.currentOperation = operationCount;
-            } else {
-                this.currentOperation++;
-            }
-            
-            // Only report at intervals to avoid UI spam
-            if (now - this.lastReportTime >= this.reportInterval) {
-                var percentage = Math.min(100, Math.floor((this.currentOperation / this.maxOperations) * 100));
-                var statusMessage = this.operationName + ': ' + percentage + '%';
-                
-                if (message) {
-                    statusMessage += ' - ' + message;
-                }
-                
-                $.writeln(statusMessage);
-                this.lastReportTime = now;
-            }
-            
-        } catch (exc) {
-            // Silent failure for progress reporting
-        }
-    };
-    
-    reporter.complete = function() {
-        try {
-            $.writeln(this.operationName + ': Complete');
-        } catch (exc) {
-            // Silent failure
-        }
-    };
-    
-    return reporter;
-}
-
-/**
- * Recursive object enumeration with comprehensive tracking
- * @param {Object} targetObj - Object to enumerate
- * @param {String} objName - Name of the object
- * @param {String} objPath - Full dot path to object
- * @param {Number} depth - Current depth level
+ * Enumerate object structure recursively
+ * @param {Object} targetObject - Object to enumerate
+ * @param {String} objectPath - Current object path
+ * @param {Number} depth - Current recursion depth
  * @param {Object} config - Enumeration configuration
- * @param {Object} domStructure - DOM structure to populate
- * @param {Function} timeoutChecker - Timeout checking function
- * @param {Object} operationCounter - Operation counter
- * @param {Array} visitedObjects - Array of visited objects for circular detection
- * @param {Array} pathStack - Current path stack for circular detection
+ * @param {Object} domStructure - DOM structure container
  * @param {Object} progressReporter - Progress reporter
- * @returns {Object} DOMNode object
+ * @returns {Object} DOM node structure
  */
-function enumerateObjectStructure(targetObj, objName, objPath, depth, config, domStructure, 
-                                 timeoutChecker, operationCounter, visitedObjects, pathStack, progressReporter) {
+function enumerateObjectStructure(targetObject, objectPath, depth, config, domStructure, progressReporter) {
     try {
-        // Check timeout and operation limits
-        if (timeoutChecker() || operationCounter.isExceeded()) {
-            return createErrorDOMNode(objName, objPath, 'timeout_exceeded', depth);
-        }
-        
-        // Check depth limit
+        // Check depth and timeout limits
         if (depth >= config.maxDepth) {
-            return createErrorDOMNode(objName, objPath, 'max_depth_reached', depth);
+            return createDOMNode(objectPath, 'MaxDepthReached', 'limit', depth);
         }
         
-        // Check for null/undefined objects
-        if (!targetObj) {
-            return createErrorDOMNode(objName, objPath, 'null_object', depth);
+        if (!targetObject) {
+            return createDOMNode(objectPath, 'NullObject', 'null', depth);
         }
         
-        // Circular reference detection
-        if (detectCircularReference(targetObj, visitedObjects)) {
-            var circularNode = createDOMNode(objName, objPath, 'circular', depth, 'circular_' + generateUniqueID());
-            circularNode.objectMetadata.isCircular = true;
-            circularNode.objectMetadata.circularType = 'object_reference';
-            circularNode.objectMetadata.circularPath = objPath;
-            return circularNode;
+        // Check for circular references
+        if (config.enableCircularReferenceDetection) {
+            var circularRef = detectCircularReference(targetObject, objectPath, domStructure);
+            if (circularRef.isCircular) {
+                return createDOMNode(objectPath, 'CircularReference', 'circular', depth, circularRef.originalPath);
+            }
         }
         
-        // Register object reference
-        var objectId = registerObjectReference(targetObj, objPath, domStructure);
+        // Create DOM node for this object
+        var domNode = createDOMNode(objectPath, objectPath, typeof targetObject, depth);
         
-        // Create DOM node
-        var domNode = createDOMNode(objName, objPath, safeTypeOf(targetObj), depth, objectId);
+        // Generate object identity hash for tracking
+        if (config.enableObjectTracking) {
+            domNode.objectId = generateObjectIdentityHash(targetObject, objectPath);
+            registerObjectReference(domNode.objectId, targetObject, objectPath, domStructure);
+        }
         
-        // Add to visited objects for circular detection
-        var newVisitedObjects = arraySlice(visitedObjects, 0);
-        arrayPush(newVisitedObjects, targetObj);
-        
-        var newPathStack = arraySlice(pathStack, 0);
-        arrayPush(newPathStack, objPath);
+        // Report progress
+        if (progressReporter) {
+            progressReporter.reportProgress('Enumerating: ' + objectPath);
+        }
         
         // Enumerate properties
+        var propertyCount = 0;
+        var operationCount = 0;
+        
         try {
-            for (var propName in targetObj) {
-                operationCounter.increment();
-                progressReporter.updateProgress('Processing property: ' + propName);
-                
-                if (timeoutChecker() || operationCounter.isExceeded()) {
+            for (var propName in targetObject) {
+                // Check operation limits
+                operationCount++;
+                if (operationCount > config.maxProperties) {
+                    domNode.truncated = true;
+                    domNode.truncationReason = 'Property limit exceeded';
                     break;
                 }
                 
-                try {
-                    var propertyInfo = processProperty(
-                        targetObj, propName, objPath, depth, config,
-                        domStructure, timeoutChecker, operationCounter,
-                        newVisitedObjects, newPathStack, progressReporter
+                if (objectHasOwnProperty(targetObject, propName)) {
+                    var processed = processProperty(
+                        targetObject, 
+                        propName, 
+                        objectPath, 
+                        depth, 
+                        config, 
+                        domStructure, 
+                        domNode,
+                        []  // parentPaths for circular detection
                     );
                     
-                    if (propertyInfo) {
-                        if (propertyInfo.isMethod) {
-                            arrayPush(domNode.methods, propertyInfo);
-                        } else if (propertyInfo.isCollection) {
-                            arrayPush(domNode.collections, propertyInfo);
-                        } else {
-                            arrayPush(domNode.properties, propertyInfo);
-                        }
+                    if (processed) {
+                        propertyCount++;
                     }
-                    
-                } catch (propExc) {
-                    // Add error property
-                    var errorProp = createPropertyClassification(propName, 'error', objPath, null);
-                    errorProp.error = propExc.message;
-                    arrayPush(domNode.properties, errorProp);
                 }
             }
         } catch (enumExc) {
-            domNode.objectMetadata.enumerationError = enumExc.message;
+            domNode.enumerationError = 'Property enumeration failed: ' + enumExc.message;
         }
+        
+        domNode.propertyCount = propertyCount;
         
         return domNode;
         
     } catch (exc) {
-        return createErrorDOMNode(objName, objPath, 'enumeration_error: ' + exc.message, depth);
+        return createErrorDOMNode(objectPath, 'Enumeration error: ' + exc.message, depth);
     }
 }
 
 /**
- * Process individual property with enhanced safety
- * @param {Object} targetObj - Object containing the property
+ * Process property with object tracking and safety checks
+ * @param {Object} targetObject - Object containing property
  * @param {String} propName - Property name
- * @param {String} objPath - Current object path
+ * @param {String} objectPath - Object path
  * @param {Number} depth - Current depth
  * @param {Object} config - Configuration
  * @param {Object} domStructure - DOM structure
- * @param {Function} timeoutChecker - Timeout checker
- * @param {Object} operationCounter - Operation counter
- * @param {Array} visitedObjects - Visited objects array
- * @param {Array} pathStack - Path stack
- * @param {Object} progressReporter - Progress reporter
- * @returns {Object} Property information or null
+ * @param {Object} domNode - Current DOM node
+ * @param {Array} parentPaths - Parent paths for circular detection
+ * @returns {Boolean} True if processed successfully
  */
-function processProperty(targetObj, propName, objPath, depth, config, domStructure,
-                        timeoutChecker, operationCounter, visitedObjects, pathStack, progressReporter) {
+function processProperty(targetObject, propName, objectPath, depth, config, domStructure, domNode, parentPaths) {
     try {
         // Skip dangerous properties if configured
-        if (config.skipDangerous && !isPropertySafe(propName)) {
-            return null;
+        if (config.skipDangerous && isDangerousProperty(propName)) {
+            return true;
         }
         
-        var propValue;
-        var propType;
-        var propertyPath = objPath + '.' + propName;
+        // Skip ES3 reserved words
+        if (isReservedWord(propName)) {
+            return true;
+        }
         
-        // Safe property access
-        try {
-            propValue = targetObj[propName];
-            propType = safeTypeOf(propValue);
-        } catch (accessExc) {
-            // Create error property
-            var errorProp = createPropertyClassification(propName, 'error', objPath, null);
-            errorProp.accessError = accessExc.message;
-            return errorProp;
+        // Get property type safely
+        var propertyType = safeTypeCheck(targetObject, propName);
+        if (propertyType === 'error') {
+            return true;
         }
         
         // Create property classification
-        var propInfo = createPropertyClassification(propName, propType, objPath, null);
+        var propClassification = createPropertyClassification(propName, propertyType, objectPath, null);
         
-        // Handle object properties with recursive enumeration
-        if (propType === 'object' && propValue && depth < config.maxDepth - 1) {
-            try {
-                var childNode = enumerateObjectStructure(
-                    propValue, propName, propertyPath, depth + 1, config,
-                    domStructure, timeoutChecker, operationCounter,
-                    visitedObjects, pathStack, progressReporter
-                );
-                
-                if (childNode) {
-                    if (!domStructure.structure.childNodes) {
-                        domStructure.structure.childNodes = [];
-                    }
-                    arrayPush(domStructure.structure.childNodes, childNode);
-                    propInfo.objectId = childNode.objectId;
-                }
-                
-            } catch (childExc) {
-                propInfo.childError = childExc.message;
-            }
+        // Add safety classification if enabled
+        if (config.trackPropertySafety) {
+            propClassification.safetyLevel = getPropertySafetyLevel(propName);
         }
         
-        return propInfo;
-        
-    } catch (exc) {
-        return createPropertyClassification(propName, 'error', objPath, null);
-    }
-}
-
-// =============================================================================
-// DATA STRUCTURE CREATION
-// =============================================================================
-
-/**
- * Create base DOM structure container
- * @returns {Object} Empty DOMStructure object
- */
-function createDOMStructure() {
-    return {
-        metadata: {},
-        statistics: {
-            totalNodes: 0,
-            totalProperties: 0,
-            objectReferences: 0,
-            duplicateObjects: 0,
-            circularReferences: 0,
-            enumerationTime: 0
-        },
-        structure: {
-            document: null
-        },
-        objectRegistry: {
-            references: {},
-            accessPaths: {},
-            duplicateDetections: {}
-        }
-    };
-}
-
-/**
- * Create DOM node with object reference tracking
- * @param {String} name - Object name
- * @param {String} path - Full dot path
- * @param {String} objType - Object type
- * @param {Number} depth - Nesting level
- * @param {String} objectId - Unique object identifier
- * @returns {Object} DOMNode object
- */
-function createDOMNode(name, path, objType, depth, objectId) {
-    return {
-        name: name,
-        path: path,
-        type: objType,
-        depth: depth,
-        objectId: objectId,
-        properties: [],
-        collections: [],
-        methods: [],
-        childNodes: [],
-        alternativeAccessPaths: [],
-        objectMetadata: {
-            isCircular: false,
-            circularType: '',
-            circularPath: '',
-            referenceCount: 0,
-            firstSeen: getCurrentTimestamp()
-        }
-    };
-}
-
-/**
- * Create property classification with value storage
- * @param {String} propName - Property name
- * @param {String} propType - Property type
- * @param {String} objPath - Object path
- * @param {String} objectId - Object ID if property references an object
- * @returns {Object} PropertyClassification object with value storage
- */
-function createPropertyClassification(propName, propType, objPath, objectId) {
-    return {
-        name: propName,
-        type: propType,
-        safetyLevel: classifyPropertySafety(propName, propType),
-        isCollection: isLikelyCollection(propName, propType),
-        isMethod: propType === 'function',
-        path: objPath + '.' + propName,
-        objectId: objectId || null,
-        alternativeAccessPaths: [],
-        
-        // Value storage for extraction phase
-        extractedValue: null,
-        valueFingerprint: null,
-        lastExtracted: null,
-        extractionMetadata: null
-    };
-}
-
-/**
- * Create error DOM node for failed enumeration
- * @param {String} name - Object name
- * @param {String} path - Object path
- * @param {String} errorType - Type of error
- * @param {Number} depth - Current depth
- * @returns {Object} Error DOMNode
- */
-function createErrorDOMNode(name, path, errorType, depth) {
-    var errorNode = createDOMNode(name, path, 'error', depth, 'error_' + generateUniqueID());
-    errorNode.objectMetadata.errorType = errorType;
-    errorNode.objectMetadata.errorTime = getCurrentTimestamp();
-    return errorNode;
-}
-
-/**
- * Create error DOM structure for failed enumeration
- * @param {String} errorMessage - Error message
- * @returns {Object} Error DOMStructure
- */
-function createErrorDOMStructure(errorMessage) {
-    var errorStructure = createDOMStructure();
-    errorStructure.metadata.error = errorMessage;
-    errorStructure.metadata.timestamp = getCurrentTimestamp();
-    return errorStructure;
-}
-
-// =============================================================================
-// OBJECT REFERENCE MANAGEMENT
-// =============================================================================
-
-/**
- * Generate object identity hash for reference tracking
- * @param {Object} targetObj - Object to hash
- * @param {String} objPath - Object path
- * @returns {String} Object identity hash
- */
-function generateObjectIdentityHash(targetObj, objPath) {
-    try {
-        var components = [];
-        
-        // Add type component
-        components.push('type:' + typeof targetObj);
-        
-        // Add path component
-        if (objPath) {
-            components.push('path:' + objPath);
-        }
-        
-        // Add timestamp component for uniqueness
-        components.push('time:' + new Date().getTime());
-        
-        return arrayJoin(components, '|');
-        
-    } catch (exc) {
-        return 'hash_error_' + Math.random();
-    }
-}
-
-/**
- * Register object reference in DOM structure
- * @param {Object} targetObj - Object to register
- * @param {String} objPath - Object path
- * @param {Object} domStructure - DOM structure
- * @returns {String} Object ID
- */
-function registerObjectReference(targetObj, objPath, domStructure) {
-    try {
-        var objectId = generateObjectIdentityHash(targetObj, objPath);
-        
-        if (!domStructure.objectRegistry.references[objectId]) {
-            domStructure.objectRegistry.references[objectId] = {
-                object: targetObj,
-                paths: [objPath],
-                firstSeen: getCurrentTimestamp(),
-                referenceCount: 1
-            };
+        // Add to appropriate collection
+        if (propClassification.isMethod) {
+            domNode.methods[domNode.methods.length] = propClassification;
+        } else if (propClassification.isCollection) {
+            domNode.collections[domNode.collections.length] = propClassification;
         } else {
-            arrayPush(domStructure.objectRegistry.references[objectId].paths, objPath);
-            domStructure.objectRegistry.references[objectId].referenceCount++;
-            
-            // Mark as duplicate
-            domStructure.objectRegistry.duplicateDetections[objectId] = true;
+            domNode.properties[domNode.properties.length] = propClassification;
         }
         
-        return objectId;
-        
-    } catch (exc) {
-        return 'registration_error_' + generateUniqueID();
-    }
-}
-
-/**
- * Check for object duplication
- * @param {Object} targetObj - Object to check
- * @param {Object} domStructure - DOM structure
- * @returns {Boolean} True if object is duplicate
- */
-function checkObjectDuplication(targetObj, domStructure) {
-    try {
-        for (var objId in domStructure.objectRegistry.references) {
-            if (objectHasOwnProperty(domStructure.objectRegistry.references, objId)) {
-                var ref = domStructure.objectRegistry.references[objId];
-                if (ref.object === targetObj) {
-                    return true;
+        // If property is an object, recursively enumerate it
+        if (propertyType === 'object' && depth < config.maxDepth - 1) {
+            try {
+                var childObject = targetObject[propName];
+                if (childObject) {
+                    var childPath = objectPath + '.' + propName;
+                    
+                    // Check for circular references in parent chain
+                    var newParentPaths = arraySlice(parentPaths, 0);
+                    newParentPaths[newParentPaths.length] = objectPath;
+                    
+                    var childNode = enumerateObjectStructure(
+                        childObject, 
+                        childPath, 
+                        depth + 1, 
+                        config, 
+                        domStructure,
+                        null // No progress reporter for child nodes
+                    );
+                    
+                    if (childNode) {
+                        domNode.childNodes[domNode.childNodes.length] = childNode;
+                    }
                 }
-            }
-        }
-        return false;
-    } catch (exc) {
-        return false;
-    }
-}
-
-// =============================================================================
-// CIRCULAR REFERENCE DETECTION
-// =============================================================================
-
-/**
- * Detect circular reference
- * @param {Object} targetObj - Object to check
- * @param {Array} visitedObjects - Array of visited objects
- * @returns {Boolean} True if circular reference detected
- */
-function detectCircularReference(targetObj, visitedObjects) {
-    try {
-        if (!targetObj || typeof targetObj !== 'object') {
-            return false;
-        }
-        
-        for (var i = 0; i < visitedObjects.length; i++) {
-            if (visitedObjects[i] === targetObj) {
-                return true;
-            }
-        }
-        
-        return false;
-        
-    } catch (exc) {
-        return false;
-    }
-}
-
-// =============================================================================
-// SAFETY AND CLASSIFICATION FUNCTIONS
-// =============================================================================
-
-/**
- * Check if property name is safe to access
- * @param {String} propName - Property name
- * @returns {Boolean} True if safe
- */
-function isPropertySafe(propName) {
-    try {
-        if (typeof propName !== 'string') return false;
-        
-        var dangerousProps = [
-            '__proto__', 'prototype', 'constructor', '__defineGetter__', 
-            '__defineSetter__', '__lookupGetter__', '__lookupSetter__',
-            'eval', 'toString', 'valueOf'
-        ];
-        
-        var lowerProp = stringToLowerCase(propName);
-        
-        for (var i = 0; i < dangerousProps.length; i++) {
-            if (lowerProp === dangerousProps[i]) {
-                return false;
+            } catch (childExc) {
+                // Continue processing other properties
+                propClassification.childEnumerationError = childExc.message;
             }
         }
         
@@ -615,32 +311,574 @@ function isPropertySafe(propName) {
     }
 }
 
+// =============================================================================
+// DATA STRUCTURE CREATION
+// =============================================================================
+
+/**
+ * Create DOM structure container
+ * @returns {Object} Empty DOM structure
+ */
+function createDOMStructure() {
+    try {
+        return {
+            metadata: {},
+            structure: {},
+            statistics: {},
+            objectRegistry: null,
+            version: '3.1',
+            created: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            error: 'DOM structure creation failed: ' + exc.message,
+            created: getCurrentTimestamp()
+        };
+    }
+}
+
+/**
+ * Create DOM node with enhanced features
+ * @param {String} path - Node path
+ * @param {String} name - Node name
+ * @param {String} nodeType - Node type
+ * @param {Number} depth - Node depth
+ * @param {String} additionalInfo - Additional information
+ * @returns {Object} DOM node
+ */
+function createDOMNode(path, name, nodeType, depth, additionalInfo) {
+    try {
+        var node = {
+            path: path || 'unknown',
+            name: name || 'unknown',
+            type: nodeType || 'unknown',
+            depth: depth || 0,
+            properties: [],
+            collections: [],
+            methods: [],
+            childNodes: [],
+            objectId: null,
+            alternativeAccessPaths: [],
+            created: getCurrentTimestamp()
+        };
+        
+        if (additionalInfo) {
+            node.additionalInfo = additionalInfo;
+        }
+        
+        return node;
+        
+    } catch (exc) {
+        return {
+            path: path || 'error',
+            name: 'CreationError',
+            type: 'error',
+            depth: depth || 0,
+            error: exc.message,
+            properties: [],
+            collections: [],
+            methods: [],
+            childNodes: []
+        };
+    }
+}
+
+/**
+ * Create property classification object
+ * @param {String} propName - Property name
+ * @param {String} propType - Property type
+ * @param {String} parentPath - Parent object path
+ * @param {*} propValue - Property value (optional)
+ * @returns {Object} Property classification
+ */
+function createPropertyClassification(propName, propType, parentPath, propValue) {
+    try {
+        var fullPath = parentPath ? parentPath + '.' + propName : propName;
+        
+        return {
+            name: propName,
+            type: propType,
+            path: fullPath,
+            isMethod: propType === 'function',
+            isCollection: isLikelyCollection(propName),
+            isProperty: propType !== 'function' && !isLikelyCollection(propName),
+            safetyLevel: 'unknown',
+            created: getCurrentTimestamp()
+        };
+        
+    } catch (exc) {
+        return {
+            name: propName || 'unknown',
+            type: 'error',
+            path: fullPath || 'unknown',
+            isMethod: false,
+            isCollection: false,
+            isProperty: false,
+            error: exc.message
+        };
+    }
+}
+
+/**
+ * Create error DOM node
+ * @param {String} path - Node path
+ * @param {String} errorMessage - Error message
+ * @param {Number} depth - Node depth
+ * @returns {Object} Error DOM node
+ */
+function createErrorDOMNode(path, errorMessage, depth) {
+    try {
+        return {
+            path: path || 'error_path',
+            name: 'ErrorNode',
+            type: 'error',
+            depth: depth || 0,
+            error: errorMessage || 'Unknown error',
+            properties: [],
+            collections: [],
+            methods: [],
+            childNodes: [],
+            created: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            path: 'critical_error',
+            name: 'CriticalError',
+            type: 'error',
+            error: 'Error node creation failed',
+            properties: [],
+            collections: [],
+            methods: [],
+            childNodes: []
+        };
+    }
+}
+
+/**
+ * Create error DOM structure
+ * @param {String} errorMessage - Error message
+ * @returns {Object} Error DOM structure
+ */
+function createErrorDOMStructure(errorMessage) {
+    try {
+        return {
+            metadata: {
+                error: errorMessage || 'Unknown error',
+                timestamp: getCurrentTimestamp(),
+                version: '3.1',
+                completed: false
+            },
+            structure: {
+                document: createErrorDOMNode('document', errorMessage, 0)
+            },
+            statistics: {
+                totalNodes: 1,
+                totalProperties: 0,
+                enumerationSuccess: false
+            }
+        };
+    } catch (exc) {
+        return {
+            error: 'Critical DOM structure creation failure',
+            timestamp: getCurrentTimestamp()
+        };
+    }
+}
+
+// =============================================================================
+// OBJECT REFERENCE MANAGEMENT
+// =============================================================================
+
+/**
+ * Generate object identity hash
+ * @param {Object} targetObject - Object to hash
+ * @param {String} path - Object path
+ * @returns {String} Identity hash
+ */
+function generateObjectIdentityHash(targetObject, path) {
+    try {
+        var hashComponents = [];
+        
+        hashComponents[hashComponents.length] = 'path:' + (path || 'unknown');
+        hashComponents[hashComponents.length] = 'type:' + typeof targetObject;
+        
+        if (targetObject && typeof targetObject === 'object') {
+            if (targetObject.constructor && targetObject.constructor.name) {
+                hashComponents[hashComponents.length] = 'constructor:' + targetObject.constructor.name;
+            }
+            
+            if (typeof targetObject.length === 'number') {
+                hashComponents[hashComponents.length] = 'length:' + targetObject.length;
+            }
+            
+            hashComponents[hashComponents.length] = 'keys:' + countObjectKeys(targetObject);
+        }
+        
+        hashComponents[hashComponents.length] = 'time:' + (new Date().getTime());
+        
+        return arrayJoin(hashComponents, '|');
+        
+    } catch (exc) {
+        return 'hash_error:' + (path || 'unknown') + ':' + (new Date().getTime());
+    }
+}
+
+/**
+ * Register object reference in DOM structure
+ * @param {String} objectId - Object ID
+ * @param {Object} targetObject - Object to register
+ * @param {String} path - Object path
+ * @param {Object} domStructure - DOM structure
+ */
+function registerObjectReference(objectId, targetObject, path, domStructure) {
+    try {
+        if (!domStructure.objectRegistry) {
+            return;
+        }
+        
+        if (domStructure.objectRegistry.references[objectId]) {
+            // Object already registered - potential duplicate
+            if (!domStructure.objectRegistry.duplicateDetections[objectId]) {
+                domStructure.objectRegistry.duplicateDetections[objectId] = [];
+            }
+            domStructure.objectRegistry.duplicateDetections[objectId][domStructure.objectRegistry.duplicateDetections[objectId].length] = path;
+        } else {
+            domStructure.objectRegistry.references[objectId] = {
+                object: targetObject,
+                firstPath: path,
+                registeredAt: getCurrentTimestamp()
+            };
+            domStructure.objectRegistry.totalTracked++;
+        }
+        
+    } catch (exc) {
+        // Silent failure for object registration
+    }
+}
+
+/**
+ * Check for object duplication
+ * @param {String} objectId - Object ID to check
+ * @param {Object} domStructure - DOM structure
+ * @returns {Object} Duplication check result
+ */
+function checkObjectDuplication(objectId, domStructure) {
+    var result = {
+        isDuplicate: false,
+        originalPath: null,
+        duplicatePaths: []
+    };
+    
+    try {
+        if (!domStructure.objectRegistry || !objectId) {
+            return result;
+        }
+        
+        if (domStructure.objectRegistry.references[objectId]) {
+            result.originalPath = domStructure.objectRegistry.references[objectId].firstPath;
+        }
+        
+        if (domStructure.objectRegistry.duplicateDetections[objectId]) {
+            result.isDuplicate = true;
+            result.duplicatePaths = domStructure.objectRegistry.duplicateDetections[objectId];
+        }
+        
+        return result;
+        
+    } catch (exc) {
+        return result;
+    }
+}
+
+// =============================================================================
+// CIRCULAR REFERENCE DETECTION
+// =============================================================================
+
+/**
+ * Detect circular reference
+ * @param {Object} targetObject - Object to check
+ * @param {String} currentPath - Current path
+ * @param {Object} domStructure - DOM structure
+ * @returns {Object} Circular reference result
+ */
+function detectCircularReference(targetObject, currentPath, domStructure) {
+    var result = {
+        isCircular: false,
+        originalPath: null,
+        depth: 0
+    };
+    
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            return result;
+        }
+        
+        if (!domStructure.objectRegistry) {
+            return result;
+        }
+        
+        // Check if object is already being processed
+        for (var refId in domStructure.objectRegistry.references) {
+            if (objectHasOwnProperty(domStructure.objectRegistry.references, refId)) {
+                var refData = domStructure.objectRegistry.references[refId];
+                if (refData.object === targetObject) {
+                    result.isCircular = true;
+                    result.originalPath = refData.firstPath;
+                    
+                    // Add to circular references list
+                    var circularInfo = {
+                        originalPath: refData.firstPath,
+                        circularPath: currentPath,
+                        detectedAt: getCurrentTimestamp()
+                    };
+                    
+                    domStructure.objectRegistry.circularReferences[domStructure.objectRegistry.circularReferences.length] = circularInfo;
+                    
+                    break;
+                }
+            }
+        }
+        
+        return result;
+        
+    } catch (exc) {
+        return result;
+    }
+}
+
+// =============================================================================
+// POST-PROCESSING
+// =============================================================================
+
+/**
+ * Update alternative access paths in DOM structure
+ * @param {Object} domStructure - DOM structure to update
+ */
+function updateAlternativeAccessPaths(domStructure) {
+    try {
+        if (!domStructure.structure || !domStructure.structure.document) {
+            return;
+        }
+        
+        updateNodeAlternativePaths(domStructure.structure.document, domStructure);
+        
+    } catch (exc) {
+        // Silent failure for post-processing
+    }
+}
+
+/**
+ * Update alternative paths for a specific node
+ * @param {Object} domNode - DOM node to update
+ * @param {Object} domStructure - DOM structure
+ */
+function updateNodeAlternativePaths(domNode, domStructure) {
+    try {
+        if (!domNode || !domStructure.objectRegistry) {
+            return;
+        }
+        
+        // Check for duplicate objects that provide alternative access paths
+        if (domNode.objectId) {
+            var duplicationCheck = checkObjectDuplication(domNode.objectId, domStructure);
+            if (duplicationCheck.isDuplicate) {
+                domNode.alternativeAccessPaths = arrayConcat(
+                    domNode.alternativeAccessPaths, 
+                    duplicationCheck.duplicatePaths
+                );
+            }
+        }
+        
+        // Process child nodes recursively
+        if (domNode.childNodes) {
+            for (var i = 0; i < domNode.childNodes.length; i++) {
+                updateNodeAlternativePaths(domNode.childNodes[i], domStructure);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue processing
+    }
+}
+
+// =============================================================================
+// ANALYSIS FUNCTIONS
+// =============================================================================
+
+/**
+ * Get DOM statistics
+ * @param {Object} domStructure - DOM structure to analyze
+ * @returns {Object} Statistics object
+ */
+function getDOMStatistics(domStructure) {
+    try {
+        var stats = {
+            totalNodes: 0,
+            totalProperties: 0,
+            totalCollections: 0,
+            totalMethods: 0,
+            maxDepth: 0,
+            objectsTracked: 0,
+            duplicateObjects: 0,
+            circularReferences: 0,
+            enumerationSuccess: true,
+            generatedAt: getCurrentTimestamp()
+        };
+        
+        if (domStructure.structure && domStructure.structure.document) {
+            countNodeStatistics(domStructure.structure.document, stats);
+        }
+        
+        // Add object registry statistics
+        if (domStructure.objectRegistry) {
+            stats.objectsTracked = domStructure.objectRegistry.totalTracked || 0;
+            stats.duplicateObjects = countObjectKeys(domStructure.objectRegistry.duplicateDetections || {});
+            stats.circularReferences = domStructure.objectRegistry.circularReferences ? 
+                domStructure.objectRegistry.circularReferences.length : 0;
+        }
+        
+        return stats;
+        
+    } catch (exc) {
+        return {
+            totalNodes: 0,
+            totalProperties: 0,
+            enumerationSuccess: false,
+            error: 'Statistics generation failed: ' + exc.message,
+            generatedAt: getCurrentTimestamp()
+        };
+    }
+}
+
+/**
+ * Count statistics for a DOM node recursively
+ * @param {Object} domNode - DOM node to count
+ * @param {Object} stats - Statistics object to update
+ */
+function countNodeStatistics(domNode, stats) {
+    try {
+        if (!domNode || !stats) {
+            return;
+        }
+        
+        stats.totalNodes++;
+        
+        if (domNode.depth > stats.maxDepth) {
+            stats.maxDepth = domNode.depth;
+        }
+        
+        if (domNode.properties) {
+            stats.totalProperties += domNode.properties.length;
+        }
+        
+        if (domNode.collections) {
+            stats.totalCollections += domNode.collections.length;
+        }
+        
+        if (domNode.methods) {
+            stats.totalMethods += domNode.methods.length;
+        }
+        
+        // Process child nodes
+        if (domNode.childNodes) {
+            for (var i = 0; i < domNode.childNodes.length; i++) {
+                countNodeStatistics(domNode.childNodes[i], stats);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue counting
+    }
+}
+
+/**
+ * Find objects with multiple access paths
+ * @param {Object} domStructure - DOM structure to analyze
+ * @returns {Array} Objects with multiple paths
+ */
+function findObjectsWithMultiplePaths(domStructure) {
+    try {
+        var multiPathObjects = [];
+        
+        if (!domStructure.objectRegistry || !domStructure.objectRegistry.duplicateDetections) {
+            return multiPathObjects;
+        }
+        
+        for (var objectId in domStructure.objectRegistry.duplicateDetections) {
+            if (objectHasOwnProperty(domStructure.objectRegistry.duplicateDetections, objectId)) {
+                var duplicatePaths = domStructure.objectRegistry.duplicateDetections[objectId];
+                var originalPath = domStructure.objectRegistry.references[objectId] ? 
+                    domStructure.objectRegistry.references[objectId].firstPath : 'unknown';
+                
+                var allPaths = [originalPath];
+                allPaths = arrayConcat(allPaths, duplicatePaths);
+                
+                multiPathObjects[multiPathObjects.length] = {
+                    objectId: objectId,
+                    name: originalPath,
+                    alternativeAccessPaths: allPaths,
+                    pathCount: allPaths.length
+                };
+            }
+        }
+        
+        return multiPathObjects;
+        
+    } catch (exc) {
+        return [];
+    }
+}
+
+// =============================================================================
+// PROPERTY CLASSIFICATION
+// =============================================================================
+
 /**
  * Classify property safety level
  * @param {String} propName - Property name
  * @param {String} propType - Property type
- * @returns {String} Safety level
+ * @returns {String} Safety classification
  */
 function classifyPropertySafety(propName, propType) {
     try {
-        if (!isPropertySafe(propName)) return 'dangerous';
-        if (propType === 'function') return 'method';
-        if (propType === 'object') return 'complex';
+        if (isDangerousProperty(propName)) {
+            return 'dangerous';
+        }
+        
+        if (isReservedWord(propName)) {
+            return 'reserved';
+        }
+        
+        if (propType === 'function') {
+            return 'method';
+        }
+        
+        var cautionProperties = [
+            'parent', 'document', 'application', 'activeDocument',
+            'selection', 'preferences', 'menuActions'
+        ];
+        
+        if (arrayIndexOf(cautionProperties, propName) !== -1) {
+            return 'caution';
+        }
+        
         return 'safe';
+        
     } catch (exc) {
         return 'unknown';
     }
 }
 
 /**
- * Check if property is likely a collection
- * @param {String} propName - Property name
- * @param {String} propType - Property type
- * @returns {Boolean} True if likely collection
+ * Check if property name suggests it's a collection
+ * @param {String} propName - Property name to check
+ * @returns {Boolean} True if likely a collection
  */
-function isLikelyCollection(propName, propType) {
+function isLikelyCollection(propName) {
     try {
-        if (propType !== 'object') return false;
+        if (typeof propName !== 'string') {
+            return false;
+        }
         
         var collectionIndicators = [
             'items', 'pages', 'layers', 'stories', 'textFrames',
@@ -665,157 +903,47 @@ function isLikelyCollection(propName, propType) {
 }
 
 // =============================================================================
-// POST-PROCESSING FUNCTIONS
+// UTILITIES
 // =============================================================================
 
 /**
- * Update alternative access paths for duplicate objects
- * @param {Object} domStructure - DOM structure
+ * Create progress reporter
+ * @returns {Object} Progress reporter object
  */
-function updateAlternativeAccessPaths(domStructure) {
+function createProgressReporter() {
     try {
-        for (var objectId in domStructure.objectRegistry.duplicateDetections) {
-            if (objectHasOwnProperty(domStructure.objectRegistry.duplicateDetections, objectId)) {
-                var ref = domStructure.objectRegistry.references[objectId];
-                if (ref && ref.paths.length > 1) {
-                    // Update DOM nodes with alternative paths
-                    updateNodeAlternativePaths(domStructure.structure.document, objectId, ref.paths);
-                    domStructure.statistics.duplicateObjects++;
+        return {
+            startTime: new Date().getTime(),
+            itemsProcessed: 0,
+            
+            reportProgress: function(message) {
+                try {
+                    this.itemsProcessed++;
+                    if (this.itemsProcessed % 100 === 0) {
+                        $.writeln('[DOM Enumerator] Progress: ' + message + 
+                                 ' (Items: ' + this.itemsProcessed + ')');
+                    }
+                } catch (exc) {
+                    // Silent failure
+                }
+            },
+            
+            complete: function() {
+                try {
+                    var elapsed = new Date().getTime() - this.startTime;
+                    $.writeln('[DOM Enumerator] Completed enumeration of ' + 
+                             this.itemsProcessed + ' items in ' + elapsed + 'ms');
+                } catch (exc) {
+                    // Silent failure
                 }
             }
-        }
-        
-    } catch (exc) {
-        // Silent failure
-    }
-}
-
-/**
- * Recursively update alternative paths for nodes
- * @param {Object} node - DOM node to check
- * @param {String} objectId - Object ID to match
- * @param {Array} alternativePaths - Alternative paths array
- */
-function updateNodeAlternativePaths(node, objectId, alternativePaths) {
-    try {
-        if (!node) {
-            return;
-        }
-        
-        if (node.objectId === objectId) {
-            node.alternativeAccessPaths = arraySlice(alternativePaths, 0);
-        }
-        
-        // Recursively update child nodes
-        if (node.childNodes && node.childNodes.length) {
-            for (var i = 0; i < node.childNodes.length; i++) {
-                updateNodeAlternativePaths(node.childNodes[i], objectId, alternativePaths);
-            }
-        }
-        
-    } catch (exc) {
-        // Continue processing
-    }
-}
-
-// =============================================================================
-// ANALYSIS FUNCTIONS - ES3 COMPLIANCE
-// =============================================================================
-
-/**
- * Get enumeration statistics - ES3 compliant
- * @param {Object} domStructure - DOM structure
- * @returns {Object} Statistics with object tracking data
- */
-function getDOMStatistics(domStructure) {
-    try {
-        var stats = {
-            totalNodes: 0,
-            totalProperties: 0,
-            objectReferences: 0,
-            duplicateObjects: 0,
-            circularReferences: 0
         };
-        
-        if (domStructure.structure && domStructure.structure.document) {
-            countNodeStatistics(domStructure.structure.document, stats);
-        }
-        
-        // Add object registry statistics
-        stats.objectReferences = countObjectKeys(domStructure.objectRegistry.references);
-        stats.duplicateObjects = countObjectKeys(domStructure.objectRegistry.duplicateDetections);
-        
-        return stats;
         
     } catch (exc) {
         return {
-            totalNodes: 0,
-            totalProperties: 0,
-            objectReferences: 0,
-            duplicateObjects: 0,
-            circularReferences: 0,
-            error: exc.message
+            reportProgress: function() { },
+            complete: function() { }
         };
-    }
-}
-
-/**
- * Recursively count node statistics
- * @param {Object} node - DOM node
- * @param {Object} stats - Statistics object to update
- */
-function countNodeStatistics(node, stats) {
-    try {
-        if (!node || !stats) return;
-        
-        stats.totalNodes++;
-        
-        if (node.properties) stats.totalProperties += node.properties.length;
-        if (node.collections) stats.totalProperties += node.collections.length;
-        if (node.methods) stats.totalProperties += node.methods.length;
-        
-        if (node.objectMetadata && node.objectMetadata.isCircular) {
-            stats.circularReferences++;
-        }
-        
-        if (node.childNodes && node.childNodes.length) {
-            for (var i = 0; i < node.childNodes.length; i++) {
-                countNodeStatistics(node.childNodes[i], stats);
-            }
-        }
-        
-    } catch (exc) {
-        // Continue counting
-    }
-}
-
-/**
- * Find objects with multiple access paths
- * @param {Object} domStructure - DOM structure
- * @returns {Array} Objects with multiple paths
- */
-function findObjectsWithMultiplePaths(domStructure) {
-    try {
-        var multiPathObjects = [];
-        
-        for (var objectId in domStructure.objectRegistry.references) {
-            if (objectHasOwnProperty(domStructure.objectRegistry.references, objectId)) {
-                var ref = domStructure.objectRegistry.references[objectId];
-                if (ref.paths && ref.paths.length > 1) {
-                    multiPathObjects.push({
-                        objectId: objectId,
-                        alternativeAccessPaths: ref.paths,
-                        referenceCount: ref.referenceCount,
-                        name: ref.paths[0] // Use first path as primary name
-                    });
-                }
-            }
-        }
-        
-        return multiPathObjects;
-        
-    } catch (exc) {
-        return [];
     }
 }
 
@@ -848,7 +976,7 @@ registerModule('2.1_dom-enumerator', '3.1', [
     'getDOMStatistics', 'countNodeStatistics', 'findObjectsWithMultiplePaths',
     
     // Property Classification
-    'classifyPropertySafety', 'isLikelyCollection', 'isPropertySafe',
+    'classifyPropertySafety', 'isLikelyCollection',
     
     // Utilities
     'createProgressReporter'

@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Bootstrap module loader and core ES3-compatible foundation
 // DEPENDENCIES: NONE (Bootstrap module)
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1000 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -65,34 +65,34 @@ function checkEnvironmentCompatibility() {
             report.indesignVersion = app.version || 'unknown';
             
             // Check for CS3+ compatibility (minimum requirement)
-            var versionNumberStr = String(report.indesignVersion);
-            var versionNumber = parseFloat(versionNumberStr);
+            var versionNumber = parseFloat(report.indesignVersion);
             if (versionNumber < 5.0) {
-                report.errors.push('InDesign version too old - requires CS3 or later');
-            } else {
-                report.compatible = true;
+                report.errors.push('InDesign version too old. Minimum CS3 (5.0) required');
+                return report;
             }
             
-        } catch (versionExc) {
+        } catch (exc) {
             report.warnings.push('Could not detect InDesign version');
-            report.compatible = true; // Assume compatible
         }
         
-        // Test ExtendScript capabilities
-        try {
-            report.esVersion = 'ES3'; // ExtendScript is based on ES3
-            
-            // Test essential features
-            report.capabilities.objectIteration = true;
-            report.capabilities.arrayMethods = true;
-            report.capabilities.stringMethods = true;
-            report.capabilities.functionDeclaration = true;
-            
-            // Test for native JSON support (not available in ES3)
-            report.capabilities.nativeJSON = (typeof JSON !== 'undefined');
-            
-        } catch (esExc) {
-            report.errors.push('ExtendScript capabilities test failed');
+        // Test ES3 environment
+        report.esVersion = 'ES3';
+        
+        // Test critical ES3 features
+        var testResults = testES3Features();
+        report.capabilities = testResults;
+        
+        if (testResults.basicFunctionsWork && testResults.objectIterationWorks && testResults.errorHandlingWorks) {
+            report.compatible = true;
+        } else {
+            report.errors.push('Critical ES3 features not working properly');
+        }
+        
+        // Check for potentially problematic features
+        if (typeof JSON !== 'undefined') {
+            report.capabilities.nativeJSON = true;
+        } else {
+            report.warnings.push('Native JSON not available - will use ES3 fallback');
         }
         
         return report;
@@ -104,153 +104,148 @@ function checkEnvironmentCompatibility() {
 }
 
 /**
- * Validate InDesign environment
- * @returns {Object} Validation result
+ * Test essential ES3 features
+ * @returns {Object} Test results
  */
-function validateInDesignEnvironment() {
+function testES3Features() {
+    var results = {
+        basicFunctionsWork: false,
+        objectIterationWorks: false,
+        errorHandlingWorks: false,
+        stringOperationsWork: false,
+        arrayOperationsWork: false
+    };
+    
     try {
-        var result = {
-            valid: false,
-            document: null,
-            error: null,
-            metadata: {}
-        };
+        // Test basic function creation and calling
+        var testFunction = function() { return 'test'; };
+        results.basicFunctionsWork = (testFunction() === 'test');
         
-        // Check for app object
-        if (typeof app === 'undefined') {
-            result.error = 'Not running in InDesign environment';
-            return result;
-        }
-        
-        // Check for active document
-        try {
-            if (app.documents.length === 0) {
-                result.error = 'No active document found';
-                return result;
+        // Test object iteration
+        var testObject = { a: 1, b: 2 };
+        var count = 0;
+        for (var key in testObject) {
+            if (testObject.hasOwnProperty && testObject.hasOwnProperty(key)) {
+                count++;
             }
-            
-            result.document = app.activeDocument;
-            result.valid = true;
-            
-            // Gather metadata
-            result.metadata = {
-                documentName: result.document.name || 'Untitled',
-                indesignVersion: app.version || 'unknown',
-                hasNativeJSON: (typeof JSON !== 'undefined')
-            };
-            
-        } catch (docExc) {
-            result.error = 'Could not access active document: ' + docExc.message;
         }
+        results.objectIterationWorks = (count === 2);
         
-        return result;
-        
-    } catch (exc) {
-        return {
-            valid: false,
-            document: null,
-            error: 'Environment validation failed: ' + exc.message,
-            metadata: {}
-        };
-    }
-}
-
-/**
- * Validate document state
- * @param {Object} documentObj - Document to validate
- * @returns {Object} Document validation result
- */
-function validateDocumentState(documentObj) {
-    try {
-        var result = {
-            valid: false,
-            metadata: {},
-            error: null
-        };
-        
-        if (!documentObj) {
-            result.error = 'Document object is null or undefined';
-            return result;
-        }
-        
-        // Basic document validation
+        // Test error handling
         try {
-            result.metadata.name = documentObj.name || 'Unknown Document';
-            result.metadata.pageCount = documentObj.pages ? documentObj.pages.length : 0;
-            result.metadata.layerCount = documentObj.layers ? documentObj.layers.length : 0;
-            result.valid = true;
-            
-        } catch (metaExc) {
-            result.error = 'Could not read document metadata: ' + metaExc.message;
+            throw new Error('test error');
+        } catch (e) {
+            results.errorHandlingWorks = (e.message === 'test error');
         }
         
-        return result;
+        // Test string operations
+        var testString = 'Hello World';
+        results.stringOperationsWork = (testString.charAt(0) === 'H' && testString.length === 11);
+        
+        // Test array operations  
+        var testArray = [1, 2, 3];
+        results.arrayOperationsWork = (testArray.length === 3 && testArray[0] === 1);
         
     } catch (exc) {
-        return {
-            valid: false,
-            metadata: {},
-            error: 'Document validation failed: ' + exc.message
-        };
+        // If any test fails catastrophically, we know ES3 support is problematic
     }
+    
+    return results;
 }
 
 // =============================================================================
-// MODULE LOADING SYSTEM
+// MODULE LOADING FUNCTIONS
 // =============================================================================
 
 /**
- * Load module by name
- * @param {String} moduleName - Name of module to load
- * @returns {Boolean} True if loaded successfully
+ * Initialize the module loading system
+ * @returns {Object} Initialization result
  */
-function loadModule(moduleName) {
+function initializeModuleSystem() {
+    var result = {
+        success: false,
+        compatibilityReport: null,
+        error: ''
+    };
+    
     try {
         g_moduleSystem.loadStatus.startTime = new Date().getTime();
         
-        // Check if already loaded
-        if (g_moduleSystem.loadedModules[moduleName]) {
-            return true;
+        // Check environment compatibility first
+        var compatibility = checkEnvironmentCompatibility();
+        result.compatibilityReport = compatibility;
+        
+        if (!compatibility.compatible) {
+            result.error = 'Environment not compatible: ' + compatibility.errors.join(', ');
+            return result;
         }
         
-        // Attempt to load module (this would be where you'd include the file)
-        // For now, just mark as loaded for dependency tracking
+        // Initialize module registry (will be enhanced by 1.2_safety-utilities)
+        if (typeof g_moduleRegistry === 'undefined') {
+            // Create basic registry that will be enhanced
+            var g_moduleRegistry = {
+                modules: {},
+                functions: {},
+                loadOrder: g_moduleSystem.loadOrder.slice()
+            };
+        }
+        
+        result.success = true;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Module system initialization failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Check if a specific module is loaded
+ * @param {String} moduleName - Name of module to check
+ * @returns {Boolean} True if module is loaded
+ */
+function isModuleLoaded(moduleName) {
+    try {
+        return !!(g_moduleSystem.loadedModules[moduleName] && 
+                 g_moduleSystem.loadedModules[moduleName].loaded);
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Register a module as loaded
+ * @param {String} moduleName - Name of module
+ * @param {String} version - Module version
+ * @param {Array} exportedFunctions - List of exported functions
+ * @returns {Boolean} True if registration successful
+ */
+function registerModuleLoaded(moduleName, version, exportedFunctions) {
+    try {
         g_moduleSystem.loadedModules[moduleName] = {
             loaded: true,
-            timestamp: new Date().getTime(),
-            functions: [] // This would be populated with actual functions
+            version: version || '3.1',
+            functions: exportedFunctions || [],
+            loadTime: new Date().getTime(),
+            loadOrder: g_moduleSystem.loadStatus.loadedCount
         };
         
         g_moduleSystem.loadStatus.loadedCount++;
         
+        // Output progress
+        $.writeln('[Module Loader] Loaded: ' + moduleName + ' (' + 
+                 g_moduleSystem.loadStatus.loadedCount + '/' + 
+                 g_moduleSystem.loadStatus.totalModules + ')');
+        
         return true;
         
     } catch (exc) {
-        g_moduleSystem.loadStatus.failedModules.push({
-            name: moduleName,
-            error: exc.message,
-            timestamp: new Date().getTime()
-        });
         return false;
     }
 }
 
 /**
- * Check if module is loaded
- * @param {String} moduleName - Module name to check
- * @returns {Boolean} True if loaded
- */
-function isModuleLoaded(moduleName) {
-    try {
-        return g_moduleSystem.loadedModules[moduleName] && 
-               g_moduleSystem.loadedModules[moduleName].loaded;
-    } catch (exc) {
-        return false;
-    }
-}
-
-/**
- * Get module loading status
+ * Get module loading status report
  * @returns {Object} Loading status report
  */
 function getModuleLoadingStatus() {
@@ -263,14 +258,33 @@ function getModuleLoadingStatus() {
             failedModules: []
         };
         
-        // Get loaded module names
+        // Calculate load time
+        if (g_moduleSystem.loadStatus.startTime) {
+            var endTime = g_moduleSystem.loadStatus.endTime || new Date().getTime();
+            status.loadTime = endTime - g_moduleSystem.loadStatus.startTime;
+        }
+        
+        // Check if loading is complete
+        status.loadingComplete = (status.loadedCount + status.failedCount) >= status.totalModules;
+        status.loadingSuccessful = (status.loadedCount === status.totalModules && status.failedCount === 0);
+        
+        // Get list of loaded modules
         for (var moduleName in g_moduleSystem.loadedModules) {
-            if (g_moduleSystem.loadedModules.hasOwnProperty(moduleName)) {
-                status.loadedModules.push(moduleName);
+            if (g_moduleSystem.loadedModules.hasOwnProperty && 
+                g_moduleSystem.loadedModules.hasOwnProperty(moduleName)) {
+                var moduleInfo = g_moduleSystem.loadedModules[moduleName];
+                if (moduleInfo.loaded) {
+                    status.loadedModules.push({
+                        name: moduleName,
+                        version: moduleInfo.version,
+                        functions: moduleInfo.functions.length,
+                        loadOrder: moduleInfo.loadOrder
+                    });
+                }
             }
         }
         
-        // Get failed module details
+        // Get failed module names
         for (var i = 0; i < g_moduleSystem.loadStatus.failedModules.length; i++) {
             status.failedModules.push(g_moduleSystem.loadStatus.failedModules[i]);
         }
@@ -282,10 +296,106 @@ function getModuleLoadingStatus() {
             totalModules: 0,
             loadedCount: 0,
             failedCount: 0,
+            loadingComplete: false,
+            loadingSuccessful: false,
+            loadTime: 0,
             loadedModules: [],
             failedModules: [],
             error: exc.message
         };
+    }
+}
+
+/**
+ * Check for missing dependencies
+ * @param {Array} requiredModules - List of required module names
+ * @returns {Array} List of missing modules
+ */
+function getMissingModules(requiredModules) {
+    var missing = [];
+    
+    try {
+        if (!requiredModules || !requiredModules.length) {
+            return missing;
+        }
+        
+        for (var i = 0; i < requiredModules.length; i++) {
+            var moduleName = requiredModules[i];
+            if (!isModuleLoaded(moduleName)) {
+                missing.push(moduleName);
+            }
+        }
+        
+    } catch (exc) {
+        // Return all as missing if we can't check
+        return requiredModules.slice();
+    }
+    
+    return missing;
+}
+
+/**
+ * Generate loading report for display
+ * @returns {String} Formatted loading report
+ */
+function generateLoadingReport() {
+    try {
+        var status = getModuleLoadingStatus();
+        var report = [];
+        
+        report.push('InDesign DOM Discovery Builder v3.1');
+        report.push('Module Loading Report');
+        report.push('==========================================');
+        report.push('');
+        
+        report.push('Loading Status: ' + (status.loadingSuccessful ? 'SUCCESS' : 
+                   status.loadingComplete ? 'COMPLETED WITH ERRORS' : 'IN PROGRESS'));
+        report.push('Modules Loaded: ' + status.loadedCount + '/' + status.totalModules);
+        report.push('Load Time: ' + status.loadTime + 'ms');
+        report.push('');
+        
+        if (status.loadedModules.length > 0) {
+            report.push('LOADED MODULES:');
+            report.push('---------------');
+            for (var i = 0; i < status.loadedModules.length; i++) {
+                var module = status.loadedModules[i];
+                report.push((module.loadOrder + 1) + '. ' + module.name + ' v' + module.version + 
+                           ' (' + module.functions + ' functions)');
+            }
+            report.push('');
+        }
+        
+        if (status.failedModules.length > 0) {
+            report.push('FAILED MODULES:');
+            report.push('---------------');
+            for (var j = 0; j < status.failedModules.length; j++) {
+                report.push('• ' + status.failedModules[j]);
+            }
+            report.push('');
+        }
+        
+        // Environment info
+        var compatibility = checkEnvironmentCompatibility();
+        report.push('ENVIRONMENT INFO:');
+        report.push('-----------------');
+        report.push('InDesign Version: ' + compatibility.indesignVersion);
+        report.push('ES Version: ' + compatibility.esVersion);
+        report.push('Native JSON: ' + (compatibility.capabilities.nativeJSON ? 'Yes' : 'No'));
+        report.push('Compatible: ' + (compatibility.compatible ? 'Yes' : 'No'));
+        
+        if (compatibility.warnings.length > 0) {
+            report.push('');
+            report.push('WARNINGS:');
+            report.push('---------');
+            for (var w = 0; w < compatibility.warnings.length; w++) {
+                report.push('• ' + compatibility.warnings[w]);
+            }
+        }
+        
+        return report.join('\n');
+        
+    } catch (exc) {
+        return 'Loading report generation failed: ' + exc.message;
     }
 }
 
@@ -397,42 +507,28 @@ function getMissingDependencies(requiredModules) {
  * @param {Array} missing - Missing dependencies
  * @returns {String} Error message
  */
-function createDependencyErrorMessage(moduleName, missing) {
+function createDependencyError(moduleName, missing) {
     try {
-        return moduleName + ' requires missing modules: ' + missing.join(', ');
+        return 'Module "' + moduleName + '" is missing dependencies: ' + missing.join(', ');
     } catch (exc) {
-        return 'Dependency validation failed';
+        return 'Dependency error for module: ' + moduleName;
     }
 }
 
 // =============================================================================
-// CORE UTILITY FUNCTIONS
+// UTILITY FUNCTIONS
 // =============================================================================
-
-/**
- * Generate unique identifier
- * @returns {String} Unique ID
- */
-function generateUniqueID() {
-    try {
-        var timestamp = new Date().getTime();
-        var randomNum = Math.floor(Math.random() * 1000);
-        return 'id_' + timestamp + '_' + randomNum;
-    } catch (exc) {
-        return 'id_unknown_' + Math.floor(Math.random() * 10000);
-    }
-}
 
 /**
  * Get current timestamp string
- * @returns {String} ISO-like timestamp
+ * @returns {String} Formatted timestamp
  */
 function getCurrentTimestamp() {
     try {
         var now = new Date();
         return now.getFullYear() + '-' + 
                String(now.getMonth() + 1).substring(0, 2) + '-' + 
-               String(now.getDate()).substring(0, 2) + 'T' + 
+               String(now.getDate()).substring(0, 2) + ' ' + 
                String(now.getHours()).substring(0, 2) + ':' + 
                String(now.getMinutes()).substring(0, 2) + ':' + 
                String(now.getSeconds()).substring(0, 2);
@@ -442,177 +538,93 @@ function getCurrentTimestamp() {
 }
 
 /**
- * Create timeout checker function
- * @param {Number} timeoutMs - Timeout in milliseconds
- * @returns {Function} Timeout checker function
+ * Generate unique identifier
+ * @returns {String} Unique ID
  */
-function createTimeoutChecker(timeoutMs) {
-    var startTime = new Date().getTime();
-    var timeout = timeoutMs || 10000;
-    
-    return function() {
-        try {
-            return (new Date().getTime() - startTime) > timeout;
-        } catch (exc) {
-            return true; // Assume timeout on error
-        }
-    };
+function generateUniqueID() {
+    try {
+        return 'id_' + (new Date().getTime()) + '_' + Math.floor(Math.random() * 10000);
+    } catch (exc) {
+        return 'unique_id_error';
+    }
 }
 
 /**
- * Create operation counter
- * @param {Number} maxOperations - Maximum operations before stopping
- * @returns {Object} Operation counter object
+ * Create result object for success
+ * @param {*} value - Success value
+ * @returns {Object} Success result
  */
-function createOperationCounter(maxOperations) {
-    var counter = {
-        currentCount: 0,
-        maxCount: maxOperations || 1000
-    };
-    
-    counter.increment = function() {
-        this.currentCount++;
-        return this.currentCount;
-    };
-    
-    counter.isExceeded = function() {
-        return this.currentCount >= this.maxCount;
-    };
-    
-    counter.getProgress = function() {
-        return Math.min(100, Math.floor((this.currentCount / this.maxCount) * 100));
-    };
-    
-    return counter;
+function createSuccessResult(value) {
+    try {
+        return {
+            success: true,
+            value: value,
+            timestamp: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            success: false,
+            error: 'Success result creation failed',
+            timestamp: 'unknown'
+        };
+    }
 }
 
 /**
- * Create memory monitor
- * @returns {Object} Memory monitor object
+ * Create result object for error
+ * @param {String} errorMessage - Error message
+ * @returns {Object} Error result
  */
-function createMemoryMonitor() {
-    var monitor = {
-        checkpoints: [],
-        startTime: new Date().getTime()
-    };
-    
-    monitor.checkpoint = function(label) {
-        try {
-            this.checkpoints.push({
-                label: label || 'checkpoint',
-                timestamp: new Date().getTime(),
-                timeFromStart: new Date().getTime() - this.startTime
-            });
-        } catch (exc) {
-            // Silent failure
-        }
-    };
-    
-    monitor.getReport = function() {
-        try {
-            return {
-                checkpointCount: this.checkpoints.length,
-                totalTime: new Date().getTime() - this.startTime,
-                checkpoints: this.checkpoints.slice(0) // Copy array
-            };
-        } catch (exc) {
-            return {
-                checkpointCount: 0,
-                totalTime: 0,
-                checkpoints: [],
-                error: exc.message
-            };
-        }
-    };
-    
-    return monitor;
+function createErrorResult(errorMessage) {
+    try {
+        return {
+            success: false,
+            error: errorMessage || 'Unknown error',
+            timestamp: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            success: false,
+            error: 'Error result creation failed',
+            timestamp: 'unknown'
+        };
+    }
 }
 
 // =============================================================================
-// STRING BUILDER UTILITY
+// MODULE AUTO-INITIALIZATION
 // =============================================================================
 
-/**
- * Create string builder for efficient string concatenation
- * @returns {Object} String builder object
- */
-function createStringBuilder() {
-    var builder = {
-        parts: []
-    };
+try {
+    // Auto-initialize the module system when this file loads
+    var initResult = initializeModuleSystem();
+    if (initResult.success) {
+        // Register this module
+        registerModule('1.1_bootstrap-foundation', '3.1', [
+            // Environment Functions
+            'checkEnvironmentCompatibility', 'testES3Features',
+            
+            // Module Loading Functions
+            'initializeModuleSystem', 'isModuleLoaded', 'registerModuleLoaded',
+            'getModuleLoadingStatus', 'getMissingModules', 'generateLoadingReport',
+            
+            // Dependency Validation
+            'registerModule', 'functionExists', 'validateDependencies',
+            'getMissingDependencies', 'createDependencyError',
+            
+            // Utility Functions
+            'getCurrentTimestamp', 'generateUniqueID', 'createSuccessResult', 'createErrorResult'
+        ]);
+        
+        $.writeln('[Bootstrap] v3.1 Foundation module initialized successfully');
+        
+    } else {
+        $.writeln('[Bootstrap] Initialization failed: ' + initResult.error);
+    }
     
-    builder.append = function(str) {
-        try {
-            if (str !== null && str !== undefined) {
-                this.parts.push(String(str));
-            }
-        } catch (exc) {
-            // Silent failure
-        }
-        return this;
-    };
-    
-    builder.appendLine = function(str) {
-        try {
-            if (str !== null && str !== undefined) {
-                this.parts.push(String(str) + '\n');
-            } else {
-                this.parts.push('\n');
-            }
-        } catch (exc) {
-            // Silent failure
-        }
-        return this;
-    };
-    
-    builder.toString = function() {
-        try {
-            return this.parts.join('');
-        } catch (exc) {
-            return '';
-        }
-    };
-    
-    builder.clear = function() {
-        try {
-            this.parts = [];
-        } catch (exc) {
-            // Silent failure
-        }
-        return this;
-    };
-    
-    builder.length = function() {
-        try {
-            return this.toString().length;
-        } catch (exc) {
-            return 0;
-        }
-    };
-    
-    return builder;
+} catch (exc) {
+    $.writeln('[Bootstrap] Auto-initialization failed: ' + exc.message);
 }
-
-// =============================================================================
-// MODULE REGISTRATION
-// =============================================================================
-
-// Register this module
-registerModule('1.1_bootstrap-foundation', '3.1', [
-    // Environment Functions
-    'checkEnvironmentCompatibility', 'validateInDesignEnvironment', 'validateDocumentState',
-    
-    // Module Loading
-    'loadModule', 'isModuleLoaded', 'getModuleLoadingStatus',
-    
-    // Dependency Management  
-    'registerModule', 'functionExists', 'validateDependencies', 
-    'getMissingDependencies', 'createDependencyErrorMessage',
-    
-    // Core Utilities
-    'generateUniqueID', 'getCurrentTimestamp', 'createTimeoutChecker',
-    'createOperationCounter', 'createMemoryMonitor', 'createStringBuilder'
-]);
 
 // =============================================================================
 // END OF 1.1_bootstrap-foundation.jsx

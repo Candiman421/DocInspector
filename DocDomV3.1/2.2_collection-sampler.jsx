@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Deep collection content sampling with object reference tracking
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx", "2.1_dom-enumerator.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1400 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -31,7 +31,9 @@ var DEFAULT_COLLECTION_SAMPLING_CONFIG = {
     enableDeepPropertyAnalysis: true,
     enableCrossCollectionTracking: true,
     maxItemPropertiesPerSample: 100,
-    propertyAnalysisDepth: 2
+    propertyAnalysisDepth: 2,
+    enableProgressReporting: false,
+    enableDetailedLogging: false
 };
 
 // =============================================================================
@@ -48,55 +50,65 @@ var DEFAULT_COLLECTION_SAMPLING_CONFIG = {
 function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) {
     var startTime = new Date().getTime();
     var config = samplingConfig ? 
-        objectClone(samplingConfig, 2) : objectClone(DEFAULT_COLLECTION_SAMPLING_CONFIG, 2);
+        objectMerge(DEFAULT_COLLECTION_SAMPLING_CONFIG, samplingConfig) : 
+        objectClone(DEFAULT_COLLECTION_SAMPLING_CONFIG, 2);
     
     try {
-        // Validate input parameters
         if (!domStructure || !sourceDocument) {
-            throw new Error('Invalid input parameters for collection sampling');
+            throw new Error('Invalid parameters for collection sampling');
         }
+        
+        // Initialize sampling metadata
+        if (!domStructure.metadata) {
+            domStructure.metadata = {};
+        }
+        
+        domStructure.metadata.collectionSampling = {
+            enabled: true,
+            startTime: getCurrentTimestamp(),
+            configuration: config,
+            completed: false
+        };
         
         // Initialize sampling statistics
         var samplingStats = {
-            collectionsProcessed: 0,
-            itemsSampled: 0,
+            collectionsFound: 0,
+            collectionsSampled: 0,
+            totalItemsSampled: 0,
+            deepAnalysisPerformed: 0,
             propertiesAnalyzed: 0,
-            errorsEncountered: 0,
-            timeoutOccurred: false,
-            samplingTime: 0
+            crossCollectionObjectsFound: 0,
+            samplingErrors: 0,
+            timeouts: 0
         };
         
-        // Create reference tracker for collections
-        var referenceTracker = createObjectReferenceTracker();
+        // Initialize cross-collection tracking
+        var crossCollectionRegistry = null;
+        if (config.enableCrossCollectionTracking) {
+            crossCollectionRegistry = initializeCrossCollectionTracking();
+        }
         
-        // Set up timeout checking
-        var timeoutChecker = createTimeoutChecker(config.timeoutPerCollection * 10); // Overall timeout
-        
-        // Process all collections in the DOM structure
+        // Find and sample collections
         if (domStructure.structure && domStructure.structure.document) {
             sampleNodeCollections(
                 domStructure.structure.document,
                 sourceDocument,
                 config,
                 samplingStats,
-                referenceTracker,
-                timeoutChecker
+                crossCollectionRegistry
             );
         }
         
-        // Update metadata with sampling results
-        if (!domStructure.metadata.collectionSampling) {
-            domStructure.metadata.collectionSampling = {};
+        // Perform cross-collection analysis
+        if (config.enableCrossCollectionTracking) {
+            performCrossCollectionAnalysis(domStructure, crossCollectionRegistry, samplingStats);
         }
         
-        domStructure.metadata.collectionSampling = {
-            enabled: true,
-            timestamp: getCurrentTimestamp(),
-            configuration: config,
-            statistics: samplingStats,
-            referenceTracking: referenceTracker.getStatistics(),
-            totalTime: new Date().getTime() - startTime
-        };
+        // Update DOM structure with sampling results
+        domStructure.metadata.collectionSampling.completed = true;
+        domStructure.metadata.collectionSampling.endTime = getCurrentTimestamp();
+        domStructure.metadata.collectionSampling.samplingTime = new Date().getTime() - startTime;
+        domStructure.metadata.collectionSampling.statistics = samplingStats;
         
         return domStructure;
         
@@ -108,582 +120,588 @@ function sampleCollectionContents(domStructure, sourceDocument, samplingConfig) 
                 timestamp: getCurrentTimestamp()
             };
         }
-        
         return domStructure;
     }
 }
 
 /**
- * Sample collections from a DOM node and its children
- * @param {Object} domNode - DOM node to sample from
- * @param {Object} sourceDocument - Source document for collection access
- * @param {Object} config - Configuration
- * @param {Object} samplingStats - Statistics to update
- * @param {Object} referenceTracker - Reference tracker
- * @param {Function} timeoutChecker - Timeout checker
+ * Sample collections in DOM node recursively
+ * @param {Object} domNode - DOM node to process
+ * @param {Object} sourceDocument - Source document
+ * @param {Object} config - Sampling configuration
+ * @param {Object} samplingStats - Statistics tracker
+ * @param {Object} crossCollectionRegistry - Cross-collection registry
  */
-function sampleNodeCollections(domNode, sourceDocument, config, samplingStats, referenceTracker, timeoutChecker) {
+function sampleNodeCollections(domNode, sourceDocument, config, samplingStats, crossCollectionRegistry) {
     try {
-        if (!domNode || timeoutChecker()) {
-            return;
-        }
+        if (!domNode) return;
         
         // Sample collections in this node
         if (domNode.collections && domNode.collections.length > 0) {
             for (var i = 0; i < domNode.collections.length; i++) {
-                if (timeoutChecker()) {
-                    samplingStats.timeoutOccurred = true;
-                    break;
-                }
+                var collection = domNode.collections[i];
+                samplingStats.collectionsFound++;
                 
-                try {
-                    sampleSingleCollection(
-                        domNode.collections[i],
-                        sourceDocument,
-                        config,
-                        samplingStats,
-                        referenceTracker
-                    );
-                    samplingStats.collectionsProcessed++;
-                } catch (collExc) {
-                    samplingStats.errorsEncountered++;
+                var samplingResult = sampleSingleCollection(
+                    collection,
+                    sourceDocument,
+                    config,
+                    samplingStats,
+                    crossCollectionRegistry
+                );
+                
+                if (samplingResult.success) {
+                    enhanceCollectionWithSamplingData(collection, samplingResult);
+                    samplingStats.collectionsSampled++;
+                    samplingStats.totalItemsSampled += samplingResult.itemsSampled;
+                    samplingStats.deepAnalysisPerformed += samplingResult.deepAnalysisCount;
                 }
             }
         }
         
-        // Recursively sample child nodes
+        // Process child nodes recursively
         if (domNode.childNodes && domNode.childNodes.length > 0) {
             for (var j = 0; j < domNode.childNodes.length; j++) {
-                if (timeoutChecker()) {
-                    samplingStats.timeoutOccurred = true;
-                    break;
-                }
-                
                 sampleNodeCollections(
                     domNode.childNodes[j],
                     sourceDocument,
                     config,
                     samplingStats,
-                    referenceTracker,
-                    timeoutChecker
+                    crossCollectionRegistry
                 );
             }
         }
         
     } catch (exc) {
-        samplingStats.errorsEncountered++;
+        samplingStats.samplingErrors++;
     }
 }
 
 /**
- * Sample a single collection with deep analysis
- * @param {Object} collectionProperty - Collection property to sample
+ * Sample single collection with deep analysis
+ * @param {Object} collection - Collection property to sample
  * @param {Object} sourceDocument - Source document
- * @param {Object} config - Configuration
- * @param {Object} samplingStats - Statistics
- * @param {Object} referenceTracker - Reference tracker
+ * @param {Object} config - Sampling configuration
+ * @param {Object} samplingStats - Sampling statistics to update
+ * @param {Object} crossCollectionRegistry - Cross-collection tracking registry
+ * @returns {Object} Sampling result
  */
-function sampleSingleCollection(collectionProperty, sourceDocument, config, samplingStats, referenceTracker) {
+function sampleSingleCollection(collection, sourceDocument, config, samplingStats, crossCollectionRegistry) {
+    var result = {
+        success: false,
+        itemsSampled: 0,
+        deepAnalysisCount: 0,
+        sampleData: [],
+        error: null
+    };
+    
     try {
-        // Access the actual collection object
-        var collection = accessCollectionSafely(collectionProperty.path, sourceDocument);
-        if (!collection) {
-            collectionProperty.samplingError = 'Could not access collection';
-            return;
+        // Access collection safely
+        var collectionAccess = accessCollectionSafely(collection, sourceDocument, config);
+        if (!collectionAccess.success) {
+            result.error = collectionAccess.error;
+            return result;
         }
         
-        // Initialize collection analysis
-        if (!collectionProperty.collectionAnalysis) {
-            collectionProperty.collectionAnalysis = {};
+        var collectionObject = collectionAccess.collection;
+        var collectionStructure = analyzeCollectionStructure(collectionObject, config);
+        
+        if (!collectionStructure.isCollection || collectionStructure.size === 0) {
+            result.success = true; // Empty collection is still success
+            return result;
         }
         
-        var analysis = collectionProperty.collectionAnalysis;
-        analysis.samplingTimestamp = getCurrentTimestamp();
+        // Sample items from collection
+        var samplesToTake = Math.min(
+            config.maxSamplesPerCollection, 
+            collectionStructure.size,
+            config.maxCollectionSize
+        );
         
-        // Determine collection size and type
-        var collectionInfo = analyzeCollectionStructure(collection);
-        analysis.collectionType = collectionInfo.type;
-        analysis.itemCount = collectionInfo.count;
-        analysis.isAccessible = collectionInfo.accessible;
+        var timeoutChecker = createTimeoutChecker(config.timeoutPerCollection);
         
-        if (!analysis.isAccessible) {
-            analysis.samplingError = 'Collection not accessible for sampling';
-            return;
-        }
-        
-        // Skip if collection is too large
-        if (analysis.itemCount > config.maxCollectionSize) {
-            analysis.samplingError = 'Collection too large: ' + analysis.itemCount + ' items';
-            analysis.skipped = true;
-            return;
-        }
-        
-        // Sample collection items
-        if (analysis.itemCount > 0) {
-            var sampleCount = Math.min(config.maxSamplesPerCollection, analysis.itemCount);
-            analysis.sampleItems = [];
-            analysis.itemPropertySummary = {};
-            
-            for (var i = 0; i < sampleCount; i++) {
-                try {
-                    var itemSample = sampleCollectionItem(
-                        collection, i, collectionProperty.path + '[' + i + ']',
-                        config, referenceTracker
-                    );
-                    
-                    if (itemSample) {
-                        arrayPush(analysis.sampleItems, itemSample);
-                        samplingStats.itemsSampled++;
-                        
-                        // Accumulate property analysis
-                        if (itemSample.propertyAnalysis) {
-                            mergePropertySummary(analysis.itemPropertySummary, itemSample.propertyAnalysis);
-                        }
-                    }
-                    
-                } catch (itemExc) {
-                    var errorSample = {
-                        index: i,
-                        error: itemExc.message,
-                        path: collectionProperty.path + '[' + i + ']'
-                    };
-                    arrayPush(analysis.sampleItems, errorSample);
-                    samplingStats.errorsEncountered++;
-                }
-            }
-            
-            // Generate collection content summary
-            analysis.contentSummary = generateCollectionContentSummary(analysis.sampleItems);
-        }
-        
-    } catch (exc) {
-        collectionProperty.samplingError = 'Collection sampling failed: ' + exc.message;
-        samplingStats.errorsEncountered++;
-    }
-}
-
-/**
- * Sample individual collection item with property analysis
- * @param {Object} collection - Collection object
- * @param {Number} itemIndex - Item index
- * @param {String} itemPath - Item access path
- * @param {Object} config - Configuration
- * @param {Object} referenceTracker - Reference tracker
- * @returns {Object} Item sample with analysis
- */
-function sampleCollectionItem(collection, itemIndex, itemPath, config, referenceTracker) {
-    try {
-        var item;
-        
-        // Safe item access
-        try {
-            item = collection[itemIndex];
-        } catch (accessExc) {
-            return {
-                index: itemIndex,
-                path: itemPath,
-                accessError: accessExc.message,
-                accessible: false
-            };
-        }
-        
-        if (item === null || item === undefined) {
-            return {
-                index: itemIndex,
-                path: itemPath,
-                value: item,
-                type: 'null',
-                accessible: true
-            };
-        }
-        
-        var itemSample = {
-            index: itemIndex,
-            path: itemPath,
-            type: safeTypeOf(item),
-            accessible: true,
-            samplingTimestamp: getCurrentTimestamp()
-        };
-        
-        // Track object reference if applicable
-        if (typeof item === 'object') {
-            itemSample.objectId = referenceTracker.track(item, itemPath);
-        }
-        
-        // Basic value sampling for primitives
-        if (typeof item !== 'object') {
-            itemSample.value = formatPrimitiveValue(item);
-        } else {
-            // Deep property analysis for objects
-            if (config.enableDeepPropertyAnalysis) {
-                itemSample.propertyAnalysis = analyzeItemProperties(
-                    item, itemPath, config, referenceTracker
-                );
-            }
-            
-            // Collection content preview
-            if (isCollectionLike(item)) {
-                itemSample.collectionPreview = generateCollectionPreview(item, 3);
-            } else {
-                itemSample.objectPreview = generateObjectPreview(item, 5);
-            }
-        }
-        
-        return itemSample;
-        
-    } catch (exc) {
-        return {
-            index: itemIndex,
-            path: itemPath,
-            samplingError: exc.message,
-            accessible: false
-        };
-    }
-}
-
-/**
- * Analyze item properties with depth control
- * @param {Object} item - Item to analyze
- * @param {String} itemPath - Item path
- * @param {Object} config - Configuration
- * @param {Object} referenceTracker - Reference tracker
- * @returns {Object} Property analysis
- */
-function analyzeItemProperties(item, itemPath, config, referenceTracker) {
-    try {
-        var analysis = {
-            propertyCount: 0,
-            propertyTypes: {},
-            sampleProperties: {},
-            hasCircularReferences: false
-        };
-        
-        var propertyCount = 0;
-        var maxProperties = config.maxItemPropertiesPerSample || 50;
-        
-        // Analyze properties up to limit
-        for (var propName in item) {
-            if (propertyCount >= maxProperties) {
-                analysis.truncated = true;
+        for (var i = 0; i < samplesToTake; i++) {
+            if (timeoutChecker && timeoutChecker()) {
+                samplingStats.timeouts++;
                 break;
             }
             
-            try {
-                var propValue = item[propName];
-                var propType = safeTypeOf(propValue);
-                var propPath = itemPath + '.' + propName;
+            var itemResult = sampleCollectionItem(
+                collectionObject,
+                i,
+                collection.path + '[' + i + ']',
+                config,
+                crossCollectionRegistry
+            );
+            
+            if (itemResult.success) {
+                result.sampleData[result.sampleData.length] = itemResult.itemData;
+                result.itemsSampled++;
                 
-                // Count property types
-                if (!analysis.propertyTypes[propType]) {
-                    analysis.propertyTypes[propType] = 0;
-                }
-                analysis.propertyTypes[propType]++;
-                
-                // Sample property value
-                if (propertyCount < 10) { // Only sample first 10 properties in detail
-                    analysis.sampleProperties[propName] = {
-                        type: propType,
-                        path: propPath
-                    };
-                    
-                    if (typeof propValue !== 'object') {
-                        analysis.sampleProperties[propName].value = formatPrimitiveValue(propValue);
-                    } else if (propValue) {
-                        // Check for circular reference
-                        if (referenceTracker.isVisited(propValue)) {
-                            analysis.sampleProperties[propName].circularReference = true;
-                            analysis.hasCircularReferences = true;
-                        } else {
-                            referenceTracker.markVisited(propValue);
-                            
-                            if (isCollectionLike(propValue)) {
-                                analysis.sampleProperties[propName].collectionPreview = 
-                                    generateCollectionPreview(propValue, 2);
-                            } else {
-                                analysis.sampleProperties[propName].objectPreview = 
-                                    generateObjectPreview(propValue, 3);
-                            }
-                        }
-                    }
+                if (itemResult.deepAnalysisPerformed) {
+                    result.deepAnalysisCount++;
                 }
                 
-                propertyCount++;
-                
-            } catch (propExc) {
-                // Continue with next property
+                samplingStats.propertiesAnalyzed += itemResult.propertiesAnalyzed || 0;
             }
         }
         
-        analysis.propertyCount = propertyCount;
-        return analysis;
+        result.success = true;
+        return result;
         
     } catch (exc) {
-        return {
-            error: exc.message,
-            propertyCount: 0,
-            propertyTypes: {},
-            sampleProperties: {}
+        result.error = 'Collection sampling failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Sample individual item from collection
+ * @param {Object} collectionObject - Collection to sample from
+ * @param {Number} index - Item index
+ * @param {String} itemPath - Item path
+ * @param {Object} config - Configuration
+ * @param {Object} crossCollectionRegistry - Cross-collection registry
+ * @returns {Object} Item sampling result
+ */
+function sampleCollectionItem(collectionObject, index, itemPath, config, crossCollectionRegistry) {
+    var result = {
+        success: false,
+        itemData: null,
+        deepAnalysisPerformed: false,
+        propertiesAnalyzed: 0,
+        error: null
+    };
+    
+    try {
+        // Access item safely
+        var item = null;
+        try {
+            item = collectionObject[index];
+        } catch (accessExc) {
+            result.error = 'Item access failed: ' + accessExc.message;
+            return result;
+        }
+        
+        if (!item) {
+            result.error = 'Item is null or undefined';
+            return result;
+        }
+        
+        // Create item data structure
+        var itemData = {
+            index: index,
+            path: itemPath,
+            type: typeof item,
+            accessible: true,
+            timestamp: getCurrentTimestamp()
         };
+        
+        // Cross-collection tracking
+        if (crossCollectionRegistry && typeof item === 'object') {
+            trackCrossCollectionObject(item, itemPath, crossCollectionRegistry);
+        }
+        
+        // Perform deep property analysis if enabled
+        if (config.enableDeepPropertyAnalysis) {
+            var propertyAnalysis = analyzeItemProperties(item, itemPath, config);
+            if (propertyAnalysis.success) {
+                itemData.propertyAnalysis = propertyAnalysis.analysis;
+                result.deepAnalysisPerformed = true;
+                result.propertiesAnalyzed = propertyAnalysis.propertiesAnalyzed;
+            }
+        }
+        
+        // Add basic item information
+        if (typeof item === 'object') {
+            try {
+                if (item.constructor && item.constructor.name) {
+                    itemData.constructorName = item.constructor.name;
+                }
+                
+                if (typeof item.length === 'number') {
+                    itemData.length = item.length;
+                }
+                
+                if (typeof item.name === 'string') {
+                    itemData.name = item.name;
+                }
+                
+            } catch (infoExc) {
+                // Continue without detailed info
+            }
+        } else {
+            itemData.value = formatPrimitiveValue(item);
+        }
+        
+        result.itemData = itemData;
+        result.success = true;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Item sampling failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Analyze properties of collection item
+ * @param {Object} item - Collection item to analyze
+ * @param {String} itemPath - Item path
+ * @param {Object} config - Configuration
+ * @returns {Object} Property analysis result
+ */
+function analyzeItemProperties(item, itemPath, config) {
+    var result = {
+        success: false,
+        analysis: null,
+        propertiesAnalyzed: 0,
+        error: null
+    };
+    
+    try {
+        if (!item || typeof item !== 'object') {
+            result.success = true;
+            result.analysis = { type: 'primitive', value: formatPrimitiveValue(item) };
+            return result;
+        }
+        
+        var analysis = {
+            propertyTypes: {},
+            propertyCount: 0,
+            safeProperties: [],
+            dangerousProperties: [],
+            collectionProperties: [],
+            methodProperties: []
+        };
+        
+        var propertiesProcessed = 0;
+        var maxProperties = config.maxItemPropertiesPerSample || 100;
+        
+        for (var propName in item) {
+            try {
+                if (propertiesProcessed >= maxProperties) break;
+                
+                if (objectHasOwnProperty(item, propName)) {
+                    var propType = safeTypeCheck(item, propName);
+                    var propPath = itemPath + '.' + propName;
+                    
+                    // Count property types
+                    if (analysis.propertyTypes[propType]) {
+                        analysis.propertyTypes[propType]++;
+                    } else {
+                        analysis.propertyTypes[propType] = 1;
+                    }
+                    
+                    analysis.propertyCount++;
+                    propertiesProcessed++;
+                    
+                    // Categorize properties
+                    var safetyLevel = getPropertySafetyLevel(propName);
+                    
+                    var propInfo = {
+                        name: propName,
+                        type: propType,
+                        path: propPath,
+                        safetyLevel: safetyLevel
+                    };
+                    
+                    if (safetyLevel === 'dangerous') {
+                        analysis.dangerousProperties[analysis.dangerousProperties.length] = propInfo;
+                    } else if (propType === 'function') {
+                        analysis.methodProperties[analysis.methodProperties.length] = propInfo;
+                    } else if (isLikelyCollection(propName)) {
+                        analysis.collectionProperties[analysis.collectionProperties.length] = propInfo;
+                    } else {
+                        analysis.safeProperties[analysis.safeProperties.length] = propInfo;
+                    }
+                }
+            } catch (propExc) {
+                // Continue processing other properties
+            }
+        }
+        
+        result.analysis = analysis;
+        result.propertiesAnalyzed = propertiesProcessed;
+        result.success = true;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Property analysis failed: ' + exc.message;
+        return result;
     }
 }
 
 // =============================================================================
-// COLLECTION STRUCTURE ANALYSIS
+// STRUCTURE ANALYSIS
 // =============================================================================
 
 /**
- * Analyze collection structure and accessibility
- * @param {Object} collection - Collection to analyze
- * @returns {Object} Collection analysis
+ * Analyze collection structure and characteristics
+ * @param {Object} collectionObject - Collection to analyze
+ * @param {Object} config - Configuration
+ * @returns {Object} Structure analysis result
  */
-function analyzeCollectionStructure(collection) {
+function analyzeCollectionStructure(collectionObject, config) {
+    var analysis = {
+        isCollection: false,
+        type: 'unknown',
+        size: 0,
+        hasLength: false,
+        hasCount: false,
+        isEmpty: true,
+        accessible: false
+    };
+    
     try {
-        var analysis = {
-            type: 'unknown',
-            count: 0,
-            accessible: false,
-            hasLength: false,
-            hasCount: false,
-            isArray: false
-        };
-        
-        if (!collection) {
+        if (!collectionObject) {
             return analysis;
         }
         
-        // Determine collection type
-        if (collection instanceof Array) {
-            analysis.type = 'Array';
-            analysis.isArray = true;
-            analysis.count = collection.length;
+        analysis.accessible = true;
+        
+        // Check for length property
+        if (typeof collectionObject.length === 'number') {
             analysis.hasLength = true;
-            analysis.accessible = true;
-        } else if (typeof collection.length === 'number') {
-            analysis.type = 'IndexedCollection';
-            analysis.count = collection.length;
-            analysis.hasLength = true;
-            analysis.accessible = true;
-        } else if (typeof collection.count === 'number') {
-            analysis.type = 'CountedCollection';
-            analysis.count = collection.count;
+            analysis.size = collectionObject.length;
+            analysis.isCollection = true;
+            analysis.type = 'array-like';
+        }
+        
+        // Check for count property
+        if (typeof collectionObject.count === 'number') {
             analysis.hasCount = true;
-            analysis.accessible = true;
-        } else if (collection.constructor && collection.constructor.name) {
-            analysis.type = collection.constructor.name;
-            analysis.accessible = true;
-            // Try to determine count
-            analysis.count = countObjectKeys(collection);
-        } else {
-            analysis.type = 'Object';
-            analysis.accessible = true;
-            analysis.count = countObjectKeys(collection);
+            if (!analysis.hasLength) {
+                analysis.size = collectionObject.count;
+                analysis.isCollection = true;
+                analysis.type = 'count-based';
+            }
+        }
+        
+        // Determine if empty
+        analysis.isEmpty = (analysis.size === 0);
+        
+        // Additional type detection
+        if (analysis.isCollection && collectionObject.constructor) {
+            var constructorName = collectionObject.constructor.name;
+            if (constructorName) {
+                analysis.type = constructorName.toLowerCase();
+            }
         }
         
         return analysis;
         
     } catch (exc) {
-        return {
-            type: 'error',
-            count: 0,
-            accessible: false,
-            error: exc.message
-        };
+        analysis.accessible = false;
+        analysis.error = exc.message;
+        return analysis;
     }
 }
 
 /**
- * Access collection safely using path
- * @param {String} collectionPath - Path to collection
+ * Access collection object safely
+ * @param {Object} collection - Collection property info
  * @param {Object} sourceDocument - Source document
- * @returns {Object} Collection object or null
+ * @param {Object} config - Configuration
+ * @returns {Object} Collection access result
  */
-function accessCollectionSafely(collectionPath, sourceDocument) {
+function accessCollectionSafely(collection, sourceDocument, config) {
+    var result = {
+        success: false,
+        collection: null,
+        error: null
+    };
+    
     try {
-        if (!collectionPath || !sourceDocument) {
-            return null;
+        // Use safe object path access
+        var pathAccess = safeGetObjectFromPath(sourceDocument, collection.path, config.timeoutPerCollection);
+        
+        if (!pathAccess.success) {
+            result.error = 'Path access failed: ' + (pathAccess.error || 'Unknown error');
+            return result;
         }
         
-        // Parse path components
-        var pathComponents = splitPath(collectionPath);
-        if (pathComponents.length === 0) {
-            return null;
+        if (!pathAccess.value) {
+            result.error = 'Collection object is null or undefined';
+            return result;
         }
         
-        // Navigate to collection
-        var current = sourceDocument;
-        
-        // Skip 'document' if it's the first component
-        var startIndex = (pathComponents[0] === 'document') ? 1 : 0;
-        
-        for (var i = startIndex; i < pathComponents.length; i++) {
-            if (!current || typeof current !== 'object') {
-                return null;
-            }
-            
-            try {
-                current = current[pathComponents[i]];
-            } catch (accessExc) {
-                return null;
-            }
-        }
-        
-        return current;
+        result.collection = pathAccess.value;
+        result.success = true;
+        return result;
         
     } catch (exc) {
-        return null;
+        result.error = 'Collection access failed: ' + exc.message;
+        return result;
     }
 }
 
 // =============================================================================
-// CONTENT ANALYSIS AND FORMATTING
+// CONTENT ANALYSIS
 // =============================================================================
 
 /**
  * Format primitive value for display
- * @param {*} value - Primitive value
- * @returns {String} Formatted value
+ * @param {*} value - Primitive value to format
+ * @returns {String} Formatted value string
  */
 function formatPrimitiveValue(value) {
     try {
         if (value === null) return 'null';
         if (value === undefined) return 'undefined';
         
-        var type = typeof value;
+        var valueType = typeof value;
         
-        if (type === 'string') {
-            // Limit string length
-            if (value.length > 100) {
-                return stringSubstring(value, 0, 97) + '...';
-            }
-            return value;
-        }
-        
-        if (type === 'number' || type === 'boolean') {
+        if (valueType === 'string') {
+            return '"' + value + '"';
+        } else if (valueType === 'number') {
             return String(value);
+        } else if (valueType === 'boolean') {
+            return String(value);
+        } else {
+            return '[' + valueType + ']';
         }
-        
-        return '[' + type + ']';
         
     } catch (exc) {
-        return '[format_error]';
+        return '[format error]';
     }
 }
 
 /**
- * Generate collection preview
- * @param {Object} collection - Collection to preview
+ * Generate preview of collection content
+ * @param {Object} collectionObject - Collection to preview
  * @param {Number} maxItems - Maximum items to include
  * @returns {String} Collection preview
  */
-function generateCollectionPreview(collection, maxItems) {
+function generateCollectionPreview(collectionObject, maxItems) {
     try {
-        var preview = [];
-        var itemCount = 0;
-        var maxPreview = maxItems || 3;
+        if (!collectionObject) {
+            return '[null collection]';
+        }
         
-        if (collection instanceof Array) {
-            for (var i = 0; i < Math.min(collection.length, maxPreview); i++) {
-                preview.push(formatPrimitiveValue(collection[i]));
+        var maxPreviewItems = maxItems || 3;
+        var preview = '[';
+        var itemCount = 0;
+        var totalItems = 0;
+        
+        // Determine total items
+        if (typeof collectionObject.length === 'number') {
+            totalItems = collectionObject.length;
+        } else if (typeof collectionObject.count === 'number') {
+            totalItems = collectionObject.count;
+        }
+        
+        if (totalItems === 0) {
+            return '[empty]';
+        }
+        
+        // Generate preview of first few items
+        for (var i = 0; i < Math.min(maxPreviewItems, totalItems); i++) {
+            try {
+                var item = collectionObject[i];
+                
+                if (itemCount > 0) preview += ', ';
+                
+                if (item === null) {
+                    preview += 'null';
+                } else if (item === undefined) {
+                    preview += 'undefined';
+                } else if (typeof item === 'object') {
+                    preview += generateObjectPreview(item);
+                } else {
+                    preview += formatPrimitiveValue(item);
+                }
+                
+                itemCount++;
+                
+            } catch (itemExc) {
+                if (itemCount > 0) preview += ', ';
+                preview += '[access error]';
                 itemCount++;
             }
-        } else if (typeof collection.length === 'number') {
-            for (var j = 0; j < Math.min(collection.length, maxPreview); j++) {
-                try {
-                    var item = collection[j];
-                    preview.push(formatPrimitiveValue(item));
-                    itemCount++;
-                } catch (itemExc) {
-                    preview.push('[access_error]');
-                }
-            }
         }
         
-        var result = '[' + arrayJoin(preview, ', ');
-        
-        var totalCount = 0;
-        if (collection.length !== undefined) {
-            totalCount = collection.length;
-        } else if (collection.count !== undefined) {
-            totalCount = collection.count;
+        if (totalItems > maxPreviewItems) {
+            preview += ', ... +' + (totalItems - maxPreviewItems) + ' more';
         }
         
-        if (totalCount > itemCount) {
-            result += ', ...+' + (totalCount - itemCount) + ' more';
-        }
-        
-        result += ']';
-        return result;
+        preview += ']';
+        return preview;
         
     } catch (exc) {
-        return '[preview_error]';
+        return '[preview error]';
     }
 }
 
 /**
- * Generate object preview
- * @param {Object} obj - Object to preview
- * @param {Number} maxProperties - Maximum properties to include
+ * Generate preview of object content
+ * @param {Object} targetObject - Object to preview
  * @returns {String} Object preview
  */
-function generateObjectPreview(obj, maxProperties) {
+function generateObjectPreview(targetObject) {
     try {
-        var preview = [];
-        var propCount = 0;
-        var maxProps = maxProperties || 5;
-        
-        for (var propName in obj) {
-            if (propCount >= maxProps) {
-                break;
-            }
-            
-            try {
-                var propValue = obj[propName];
-                var valuePreview = formatPrimitiveValue(propValue);
-                preview.push(propName + ': ' + valuePreview);
-                propCount++;
-            } catch (propExc) {
-                preview.push(propName + ': [error]');
-            }
+        if (!targetObject || typeof targetObject !== 'object') {
+            return '[not object]';
         }
         
-        var result = '{' + arrayJoin(preview, ', ');
+        var preview = '{';
+        var constructorName = 'Object';
         
-        var totalProps = countObjectKeys(obj);
-        if (totalProps > propCount) {
-            result += ', ...+' + (totalProps - propCount) + ' more';
+        try {
+            if (targetObject.constructor && targetObject.constructor.name) {
+                constructorName = targetObject.constructor.name;
+            }
+        } catch (constructorExc) {
+            // Use default name
         }
         
-        result += '}';
-        return result;
+        preview += constructorName;
+        
+        // Add useful properties if available
+        try {
+            if (typeof targetObject.name === 'string') {
+                preview += ' name="' + targetObject.name + '"';
+            } else if (typeof targetObject.length === 'number') {
+                preview += ' length=' + targetObject.length;
+            } else if (typeof targetObject.count === 'number') {
+                preview += ' count=' + targetObject.count;
+            }
+        } catch (propExc) {
+            // Continue without additional info
+        }
+        
+        preview += '}';
+        return preview;
         
     } catch (exc) {
-        return '{preview_error}';
+        return '[object preview error]';
     }
 }
 
 /**
  * Merge property summary data
- * @param {Object} targetSummary - Target summary to merge into
- * @param {Object} sourceSummary - Source summary to merge from
+ * @param {Object} target - Target summary to merge into
+ * @param {Object} source - Source summary to merge from
  */
-function mergePropertySummary(targetSummary, sourceSummary) {
+function mergePropertySummary(target, source) {
     try {
-        if (!targetSummary || !sourceSummary || !sourceSummary.propertyTypes) {
-            return;
-        }
+        if (!target || !source) return;
         
-        // Merge property type counts
-        for (var propType in sourceSummary.propertyTypes) {
-            if (objectHasOwnProperty(sourceSummary.propertyTypes, propType)) {
-                if (!targetSummary[propType]) {
-                    targetSummary[propType] = 0;
+        // Merge property types
+        if (source.propertyTypes) {
+            for (var propType in source.propertyTypes) {
+                if (objectHasOwnProperty(source.propertyTypes, propType)) {
+                    if (target[propType]) {
+                        target[propType] += source.propertyTypes[propType];
+                    } else {
+                        target[propType] = source.propertyTypes[propType];
+                    }
                 }
-                targetSummary[propType] += sourceSummary.propertyTypes[propType];
             }
         }
         
     } catch (exc) {
-        // Silent failure
+        // Silent merge failure
     }
 }
 
@@ -744,6 +762,127 @@ function generateCollectionContentSummary(sampleItems) {
 }
 
 // =============================================================================
+// CROSS-COLLECTION TRACKING
+// =============================================================================
+
+/**
+ * Initialize cross-collection tracking registry
+ * @returns {Object} Cross-collection registry
+ */
+function initializeCrossCollectionTracking() {
+    try {
+        return {
+            objects: {},
+            statistics: {
+                totalTracked: 0,
+                crossCollectionObjects: 0,
+                lastUpdate: getCurrentTimestamp()
+            }
+        };
+    } catch (exc) {
+        return {
+            objects: {},
+            statistics: {
+                totalTracked: 0,
+                crossCollectionObjects: 0,
+                lastUpdate: getCurrentTimestamp(),
+                error: exc.message
+            }
+        };
+    }
+}
+
+/**
+ * Track object across collections
+ * @param {Object} targetObject - Object to track
+ * @param {String} accessPath - Access path
+ * @param {Object} registry - Cross-collection registry
+ */
+function trackCrossCollectionObject(targetObject, accessPath, registry) {
+    try {
+        if (!targetObject || !registry) return;
+        
+        var objectId = generateObjectReferenceID(targetObject, accessPath);
+        
+        if (registry.objects[objectId]) {
+            // Object already tracked - add access path
+            registry.objects[objectId].accessPaths[registry.objects[objectId].accessPaths.length] = accessPath;
+            registry.statistics.crossCollectionObjects++;
+        } else {
+            // New object - track it
+            registry.objects[objectId] = {
+                object: targetObject,
+                accessPaths: [accessPath],
+                firstSeen: getCurrentTimestamp()
+            };
+            registry.statistics.totalTracked++;
+        }
+        
+        registry.statistics.lastUpdate = getCurrentTimestamp();
+        
+    } catch (exc) {
+        // Silent tracking failure
+    }
+}
+
+/**
+ * Perform cross-collection analysis
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} registry - Cross-collection registry
+ * @param {Object} statistics - Sampling statistics to update
+ */
+function performCrossCollectionAnalysis(domStructure, registry, statistics) {
+    try {
+        statistics.crossCollectionObjectsFound = registry.statistics.crossCollectionObjects;
+        
+        if (!domStructure.metadata.crossCollectionTracking) {
+            domStructure.metadata.crossCollectionTracking = {};
+        }
+        
+        domStructure.metadata.crossCollectionTracking.completed = true;
+        domStructure.metadata.crossCollectionTracking.endTime = getCurrentTimestamp();
+        domStructure.metadata.crossCollectionTracking.objectsFound = registry.statistics.crossCollectionObjects;
+        
+    } catch (exc) {
+        // Silent analysis failure
+    }
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Enhance collection with sampling data
+ * @param {Object} collection - Collection property to enhance
+ * @param {Object} samplingResult - Sampling result data
+ */
+function enhanceCollectionWithSamplingData(collection, samplingResult) {
+    try {
+        if (!collection || !samplingResult) return;
+        
+        collection.samplingMetadata = {
+            sampled: true,
+            samplingTimestamp: getCurrentTimestamp(),
+            itemsSampled: samplingResult.itemsSampled,
+            deepAnalysisPerformed: samplingResult.deepAnalysisCount > 0,
+            sampleData: samplingResult.sampleData,
+            contentSummary: generateCollectionContentSummary(samplingResult.sampleData)
+        };
+        
+        if (samplingResult.sampleData && samplingResult.sampleData.length > 0) {
+            collection.samplingMetadata.preview = generateCollectionPreview(
+                samplingResult.sampleData, 
+                Math.min(3, samplingResult.sampleData.length)
+            );
+        }
+        
+    } catch (exc) {
+        // Silent enhancement failure
+    }
+}
+
+// =============================================================================
 // MODULE REGISTRATION
 // =============================================================================
 
@@ -760,7 +899,13 @@ registerModule('2.2_collection-sampler', '3.1', [
     
     // Content Analysis
     'formatPrimitiveValue', 'generateCollectionPreview', 'generateObjectPreview',
-    'mergePropertySummary', 'generateCollectionContentSummary'
+    'mergePropertySummary', 'generateCollectionContentSummary',
+    
+    // Cross-Collection Tracking
+    'initializeCrossCollectionTracking', 'trackCrossCollectionObject', 'performCrossCollectionAnalysis',
+    
+    // Helper Functions
+    'enhanceCollectionWithSamplingData'
 ]);
 
 // =============================================================================

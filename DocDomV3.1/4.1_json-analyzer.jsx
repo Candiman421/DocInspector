@@ -1,10 +1,10 @@
 // =============================================================================
-// 4.1_json-analyzer.jsx - JSON ANALYSIS AND VISUALIZATION
+// 4.1_json-analyzer.jsx - JSON EXPORT ANALYSIS
 // InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
 // =============================================================================
-// PURPOSE: Analyze exported JSON files and generate visual reports
+// PURPOSE: Comprehensive analysis of DOM JSON exports with enhanced features
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1800 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -18,7 +18,7 @@ if (!dependencyCheck.success) {
 }
 
 // =============================================================================
-// ANALYSIS CONFIGURATION
+// JSON ANALYSIS CONFIGURATION
 // =============================================================================
 
 var DEFAULT_ANALYSIS_CONFIG = {
@@ -26,12 +26,14 @@ var DEFAULT_ANALYSIS_CONFIG = {
     enablePropertyAnalysis: true,
     enableCollectionAnalysis: true,
     enableValueAnalysis: true,
+    enableAccessibilityMap: true,
     maxAnalysisDepth: 10,
-    maxReportItems: 50,
+    maxReportItems: 100,
     generateDeveloperGuide: true,
     includeCodeExamples: true,
     highlightKeyProperties: true,
-    generateAccessibilityMap: true
+    analyzeExtractedValues: true,
+    generatePerformanceMetrics: true
 };
 
 // =============================================================================
@@ -39,116 +41,111 @@ var DEFAULT_ANALYSIS_CONFIG = {
 // =============================================================================
 
 /**
- * Analyze JSON export and generate comprehensive report
+ * Analyze JSON export comprehensively
  * @param {String} jsonFilePath - Path to JSON file
- * @param {Object} analysisConfig - Analysis configuration
- * @returns {Object} Analysis result
+ * @param {Object} analysisOptions - Analysis configuration
+ * @returns {Object} Complete analysis result
  */
-function analyzeJSONExport(jsonFilePath, analysisConfig) {
+function analyzeJSONExport(jsonFilePath, analysisOptions) {
     var startTime = new Date().getTime();
-    var config = analysisConfig ? 
-        objectClone(analysisConfig, 2) : objectClone(DEFAULT_ANALYSIS_CONFIG, 2);
+    var config = analysisOptions ? 
+        objectMerge(DEFAULT_ANALYSIS_CONFIG, analysisOptions) : 
+        objectClone(DEFAULT_ANALYSIS_CONFIG, 2);
+    
+    var result = {
+        success: false,
+        analysis: null,
+        error: null,
+        metadata: {
+            analysisTime: 0,
+            timestamp: getCurrentTimestamp(),
+            version: '3.1'
+        }
+    };
     
     try {
-        var result = {
-            success: false,
-            analysis: {},
-            error: null,
-            analysisTime: 0,
-            sourceFile: jsonFilePath
-        };
-        
         // Read and parse JSON file
         var jsonData = readAndParseJSONFile(jsonFilePath);
         if (!jsonData.success) {
-            result.error = jsonData.error;
+            result.error = 'Failed to read JSON file: ' + jsonData.error;
             return result;
         }
         
         // Validate JSON structure
         var validation = validateJSONStructure(jsonData.data);
-        if (!validation.valid) {
-            result.error = 'Invalid DOM structure: ' + validation.error;
+        if (!validation.success) {
+            result.error = 'Invalid DOM JSON structure: ' + validation.error;
             return result;
         }
         
         // Perform comprehensive analysis
-        result.analysis = analyzeLoadedJSON(jsonData.data, config);
+        var analysisResult = performComprehensiveAnalysis(jsonData.data, config);
+        if (!analysisResult.success) {
+            result.error = 'Analysis failed: ' + analysisResult.error;
+            return result;
+        }
+        
+        result.analysis = analysisResult.analysis;
         result.success = true;
-        result.analysisTime = new Date().getTime() - startTime;
+        result.metadata.analysisTime = new Date().getTime() - startTime;
         
         return result;
         
     } catch (exc) {
-        return {
-            success: false,
-            analysis: {},
-            error: 'Analysis failed: ' + exc.message,
-            analysisTime: new Date().getTime() - startTime,
-            sourceFile: jsonFilePath
-        };
+        result.error = 'JSON analysis error: ' + exc.message;
+        result.metadata.analysisTime = new Date().getTime() - startTime;
+        return result;
     }
 }
 
 /**
- * Analyze loaded JSON data structure
- * @param {Object} jsonData - Parsed JSON data
- * @param {Object} config - Analysis configuration
- * @returns {Object} Analysis results
+ * Analyze already loaded JSON data
+ * @param {Object} jsonData - JSON data object
+ * @param {Object} analysisOptions - Analysis configuration
+ * @returns {Object} Analysis result
  */
-function analyzeLoadedJSON(jsonData, config) {
+function analyzeLoadedJSON(jsonData, analysisOptions) {
+    var startTime = new Date().getTime();
+    var config = analysisOptions ? 
+        objectMerge(DEFAULT_ANALYSIS_CONFIG, analysisOptions) : 
+        objectClone(DEFAULT_ANALYSIS_CONFIG, 2);
+    
+    var result = {
+        success: false,
+        analysis: null,
+        error: null,
+        metadata: {
+            analysisTime: 0,
+            timestamp: getCurrentTimestamp(),
+            version: '3.1'
+        }
+    };
+    
     try {
-        var analysis = {
-            summary: {},
-            visualHierarchy: null,
-            propertyAnalysis: null,
-            collectionAnalysis: null,
-            valueAnalysis: null,
-            accessibilityMap: null,
-            developerGuide: null,
-            timestamp: getCurrentTimestamp()
-        };
-        
-        // Generate summary
-        analysis.summary = generateStructureSummary(jsonData);
-        
-        // Visual hierarchy analysis
-        if (config.enableVisualHierarchy) {
-            analysis.visualHierarchy = generateVisualHierarchy(jsonData, config);
+        // Validate JSON structure
+        var validation = validateJSONStructure(jsonData);
+        if (!validation.success) {
+            result.error = 'Invalid DOM JSON structure: ' + validation.error;
+            return result;
         }
         
-        // Property analysis
-        if (config.enablePropertyAnalysis) {
-            analysis.propertyAnalysis = generatePropertyAnalysis(jsonData, config);
+        // Perform comprehensive analysis
+        var analysisResult = performComprehensiveAnalysis(jsonData, config);
+        if (!analysisResult.success) {
+            result.error = 'Analysis failed: ' + analysisResult.error;
+            return result;
         }
         
-        // Collection analysis
-        if (config.enableCollectionAnalysis) {
-            analysis.collectionAnalysis = generateCollectionAnalysis(jsonData, config);
-        }
+        result.analysis = analysisResult.analysis;
+        result.success = true;
+        result.metadata.analysisTime = new Date().getTime() - startTime;
         
-        // Value analysis
-        if (config.enableValueAnalysis) {
-            analysis.valueAnalysis = generateValueAnalysis(jsonData, config);
-        }
-        
-        // Accessibility mapping
-        if (config.generateAccessibilityMap) {
-            analysis.accessibilityMap = generateAccessibilityMap(jsonData, config);
-        }
-        
-        // Developer guide
-        if (config.generateDeveloperGuide) {
-            analysis.developerGuide = generateDeveloperGuide(jsonData, analysis, config);
-        }
-        
-        return analysis;
+        return result;
         
     } catch (exc) {
-        return {
-            error: 'JSON analysis failed: ' + exc.message,
-            timestamp: getCurrentTimestamp()
-        };
+        result.error = 'JSON analysis error: ' + exc.message;
+        result.metadata.analysisTime = new Date().getTime() - startTime;
+        return result;
     }
 }
 
@@ -159,112 +156,118 @@ function analyzeLoadedJSON(jsonData, config) {
 /**
  * Read and parse JSON file safely
  * @param {String} filePath - Path to JSON file
- * @returns {Object} Parse result
+ * @returns {Object} Parse result with success, data, error
  */
 function readAndParseJSONFile(filePath) {
+    var result = {
+        success: false,
+        data: null,
+        error: null
+    };
+    
     try {
-        var result = {
-            success: false,
-            data: null,
-            error: null
-        };
-        
-        if (!filePath) {
-            result.error = 'No file path provided';
+        if (!filePath || typeof filePath !== 'string') {
+            result.error = 'Invalid file path';
             return result;
         }
         
-        var file = new File(filePath);
-        if (!file.exists) {
-            result.error = 'File not found: ' + filePath;
+        // Basic file existence check (InDesign specific)
+        var fileObj = new File(filePath);
+        if (!fileObj.exists) {
+            result.error = 'File does not exist: ' + filePath;
             return result;
         }
         
-        file.open('r');
-        var content = file.read();
-        file.close();
+        // Read file content
+        fileObj.open('r');
+        var fileContent = fileObj.read();
+        fileObj.close();
         
-        if (!content) {
+        if (!fileContent) {
             result.error = 'File is empty or could not be read';
             return result;
         }
         
-        var parseResult = parseJSONSafely(content);
+        // Parse JSON content
+        var parseResult = parseJSONSafely(fileContent);
         if (!parseResult.success) {
-            result.error = parseResult.error;
+            result.error = 'JSON parsing failed: ' + parseResult.error;
             return result;
         }
         
         result.data = parseResult.data;
         result.success = true;
-        return result;
-        
-    } catch (exc) {
-        return {
-            success: false,
-            data: null,
-            error: 'File read error: ' + exc.message
-        };
-    }
-}
-
-/**
- * Parse JSON content safely
- * @param {String} jsonContent - JSON string
- * @returns {Object} Parse result
- */
-function parseJSONSafely(jsonContent) {
-    try {
-        var result = {
-            success: false,
-            data: null,
-            error: null
-        };
-        
-        if (!jsonContent || typeof jsonContent !== 'string') {
-            result.error = 'Invalid JSON content';
-            return result;
-        }
-        
-        // Check for function call patterns that could be dangerous
-        if (containsFunctionCallPattern(jsonContent)) {
-            result.error = 'JSON content contains potentially dangerous function calls';
-            return result;
-        }
-        
-        // Use eval for ES3 compatibility (safer than Function constructor)
-        try {
-            result.data = eval('(' + jsonContent + ')');
-            result.success = true;
-        } catch (evalExc) {
-            result.error = 'JSON parse error: ' + evalExc.message;
-        }
         
         return result;
         
     } catch (exc) {
-        return {
-            success: false,
-            data: null,
-            error: 'JSON parsing failed: ' + exc.message
-        };
+        result.error = 'File read error: ' + exc.message;
+        return result;
     }
 }
 
 /**
- * Check for dangerous function call patterns
- * @param {String} content - Content to check
- * @returns {Boolean} True if dangerous patterns found
+ * Parse JSON string safely with enhanced error handling
+ * @param {String} jsonString - JSON string to parse
+ * @returns {Object} Parse result with success, data, error
  */
-function containsFunctionCallPattern(content) {
+function parseJSONSafely(jsonString) {
+    var result = {
+        success: false,
+        data: null,
+        error: null
+    };
+    
     try {
+        if (!jsonString || typeof jsonString !== 'string') {
+            result.error = 'Invalid JSON string';
+            return result;
+        }
+        
+        // Check for potential function calls or dangerous patterns
+        if (containsFunctionCallPattern(jsonString)) {
+            result.error = 'JSON contains potentially dangerous function call patterns';
+            return result;
+        }
+        
+        // Parse JSON
+        var parsedData = safeJSONParse(jsonString);
+        if (parsedData === null) {
+            result.error = 'JSON parsing failed - invalid syntax';
+            return result;
+        }
+        
+        result.data = parsedData;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'JSON parse error: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Check for function call patterns in JSON string
+ * @param {String} jsonString - JSON string to check
+ * @returns {Boolean} True if contains function call patterns
+ */
+function containsFunctionCallPattern(jsonString) {
+    try {
+        if (typeof jsonString !== 'string') {
+            return true; // Err on side of caution
+        }
+        
+        // Simple pattern detection (ES3 compatible)
         var dangerousPatterns = [
-            'eval(', 'Function(', 'constructor(', 'prototype(',
-            '__proto__(', 'apply(', 'call(', 'bind('
+            'function(', '()=>', '.call(', '.apply(', 
+            'eval(', 'Function(', 'constructor(',
+            'prototype.', '__proto__.'
         ];
         
         for (var i = 0; i < dangerousPatterns.length; i++) {
-            if (stringIndexOf(content, dangerousPatterns[i]) !== -1) {
+            if (stringIndexOf(jsonString, dangerousPatterns[i]) !== -1) {
                 return true;
             }
         }
@@ -272,7 +275,7 @@ function containsFunctionCallPattern(content) {
         return false;
         
     } catch (exc) {
-        return true; // Assume dangerous on error
+        return true; // Err on side of caution
     }
 }
 
@@ -281,179 +284,236 @@ function containsFunctionCallPattern(content) {
 // =============================================================================
 
 /**
- * Validate JSON structure as DOM export
- * @param {Object} data - Parsed JSON data
- * @returns {Object} Validation result
+ * Validate JSON structure for DOM export compatibility
+ * @param {Object} jsonData - JSON data to validate
+ * @returns {Object} Validation result with success, error
  */
-function validateJSONStructure(data) {
+function validateJSONStructure(jsonData) {
+    var result = {
+        success: false,
+        error: ''
+    };
+
     try {
-        var result = {
-            valid: false,
-            error: null,
-            warnings: []
-        };
-        
-        if (!data || typeof data !== 'object') {
-            result.error = 'Root data is not an object';
+        if (!jsonData || typeof jsonData !== 'object') {
+            result.error = 'Invalid JSON data structure';
             return result;
         }
-        
-        // Check for required top-level properties
-        if (!data.metadata) {
-            result.warnings.push('Missing metadata section');
+
+        // Check for DOM structure
+        var domStructure = null;
+        if (jsonData.domStructure) {
+            domStructure = jsonData.domStructure;
+        } else if (jsonData.structure) {
+            domStructure = jsonData;
         }
-        
-        if (!data.structure) {
-            result.error = 'Missing structure section';
+
+        if (!domStructure) {
+            result.error = 'No DOM structure found in JSON';
             return result;
         }
-        
-        if (!data.statistics) {
-            result.warnings.push('Missing statistics section');
-        }
-        
-        // Validate structure has document node
-        if (!data.structure.document) {
-            result.error = 'Missing document node in structure';
+
+        // Validate basic structure with enhanced checks
+        if (!domStructure.metadata) {
+            result.error = 'Missing metadata in DOM structure';
             return result;
         }
-        
-        result.valid = true;
+
+        if (!domStructure.structure) {
+            result.error = 'Missing structure in DOM data';
+            return result;
+        }
+
+        // Additional validation for structure integrity
+        if (!domStructure.structure.document) {
+            result.error = 'Missing document in structure data';
+            return result;
+        }
+
+        result.success = true;
         return result;
-        
+
     } catch (exc) {
-        return {
-            valid: false,
-            error: 'Structure validation failed: ' + exc.message,
-            warnings: []
-        };
+        result.error = 'Structure validation error: ' + exc.message;
+        return result;
     }
 }
 
 // =============================================================================
-// ANALYSIS GENERATION FUNCTIONS
+// ANALYSIS PROCESSING
 // =============================================================================
 
 /**
+ * Perform comprehensive analysis of DOM structure
+ * @param {Object} jsonData - JSON data to analyze
+ * @param {Object} config - Analysis configuration
+ * @returns {Object} Analysis result
+ */
+function performComprehensiveAnalysis(jsonData, config) {
+    var result = {
+        success: false,
+        analysis: null,
+        error: ''
+    };
+    
+    try {
+        var domStructure = jsonData.domStructure || jsonData;
+        
+        var analysis = {
+            metadata: {
+                analyzedAt: getCurrentTimestamp(),
+                analysisVersion: '3.1',
+                sourceVersion: domStructure.metadata ? domStructure.metadata.version : 'unknown'
+            }
+        };
+        
+        // Generate structure summary
+        analysis.summary = generateStructureSummary(domStructure, config);
+        
+        // Generate visual hierarchy
+        if (config.enableVisualHierarchy) {
+            analysis.visualHierarchy = generateVisualHierarchy(domStructure, config);
+        }
+        
+        // Generate property analysis
+        if (config.enablePropertyAnalysis) {
+            analysis.propertyAnalysis = generatePropertyAnalysis(domStructure, config);
+        }
+        
+        // Generate collection analysis
+        if (config.enableCollectionAnalysis) {
+            analysis.collectionAnalysis = generateCollectionAnalysis(domStructure, config);
+        }
+        
+        // Generate value analysis
+        if (config.enableValueAnalysis) {
+            analysis.valueAnalysis = generateValueAnalysis(domStructure, config);
+        }
+        
+        // Generate accessibility map
+        if (config.enableAccessibilityMap) {
+            analysis.accessibilityMap = generateAccessibilityMap(domStructure, config);
+        }
+        
+        // Generate developer guide
+        if (config.generateDeveloperGuide) {
+            analysis.developerGuide = generateDeveloperGuide(domStructure, config);
+        }
+        
+        result.analysis = analysis;
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Comprehensive analysis failed: ' + exc.message;
+        return result;
+    }
+}
+
+/**
  * Generate structure summary
- * @param {Object} jsonData - JSON data
+ * @param {Object} domStructure - DOM structure to analyze
+ * @param {Object} config - Analysis configuration
  * @returns {Object} Structure summary
  */
-function generateStructureSummary(jsonData) {
+function generateStructureSummary(domStructure, config) {
     try {
         var summary = {
             documentName: 'Unknown',
-            totalNodes: 0,
-            totalProperties: 0,
+            nodeCount: 0,
+            propertyCount: 0,
             collectionCount: 0,
             methodCount: 0,
             maxDepth: 0,
-            hasObjectReferences: false,
             hasExtractedValues: false,
-            hasCircularReferences: false
+            extractionStatistics: null
         };
         
-        // Extract basic information
-        if (jsonData.metadata && jsonData.metadata.documentName) {
-            summary.documentName = jsonData.metadata.documentName;
+        // Extract basic metadata
+        if (domStructure.metadata) {
+            summary.documentName = domStructure.metadata.documentName || 'Unknown';
+            
+            // Check for value extraction
+            if (domStructure.metadata.valueSampling) {
+                summary.hasExtractedValues = domStructure.metadata.valueSampling.enabled || false;
+                summary.extractionStatistics = domStructure.metadata.valueSampling.statistics;
+            }
         }
         
-        if (jsonData.statistics) {
-            summary.totalNodes = jsonData.statistics.totalNodes || 0;
-            summary.totalProperties = jsonData.statistics.totalProperties || 0;
-            summary.hasCircularReferences = (jsonData.statistics.circularReferences || 0) > 0;
+        // Extract statistics
+        if (domStructure.statistics) {
+            summary.nodeCount = domStructure.statistics.totalNodes || 0;
+            summary.propertyCount = domStructure.statistics.totalProperties || 0;
+            summary.collectionCount = domStructure.statistics.totalCollections || 0;
+            summary.methodCount = domStructure.statistics.totalMethods || 0;
+            summary.maxDepth = domStructure.statistics.maxDepth || 0;
+        } else if (domStructure.structure && domStructure.structure.document) {
+            // Calculate statistics from structure
+            summary = analyzeNodeStructure(domStructure.structure.document, summary);
         }
-        
-        // Analyze structure depth and content
-        if (jsonData.structure && jsonData.structure.document) {
-            var structureStats = analyzeNodeStructure(jsonData.structure.document, 0);
-            summary.maxDepth = structureStats.maxDepth;
-            summary.collectionCount = structureStats.collectionCount;
-            summary.methodCount = structureStats.methodCount;
-            summary.hasExtractedValues = structureStats.hasExtractedValues;
-        }
-        
-        // Check for object references
-        summary.hasObjectReferences = jsonData.objectRegistry && 
-                                     countObjectKeys(jsonData.objectRegistry.references || {}) > 0;
         
         return summary;
         
     } catch (exc) {
         return {
-            error: 'Summary generation failed: ' + exc.message
+            documentName: 'Analysis Error',
+            error: exc.message,
+            nodeCount: 0,
+            propertyCount: 0
         };
     }
 }
 
 /**
- * Analyze node structure recursively
- * @param {Object} node - DOM node
- * @param {Number} currentDepth - Current depth
- * @returns {Object} Structure statistics
+ * Analyze node structure recursively for statistics
+ * @param {Object} domNode - DOM node to analyze
+ * @param {Object} summary - Summary object to update
+ * @returns {Object} Updated summary
  */
-function analyzeNodeStructure(node, currentDepth) {
+function analyzeNodeStructure(domNode, summary) {
     try {
-        var stats = {
-            maxDepth: currentDepth,
-            collectionCount: 0,
-            methodCount: 0,
-            hasExtractedValues: false
-        };
+        if (!domNode) return summary;
         
-        if (!node) return stats;
+        summary.nodeCount++;
         
-        // Count collections and methods
-        if (node.collections) {
-            stats.collectionCount += node.collections.length;
+        if (domNode.depth > summary.maxDepth) {
+            summary.maxDepth = domNode.depth;
         }
         
-        if (node.methods) {
-            stats.methodCount += node.methods.length;
+        if (domNode.properties) {
+            summary.propertyCount += domNode.properties.length;
         }
         
-        // Check for extracted values
-        if (node.properties) {
-            for (var i = 0; i < node.properties.length; i++) {
-                if (node.properties[i].extractedValue) {
-                    stats.hasExtractedValues = true;
-                    break;
-                }
+        if (domNode.collections) {
+            summary.collectionCount += domNode.collections.length;
+        }
+        
+        if (domNode.methods) {
+            summary.methodCount += domNode.methods.length;
+        }
+        
+        // Process child nodes
+        if (domNode.childNodes) {
+            for (var i = 0; i < domNode.childNodes.length; i++) {
+                summary = analyzeNodeStructure(domNode.childNodes[i], summary);
             }
         }
         
-        // Recursively analyze child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var j = 0; j < node.childNodes.length; j++) {
-                var childStats = analyzeNodeStructure(node.childNodes[j], currentDepth + 1);
-                stats.maxDepth = Math.max(stats.maxDepth, childStats.maxDepth);
-                stats.collectionCount += childStats.collectionCount;
-                stats.methodCount += childStats.methodCount;
-                if (childStats.hasExtractedValues) {
-                    stats.hasExtractedValues = true;
-                }
-            }
-        }
-        
-        return stats;
+        return summary;
         
     } catch (exc) {
-        return {
-            maxDepth: currentDepth,
-            collectionCount: 0,
-            methodCount: 0,
-            hasExtractedValues: false
-        };
+        return summary;
     }
 }
 
 /**
  * Generate visual hierarchy representation
- * @param {Object} jsonData - JSON data
- * @param {Object} config - Configuration
- * @returns {String} Visual hierarchy
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Analysis configuration
+ * @returns {String} Visual hierarchy text
  */
-function generateVisualHierarchy(jsonData, config) {
+function generateVisualHierarchy(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
@@ -461,10 +521,11 @@ function generateVisualHierarchy(jsonData, config) {
         builder.appendLine('======================');
         builder.appendLine('');
         
-        if (jsonData.structure && jsonData.structure.document) {
-            builder.appendLine(generateNodeHierarchy(jsonData.structure.document, 0, config));
+        if (domStructure.structure && domStructure.structure.document) {
+            var hierarchyText = generateNodeHierarchy(domStructure.structure.document, 0, config);
+            builder.append(hierarchyText);
         } else {
-            builder.appendLine('No structure data available');
+            builder.appendLine('No document structure available');
         }
         
         return builder.toString();
@@ -475,85 +536,97 @@ function generateVisualHierarchy(jsonData, config) {
 }
 
 /**
- * Generate hierarchy text for a node
- * @param {Object} node - DOM node
- * @param {Number} depth - Current depth
+ * Generate hierarchy text for a DOM node
+ * @param {Object} domNode - DOM node
+ * @param {Number} indentLevel - Indentation level
  * @param {Object} config - Configuration
  * @returns {String} Node hierarchy text
  */
-function generateNodeHierarchy(node, depth, config) {
+function generateNodeHierarchy(domNode, indentLevel, config) {
     try {
-        if (!node || depth > config.maxAnalysisDepth) {
-            return '';
-        }
-        
         var builder = createStringBuilder();
-        var indent = createHierarchyIndent(depth);
+        var indent = createHierarchyIndent(indentLevel);
         
-        // Node name and type
-        var nodeDisplay = node.name + ' (' + node.type + ')';
-        
-        // Add counts
-        var counts = [];
-        if (node.properties && node.properties.length > 0) {
-            counts.push(node.properties.length + ' props');
-        }
-        if (node.collections && node.collections.length > 0) {
-            counts.push(node.collections.length + ' colls');
-        }
-        if (node.methods && node.methods.length > 0) {
-            counts.push(node.methods.length + ' methods');
+        // Node information
+        var nodeInfo = domNode.name + ' (' + domNode.type + ')';
+        if (domNode.objectId) {
+            nodeInfo += ' [ID: ' + stringSubstring(domNode.objectId, 0, 8) + '...]';
         }
         
-        if (counts.length > 0) {
-            nodeDisplay += ' [' + arrayJoin(counts, ', ') + ']';
-        }
+        builder.appendLine(indent + '▼ ' + nodeInfo);
         
-        builder.appendLine(indent + nodeDisplay);
-        
-        // Show key properties if enabled
-        if (config.highlightKeyProperties && node.properties) {
-            var keyProps = findKeyProperties(node.properties);
-            for (var i = 0; i < keyProps.length && i < 3; i++) {
-                var prop = keyProps[i];
-                var propDisplay = indent + '  → ' + prop.name;
-                if (prop.extractedValue) {
-                    propDisplay += ': ' + stringSubstring(prop.extractedValue, 0, 30);
-                    if (prop.extractedValue.length > 30) {
-                        propDisplay += '...';
-                    }
+        // Properties
+        if (domNode.properties && domNode.properties.length > 0) {
+            var propLimit = Math.min(domNode.properties.length, config.maxReportItems || 10);
+            builder.appendLine(indent + '  Properties (' + domNode.properties.length + '):');
+            
+            for (var p = 0; p < propLimit; p++) {
+                var prop = domNode.properties[p];
+                var propText = '• ' + prop.name + ' (' + prop.type + ')';
+                
+                // Show extracted value if available
+                if (prop.samplingMetadata && prop.samplingMetadata.formattedValue) {
+                    propText += ' = ' + prop.samplingMetadata.formattedValue;
                 }
-                builder.appendLine(propDisplay);
+                
+                builder.appendLine(indent + '    ' + propText);
+            }
+            
+            if (domNode.properties.length > propLimit) {
+                builder.appendLine(indent + '    ... and ' + (domNode.properties.length - propLimit) + ' more');
             }
         }
         
-        // Recursively show child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var j = 0; j < node.childNodes.length; j++) {
-                builder.appendLine(generateNodeHierarchy(node.childNodes[j], depth + 1, config));
+        // Collections
+        if (domNode.collections && domNode.collections.length > 0) {
+            builder.appendLine(indent + '  Collections (' + domNode.collections.length + '):');
+            
+            for (var c = 0; c < Math.min(domNode.collections.length, 5); c++) {
+                var coll = domNode.collections[c];
+                var collText = '• ' + coll.name + ' (' + coll.type + ')';
+                
+                // Show collection content if available
+                if (coll.samplingMetadata && coll.samplingMetadata.formattedValue) {
+                    collText += ' = ' + coll.samplingMetadata.formattedValue;
+                }
+                
+                builder.appendLine(indent + '    ' + collText);
+            }
+        }
+        
+        // Methods
+        if (domNode.methods && domNode.methods.length > 0) {
+            builder.appendLine(indent + '  Methods (' + domNode.methods.length + '):');
+            
+            for (var m = 0; m < Math.min(domNode.methods.length, 5); m++) {
+                builder.appendLine(indent + '    • ' + domNode.methods[m].name + '()');
+            }
+        }
+        
+        // Child nodes (limit depth to prevent overwhelming output)
+        if (domNode.childNodes && domNode.childNodes.length > 0 && indentLevel < 3) {
+            for (var n = 0; n < domNode.childNodes.length; n++) {
+                builder.append(generateNodeHierarchy(domNode.childNodes[n], indentLevel + 1, config));
             }
         }
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Node hierarchy error: ' + exc.message;
+        return 'Node hierarchy error: ' + exc.message + '\n';
     }
 }
 
 /**
  * Create hierarchy indentation
- * @param {Number} depth - Depth level
- * @returns {String} Indentation string
+ * @param {Number} level - Indentation level
+ * @returns {String} Indent string
  */
-function createHierarchyIndent(depth) {
+function createHierarchyIndent(level) {
     try {
         var indent = '';
-        for (var i = 0; i < depth; i++) {
-            indent += '  ';
-        }
-        if (depth > 0) {
-            indent += '├─ ';
+        for (var i = 0; i < level * 2; i++) {
+            indent += ' ';
         }
         return indent;
     } catch (exc) {
@@ -562,37 +635,26 @@ function createHierarchyIndent(depth) {
 }
 
 /**
- * Find key properties in a property array
- * @param {Array} properties - Properties array
+ * Find key properties in DOM structure
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
  * @returns {Array} Key properties
  */
-function findKeyProperties(properties) {
+function findKeyProperties(domStructure, config) {
     try {
-        var keyProps = [];
-        var keyPropNames = ['name', 'title', 'id', 'label', 'value', 'text', 'content'];
+        var keyProperties = [];
+        var allProperties = collectAllProperties(domStructure);
         
-        // First pass: look for known key property names
-        for (var i = 0; i < keyPropNames.length; i++) {
-            for (var j = 0; j < properties.length; j++) {
-                if (stringToLowerCase(properties[j].name) === keyPropNames[i] && 
-                    properties[j].extractedValue) {
-                    keyProps.push(properties[j]);
-                    break;
-                }
+        // Identify important properties
+        for (var i = 0; i < allProperties.length; i++) {
+            var prop = allProperties[i];
+            
+            if (isImportantProperty(prop.name)) {
+                keyProperties[keyProperties.length] = prop;
             }
         }
         
-        // Second pass: add other properties with extracted values
-        if (keyProps.length < 3) {
-            for (var k = 0; k < properties.length && keyProps.length < 5; k++) {
-                if (properties[k].extractedValue && 
-                    arrayIndexOf(keyProps, properties[k]) === -1) {
-                    keyProps.push(properties[k]);
-                }
-            }
-        }
-        
-        return keyProps;
+        return arraySlice(keyProperties, 0, config.maxReportItems || 20);
         
     } catch (exc) {
         return [];
@@ -601,11 +663,11 @@ function findKeyProperties(properties) {
 
 /**
  * Generate property analysis
- * @param {Object} jsonData - JSON data
+ * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
  * @returns {String} Property analysis
  */
-function generatePropertyAnalysis(jsonData, config) {
+function generatePropertyAnalysis(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
@@ -613,40 +675,47 @@ function generatePropertyAnalysis(jsonData, config) {
         builder.appendLine('=================');
         builder.appendLine('');
         
-        // Collect all properties
-        var allProperties = collectAllProperties(jsonData.structure);
+        var allProperties = collectAllProperties(domStructure);
+        var propertyTypes = analyzePropertyTypes(allProperties);
+        var safetySummary = analyzePropertySafety(allProperties);
         
-        if (allProperties.length === 0) {
-            builder.appendLine('No properties found.');
-            return builder.toString();
-        }
+        builder.appendLine('Total Properties: ' + allProperties.length);
+        builder.appendLine('');
         
-        // Analyze property types
-        var typeStats = analyzePropertyTypes(allProperties);
         builder.appendLine('Property Types:');
-        for (var type in typeStats) {
-            if (objectHasOwnProperty(typeStats, type)) {
-                builder.appendLine('  ' + type + ': ' + typeStats[type] + ' properties');
+        for (var propType in propertyTypes) {
+            if (objectHasOwnProperty(propertyTypes, propType)) {
+                builder.appendLine('  ' + propType + ': ' + propertyTypes[propType]);
             }
         }
         builder.appendLine('');
         
-        // Analyze safety levels
-        var safetyStats = analyzePropertySafety(allProperties);
-        builder.appendLine('Safety Analysis:');
-        for (var safety in safetyStats) {
-            if (objectHasOwnProperty(safetyStats, safety)) {
-                builder.appendLine('  ' + safety + ': ' + safetyStats[safety] + ' properties');
+        builder.appendLine('Safety Summary:');
+        for (var safetyLevel in safetySummary) {
+            if (objectHasOwnProperty(safetySummary, safetyLevel)) {
+                builder.appendLine('  ' + safetyLevel + ': ' + safetySummary[safetyLevel]);
             }
         }
         builder.appendLine('');
         
-        // Show extracted values statistics
-        var valueStats = analyzeExtractedValues(allProperties);
-        builder.appendLine('Extracted Values:');
-        builder.appendLine('  Total with values: ' + valueStats.withValues);
-        builder.appendLine('  Total without values: ' + valueStats.withoutValues);
-        builder.appendLine('  Value extraction rate: ' + valueStats.extractionRate + '%');
+        // Show key properties with extracted values
+        if (config.highlightKeyProperties) {
+            var keyProperties = findKeyProperties(domStructure, config);
+            if (keyProperties.length > 0) {
+                builder.appendLine('Key Properties with Values:');
+                for (var k = 0; k < keyProperties.length; k++) {
+                    var keyProp = keyProperties[k];
+                    var propLine = '  • ' + keyProp.name + ' (' + keyProp.type + ')';
+                    
+                    if (keyProp.samplingMetadata && keyProp.samplingMetadata.formattedValue) {
+                        propLine += ' = ' + keyProp.samplingMetadata.formattedValue;
+                    }
+                    
+                    builder.appendLine(propLine);
+                }
+                builder.appendLine('');
+            }
+        }
         
         return builder.toString();
         
@@ -656,41 +725,19 @@ function generatePropertyAnalysis(jsonData, config) {
 }
 
 /**
- * Collect all properties from structure
- * @param {Object} structure - DOM structure
+ * Collect all properties from DOM structure
+ * @param {Object} domStructure - DOM structure
  * @returns {Array} All properties
  */
-function collectAllProperties(structure) {
+function collectAllProperties(domStructure) {
     try {
-        var allProps = [];
+        var allProperties = [];
         
-        function collectFromNode(node) {
-            if (!node) return;
-            
-            if (node.properties) {
-                for (var i = 0; i < node.properties.length; i++) {
-                    allProps.push(node.properties[i]);
-                }
-            }
-            
-            if (node.collections) {
-                for (var j = 0; j < node.collections.length; j++) {
-                    allProps.push(node.collections[j]);
-                }
-            }
-            
-            if (node.childNodes) {
-                for (var k = 0; k < node.childNodes.length; k++) {
-                    collectFromNode(node.childNodes[k]);
-                }
-            }
+        if (domStructure.structure && domStructure.structure.document) {
+            collectNodeProperties(domStructure.structure.document, allProperties);
         }
         
-        if (structure && structure.document) {
-            collectFromNode(structure.document);
-        }
-        
-        return allProps;
+        return allProperties;
         
     } catch (exc) {
         return [];
@@ -698,261 +745,179 @@ function collectAllProperties(structure) {
 }
 
 /**
- * Analyze property types
- * @param {Array} properties - Properties array
- * @returns {Object} Type statistics
+ * Collect properties from a DOM node recursively
+ * @param {Object} domNode - DOM node
+ * @param {Array} propertyList - Property list to append to
+ */
+function collectNodeProperties(domNode, propertyList) {
+    try {
+        if (!domNode) return;
+        
+        // Add node properties
+        if (domNode.properties) {
+            for (var i = 0; i < domNode.properties.length; i++) {
+                propertyList[propertyList.length] = domNode.properties[i];
+            }
+        }
+        
+        // Add node collections
+        if (domNode.collections) {
+            for (var j = 0; j < domNode.collections.length; j++) {
+                propertyList[propertyList.length] = domNode.collections[j];
+            }
+        }
+        
+        // Add node methods
+        if (domNode.methods) {
+            for (var k = 0; k < domNode.methods.length; k++) {
+                propertyList[propertyList.length] = domNode.methods[k];
+            }
+        }
+        
+        // Process child nodes
+        if (domNode.childNodes) {
+            for (var n = 0; n < domNode.childNodes.length; n++) {
+                collectNodeProperties(domNode.childNodes[n], propertyList);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue collection
+    }
+}
+
+/**
+ * Analyze property types distribution
+ * @param {Array} properties - Properties to analyze
+ * @returns {Object} Type distribution
  */
 function analyzePropertyTypes(properties) {
     try {
-        var typeStats = {};
+        var types = {};
         
         for (var i = 0; i < properties.length; i++) {
             var prop = properties[i];
-            var type = prop.type || 'unknown';
+            var propType = prop.type || 'unknown';
             
-            if (!typeStats[type]) {
-                typeStats[type] = 0;
+            if (types[propType]) {
+                types[propType]++;
+            } else {
+                types[propType] = 1;
             }
-            typeStats[type]++;
         }
         
-        return typeStats;
+        return types;
         
     } catch (exc) {
-        return {};
+        return { 'error': 1 };
     }
 }
 
 /**
  * Analyze property safety levels
- * @param {Array} properties - Properties array
- * @returns {Object} Safety statistics
+ * @param {Array} properties - Properties to analyze
+ * @returns {Object} Safety distribution
  */
 function analyzePropertySafety(properties) {
     try {
-        var safetyStats = {};
+        var safety = {};
         
         for (var i = 0; i < properties.length; i++) {
             var prop = properties[i];
-            var safety = prop.safetyLevel || 'unknown';
+            var safetyLevel = prop.safetyLevel || getPropertySafetyLevel(prop.name);
             
-            if (!safetyStats[safety]) {
-                safetyStats[safety] = 0;
-            }
-            safetyStats[safety]++;
-        }
-        
-        return safetyStats;
-        
-    } catch (exc) {
-        return {};
-    }
-}
-
-/**
- * Analyze extracted values
- * @param {Array} properties - Properties array
- * @returns {Object} Value statistics
- */
-function analyzeExtractedValues(properties) {
-    try {
-        var stats = {
-            withValues: 0,
-            withoutValues: 0,
-            extractionRate: 0
-        };
-        
-        for (var i = 0; i < properties.length; i++) {
-            var prop = properties[i];
-            if (prop.extractedValue !== null && prop.extractedValue !== undefined) {
-                stats.withValues++;
+            if (safety[safetyLevel]) {
+                safety[safetyLevel]++;
             } else {
-                stats.withoutValues++;
+                safety[safetyLevel] = 1;
             }
         }
         
-        var total = stats.withValues + stats.withoutValues;
-        if (total > 0) {
-            stats.extractionRate = Math.round((stats.withValues / total) * 100);
-        }
-        
-        return stats;
+        return safety;
         
     } catch (exc) {
-        return {
-            withValues: 0,
-            withoutValues: 0,
-            extractionRate: 0
-        };
+        return { 'error': 1 };
     }
 }
 
 /**
- * Generate collection analysis
- * @param {Object} jsonData - JSON data
- * @param {Object} config - Configuration
- * @returns {String} Collection analysis
- */
-function generateCollectionAnalysis(jsonData, config) {
-    try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('COLLECTION ANALYSIS');
-        builder.appendLine('==================');
-        builder.appendLine('');
-        
-        // Collect all collections
-        var allCollections = collectAllCollections(jsonData.structure);
-        
-        if (allCollections.length === 0) {
-            builder.appendLine('No collections found.');
-            return builder.toString();
-        }
-        
-        builder.appendLine('Total Collections Found: ' + allCollections.length);
-        builder.appendLine('');
-        
-        // Analyze collection types and content
-        for (var i = 0; i < Math.min(allCollections.length, config.maxReportItems); i++) {
-            var coll = allCollections[i];
-            
-            builder.appendLine('Collection: ' + coll.name);
-            builder.appendLine('  Path: ' + coll.path);
-            builder.appendLine('  Type: ' + (coll.type || 'unknown'));
-            
-            if (coll.collectionAnalysis) {
-                var analysis = coll.collectionAnalysis;
-                if (analysis.itemCount !== undefined) {
-                    builder.appendLine('  Items: ' + analysis.itemCount);
-                }
-                if (analysis.collectionType) {
-                    builder.appendLine('  Collection Type: ' + analysis.collectionType);
-                }
-                if (analysis.contentSummary) {
-                    builder.appendLine('  Content: ' + generateCollectionContentSummary(analysis.contentSummary));
-                }
-            }
-            
-            builder.appendLine('');
-        }
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'Collection analysis failed: ' + exc.message;
-    }
-}
-
-/**
- * Collect all collections from structure
- * @param {Object} structure - DOM structure
- * @returns {Array} All collections
- */
-function collectAllCollections(structure) {
-    try {
-        var allColls = [];
-        
-        function collectFromNode(node) {
-            if (!node) return;
-            
-            if (node.collections) {
-                for (var i = 0; i < node.collections.length; i++) {
-                    allColls.push(node.collections[i]);
-                }
-            }
-            
-            if (node.childNodes) {
-                for (var j = 0; j < node.childNodes.length; j++) {
-                    collectFromNode(node.childNodes[j]);
-                }
-            }
-        }
-        
-        if (structure && structure.document) {
-            collectFromNode(structure.document);
-        }
-        
-        return allColls;
-        
-    } catch (exc) {
-        return [];
-    }
-}
-
-/**
- * Generate collection content summary text
- * @param {Object} contentSummary - Content summary
- * @returns {String} Summary text
- */
-function generateCollectionContentSummary(contentSummary) {
-    try {
-        if (!contentSummary) return 'No summary available';
-        
-        var parts = [];
-        
-        if (contentSummary.totalSamples) {
-            parts.push(contentSummary.totalSamples + ' samples');
-        }
-        
-        if (contentSummary.itemTypes) {
-            var types = [];
-            for (var type in contentSummary.itemTypes) {
-                if (objectHasOwnProperty(contentSummary.itemTypes, type)) {
-                    types.push(type + '(' + contentSummary.itemTypes[type] + ')');
-                }
-            }
-            if (types.length > 0) {
-                parts.push('types: ' + arrayJoin(types, ', '));
-            }
-        }
-        
-        if (contentSummary.hasErrors) {
-            parts.push('has errors');
-        }
-        
-        return arrayJoin(parts, ', ');
-        
-    } catch (exc) {
-        return 'Summary error';
-    }
-}
-
-/**
- * Generate value analysis
- * @param {Object} jsonData - JSON data
+ * Analyze extracted values in DOM structure
+ * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
  * @returns {String} Value analysis
  */
-function generateValueAnalysis(jsonData, config) {
+function analyzeExtractedValues(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
-        builder.appendLine('VALUE ANALYSIS');
-        builder.appendLine('==============');
+        builder.appendLine('EXTRACTED VALUES ANALYSIS');
+        builder.appendLine('========================');
         builder.appendLine('');
         
-        // Analyze value sampling metadata
-        if (jsonData.metadata && jsonData.metadata.valueSampling) {
-            var sampling = jsonData.metadata.valueSampling;
+        var extractedValues = [];
+        collectExtractedValues(domStructure, extractedValues);
+        
+        if (extractedValues.length === 0) {
+            builder.appendLine('No extracted values found in DOM structure.');
+            builder.appendLine('Run property value sampling to extract actual values.');
+            return builder.toString();
+        }
+        
+        builder.appendLine('Total Extracted Values: ' + extractedValues.length);
+        builder.appendLine('');
+        
+        // Analyze value types
+        var valueTypes = {};
+        var valueComplexity = { simple: 0, complex: 0 };
+        
+        for (var i = 0; i < extractedValues.length; i++) {
+            var extractedValue = extractedValues[i];
             
-            builder.appendLine('Value Sampling Status: ' + (sampling.enabled ? 'Enabled' : 'Disabled'));
-            
-            if (sampling.enabled && sampling.statistics) {
-                builder.appendLine('Statistics:');
-                builder.appendLine('  Properties Sampled: ' + (sampling.statistics.propertiesSampled || 0));
-                builder.appendLine('  Values Extracted: ' + (sampling.statistics.valuesSampled || 0));
-                builder.appendLine('  Null Values: ' + (sampling.statistics.nullValuesFound || 0));
-                builder.appendLine('  Undefined Values: ' + (sampling.statistics.undefinedValuesFound || 0));
-                builder.appendLine('  Errors: ' + (sampling.statistics.errorsEncountered || 0));
-                
-                if (sampling.performance) {
-                    builder.appendLine('Performance:');
-                    builder.appendLine('  Total Time: ' + (sampling.performance.totalTime || 0) + 'ms');
-                    builder.appendLine('  Success Rate: ' + (sampling.performance.successRate || 0) + '%');
+            if (extractedValue.valueType) {
+                if (valueTypes[extractedValue.valueType]) {
+                    valueTypes[extractedValue.valueType]++;
+                } else {
+                    valueTypes[extractedValue.valueType] = 1;
                 }
             }
-        } else {
-            builder.appendLine('No value sampling data available.');
+            
+            if (extractedValue.complexity) {
+                if (valueComplexity[extractedValue.complexity] !== undefined) {
+                    valueComplexity[extractedValue.complexity]++;
+                }
+            }
+        }
+        
+        builder.appendLine('Value Types:');
+        for (var valueType in valueTypes) {
+            if (objectHasOwnProperty(valueTypes, valueType)) {
+                builder.appendLine('  ' + valueType + ': ' + valueTypes[valueType]);
+            }
+        }
+        builder.appendLine('');
+        
+        builder.appendLine('Value Complexity:');
+        builder.appendLine('  Simple: ' + valueComplexity.simple);
+        builder.appendLine('  Complex: ' + valueComplexity.complex);
+        builder.appendLine('');
+        
+        // Show sample extracted values
+        var sampleCount = Math.min(extractedValues.length, config.maxReportItems || 10);
+        builder.appendLine('Sample Extracted Values:');
+        
+        for (var s = 0; s < sampleCount; s++) {
+            var sample = extractedValues[s];
+            var sampleLine = '  • ' + sample.path + ' = ' + sample.formattedValue;
+            
+            if (sample.valueType) {
+                sampleLine += ' (' + sample.valueType + ')';
+            }
+            
+            builder.appendLine(sampleLine);
+        }
+        
+        if (extractedValues.length > sampleCount) {
+            builder.appendLine('  ... and ' + (extractedValues.length - sampleCount) + ' more values');
         }
         
         return builder.toString();
@@ -963,107 +928,278 @@ function generateValueAnalysis(jsonData, config) {
 }
 
 /**
+ * Collect extracted values from DOM structure
+ * @param {Object} domStructure - DOM structure
+ * @param {Array} valueList - List to collect values into
+ */
+function collectExtractedValues(domStructure, valueList) {
+    try {
+        if (domStructure.structure && domStructure.structure.document) {
+            collectNodeExtractedValues(domStructure.structure.document, valueList);
+        }
+    } catch (exc) {
+        // Continue collection
+    }
+}
+
+/**
+ * Collect extracted values from a DOM node
+ * @param {Object} domNode - DOM node
+ * @param {Array} valueList - List to collect values into
+ */
+function collectNodeExtractedValues(domNode, valueList) {
+    try {
+        if (!domNode) return;
+        
+        // Check properties for extracted values
+        var propertyArrays = [domNode.properties, domNode.collections, domNode.methods];
+        
+        for (var arrayIndex = 0; arrayIndex < propertyArrays.length; arrayIndex++) {
+            var propArray = propertyArrays[arrayIndex];
+            if (propArray) {
+                for (var i = 0; i < propArray.length; i++) {
+                    var prop = propArray[i];
+                    
+                    if (prop.samplingMetadata && prop.samplingMetadata.actualValue !== undefined) {
+                        valueList[valueList.length] = {
+                            path: prop.path,
+                            name: prop.name,
+                            actualValue: prop.samplingMetadata.actualValue,
+                            formattedValue: prop.samplingMetadata.formattedValue,
+                            valueType: prop.samplingMetadata.valueType,
+                            complexity: prop.samplingMetadata.valueMetadata ? 
+                                prop.samplingMetadata.valueMetadata.complexity : 'unknown'
+                        };
+                    }
+                }
+            }
+        }
+        
+        // Process child nodes
+        if (domNode.childNodes) {
+            for (var n = 0; n < domNode.childNodes.length; n++) {
+                collectNodeExtractedValues(domNode.childNodes[n], valueList);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue collection
+    }
+}
+
+/**
+ * Generate collection analysis
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Collection analysis
+ */
+function generateCollectionAnalysis(domStructure, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('COLLECTION ANALYSIS');
+        builder.appendLine('==================');
+        builder.appendLine('');
+        
+        var collections = collectAllCollections(domStructure);
+        
+        if (collections.length === 0) {
+            builder.appendLine('No collections found in DOM structure.');
+            return builder.toString();
+        }
+        
+        builder.appendLine('Total Collections: ' + collections.length);
+        builder.appendLine('');
+        
+        // Generate collection content summary
+        var contentSummary = generateCollectionContentSummary(collections);
+        builder.append(contentSummary);
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Collection analysis failed: ' + exc.message;
+    }
+}
+
+/**
+ * Collect all collections from DOM structure
+ * @param {Object} domStructure - DOM structure
+ * @returns {Array} All collections
+ */
+function collectAllCollections(domStructure) {
+    try {
+        var collections = [];
+        var allProperties = collectAllProperties(domStructure);
+        
+        for (var i = 0; i < allProperties.length; i++) {
+            var prop = allProperties[i];
+            if (prop.isCollection) {
+                collections[collections.length] = prop;
+            }
+        }
+        
+        return collections;
+        
+    } catch (exc) {
+        return [];
+    }
+}
+
+/**
+ * Generate collection content summary
+ * @param {Array} collections - Collections to analyze
+ * @returns {String} Content summary
+ */
+function generateCollectionContentSummary(collections) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('Collection Details:');
+        
+        for (var i = 0; i < Math.min(collections.length, 10); i++) {
+            var collection = collections[i];
+            var collLine = '  • ' + collection.name + ' (' + collection.type + ')';
+            
+            if (collection.samplingMetadata && collection.samplingMetadata.formattedValue) {
+                collLine += ' = ' + collection.samplingMetadata.formattedValue;
+            }
+            
+            builder.appendLine(collLine);
+        }
+        
+        if (collections.length > 10) {
+            builder.appendLine('  ... and ' + (collections.length - 10) + ' more collections');
+        }
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Collection summary failed: ' + exc.message;
+    }
+}
+
+/**
+ * Generate value analysis
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Value analysis
+ */
+function generateValueAnalysis(domStructure, config) {
+    try {
+        if (config.analyzeExtractedValues) {
+            return analyzeExtractedValues(domStructure, config);
+        } else {
+            return 'Value analysis disabled in configuration.';
+        }
+    } catch (exc) {
+        return 'Value analysis failed: ' + exc.message;
+    }
+}
+
+/**
  * Generate accessibility map
- * @param {Object} jsonData - JSON data
+ * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
  * @returns {Object} Accessibility map
  */
-function generateAccessibilityMap(jsonData, config) {
+function generateAccessibilityMap(domStructure, config) {
     try {
-        var accessMap = {
-            safeObjects: [],
-            riskyObjects: [],
-            inaccessibleObjects: [],
+        var accessibilityMap = {
+            safeProperties: [],
+            cautionProperties: [],
+            dangerousProperties: [],
             recommendations: []
         };
         
-        // Analyze structure for accessibility
-        if (jsonData.structure && jsonData.structure.document) {
-            analyzeNodeAccessibility(jsonData.structure.document, accessMap);
+        var allProperties = collectAllProperties(domStructure);
+        
+        for (var i = 0; i < allProperties.length; i++) {
+            var prop = allProperties[i];
+            var accessibility = analyzeNodeAccessibility(prop);
+            
+            switch (accessibility.level) {
+                case 'safe':
+                    accessibilityMap.safeProperties[accessibilityMap.safeProperties.length] = prop;
+                    break;
+                case 'caution':
+                    accessibilityMap.cautionProperties[accessibilityMap.cautionProperties.length] = prop;
+                    break;
+                case 'dangerous':
+                    accessibilityMap.dangerousProperties[accessibilityMap.dangerousProperties.length] = prop;
+                    break;
+            }
         }
         
-        // Generate recommendations
-        accessMap.recommendations = generateAccessibilityRecommendations(accessMap);
+        accessibilityMap.recommendations = generateAccessibilityRecommendations(accessibilityMap);
         
-        return accessMap;
+        return accessibilityMap;
         
     } catch (exc) {
         return {
-            error: 'Accessibility map generation failed: ' + exc.message
+            error: exc.message,
+            safeProperties: [],
+            cautionProperties: [],
+            dangerousProperties: [],
+            recommendations: []
         };
     }
 }
 
 /**
  * Analyze node accessibility
- * @param {Object} node - DOM node
- * @param {Object} accessMap - Accessibility map to update
+ * @param {Object} property - Property to analyze
+ * @returns {Object} Accessibility analysis
  */
-function analyzeNodeAccessibility(node, accessMap) {
+function analyzeNodeAccessibility(property) {
     try {
-        if (!node) return;
+        var level = getPropertySafetyLevel(property.name);
         
-        var accessInfo = {
-            path: node.path,
-            name: node.name,
-            type: node.type,
-            usabilityScore: 0
+        return {
+            level: level,
+            reason: 'Based on property name analysis',
+            hasExtractedValue: property.samplingMetadata && 
+                property.samplingMetadata.actualValue !== undefined
         };
         
-        // Calculate usability score
-        if (node.properties && node.properties.length > 0) {
-            accessInfo.usabilityScore += Math.min(10, node.properties.length);
-        }
-        
-        if (node.collections && node.collections.length > 0) {
-            accessInfo.usabilityScore += node.collections.length * 5;
-        }
-        
-        if (node.objectMetadata && node.objectMetadata.isCircular) {
-            accessInfo.usabilityScore -= 20; // Penalize circular references
-        }
-        
-        // Categorize based on safety and usability
-        if (accessInfo.usabilityScore >= 10) {
-            accessMap.safeObjects.push(accessInfo);
-        } else if (accessInfo.usabilityScore >= 5) {
-            accessMap.riskyObjects.push(accessInfo);
-        } else {
-            accessMap.inaccessibleObjects.push(accessInfo);
-        }
-        
-        // Recursively analyze child nodes
-        if (node.childNodes) {
-            for (var i = 0; i < node.childNodes.length; i++) {
-                analyzeNodeAccessibility(node.childNodes[i], accessMap);
-            }
-        }
-        
     } catch (exc) {
-        // Continue with other nodes
+        return {
+            level: 'unknown',
+            reason: 'Analysis failed',
+            hasExtractedValue: false
+        };
     }
 }
 
 /**
  * Generate accessibility recommendations
- * @param {Object} accessMap - Accessibility map
+ * @param {Object} accessibilityMap - Accessibility map
  * @returns {Array} Recommendations
  */
-function generateAccessibilityRecommendations(accessMap) {
+function generateAccessibilityRecommendations(accessibilityMap) {
     try {
         var recommendations = [];
         
-        if (accessMap.safeObjects.length > 0) {
-            recommendations.push('Start with safe objects: ' + accessMap.safeObjects.length + ' available');
+        if (accessibilityMap.safeProperties.length > 0) {
+            recommendations[recommendations.length] = 
+                'Use safe properties (' + accessibilityMap.safeProperties.length + 
+                ' available) for reliable document interaction';
         }
         
-        if (accessMap.riskyObjects.length > 0) {
-            recommendations.push('Use caution with risky objects: ' + accessMap.riskyObjects.length + ' identified');
+        if (accessibilityMap.cautionProperties.length > 0) {
+            recommendations[recommendations.length] = 
+                'Exercise caution with ' + accessibilityMap.cautionProperties.length + 
+                ' properties that may have side effects';
         }
         
-        if (accessMap.inaccessibleObjects.length > 0) {
-            recommendations.push('Avoid inaccessible objects: ' + accessMap.inaccessibleObjects.length + ' found');
+        if (accessibilityMap.dangerousProperties.length > 0) {
+            recommendations[recommendations.length] = 
+                'Avoid ' + accessibilityMap.dangerousProperties.length + 
+                ' dangerous properties that could cause system instability';
         }
+        
+        recommendations[recommendations.length] = 
+            'Always use try-catch blocks when accessing InDesign DOM properties';
         
         return recommendations;
         
@@ -1074,12 +1210,11 @@ function generateAccessibilityRecommendations(accessMap) {
 
 /**
  * Generate developer guide
- * @param {Object} jsonData - JSON data
- * @param {Object} analysis - Analysis results
+ * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
  * @returns {String} Developer guide
  */
-function generateDeveloperGuide(jsonData, analysis, config) {
+function generateDeveloperGuide(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
@@ -1087,29 +1222,49 @@ function generateDeveloperGuide(jsonData, analysis, config) {
         builder.appendLine('===============');
         builder.appendLine('');
         
-        builder.appendLine('This guide provides insights for working with the analyzed DOM structure.');
+        builder.appendLine('This guide provides practical information for working with the analyzed DOM structure.');
         builder.appendLine('');
         
-        // Summary insights
-        if (analysis.summary) {
-            builder.appendLine('OVERVIEW:');
-            builder.appendLine('Document: ' + analysis.summary.documentName);
-            builder.appendLine('Total Nodes: ' + analysis.summary.totalNodes);
-            builder.appendLine('Total Properties: ' + analysis.summary.totalProperties);
-            builder.appendLine('Maximum Depth: ' + analysis.summary.maxDepth);
-            builder.appendLine('');
-        }
+        // Document overview
+        var summary = generateStructureSummary(domStructure, config);
+        builder.appendLine('Document: ' + summary.documentName);
+        builder.appendLine('Total Elements: ' + summary.nodeCount + ' nodes, ' + 
+                          summary.propertyCount + ' properties');
+        builder.appendLine('');
         
-        // Access recommendations
-        if (analysis.accessibilityMap && analysis.accessibilityMap.recommendations) {
-            builder.appendLine('ACCESS RECOMMENDATIONS:');
-            for (var i = 0; i < analysis.accessibilityMap.recommendations.length; i++) {
-                builder.appendLine('• ' + analysis.accessibilityMap.recommendations[i]);
+        // Key properties
+        var keyProperties = findKeyProperties(domStructure, config);
+        if (keyProperties.length > 0) {
+            builder.appendLine('KEY PROPERTIES TO EXPLORE:');
+            for (var i = 0; i < Math.min(keyProperties.length, 10); i++) {
+                var keyProp = keyProperties[i];
+                var example = generateAccessExample(keyProp.path);
+                builder.appendLine('• ' + keyProp.name + ' - ' + example);
             }
             builder.appendLine('');
         }
         
-        // Code examples if enabled
+        // Collections
+        var collections = collectAllCollections(domStructure);
+        if (collections.length > 0) {
+            builder.appendLine('COLLECTIONS TO ITERATE:');
+            for (var j = 0; j < Math.min(collections.length, 5); j++) {
+                var collection = collections[j];
+                var collExample = generateCollectionAccessExample(collection.path);
+                builder.appendLine('• ' + collection.name + ' - ' + collExample);
+            }
+            builder.appendLine('');
+        }
+        
+        // Safety notes
+        builder.appendLine('SAFETY NOTES:');
+        builder.appendLine('• Always wrap DOM access in try-catch blocks');
+        builder.appendLine('• Test property existence before accessing values');
+        builder.appendLine('• Be cautious with properties marked as "caution" or "dangerous"');
+        builder.appendLine('• Collections may be empty - check length before iteration');
+        builder.appendLine('');
+        
+        // Code examples
         if (config.includeCodeExamples) {
             builder.appendLine('CODE EXAMPLES:');
             builder.appendLine('// Safe property access');
@@ -1130,6 +1285,56 @@ function generateDeveloperGuide(jsonData, analysis, config) {
 }
 
 // =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+/**
+ * Check if property is important/key property
+ * @param {String} propName - Property name
+ * @returns {Boolean} True if important
+ */
+function isImportantProperty(propName) {
+    try {
+        var importantProps = [
+            'pages', 'layers', 'stories', 'textFrames', 'name', 'length',
+            'width', 'height', 'bounds', 'contents', 'parent', 'document'
+        ];
+        
+        return arrayIndexOf(importantProps, propName) !== -1;
+        
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Generate access example for property path
+ * @param {String} path - Property path
+ * @returns {String} Access example
+ */
+function generateAccessExample(path) {
+    try {
+        return stringReplace(path, 'document', 'app.activeDocument');
+    } catch (exc) {
+        return path;
+    }
+}
+
+/**
+ * Generate collection access example
+ * @param {String} path - Collection path
+ * @returns {String} Collection access example
+ */
+function generateCollectionAccessExample(path) {
+    try {
+        var example = stringReplace(path, 'document', 'app.activeDocument');
+        return example + '.length; // Get count\n  ' + example + '[0]; // Get first item';
+    } catch (exc) {
+        return path;
+    }
+}
+
+// =============================================================================
 // MODULE REGISTRATION
 // =============================================================================
 
@@ -1145,13 +1350,17 @@ registerModule('4.1_json-analyzer', '3.1', [
     'validateJSONStructure',
     
     // Analysis Generation
-    'generateStructureSummary', 'analyzeNodeStructure', 'generateVisualHierarchy',
-    'generateNodeHierarchy', 'createHierarchyIndent', 'findKeyProperties',
-    'generatePropertyAnalysis', 'collectAllProperties', 'analyzePropertyTypes',
-    'analyzePropertySafety', 'analyzeExtractedValues', 'generateCollectionAnalysis',
-    'collectAllCollections', 'generateCollectionContentSummary', 'generateValueAnalysis',
-    'generateAccessibilityMap', 'analyzeNodeAccessibility', 'generateAccessibilityRecommendations',
-    'generateDeveloperGuide'
+    'performComprehensiveAnalysis', 'generateStructureSummary', 'analyzeNodeStructure', 
+    'generateVisualHierarchy', 'generateNodeHierarchy', 'createHierarchyIndent', 
+    'findKeyProperties', 'generatePropertyAnalysis', 'collectAllProperties', 
+    'collectNodeProperties', 'analyzePropertyTypes', 'analyzePropertySafety', 
+    'analyzeExtractedValues', 'collectExtractedValues', 'collectNodeExtractedValues',
+    'generateCollectionAnalysis', 'collectAllCollections', 'generateCollectionContentSummary', 
+    'generateValueAnalysis', 'generateAccessibilityMap', 'analyzeNodeAccessibility', 
+    'generateAccessibilityRecommendations', 'generateDeveloperGuide',
+    
+    // Utility Functions
+    'isImportantProperty', 'generateAccessExample', 'generateCollectionAccessExample'
 ]);
 
 // =============================================================================

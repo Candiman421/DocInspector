@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Property value sampling with reference tracking integration
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx", "2.1_dom-enumerator.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1500 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -44,66 +44,67 @@ var DEFAULT_SAMPLING_CONFIG = {
 // =============================================================================
 
 /**
- * Property value sampling with proper configuration usage
- * @param {Object} domStructure - DOM structure to sample from
+ * Sample DOM property values with comprehensive tracking
+ * @param {Object} domStructure - DOM structure with discovered properties
  * @param {Object} sourceDocument - Source document for value access
  * @param {Object} samplingConfig - Sampling configuration
- * @returns {Object} DOM structure with extracted values
+ * @returns {Object} DOM structure with sampled values
  */
-function samplePropertyValues(domStructure, sourceDocument, samplingConfig) {
+function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
     var startTime = new Date().getTime();
     var config = samplingConfig ? 
-        objectClone(samplingConfig, 2) : objectClone(DEFAULT_SAMPLING_CONFIG, 2);
+        objectMerge(DEFAULT_SAMPLING_CONFIG, samplingConfig) : 
+        objectClone(DEFAULT_SAMPLING_CONFIG, 2);
+    
+    var samplingStats = {
+        propertiesSampled: 0,
+        valuesSampled: 0,
+        samplingErrors: 0,
+        timeoutCount: 0,
+        nullValuesSkipped: 0,
+        undefinedValuesSkipped: 0,
+        collectionsSampled: 0,
+        fingerprintsGenerated: 0,
+        safetyFilterRejects: 0,
+        samplingTime: 0,
+        errorsEncountered: 0
+    };
+    
+    var referenceTracker = config.trackObjectReferences ? 
+        createObjectReferenceTracker() : null;
+    
+    var timeoutChecker = createTimeoutChecker(config.timeoutMs);
     
     try {
-        // Validate input parameters
         if (!domStructure || !sourceDocument) {
-            throw new Error('Invalid input parameters for property sampling');
-        }
-        
-        // Initialize sampling statistics
-        var samplingStats = {
-            propertiesSampled: 0,
-            valuesSampled: 0,
-            errorsEncountered: 0,
-            nullValuesFound: 0,
-            undefinedValuesFound: 0,
-            samplingTime: 0
-        };
-        
-        // Create reference tracker if enabled
-        var referenceTracker = null;
-        if (config.trackObjectReferences) {
-            referenceTracker = createObjectReferenceTracker();
-        }
-        
-        // Process the DOM structure
-        if (domStructure.structure && domStructure.structure.document) {
-            sampleNodeValues(
-                domStructure.structure.document,
-                sourceDocument,
-                config,
-                samplingStats,
-                referenceTracker
-            );
-        }
-        
-        // Update metadata with sampling results
-        if (!domStructure.metadata.valueSampling) {
-            domStructure.metadata.valueSampling = {};
+            throw new Error('Invalid parameters for DOM value sampling');
         }
         
         if (config.enableProgressReporting) {
-            logSamplingProgress('Property sampling completed: ' + samplingStats.valuesSampled + 
-                              ' values extracted from ' + samplingStats.propertiesSampled + ' properties');
+            logSamplingProgress('Starting DOM value sampling with config: ' + 
+                              safeJSONStringify(config, 0));
+        }
+        
+        // Sample values from DOM structure
+        if (domStructure.structure && domStructure.structure.document) {
+            sampleNodeValues(domStructure.structure.document, sourceDocument, 
+                           config, samplingStats, referenceTracker, timeoutChecker);
+        }
+        
+        samplingStats.samplingTime = new Date().getTime() - startTime;
+        
+        // Add sampling metadata to DOM structure
+        if (!domStructure.metadata) {
+            domStructure.metadata = {};
         }
         
         domStructure.metadata.valueSampling = {
             enabled: true,
             timestamp: getCurrentTimestamp(),
-            configuration: config,
             statistics: samplingStats,
-            objectReferences: referenceTracker ? referenceTracker.getStatistics() : null,
+            configuration: config,
+            referenceTracking: referenceTracker ? 
+                referenceTracker.getStatistics() : null,
             performance: {
                 totalTime: samplingStats.samplingTime,
                 averageTimePerProperty: samplingStats.propertiesSampled > 0 ? 
@@ -112,6 +113,11 @@ function samplePropertyValues(domStructure, sourceDocument, samplingConfig) {
                     (samplingStats.valuesSampled / samplingStats.propertiesSampled) * 100 : 0
             }
         };
+        
+        if (config.enableProgressReporting) {
+            logSamplingProgress('Property sampling completed: ' + samplingStats.valuesSampled + 
+                              ' values extracted from ' + samplingStats.propertiesSampled + ' properties');
+        }
         
         return domStructure;
         
@@ -135,140 +141,15 @@ function samplePropertyValues(domStructure, sourceDocument, samplingConfig) {
 }
 
 /**
- * Sample values from a DOM node and its children
- * @param {Object} domNode - DOM node to sample from
- * @param {Object} sourceDocument - Source document for value access
- * @param {Object} config - Configuration
- * @param {Object} samplingStats - Statistics to update
- * @param {Object} referenceTracker - Reference tracker
- */
-function sampleNodeValues(domNode, sourceDocument, config, samplingStats, referenceTracker) {
-    try {
-        if (!domNode || !sourceDocument) {
-            return;
-        }
-        
-        var nodeStartTime = new Date().getTime();
-        
-        try {
-            // Sample property values if available
-            if (domNode.properties && domNode.properties.length) {
-                samplePropertiesFromArray(domNode.properties, sourceDocument, config, samplingStats, referenceTracker);
-            }
-            
-            // Sample collection values if enabled
-            if (config.includeCollectionSamples && domNode.collections && domNode.collections.length) {
-                samplePropertiesFromArray(domNode.collections, sourceDocument, config, samplingStats, referenceTracker);
-            }
-            
-        } catch (nodeExc) {
-            samplingStats.errorsEncountered++;
-            if (config.enableDetailedLogging) {
-                logSamplingError('Node sampling error: ' + nodeExc.message);
-            }
-        }
-        
-        // Recursively sample child nodes
-        if (domNode.childNodes && domNode.childNodes.length) {
-            for (var i = 0; i < domNode.childNodes.length; i++) {
-                sampleNodeValues(domNode.childNodes[i], sourceDocument, config, samplingStats, referenceTracker);
-            }
-        }
-        
-        // Update timing
-        samplingStats.samplingTime += (new Date().getTime() - nodeStartTime);
-        
-    } catch (exc) {
-        samplingStats.errorsEncountered++;
-    }
-}
-
-/**
- * Sample properties from property array
- * @param {Array} propertiesArray - Array of properties to sample
- * @param {Object} sourceDocument - Source document
- * @param {Object} config - Configuration
- * @param {Object} samplingStats - Statistics
- * @param {Object} referenceTracker - Reference tracker
- */
-function samplePropertiesFromArray(propertiesArray, sourceDocument, config, samplingStats, referenceTracker) {
-    try {
-        if (!propertiesArray || !propertiesArray.length) {
-            return;
-        }
-        
-        for (var i = 0; i < propertiesArray.length; i++) {
-            var property = propertiesArray[i];
-            
-            // Check if property meets sampling criteria
-            if (!shouldSampleProperty(property, config)) {
-                continue;
-            }
-            
-            samplingStats.propertiesSampled++;
-            
-            try {
-                var sampleResult = samplePropertyValue(
-                    sourceDocument, 
-                    property.name, 
-                    property.path, 
-                    config, 
-                    referenceTracker
-                );
-                
-                if (sampleResult && sampleResult.success) {
-                    // Store extracted value in property
-                    property.extractedValue = sampleResult.formattedValue;
-                    property.valueType = sampleResult.valueType;
-                    property.lastExtracted = getCurrentTimestamp();
-                    
-                    if (config.includeValueMetadata) {
-                        property.extractionMetadata = sampleResult.valueMetadata;
-                    }
-                    
-                    if (config.generateValueFingerprints) {
-                        property.valueFingerprint = sampleResult.valueFingerprint;
-                    }
-                    
-                    if (sampleResult.objectReference) {
-                        property.objectReference = sampleResult.objectReference;
-                    }
-                    
-                    samplingStats.valuesSampled++;
-                    
-                    // Track null and undefined values
-                    if (sampleResult.value === null) {
-                        samplingStats.nullValuesFound++;
-                    } else if (sampleResult.value === undefined) {
-                        samplingStats.undefinedValuesFound++;
-                    }
-                    
-                } else {
-                    property.extractionError = sampleResult ? sampleResult.error : 'Unknown sampling error';
-                    samplingStats.errorsEncountered++;
-                }
-                
-            } catch (propExc) {
-                property.extractionError = propExc.message;
-                samplingStats.errorsEncountered++;
-            }
-        }
-        
-    } catch (exc) {
-        samplingStats.errorsEncountered++;
-    }
-}
-
-/**
  * Sample property value with reference tracking and metadata
- * @param {Object} sourceDocument - Source document for value access
+ * @param {Object} targetObject - Object containing the property
  * @param {String} propName - Property name to sample
  * @param {String} propPath - Full path to property
  * @param {Object} config - Sampling configuration
  * @param {Object} referenceTracker - Reference tracker for objects
  * @returns {Object} Sample result with metadata and object references
  */
-function samplePropertyValue(sourceDocument, propName, propPath, config, referenceTracker) {
+function samplePropertyValue(targetObject, propName, propPath, config, referenceTracker) {
     var result = {
         success: false,
         value: null,
@@ -279,15 +160,16 @@ function samplePropertyValue(sourceDocument, propName, propPath, config, referen
         objectReference: null,
         error: null,
         samplingMethod: 'direct',
-        accessTime: 0
+        accessTime: 0,
+        skipped: false
     };
     
     var startTime = new Date().getTime();
     
     try {
         // Parameter validation
-        if (!sourceDocument || typeof sourceDocument !== 'object') {
-            result.error = 'Invalid source document';
+        if (!targetObject || typeof targetObject !== 'object') {
+            result.error = 'Invalid target object';
             return result;
         }
         
@@ -296,209 +178,398 @@ function samplePropertyValue(sourceDocument, propName, propPath, config, referen
             return result;
         }
         
-        // Access property value safely
-        var accessResult = accessPropertyByPath(sourceDocument, propPath);
-        if (!accessResult.success) {
-            result.error = accessResult.error;
-            result.samplingMethod = 'path_access_failed';
+        // Safety filter check
+        if (!meetsSafetyFilter({name: propName, path: propPath}, config.safetyFilter)) {
+            result.skipped = true;
+            result.error = 'Property filtered by safety settings';
             return result;
         }
         
-        result.value = accessResult.value;
-        result.valueType = safeTypeOf(result.value);
+        // Safe property value access
+        var valueAccess = safeGetPropertyValue(targetObject, propName, null);
+        if (valueAccess === null && !safeHasProperty(targetObject, propName)) {
+            result.error = 'Property does not exist';
+            return result;
+        }
+        
+        var sampledValue = valueAccess;
+        result.value = sampledValue;
+        result.valueType = typeof sampledValue;
         result.accessTime = new Date().getTime() - startTime;
         
-        // Handle null and undefined values
-        if (result.value === null) {
+        // Handle null/undefined based on configuration
+        if (sampledValue === null) {
             if (config.skipNullValues) {
-                result.error = 'Null value skipped by configuration';
+                result.skipped = true;
+                result.error = 'Null value skipped per configuration';
                 return result;
             }
-            result.formattedValue = 'null';
-            result.success = true;
-            return result;
         }
         
-        if (result.value === undefined) {
+        if (sampledValue === undefined) {
             if (config.skipUndefinedValues) {
-                result.error = 'Undefined value skipped by configuration';
+                result.skipped = true;
+                result.error = 'Undefined value skipped per configuration';
                 return result;
             }
-            result.formattedValue = 'undefined';
-            result.success = true;
-            return result;
         }
         
-        // Format value based on type
-        result.formattedValue = formatSampleValue(result.value, config);
-        
-        // Generate value metadata if enabled
+        // Generate value metadata
         if (config.includeValueMetadata) {
-            result.valueMetadata = generateValueMetadata(result.value, config);
+            result.valueMetadata = generateValueMetadata(sampledValue, config);
         }
         
-        // Generate value fingerprint if enabled
+        // Generate value fingerprint for change tracking
         if (config.generateValueFingerprints) {
-            result.valueFingerprint = generateValueFingerprint(result.value);
+            result.valueFingerprint = generateValueFingerprint(sampledValue, propPath);
         }
         
-        // Track object references if enabled
-        if (config.trackObjectReferences && referenceTracker && typeof result.value === 'object') {
-            result.objectReference = referenceTracker.track(result.value, propPath);
+        // Track object references
+        if (referenceTracker && sampledValue && typeof sampledValue === 'object') {
+            result.objectReference = referenceTracker.track(sampledValue, propPath);
         }
+        
+        // Format value for display
+        result.formattedValue = formatSampleValue(sampledValue, config);
         
         result.success = true;
         return result;
         
     } catch (exc) {
-        result.error = 'Property sampling error: ' + exc.message;
+        result.error = 'Property value sampling failed: ' + exc.message;
         result.accessTime = new Date().getTime() - startTime;
         return result;
     }
 }
 
-// =============================================================================
-// PROPERTY ACCESS FUNCTIONS
-// =============================================================================
+/**
+ * ENHANCED: Safe property value getter with timeout and error handling
+ * @param {Object} targetObject - Object to access
+ * @param {String} propName - Property name
+ * @param {String} propPath - Full property path for context
+ * @param {Object} config - Sampling configuration
+ * @returns {Object} Access result with success, value, error
+ */
+function safeGetPropertyValue(targetObject, propName, propPath, config) {
+    var result = {
+        success: false,
+        value: null,
+        error: null,
+        accessMethod: 'direct'
+    };
+    
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            result.error = 'Invalid target object';
+            return result;
+        }
+        
+        if (!propName || typeof propName !== 'string') {
+            result.error = 'Invalid property name';
+            return result;
+        }
+        
+        // Check if property exists safely
+        if (!safeHasProperty(targetObject, propName)) {
+            result.error = 'Property does not exist';
+            return result;
+        }
+        
+        // Access the property value
+        result.value = targetObject[propName];
+        result.success = true;
+        
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Property access failed: ' + exc.message;
+        return result;
+    }
+}
 
 /**
- * Access property value by path with enhanced safety
- * @param {Object} sourceObj - Source object
- * @param {String} propertyPath - Dot notation path
+ * Sample values from DOM node recursively
+ * @param {Object} domNode - DOM node to sample
+ * @param {Object} sourceDocument - Source document
+ * @param {Object} config - Sampling configuration
+ * @param {Object} samplingStats - Statistics tracker
+ * @param {Object} referenceTracker - Reference tracker
+ * @param {Function} timeoutChecker - Timeout checker
+ */
+function sampleNodeValues(domNode, sourceDocument, config, samplingStats, referenceTracker, timeoutChecker) {
+    try {
+        if (!domNode || timeoutChecker()) {
+            return;
+        }
+        
+        // Sample properties
+        if (domNode.properties) {
+            samplePropertiesFromArray(domNode.properties, sourceDocument, config, 
+                                    samplingStats, referenceTracker, timeoutChecker);
+        }
+        
+        // Sample collections
+        if (domNode.collections) {
+            samplePropertiesFromArray(domNode.collections, sourceDocument, config, 
+                                    samplingStats, referenceTracker, timeoutChecker);
+        }
+        
+        // Recursively sample child nodes
+        if (domNode.childNodes) {
+            for (var i = 0; i < domNode.childNodes.length; i++) {
+                if (timeoutChecker()) break;
+                
+                sampleNodeValues(domNode.childNodes[i], sourceDocument, config, 
+                               samplingStats, referenceTracker, timeoutChecker);
+            }
+        }
+        
+    } catch (exc) {
+        samplingStats.errorsEncountered++;
+    }
+}
+
+/**
+ * Sample property values from array of property data
+ * @param {Array} propertyArray - Array of property objects
+ * @param {Object} sourceDocument - Source document
+ * @param {Object} config - Sampling configuration
+ * @param {Object} samplingStats - Statistics tracker
+ * @param {Object} referenceTracker - Reference tracker
+ * @param {Function} timeoutChecker - Timeout checker
+ */
+function samplePropertiesFromArray(propertyArray, sourceDocument, config, samplingStats, referenceTracker, timeoutChecker) {
+    try {
+        if (!propertyArray || !propertyArray.length) return;
+        
+        var sampledCount = 0;
+        
+        for (var i = 0; i < propertyArray.length; i++) {
+            if (timeoutChecker()) {
+                samplingStats.timeoutCount++;
+                break;
+            }
+            
+            if (sampledCount >= config.maxSamples) {
+                break;
+            }
+            
+            var property = propertyArray[i];
+            
+            if (meetsSafetyFilter(property, config.safetyFilter)) {
+                samplingStats.propertiesSampled++;
+                
+                // Get the parent object for value sampling
+                var pathComponents = splitPath(property.path);
+                if (pathComponents.length >= 1) {
+                    var parentPath = '';
+                    var propName = '';
+                    
+                    if (pathComponents.length === 1) {
+                        // Root level property (e.g., "pages")
+                        parentPath = '';
+                        propName = pathComponents[0];
+                    } else {
+                        // Nested property (e.g., "document.pages")
+                        parentPath = getParentPath(property.path);
+                        propName = pathComponents[pathComponents.length - 1];
+                    }
+                    
+                    // Get parent object
+                    var parentAccess = parentPath ? 
+                        safeGetObjectFromPath(sourceDocument, parentPath, config.timeoutMs) :
+                        {success: true, value: sourceDocument};
+                    
+                    if (parentAccess.success && parentAccess.value) {
+                        // Sample the property value
+                        var sampleResult = samplePropertyValue(
+                            parentAccess.value, 
+                            propName, 
+                            property.path, 
+                            config, 
+                            referenceTracker
+                        );
+                        
+                        if (sampleResult.success && !sampleResult.skipped) {
+                            // Store actual extracted value with comprehensive metadata
+                            property.samplingMetadata = {
+                                actualValue: sampleResult.value,
+                                formattedValue: sampleResult.formattedValue,
+                                valueType: sampleResult.valueType,
+                                valueMetadata: sampleResult.valueMetadata,
+                                valueFingerprint: sampleResult.valueFingerprint,
+                                objectReference: sampleResult.objectReference,
+                                extractionTimestamp: getCurrentTimestamp(),
+                                accessTime: sampleResult.accessTime,
+                                samplingMethod: sampleResult.samplingMethod
+                            };
+                            
+                            samplingStats.valuesSampled++;
+                            sampledCount++;
+                            
+                            if (sampleResult.valueFingerprint) {
+                                samplingStats.fingerprintsGenerated++;
+                            }
+                            
+                            // Track collections separately
+                            if (sampleResult.valueMetadata && sampleResult.valueMetadata.isCollection) {
+                                samplingStats.collectionsSampled++;
+                            }
+                            
+                        } else if (sampleResult.skipped) {
+                            samplingStats.safetyFilterRejects++;
+                            property.extractionSkipped = true;
+                            property.skipReason = sampleResult.error;
+                        } else {
+                            property.extractionError = sampleResult.error ? 
+                                sampleResult.error : 'Unknown sampling error';
+                            samplingStats.errorsEncountered++;
+                        }
+                        
+                    } else {
+                        property.extractionError = 'Parent object access failed: ' + 
+                            (parentAccess.error || 'Unknown error');
+                        samplingStats.errorsEncountered++;
+                    }
+                } else {
+                    property.extractionError = 'Invalid property path';
+                    samplingStats.errorsEncountered++;
+                }
+                
+            } else {
+                samplingStats.safetyFilterRejects++;
+                property.extractionSkipped = true;
+                property.skipReason = 'Safety filter rejection';
+            }
+        }
+        
+    } catch (exc) {
+        samplingStats.errorsEncountered++;
+    }
+}
+
+/**
+ * Access property by dot notation path
+ * @param {Object} rootObject - Root object
+ * @param {String} path - Dot notation path
+ * @param {Object} config - Access configuration
  * @returns {Object} Access result
  */
-function accessPropertyByPath(sourceObj, propertyPath) {
+function accessPropertyByPath(rootObject, path, config) {
+    var result = {
+        success: false,
+        value: null,
+        error: null,
+        pathResolved: ''
+    };
+    
     try {
-        var result = {
-            success: false,
-            value: null,
-            error: null,
-            accessMethod: 'path_traversal'
-        };
-        
-        if (!sourceObj || !propertyPath) {
-            result.error = 'Invalid parameters for property access';
+        if (!rootObject) {
+            result.error = 'Root object is null or undefined';
             return result;
         }
         
-        // Parse path components
-        var pathComponents = splitPath(propertyPath);
-        if (pathComponents.length === 0) {
-            result.error = 'Empty property path';
+        if (!path || typeof path !== 'string') {
+            result.value = rootObject;
+            result.success = true;
+            result.pathResolved = '';
             return result;
         }
         
-        // Navigate to property
-        var current = sourceObj;
-        var traversedPath = '';
+        var pathComponents = splitPath(path);
+        var currentObject = rootObject;
+        var resolvedPath = '';
         
-        // Skip 'document' if it's the first component
-        var startIndex = (pathComponents[0] === 'document') ? 1 : 0;
-        
-        for (var i = startIndex; i < pathComponents.length; i++) {
-            if (!current || typeof current !== 'object') {
-                result.error = 'Path traversal failed at: ' + traversedPath;
-                return result;
-            }
-            
+        for (var i = 0; i < pathComponents.length; i++) {
             var component = pathComponents[i];
-            traversedPath += (traversedPath ? '.' : '') + component;
             
-            try {
-                current = current[component];
-            } catch (accessExc) {
-                result.error = 'Property access error at ' + traversedPath + ': ' + accessExc.message;
+            if (!currentObject || typeof currentObject !== 'object') {
+                result.error = 'Cannot access ' + component + ' - not an object';
                 return result;
             }
+            
+            if (!safeHasProperty(currentObject, component)) {
+                result.error = 'Property ' + component + ' does not exist';
+                return result;
+            }
+            
+            currentObject = currentObject[component];
+            resolvedPath += (resolvedPath ? '.' : '') + component;
         }
         
-        result.value = current;
+        result.value = currentObject;
         result.success = true;
-        return result;
+        result.pathResolved = resolvedPath;
         
     } catch (exc) {
-        return {
-            success: false,
-            value: null,
-            error: 'Path access failed: ' + exc.message,
-            accessMethod: 'error'
-        };
+        result.error = 'Path access failed: ' + exc.message;
     }
+    
+    return result;
 }
 
 // =============================================================================
-// VALUE FORMATTING AND ANALYSIS
+// VALUE FORMATTING AND METADATA
 // =============================================================================
 
 /**
- * Format sampled value based on type and configuration
+ * Format sampled value for display with enhanced options
  * @param {*} value - Value to format
  * @param {Object} config - Configuration
  * @returns {String} Formatted value
  */
 function formatSampleValue(value, config) {
     try {
-        if (value === null) return 'null';
-        if (value === undefined) return 'undefined';
-        
-        var type = safeTypeOf(value);
-        
-        if (type === 'string') {
-            var maxLen = config.maxStringLength || 500;
-            if (value.length > maxLen) {
-                return stringSubstring(value, 0, maxLen - 3) + '...';
+        if (value === null) {
+            return 'null';
+        } else if (value === undefined) {
+            return 'undefined';
+        } else if (typeof value === 'string') {
+            var maxLen = config.maxStringLength || 100;
+            if (value.length <= maxLen) {
+                return '"' + value + '"';
+            } else {
+                return '"' + stringSubstring(value, 0, maxLen) + '..." (' + value.length + ' chars)';
             }
-            return stringReplace(value, '"', '\\"');
-        }
-        
-        if (type === 'number' || type === 'boolean') {
-            return String(value);
-        }
-        
-        if (type === 'function') {
-            return '[Function: ' + (value.name || 'anonymous') + ']';
-        }
-        
-        if (type === 'object') {
-            var objInfo = '';
+        } else if (typeof value === 'number') {
+            if (value === Math.floor(value)) {
+                return String(value) + ' (integer)';
+            } else {
+                return String(value) + ' (float)';
+            }
+        } else if (typeof value === 'boolean') {
+            return String(value) + ' (boolean)';
+        } else if (typeof value === 'function') {
+            var funcName = value.name || 'anonymous';
+            return '[Function: ' + funcName + ']';
+        } else if (typeof value === 'object') {
+            var objectInfo = '';
             
             if (value.constructor && value.constructor.name) {
-                objInfo = value.constructor.name;
+                objectInfo = value.constructor.name;
             } else {
-                objInfo = 'Object';
+                objectInfo = 'Object';
             }
             
             if (typeof value.length === 'number') {
-                objInfo += ' [' + value.length + ' items]';
+                return '[' + objectInfo + ' (length: ' + value.length + ')]';
             } else if (typeof value.count === 'number') {
-                objInfo += ' [' + value.count + ' items]';
+                return '[' + objectInfo + ' (count: ' + value.count + ')]';
             } else {
-                var keyCount = countObjectKeys(value);
-                if (keyCount > 0) {
-                    objInfo += ' [' + keyCount + ' properties]';
-                }
+                var propCount = countObjectKeys(value);
+                return '[' + objectInfo + ' (' + propCount + ' properties)]';
             }
-            
-            // Add preview for collections if enabled
-            if (config.includeCollectionSamples && isCollectionLike(value)) {
-                var preview = getCollectionPreview(value, 2);
-                if (preview) {
-                    objInfo += ' Preview: ' + preview;
-                }
-            }
-            
-            return objInfo;
-        } else {
-            return typeof value + ' (unknown)';
         }
         
+        return '[' + typeof value + ']';
+        
     } catch (exc) {
-        return 'format_error: ' + exc.message;
+        return '[Format Error]';
     }
 }
 
 /**
- * Generate value metadata
+ * Generate comprehensive value metadata
  * @param {*} value - Value to analyze
  * @param {Object} config - Configuration
  * @returns {Object} Value metadata
@@ -506,41 +577,49 @@ function formatSampleValue(value, config) {
 function generateValueMetadata(value, config) {
     try {
         var metadata = {
-            type: safeTypeOf(value),
-            size: 0,
-            complexity: 'simple',
+            type: typeof value,
+            isNull: value === null,
+            isUndefined: value === undefined,
+            isEmpty: false,
             isCollection: false,
+            length: 0,
             hasContent: false,
-            isAccessible: true,
-            generatedAt: getCurrentTimestamp()
+            complexity: 'simple'
         };
         
         if (value === null || value === undefined) {
-            metadata.complexity = 'null';
+            metadata.isEmpty = true;
             return metadata;
         }
         
         if (typeof value === 'string') {
-            metadata.size = value.length;
+            metadata.length = value.length;
             metadata.hasContent = value.length > 0;
+            metadata.isEmpty = value.length === 0;
+            metadata.complexity = value.length > 100 ? 'complex' : 'simple';
         } else if (typeof value === 'object') {
-            metadata.isCollection = isCollectionLike(value);
-            
-            if (metadata.isCollection) {
-                if (typeof value.length === 'number') {
-                    metadata.size = value.length;
-                } else if (typeof value.count === 'number') {
-                    metadata.size = value.count;
-                }
-                metadata.hasContent = metadata.size > 0;
+            if (typeof value.length === 'number') {
+                metadata.isCollection = true;
+                metadata.length = value.length;
+                metadata.hasContent = value.length > 0;
+                metadata.complexity = value.length > 20 ? 'complex' : 'simple';
+            } else if (typeof value.count === 'number') {
+                metadata.isCollection = true;
+                metadata.length = value.count;
+                metadata.hasContent = value.count > 0;
+                metadata.complexity = value.count > 20 ? 'complex' : 'simple';
             } else {
-                metadata.size = countObjectKeys(value);
-                metadata.hasContent = metadata.size > 0;
+                // Object properties count
+                metadata.length = countObjectKeys(value);
+                metadata.hasContent = metadata.length > 0;
+                metadata.complexity = metadata.length > 10 ? 'complex' : 'simple';
             }
-            
-            metadata.complexity = metadata.size > 10 ? 'complex' : 'simple';
-        } else {
-            metadata.hasContent = true;
+        }
+        
+        // Additional analysis based on config
+        if (config.includeCollectionSamples && metadata.isCollection) {
+            metadata.collectionType = determineCollectionType(value);
+            metadata.sampleItems = extractCollectionSample(value, Math.min(3, config.maxSamples));
         }
         
         return metadata;
@@ -549,74 +628,344 @@ function generateValueMetadata(value, config) {
         return {
             type: 'error',
             error: exc.message,
-            generatedAt: getCurrentTimestamp()
+            hasContent: false,
+            complexity: 'error'
         };
     }
 }
 
 /**
- * Generate value fingerprint for change detection
+ * Generate enhanced value fingerprint for change detection
  * @param {*} value - Value to fingerprint
+ * @param {String} path - Property path
  * @returns {String} Value fingerprint
  */
-function generateValueFingerprint(value) {
+function generateValueFingerprint(value, path) {
     try {
-        if (value === null) return 'fp_null';
-        if (value === undefined) return 'fp_undefined';
+        var components = [];
         
-        var type = safeTypeOf(value);
-        var components = ['type:' + type];
+        components[components.length] = 'path:' + (path || 'unknown');
+        components[components.length] = 'type:' + typeof value;
         
-        if (typeof value === 'string') {
-            components.push('len:' + value.length);
-            if (value.length > 0) {
-                components.push('hash:' + simpleStringHash(value));
+        if (value === null) {
+            components[components.length] = 'value:null';
+        } else if (value === undefined) {
+            components[components.length] = 'value:undefined';
+        } else if (typeof value === 'string') {
+            components[components.length] = 'length:' + value.length;
+            if (value.length > 0 && value.length <= 50) {
+                components[components.length] = 'content:' + value;
+            } else if (value.length > 50) {
+                components[components.length] = 'hash:' + simpleStringHash(value);
             }
         } else if (typeof value === 'number') {
-            components.push('val:' + String(value));
+            components[components.length] = 'value:' + value;
+            if (value === Math.floor(value)) {
+                components[components.length] = 'integer:true';
+            }
         } else if (typeof value === 'boolean') {
-            components.push('val:' + String(value));
+            components[components.length] = 'value:' + value;
         } else if (typeof value === 'object') {
-            if (isCollectionLike(value)) {
-                var size = 0;
-                if (typeof value.length === 'number') {
-                    size = value.length;
-                } else if (typeof value.count === 'number') {
-                    size = value.count;
-                }
-                components.push('size:' + size);
+            if (typeof value.length === 'number') {
+                components[components.length] = 'length:' + value.length;
+            } else if (typeof value.count === 'number') {
+                components[components.length] = 'count:' + value.count;
             } else {
-                components.push('props:' + countObjectKeys(value));
+                components[components.length] = 'keys:' + countObjectKeys(value);
+            }
+            
+            if (value.constructor && value.constructor.name) {
+                components[components.length] = 'constructor:' + value.constructor.name;
+            }
+            
+            // Add structural fingerprint for objects
+            if (value instanceof Array) {
+                components[components.length] = 'array:true';
+            } else {
+                components[components.length] = 'object:true';
+            }
+        } else if (typeof value === 'function') {
+            components[components.length] = 'function:true';
+            if (value.name) {
+                components[components.length] = 'name:' + value.name;
             }
         }
+        
+        components[components.length] = 'timestamp:' + (new Date().getTime());
         
         return arrayJoin(components, '|');
         
     } catch (exc) {
-        return 'fp_error_' + Math.random();
+        return 'fingerprint_error:' + (path || 'unknown') + '|timestamp:' + (new Date().getTime());
     }
 }
 
 /**
- * Simple string hash function for fingerprinting
- * @param {String} str - String to hash
- * @returns {String} Hash value
+ * Simple string hash function for ES3 compatibility
+ * @param {String} sourceString - String to hash
+ * @returns {String} Simple hash
  */
-function simpleStringHash(str) {
+function simpleStringHash(sourceString) {
     try {
-        var hash = 0;
-        if (str.length === 0) return String(hash);
+        if (typeof sourceString !== 'string') return 'invalid';
         
-        for (var i = 0; i < str.length; i++) {
-            var charVal = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + charVal;
+        var hash = 0;
+        for (var i = 0; i < sourceString.length; i++) {
+            var charValue = sourceString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + charValue;
             hash = hash & hash; // Convert to 32-bit integer
         }
         
-        return String(Math.abs(hash));
+        return Math.abs(hash).toString(16);
         
     } catch (exc) {
-        return '0';
+        return 'hash_error';
+    }
+}
+
+// =============================================================================
+// COLLECTION ANALYSIS FUNCTIONS
+// =============================================================================
+
+/**
+ * Check if value is collection-like
+ * @param {*} value - Value to check
+ * @returns {Boolean} True if collection-like
+ */
+function isCollectionLike(value) {
+    try {
+        if (!value || typeof value !== 'object') {
+            return false;
+        }
+        
+        return (typeof value.length === 'number') || (typeof value.count === 'number');
+        
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Analyze collection structure and content
+ * @param {Object} collection - Collection to analyze
+ * @param {Object} config - Analysis configuration
+ * @returns {Object} Collection analysis
+ */
+function analyzeCollection(collection, config) {
+    var analysis = {
+        isCollection: false,
+        collectionType: 'unknown',
+        itemCount: 0,
+        itemTypes: {},
+        sampleItems: [],
+        hasContent: false,
+        analysisError: null
+    };
+    
+    try {
+        if (!collection || typeof collection !== 'object') {
+            analysis.analysisError = 'Invalid collection object';
+            return analysis;
+        }
+        
+        analysis.isCollection = isCollectionLike(collection);
+        
+        if (!analysis.isCollection) {
+            analysis.analysisError = 'Object is not collection-like';
+            return analysis;
+        }
+        
+        // Determine collection type and size
+        if (typeof collection.length === 'number') {
+            analysis.collectionType = 'array-like';
+            analysis.itemCount = collection.length;
+        } else if (typeof collection.count === 'number') {
+            analysis.collectionType = 'count-based';
+            analysis.itemCount = collection.count;
+        }
+        
+        analysis.hasContent = analysis.itemCount > 0;
+        
+        // Sample items if configuration allows
+        if (config.includeCollectionSamples && analysis.hasContent) {
+            analysis.sampleItems = extractCollectionSample(collection, 
+                Math.min(config.maxSamples || 3, analysis.itemCount));
+            
+            // Analyze item types
+            for (var i = 0; i < analysis.sampleItems.length; i++) {
+                var item = analysis.sampleItems[i];
+                var itemType = typeof item;
+                
+                if (analysis.itemTypes[itemType]) {
+                    analysis.itemTypes[itemType]++;
+                } else {
+                    analysis.itemTypes[itemType] = 1;
+                }
+            }
+        }
+        
+        return analysis;
+        
+    } catch (exc) {
+        analysis.analysisError = 'Collection analysis failed: ' + exc.message;
+        return analysis;
+    }
+}
+
+/**
+ * Extract sample from collection safely
+ * @param {Object} collection - Collection to sample
+ * @param {Number} maxSamples - Maximum samples to extract
+ * @returns {Array} Sample items
+ */
+function extractCollectionSample(collection, maxSamples) {
+    try {
+        var samples = [];
+        var sampleCount = maxSamples || 3;
+        
+        if (!collection || typeof collection !== 'object') {
+            return samples;
+        }
+        
+        var itemCount = 0;
+        if (typeof collection.length === 'number') {
+            itemCount = collection.length;
+        } else if (typeof collection.count === 'number') {
+            itemCount = collection.count;
+        }
+        
+        if (itemCount === 0) {
+            return samples;
+        }
+        
+        // Extract samples up to the limit
+        var samplesToTake = Math.min(sampleCount, itemCount);
+        
+        for (var i = 0; i < samplesToTake; i++) {
+            try {
+                var item = collection[i];
+                if (item !== undefined) {
+                    samples[samples.length] = item;
+                }
+            } catch (itemExc) {
+                // Skip problematic items
+                samples[samples.length] = '[Sample Error: ' + itemExc.message + ']';
+            }
+        }
+        
+        return samples;
+        
+    } catch (exc) {
+        return ['[Sample extraction error]'];
+    }
+}
+
+/**
+ * Get collection item types
+ * @param {Object} collection - Collection to analyze
+ * @param {Number} sampleSize - Number of items to sample
+ * @returns {Object} Type distribution
+ */
+function getCollectionItemTypes(collection, sampleSize) {
+    try {
+        var types = {};
+        var samples = extractCollectionSample(collection, sampleSize || 5);
+        
+        for (var i = 0; i < samples.length; i++) {
+            var itemType = typeof samples[i];
+            
+            if (types[itemType]) {
+                types[itemType]++;
+            } else {
+                types[itemType] = 1;
+            }
+        }
+        
+        return types;
+        
+    } catch (exc) {
+        return { 'error': 1 };
+    }
+}
+
+/**
+ * Get preview of collection content
+ * @param {Object} collection - Collection to preview
+ * @param {Number} previewLength - Length of preview
+ * @returns {String} Collection preview
+ */
+function getCollectionPreview(collection, previewLength) {
+    try {
+        if (!collection || typeof collection !== 'object') {
+            return '[Not a collection]';
+        }
+        
+        var itemCount = 0;
+        if (typeof collection.length === 'number') {
+            itemCount = collection.length;
+        } else if (typeof collection.count === 'number') {
+            itemCount = collection.count;
+        }
+        
+        if (itemCount === 0) {
+            return '[Empty collection]';
+        }
+        
+        var previewSize = previewLength || 2;
+        var samples = extractCollectionSample(collection, previewSize);
+        var previewParts = [];
+        
+        for (var i = 0; i < samples.length; i++) {
+            var sample = samples[i];
+            if (typeof sample === 'string') {
+                previewParts[previewParts.length] = '"' + sample + '"';
+            } else if (typeof sample === 'object' && sample !== null) {
+                previewParts[previewParts.length] = '[Object]';
+            } else {
+                previewParts[previewParts.length] = String(sample);
+            }
+        }
+        
+        var preview = '[' + arrayJoin(previewParts, ', ');
+        
+        if (itemCount > previewSize) {
+            preview += ', ... +' + (itemCount - previewSize) + ' more';
+        }
+        
+        preview += ']';
+        
+        return preview;
+        
+    } catch (exc) {
+        return '[Preview error]';
+    }
+}
+
+/**
+ * Determine collection type
+ * @param {Object} collection - Collection to analyze
+ * @returns {String} Collection type
+ */
+function determineCollectionType(collection) {
+    try {
+        if (!collection || typeof collection !== 'object') {
+            return 'not_collection';
+        }
+        
+        if (typeof collection.length === 'number') {
+            if (collection.constructor && collection.constructor.name) {
+                return collection.constructor.name.toLowerCase();
+            } else {
+                return 'array_like';
+            }
+        } else if (typeof collection.count === 'number') {
+            return 'count_based';
+        }
+        
+        return 'object';
+        
+    } catch (exc) {
+        return 'unknown';
     }
 }
 
@@ -625,35 +974,39 @@ function simpleStringHash(str) {
 // =============================================================================
 
 /**
- * Check if property should be sampled based on configuration
- * @param {Object} property - Property to check
- * @param {Object} config - Configuration
- * @returns {Boolean} True if should sample
+ * Check if property meets safety filter requirements
+ * @param {Object} property - Property object with name and path
+ * @param {String} safetyFilter - Safety filter level
+ * @returns {Boolean} True if property passes filter
  */
-function shouldSampleProperty(property, config) {
+function shouldSampleProperty(property, safetyFilter) {
+    return meetsSafetyFilter(property, safetyFilter);
+}
+
+/**
+ * Check if property meets safety filter requirements
+ * @param {Object} property - Property object
+ * @param {String} safetyFilter - Safety filter level
+ * @returns {Boolean} True if meets filter
+ */
+function meetsSafetyFilter(property, safetyFilter) {
     try {
-        if (!property || !config) return false;
-        
-        // Check safety filter
-        if (config.safetyFilter === 'safe' && property.safetyLevel !== 'safe') {
+        if (!property || !property.name) {
             return false;
         }
         
-        if (config.safetyFilter === 'no_dangerous' && property.safetyLevel === 'dangerous') {
-            return false;
-        }
+        var safetyLevel = getPropertySafetyLevel(property.name);
         
-        // Skip methods if not configured
-        if (property.isMethod && !config.includeMethods) {
-            return false;
+        switch (safetyFilter) {
+            case 'safe':
+                return safetyLevel === 'safe';
+            case 'caution':
+                return safetyLevel === 'safe' || safetyLevel === 'caution';
+            case 'all':
+                return true;
+            default:
+                return safetyLevel === 'safe';
         }
-        
-        // Skip collections if not configured
-        if (property.isCollection && !config.includeCollectionSamples) {
-            return false;
-        }
-        
-        return true;
         
     } catch (exc) {
         return false;
@@ -661,58 +1014,130 @@ function shouldSampleProperty(property, config) {
 }
 
 /**
- * Get collection preview string
- * @param {Object} collection - Collection to preview
- * @param {Number} maxItems - Maximum items to include
- * @returns {String} Preview string
+ * Get sampling statistics from DOM structure
+ * @param {Object} domStructure - DOM structure with sampling data
+ * @returns {Object} Sampling statistics
  */
-function getCollectionPreview(collection, maxItems) {
+function getSamplingStatistics(domStructure) {
     try {
-        var samples = extractCollectionSample(collection, maxItems || 2);
-        if (samples.length === 0) return '';
+        var stats = {
+            samplingEnabled: false,
+            propertiesSampled: 0,
+            valuesSampled: 0,
+            samplingTime: 0,
+            objectReferencesTracked: 0,
+            fingerprintsGenerated: 0,
+            samplingErrors: 0,
+            successRate: 0
+        };
         
-        var preview = arrayJoin(samples, ', ');
-        if (collection.length > samples.length) {
-            preview += ', ...';
-        }
-        
-        return preview;
-        
-    } catch (exc) {
-        return '';
-    }
-}
-
-/**
- * Extract sample items from collection
- * @param {Object} collection - Collection to sample
- * @param {Number} maxSamples - Maximum samples to extract
- * @returns {Array} Sample items
- */
-function extractCollectionSample(collection, maxSamples) {
-    try {
-        var samples = [];
-        var maxItems = maxSamples || 3;
-        
-        if (collection instanceof Array) {
-            for (var i = 0; i < Math.min(collection.length, maxItems); i++) {
-                samples.push(formatSampleValue(collection[i], { maxStringLength: 50 }));
+        if (domStructure.metadata && domStructure.metadata.valueSampling) {
+            var samplingMeta = domStructure.metadata.valueSampling;
+            stats.samplingEnabled = samplingMeta.enabled || false;
+            
+            if (samplingMeta.statistics) {
+                var samplingStats = samplingMeta.statistics;
+                stats.propertiesSampled = samplingStats.propertiesSampled || 0;
+                stats.valuesSampled = samplingStats.valuesSampled || 0;
+                stats.fingerprintsGenerated = samplingStats.fingerprintsGenerated || 0;
+                stats.samplingErrors = samplingStats.samplingErrors || 0;
+                stats.timeoutCount = samplingStats.timeoutCount || 0;
+                stats.safetyFilterRejects = samplingStats.safetyFilterRejects || 0;
+                stats.nullValuesSkipped = samplingStats.nullValuesSkipped || 0;
+                stats.undefinedValuesSkipped = samplingStats.undefinedValuesSkipped || 0;
+                stats.collectionsSampled = samplingStats.collectionsSampled || 0;
             }
-        } else if (typeof collection.length === 'number') {
-            for (var j = 0; j < Math.min(collection.length, maxItems); j++) {
-                try {
-                    var item = collection[j];
-                    samples.push(formatSampleValue(item, { maxStringLength: 50 }));
-                } catch (itemExc) {
-                    samples.push('[Item access error]');
+            
+            if (samplingMeta.referenceTracking) {
+                stats.objectReferencesTracked = samplingMeta.referenceTracking.totalTracked || 0;
+            }
+            
+            if (samplingMeta.performance) {
+                stats.samplingTime = samplingMeta.performance.totalTime || 0;
+                stats.averageTimePerProperty = samplingMeta.performance.averageTimePerProperty || 0;
+                stats.successRate = samplingMeta.performance.successRate || 0;
+            } else {
+                stats.samplingTime = samplingMeta.samplingTime || 0;
+                if (stats.propertiesSampled > 0) {
+                    stats.successRate = (stats.valuesSampled / stats.propertiesSampled) * 100;
                 }
             }
         }
         
-        return samples;
+        return stats;
         
     } catch (exc) {
-        return ['[Sample extraction error]'];
+        return {
+            samplingEnabled: false,
+            propertiesSampled: 0,
+            valuesSampled: 0,
+            samplingTime: 0,
+            objectReferencesTracked: 0,
+            fingerprintsGenerated: 0,
+            samplingErrors: 0,
+            successRate: 0
+        };
+    }
+}
+
+/**
+ * Merge property sampling configuration
+ * @param {Object} defaults - Default configuration
+ * @param {Object} userConfig - User configuration
+ * @returns {Object} Merged configuration
+ */
+function mergePropertySamplingConfig(defaults, userConfig) {
+    try {
+        var config = objectClone(defaults, 1);
+        
+        if (userConfig && typeof userConfig === 'object') {
+            // Override with user settings, preserving user preferences
+            if (typeof userConfig.safetyFilter !== 'undefined') config.safetyFilter = userConfig.safetyFilter;
+            if (typeof userConfig.maxSamples !== 'undefined') config.maxSamples = userConfig.maxSamples;
+            if (typeof userConfig.timeoutMs !== 'undefined') config.timeoutMs = userConfig.timeoutMs;
+            if (typeof userConfig.includeCollectionSamples !== 'undefined') config.includeCollectionSamples = userConfig.includeCollectionSamples;
+            if (typeof userConfig.maxStringLength !== 'undefined') config.maxStringLength = userConfig.maxStringLength;
+            if (typeof userConfig.maxObjectDepth !== 'undefined') config.maxObjectDepth = userConfig.maxObjectDepth;
+            if (typeof userConfig.trackObjectReferences !== 'undefined') config.trackObjectReferences = userConfig.trackObjectReferences;
+            if (typeof userConfig.includeValueMetadata !== 'undefined') config.includeValueMetadata = userConfig.includeValueMetadata;
+            if (typeof userConfig.generateValueFingerprints !== 'undefined') config.generateValueFingerprints = userConfig.generateValueFingerprints;
+            if (typeof userConfig.enableProgressReporting !== 'undefined') config.enableProgressReporting = userConfig.enableProgressReporting;
+            if (typeof userConfig.enableDetailedLogging !== 'undefined') config.enableDetailedLogging = userConfig.enableDetailedLogging;
+            if (typeof userConfig.skipNullValues !== 'undefined') config.skipNullValues = userConfig.skipNullValues;
+            if (typeof userConfig.skipUndefinedValues !== 'undefined') config.skipUndefinedValues = userConfig.skipUndefinedValues;
+            if (typeof userConfig.maxCollectionDepth !== 'undefined') config.maxCollectionDepth = userConfig.maxCollectionDepth;
+            if (typeof userConfig.preserveOriginalTypes !== 'undefined') config.preserveOriginalTypes = userConfig.preserveOriginalTypes;
+        }
+        
+        return config;
+        
+    } catch (exc) {
+        return defaults;
+    }
+}
+
+/**
+ * Create sampling result object
+ * @param {Boolean} success - Success flag
+ * @param {*} value - Result value
+ * @param {String} error - Error message
+ * @returns {Object} Sampling result
+ */
+function createSamplingResult(success, value, error) {
+    try {
+        return {
+            success: success || false,
+            value: value || null,
+            error: error || null,
+            timestamp: getCurrentTimestamp()
+        };
+    } catch (exc) {
+        return {
+            success: false,
+            value: null,
+            error: 'Sampling result creation failed',
+            timestamp: 'unknown'
+        };
     }
 }
 
@@ -726,7 +1151,7 @@ function extractCollectionSample(collection, maxSamples) {
  */
 function logSamplingProgress(message) {
     try {
-        $.writeln('[Property Sampler] ' + message);
+        $.writeln('[Property Sampler] ' + getCurrentTimestamp() + ': ' + message);
     } catch (exc) {
         // Silent failure
     }
@@ -738,7 +1163,7 @@ function logSamplingProgress(message) {
  */
 function logSamplingError(message) {
     try {
-        $.writeln('[Property Sampler Error] ' + message);
+        $.writeln('[Property Sampler ERROR] ' + getCurrentTimestamp() + ': ' + message);
     } catch (exc) {
         // Silent failure
     }
@@ -750,9 +1175,11 @@ function logSamplingError(message) {
 
 // Register this module with all its functions
 registerModule('3.1_property-sampler', '3.1', [
-    // Main Functions
-    'samplePropertyValues', 'sampleNodeValues', 'samplePropertiesFromArray',
-    'samplePropertyValue',
+    // Main Sampling Functions
+    'sampleDOMValues', 'samplePropertyValue', 'safeGetPropertyValue',
+    
+    // Node Value Sampling
+    'sampleNodeValues', 'samplePropertiesFromArray',
     
     // Property Access
     'accessPropertyByPath',
@@ -761,8 +1188,13 @@ registerModule('3.1_property-sampler', '3.1', [
     'formatSampleValue', 'generateValueMetadata', 'generateValueFingerprint',
     'simpleStringHash',
     
+    // Collection Analysis
+    'isCollectionLike', 'analyzeCollection', 'extractCollectionSample', 
+    'getCollectionItemTypes', 'getCollectionPreview', 'determineCollectionType',
+    
     // Utility Functions
-    'shouldSampleProperty', 'getCollectionPreview', 'extractCollectionSample',
+    'shouldSampleProperty', 'meetsSafetyFilter', 'getSamplingStatistics', 
+    'mergePropertySamplingConfig', 'createSamplingResult',
     
     // Logging
     'logSamplingProgress', 'logSamplingError'

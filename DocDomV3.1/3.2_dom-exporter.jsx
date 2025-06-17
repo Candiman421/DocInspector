@@ -2,9 +2,9 @@
 // 3.2_dom-exporter.jsx - MULTI-FORMAT DOM EXPORT
 // InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
 // =============================================================================
-// PURPOSE: Export DOM structures to JSON, text, and CSV formats
+// PURPOSE: Export DOM structures to JSON, text, and CSV formats with enhanced features
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~750 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1400 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================
@@ -33,7 +33,9 @@ var DEFAULT_EXPORT_CONFIG = {
     enableCompressionSupport: false,
     generateComparisonData: true,
     includeTimestamps: true,
-    preserveCircularReferences: true
+    preserveCircularReferences: true,
+    includeAccessGuide: true,
+    enhancedFormatting: true
 };
 
 // =============================================================================
@@ -49,7 +51,8 @@ var DEFAULT_EXPORT_CONFIG = {
 function exportDOMStructure(domStructure, exportConfig) {
     var startTime = new Date().getTime();
     var config = exportConfig ? 
-        objectClone(exportConfig, 2) : objectClone(DEFAULT_EXPORT_CONFIG, 2);
+        objectMerge(DEFAULT_EXPORT_CONFIG, exportConfig) : 
+        objectClone(DEFAULT_EXPORT_CONFIG, 2);
     
     try {
         // Validate input
@@ -71,7 +74,7 @@ function exportDOMStructure(domStructure, exportConfig) {
         var processedStructure = preprocessForExport(domStructure, config);
         
         // Export based on format
-        switch (config.format.toLowerCase()) {
+        switch (stringToLowerCase(config.format)) {
             case 'json':
                 result.content = exportToJSON(processedStructure, config);
                 result.metadata.mimeType = 'application/json';
@@ -122,7 +125,7 @@ function exportDOMStructure(domStructure, exportConfig) {
  */
 function preprocessForExport(domStructure, config) {
     try {
-        var processed = objectClone(domStructure, config.maxDepth);
+        var processed = objectClone(domStructure, config.maxDepth || 8);
         
         // Add export enhancements
         if (!processed.exportEnhancements) {
@@ -157,15 +160,15 @@ function generateComparisonFingerprint(domStructure) {
         var components = [];
         
         if (domStructure.metadata) {
-            components.push('doc:' + (domStructure.metadata.documentName || 'unknown'));
+            components[components.length] = 'doc:' + (domStructure.metadata.documentName || 'unknown');
         }
         
         if (domStructure.statistics) {
-            components.push('nodes:' + (domStructure.statistics.totalNodes || 0));
-            components.push('props:' + (domStructure.statistics.totalProperties || 0));
+            components[components.length] = 'nodes:' + (domStructure.statistics.totalNodes || 0);
+            components[components.length] = 'props:' + (domStructure.statistics.totalProperties || 0);
         }
         
-        components.push('time:' + new Date().getTime());
+        components[components.length] = 'time:' + (new Date().getTime());
         
         return arrayJoin(components, '|');
         
@@ -196,18 +199,18 @@ function exportToJSON(domStructure, config) {
 
 /**
  * Custom JSON stringifier for ES3 compatibility
- * @param {*} obj - Object to stringify
+ * @param {*} objectData - Object to stringify
  * @param {Number} indent - Indentation level
  * @returns {String} JSON string
  */
-function stringifyJSON(obj, indent) {
+function stringifyJSON(objectData, indent) {
     var indentLevel = indent || 0;
     var seen = [];
     
     function stringify(value, currentDepth) {
         if (currentDepth > 10) return '"[max depth exceeded]"';
         
-        var type = safeTypeOf(value);
+        var valueType = typeof value;
         
         if (value === null) {
             return 'null';
@@ -217,16 +220,16 @@ function stringifyJSON(obj, indent) {
             return 'undefined';
         }
         
-        if (type === 'string') {
+        if (valueType === 'string') {
             return '"' + stringReplace(value, '"', '\\"') + '"';
         }
         
-        if (type === 'number' || type === 'boolean') {
+        if (valueType === 'number' || valueType === 'boolean') {
             return String(value);
         }
         
-        if (type !== 'object') {
-            return '"[' + type + ']"';
+        if (valueType !== 'object') {
+            return '"[' + valueType + ']"';
         }
         
         // Check for circular references
@@ -235,59 +238,67 @@ function stringifyJSON(obj, indent) {
                 return '"[circular reference]"';
             }
         }
-        seen.push(value);
         
-        var result = '';
-        var isArray = (value instanceof Array);
+        seen[seen.length] = value;
         
-        if (isArray) {
-            result = '[';
-            for (var j = 0; j < value.length; j++) {
-                if (j > 0) result += ',';
-                if (indentLevel > 0) result += '\n' + createIndent(currentDepth + 1, indentLevel);
-                result += stringify(value[j], currentDepth + 1);
-            }
-            if (indentLevel > 0 && value.length > 0) result += '\n' + createIndent(currentDepth, indentLevel);
-            result += ']';
-        } else {
-            result = '{';
-            var first = true;
-            for (var key in value) {
-                if (objectHasOwnProperty(value, key)) {
-                    if (!first) result += ',';
-                    if (indentLevel > 0) result += '\n' + createIndent(currentDepth + 1, indentLevel);
-                    result += '"' + key + '":';
-                    if (indentLevel > 0) result += ' ';
-                    result += stringify(value[key], currentDepth + 1);
-                    first = false;
-                }
-            }
-            if (indentLevel > 0 && !first) result += '\n' + createIndent(currentDepth, indentLevel);
-            result += '}';
+        var indentStr = '';
+        for (var j = 0; j < currentDepth * indentLevel; j++) {
+            indentStr += ' ';
         }
         
-        seen.pop();
-        return result;
+        var nextIndentStr = indentStr;
+        if (indentLevel > 0) {
+            for (var k = 0; k < indentLevel; k++) {
+                nextIndentStr += ' ';
+            }
+        }
+        
+        // Handle arrays
+        if (value.length !== undefined && typeof value.length === 'number') {
+            var arrayItems = [];
+            for (var arrIndex = 0; arrIndex < value.length; arrIndex++) {
+                arrayItems[arrayItems.length] = stringify(value[arrIndex], currentDepth + 1);
+            }
+            
+            if (indentLevel > 0) {
+                return '[\n' + nextIndentStr + arrayJoin(arrayItems, ',\n' + nextIndentStr) + '\n' + indentStr + ']';
+            } else {
+                return '[' + arrayJoin(arrayItems, ', ') + ']';
+            }
+        }
+        
+        // Handle objects
+        var objectPairs = [];
+        for (var prop in value) {
+            if (objectHasOwnProperty(value, prop)) {
+                var propValue = stringify(value[prop], currentDepth + 1);
+                objectPairs[objectPairs.length] = '"' + prop + '": ' + propValue;
+            }
+        }
+        
+        if (indentLevel > 0) {
+            return '{\n' + nextIndentStr + arrayJoin(objectPairs, ',\n' + nextIndentStr) + '\n' + indentStr + '}';
+        } else {
+            return '{' + arrayJoin(objectPairs, ', ') + '}';
+        }
     }
     
     try {
-        return stringify(obj, 0);
+        return stringify(objectData, 0);
     } catch (exc) {
-        return '"[stringify error: ' + exc.message + ']"';
+        return '{"error": "JSON stringify failed: ' + exc.message + '"}';
     }
 }
 
 /**
  * Create indentation string
- * @param {Number} depth - Indentation depth
- * @param {Number} spaceCount - Spaces per level
- * @returns {String} Indentation string
+ * @param {Number} level - Indentation level
+ * @returns {String} Indent string
  */
-function createIndent(depth, spaceCount) {
+function createIndent(level) {
     try {
         var indent = '';
-        var totalSpaces = depth * spaceCount;
-        for (var i = 0; i < totalSpaces; i++) {
+        for (var i = 0; i < level * 2; i++) {
             indent += ' ';
         }
         return indent;
@@ -301,52 +312,47 @@ function createIndent(depth, spaceCount) {
 // =============================================================================
 
 /**
- * Export DOM structure to human-readable text format
+ * Export DOM structure to text format
  * @param {Object} domStructure - DOM structure
  * @param {Object} config - Export configuration
- * @returns {String} Text content
+ * @returns {String} Text export
  */
 function exportToText(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
         // Header
-        builder.appendLine('='.repeat ? '='.repeat(80) : '================================================================================');
-        builder.appendLine('INDESIGN DOM STRUCTURE EXPORT');
+        builder.appendLine('InDesign DOM Discovery Builder v3.1 - Export Report');
+        builder.appendLine('================================================================');
         builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('='.repeat ? '='.repeat(80) : '================================================================================');
         builder.appendLine('');
         
         // Metadata section
-        if (config.includeMetadata && domStructure.metadata) {
-            builder.appendLine(generateMetadataSection(domStructure.metadata));
-            builder.appendLine('');
+        if (config.includeMetadata) {
+            builder.append(generateMetadataSection(domStructure, config));
         }
         
         // Statistics section
-        if (config.includeStatistics && domStructure.statistics) {
-            builder.appendLine(generateStatisticsSection(domStructure));
-            builder.appendLine('');
+        if (config.includeStatistics) {
+            builder.append(generateStatisticsSection(domStructure, config));
         }
         
-        // Structure section
-        if (domStructure.structure) {
-            builder.appendLine('DOM STRUCTURE');
-            builder.appendLine('=============');
-            builder.appendLine('');
-            builder.appendLine(generateStructureSection(domStructure.structure, config));
-            builder.appendLine('');
+        // Access guide section
+        if (config.includeAccessGuide) {
+            builder.append(generateAccessGuideSection(domStructure, config));
         }
         
         // Object references section
-        if (config.includeObjectReferences && domStructure.objectRegistry) {
-            builder.appendLine(generateObjectReferenceSection(domStructure));
-            builder.appendLine('');
+        if (config.includeObjectReferences) {
+            builder.append(generateObjectReferenceSection(domStructure));
         }
+        
+        // Main structure section
+        builder.append(generateStructureSection(domStructure, config));
         
         // Export enhancements section
         if (domStructure.exportEnhancements) {
-            builder.appendLine(generateExportEnhancementsSection(domStructure.exportEnhancements));
+            builder.append(generateExportEnhancementsSection(domStructure.exportEnhancements));
         }
         
         return builder.toString();
@@ -357,204 +363,269 @@ function exportToText(domStructure, config) {
 }
 
 /**
- * Generate metadata section for text export
- * @param {Object} metadata - Metadata object
+ * Generate metadata section
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
  * @returns {String} Metadata section
  */
-function generateMetadataSection(metadata) {
+function generateMetadataSection(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
-        builder.appendLine('METADATA');
-        builder.appendLine('========');
+        builder.appendLine('DOCUMENT METADATA');
+        builder.appendLine('=================');
         
-        if (metadata.documentName) {
-            builder.appendLine('Document: ' + metadata.documentName);
+        if (domStructure.metadata) {
+            var metadata = domStructure.metadata;
+            
+            builder.appendLine('Document Name: ' + (metadata.documentName || 'Unknown'));
+            builder.appendLine('Analysis Version: ' + (metadata.version || 'Unknown'));
+            builder.appendLine('Timestamp: ' + (metadata.timestamp || 'Unknown'));
+            
+            if (metadata.environment) {
+                builder.appendLine('InDesign Version: ' + (metadata.environment.indesignVersion || 'Unknown'));
+                builder.appendLine('Native JSON Support: ' + (metadata.environment.hasNativeJSON ? 'Yes' : 'No'));
+            }
+            
+            if (metadata.enhancedFeatures) {
+                builder.appendLine('');
+                builder.appendLine('Enhanced Features:');
+                builder.appendLine('  Object Tracking: ' + (metadata.enhancedFeatures.objectTracking ? 'Enabled' : 'Disabled'));
+                builder.appendLine('  Duplicate Detection: ' + (metadata.enhancedFeatures.duplicateDetection ? 'Enabled' : 'Disabled'));
+                builder.appendLine('  ES3 Compliant: ' + (metadata.enhancedFeatures.es3Compliant ? 'Yes' : 'No'));
+            }
+            
+            if (metadata.valueSampling) {
+                builder.appendLine('');
+                builder.appendLine('Value Sampling:');
+                builder.appendLine('  Enabled: ' + (metadata.valueSampling.enabled ? 'Yes' : 'No'));
+                
+                if (metadata.valueSampling.statistics) {
+                    var stats = metadata.valueSampling.statistics;
+                    builder.appendLine('  Properties Sampled: ' + (stats.propertiesSampled || 0));
+                    builder.appendLine('  Values Extracted: ' + (stats.valuesSampled || 0));
+                    builder.appendLine('  Success Rate: ' + Math.round((stats.valuesSampled / stats.propertiesSampled) * 100) + '%');
+                }
+            }
+        } else {
+            builder.appendLine('No metadata available');
         }
         
-        if (metadata.timestamp) {
-            builder.appendLine('Generated: ' + metadata.timestamp);
-        }
-        
-        if (metadata.version) {
-            builder.appendLine('Version: ' + metadata.version);
-        }
-        
-        if (metadata.environment) {
-            builder.appendLine('InDesign Version: ' + (metadata.environment.indesignVersion || 'unknown'));
-            builder.appendLine('Native JSON Support: ' + (metadata.environment.hasNativeJSON ? 'Yes' : 'No'));
-        }
-        
-        if (metadata.enhancedFeatures) {
-            builder.appendLine('Enhanced Features:');
-            builder.appendLine('  - Object Tracking: ' + (metadata.enhancedFeatures.objectTracking ? 'Enabled' : 'Disabled'));
-            builder.appendLine('  - Duplicate Detection: ' + (metadata.enhancedFeatures.duplicateDetection ? 'Enabled' : 'Disabled'));
-            builder.appendLine('  - ES3 Compliant: ' + (metadata.enhancedFeatures.es3Compliant ? 'Yes' : 'No'));
-        }
-        
+        builder.appendLine('');
         return builder.toString();
         
     } catch (exc) {
-        return 'Metadata section error: ' + exc.message;
+        return 'Metadata section error: ' + exc.message + '\n\n';
     }
 }
 
 /**
- * Generate statistics section for text export
+ * Generate statistics section
  * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
  * @returns {String} Statistics section
  */
-function generateStatisticsSection(domStructure) {
+function generateStatisticsSection(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
-        builder.appendLine('STATISTICS');
-        builder.appendLine('==========');
+        builder.appendLine('STRUCTURE STATISTICS');
+        builder.appendLine('====================');
         
         if (domStructure.statistics) {
             var stats = domStructure.statistics;
             
             builder.appendLine('Total Nodes: ' + (stats.totalNodes || 0));
             builder.appendLine('Total Properties: ' + (stats.totalProperties || 0));
-            builder.appendLine('Object References: ' + (stats.objectReferences || 0));
-            builder.appendLine('Duplicate Objects: ' + (stats.duplicateObjects || 0));
-            builder.appendLine('Circular References: ' + (stats.circularReferences || 0));
+            builder.appendLine('Total Collections: ' + (stats.totalCollections || 0));
+            builder.appendLine('Total Methods: ' + (stats.totalMethods || 0));
+            builder.appendLine('Maximum Depth: ' + (stats.maxDepth || 0));
             
-            if (stats.enumerationTime) {
-                builder.appendLine('Enumeration Time: ' + stats.enumerationTime + 'ms');
+            if (stats.objectsTracked > 0) {
+                builder.appendLine('Objects Tracked: ' + stats.objectsTracked);
+                builder.appendLine('Duplicate Objects: ' + (stats.duplicateObjects || 0));
+                builder.appendLine('Circular References: ' + (stats.circularReferences || 0));
             }
+        } else {
+            builder.appendLine('No statistics available');
         }
         
-        // Value sampling statistics
-        if (domStructure.metadata && domStructure.metadata.valueSampling) {
-            var sampling = domStructure.metadata.valueSampling;
-            if (sampling.enabled && sampling.statistics) {
-                builder.appendLine('');
-                builder.appendLine('VALUE SAMPLING:');
-                builder.appendLine('Properties Sampled: ' + (sampling.statistics.propertiesSampled || 0));
-                builder.appendLine('Values Extracted: ' + (sampling.statistics.valuesSampled || 0));
-                builder.appendLine('Sampling Errors: ' + (sampling.statistics.errorsEncountered || 0));
-            }
-        }
-        
-        // Collection sampling statistics
-        if (domStructure.metadata && domStructure.metadata.collectionSampling) {
-            var collSampling = domStructure.metadata.collectionSampling;
-            if (collSampling.enabled && collSampling.statistics) {
-                builder.appendLine('');
-                builder.appendLine('COLLECTION SAMPLING:');
-                builder.appendLine('Collections Processed: ' + (collSampling.statistics.collectionsProcessed || 0));
-                builder.appendLine('Items Sampled: ' + (collSampling.statistics.itemsSampled || 0));
-                builder.appendLine('Properties Analyzed: ' + (collSampling.statistics.propertiesAnalyzed || 0));
-            }
-        }
-        
+        builder.appendLine('');
         return builder.toString();
         
     } catch (exc) {
-        return 'Statistics section error: ' + exc.message;
+        return 'Statistics section error: ' + exc.message + '\n\n';
     }
 }
 
 /**
- * Generate structure section for text export
- * @param {Object} structure - Structure object
- * @param {Object} config - Export configuration
- * @returns {String} Structure section
+ * Generate access guide section
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Access guide section
  */
-function generateStructureSection(structure, config) {
+function generateAccessGuideSection(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
-        if (structure.document) {
-            builder.appendLine(generateNodeText(structure.document, 0, config));
+        builder.appendLine('DEVELOPER ACCESS GUIDE');
+        builder.appendLine('======================');
+        builder.appendLine('');
+        
+        builder.appendLine('SAFE PROPERTY ACCESS PATTERN:');
+        builder.appendLine('try {');
+        builder.appendLine('    var value = app.activeDocument.pages[0];');
+        builder.appendLine('    if (value) {');
+        builder.appendLine('        $.writeln("Found: " + value);');
+        builder.appendLine('    }');
+        builder.appendLine('} catch (e) {');
+        builder.appendLine('    $.writeln("Access failed: " + e.message);');
+        builder.appendLine('}');
+        builder.appendLine('');
+        
+        builder.appendLine('COLLECTION ITERATION PATTERN:');
+        builder.appendLine('var doc = app.activeDocument;');
+        builder.appendLine('if (doc.pages && doc.pages.length > 0) {');
+        builder.appendLine('    for (var i = 0; i < doc.pages.length; i++) {');
+        builder.appendLine('        try {');
+        builder.appendLine('            var page = doc.pages[i];');
+        builder.appendLine('            // Process page safely');
+        builder.appendLine('        } catch (e) {');
+        builder.appendLine('            $.writeln("Page " + i + " error: " + e.message);');
+        builder.appendLine('        }');
+        builder.appendLine('    }');
+        builder.appendLine('}');
+        builder.appendLine('');
+        
+        builder.appendLine('SAFETY NOTES:');
+        builder.appendLine('• Always use try-catch blocks for InDesign DOM access');
+        builder.appendLine('• Check for null/undefined before accessing properties');
+        builder.appendLine('• Verify collection lengths before iteration');
+        builder.appendLine('• Properties marked as "dangerous" should be avoided');
+        builder.appendLine('• Test scripts thoroughly before production use');
+        builder.appendLine('');
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Access guide error: ' + exc.message + '\n\n';
+    }
+}
+
+/**
+ * Generate structure section
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Structure section
+ */
+function generateStructureSection(domStructure, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('DOM STRUCTURE');
+        builder.appendLine('=============');
+        builder.appendLine('');
+        
+        if (domStructure.structure && domStructure.structure.document) {
+            builder.append(generateNodeText(domStructure.structure.document, 0, config));
+        } else {
+            builder.appendLine('No structure data available');
         }
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Structure section error: ' + exc.message;
+        return 'Structure section error: ' + exc.message + '\n\n';
     }
 }
 
 /**
- * Generate text representation of a DOM node
+ * Generate text for DOM node
  * @param {Object} node - DOM node
  * @param {Number} depth - Current depth
- * @param {Object} config - Export configuration
+ * @param {Object} config - Configuration
  * @returns {String} Node text
  */
 function generateNodeText(node, depth, config) {
     try {
-        if (!node) return '';
-        
         var builder = createStringBuilder();
-        var indent = createIndent(depth, 2);
+        var indent = createIndent(depth);
         
         // Node header
-        builder.appendLine(indent + node.name + ' (' + node.type + ')');
-        builder.appendLine(indent + 'Path: ' + node.path);
-        
+        var nodeInfo = node.name + ' (' + node.type + ')';
         if (node.objectId) {
-            builder.appendLine(indent + 'Object ID: ' + node.objectId);
+            nodeInfo += ' [ID: ' + stringSubstring(node.objectId, 0, 8) + '...]';
         }
         
-        // Alternative access paths
-        if (config.includeAlternativePaths && node.alternativeAccessPaths && node.alternativeAccessPaths.length > 0) {
-            builder.appendLine(indent + 'Alternative Paths:');
-            for (var i = 0; i < node.alternativeAccessPaths.length; i++) {
-                builder.appendLine(indent + '  - ' + node.alternativeAccessPaths[i]);
-            }
-        }
+        builder.appendLine(indent + '▼ ' + nodeInfo);
         
         // Properties
         if (node.properties && node.properties.length > 0) {
-            builder.appendLine(indent + 'Properties (' + node.properties.length + '):');
-            for (var j = 0; j < Math.min(node.properties.length, 20); j++) {
-                var prop = node.properties[j];
-                var propLine = indent + '  ' + prop.name + ' (' + prop.type + ')';
+            builder.appendLine(indent + '  Properties (' + node.properties.length + '):');
+            for (var p = 0; p < Math.min(node.properties.length, 15); p++) {
+                var prop = node.properties[p];
+                var propText = '• ' + prop.name + ' (' + prop.type + ')';
                 
-                if (config.includeExtractedValues && prop.extractedValue) {
-                    propLine += ' = ' + prop.extractedValue;
+                // Show extracted value if available
+                if (prop.samplingMetadata && prop.samplingMetadata.formattedValue) {
+                    propText += ' = ' + prop.samplingMetadata.formattedValue;
                 }
                 
-                builder.appendLine(propLine);
+                if (prop.safetyLevel) {
+                    propText += ' [' + prop.safetyLevel + ']';
+                }
+                
+                builder.appendLine(indent + '    ' + propText);
             }
             
-            if (node.properties.length > 20) {
-                builder.appendLine(indent + '  ... and ' + (node.properties.length - 20) + ' more properties');
+            if (node.properties.length > 15) {
+                builder.appendLine(indent + '    ... (' + (node.properties.length - 15) + ' more properties)');
             }
         }
         
         // Collections
         if (node.collections && node.collections.length > 0) {
-            builder.appendLine(indent + 'Collections (' + node.collections.length + '):');
-            for (var k = 0; k < node.collections.length; k++) {
-                var coll = node.collections[k];
-                builder.appendLine(indent + '  ' + coll.name + ' (' + coll.type + ')');
+            builder.appendLine(indent + '  Collections (' + node.collections.length + '):');
+            for (var c = 0; c < Math.min(node.collections.length, 10); c++) {
+                var collection = node.collections[c];
+                var collText = '• ' + collection.name + ' (' + collection.type + ')';
+                
+                // Show collection content if available
+                if (collection.samplingMetadata && collection.samplingMetadata.formattedValue) {
+                    collText += ' = ' + collection.samplingMetadata.formattedValue;
+                }
+                
+                builder.appendLine(indent + '    ' + collText);
             }
         }
         
         // Methods
         if (node.methods && node.methods.length > 0) {
-            builder.appendLine(indent + 'Methods (' + node.methods.length + '):');
+            builder.appendLine(indent + '  Methods (' + node.methods.length + '):');
             for (var m = 0; m < Math.min(node.methods.length, 10); m++) {
-                builder.appendLine(indent + '  ' + node.methods[m].name + '()');
+                builder.appendLine(indent + '    • ' + node.methods[m].name + '()');
+            }
+        }
+        
+        // Alternative access paths
+        if (node.alternativeAccessPaths && node.alternativeAccessPaths.length > 0) {
+            builder.appendLine(indent + '  Alternative Access Paths:');
+            for (var a = 0; a < Math.min(node.alternativeAccessPaths.length, 3); a++) {
+                builder.appendLine(indent + '    • ' + node.alternativeAccessPaths[a]);
             }
         }
         
         // Child nodes
         if (node.childNodes && node.childNodes.length > 0) {
-            builder.appendLine(indent + 'Child Nodes:');
             for (var n = 0; n < node.childNodes.length; n++) {
-                builder.appendLine(generateNodeText(node.childNodes[n], depth + 1, config));
+                builder.append(generateNodeText(node.childNodes[n], depth + 1, config));
             }
         }
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Node text generation error: ' + exc.message;
+        return 'Node text generation error: ' + exc.message + '\n';
     }
 }
 
@@ -578,14 +649,28 @@ function generateObjectReferenceSection(domStructure) {
                 var dupCount = countObjectKeys(domStructure.objectRegistry.duplicateDetections);
                 builder.appendLine('Duplicate Objects Found: ' + dupCount);
             }
+            
+            if (domStructure.objectRegistry.circularReferences) {
+                builder.appendLine('Circular References: ' + domStructure.objectRegistry.circularReferences.length);
+                
+                if (domStructure.objectRegistry.circularReferences.length > 0) {
+                    builder.appendLine('');
+                    builder.appendLine('Circular Reference Details:');
+                    for (var i = 0; i < Math.min(domStructure.objectRegistry.circularReferences.length, 5); i++) {
+                        var circRef = domStructure.objectRegistry.circularReferences[i];
+                        builder.appendLine('  • ' + circRef.originalPath + ' → ' + circRef.circularPath);
+                    }
+                }
+            }
         } else {
             builder.appendLine('No object reference tracking data available.');
         }
         
+        builder.appendLine('');
         return builder.toString();
         
     } catch (exc) {
-        return 'Object reference section error: ' + exc.message;
+        return 'Object reference section error: ' + exc.message + '\n\n';
     }
 }
 
@@ -607,17 +692,17 @@ function generateExportEnhancementsSection(enhancements) {
         builder.appendLine('Values Extracted: ' + (enhancements.valuesExtracted ? 'Yes' : 'No'));
         
         if (enhancements.comparisonFingerprint) {
+            builder.appendLine('');
             builder.appendLine('Comparison Fingerprint: ' + enhancements.comparisonFingerprint);
         }
         
-        if (enhancements.exportTimestamp) {
-            builder.appendLine('Export Timestamp: ' + enhancements.exportTimestamp);
-        }
+        builder.appendLine('Export Timestamp: ' + (enhancements.exportTimestamp || 'Unknown'));
+        builder.appendLine('');
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Export enhancements section error: ' + exc.message;
+        return 'Export enhancements section error: ' + exc.message + '\n\n';
     }
 }
 
@@ -629,22 +714,16 @@ function generateExportEnhancementsSection(enhancements) {
  * Export DOM structure to CSV format
  * @param {Object} domStructure - DOM structure
  * @param {Object} config - Export configuration
- * @returns {String} CSV content
+ * @returns {String} CSV export
  */
 function exportToCSV(domStructure, config) {
     try {
         var builder = createStringBuilder();
         
         // CSV Header
-        var headers = [
-            'Path', 'Name', 'Type', 'Depth', 'ObjectID', 
-            'PropertyCount', 'CollectionCount', 'MethodCount',
-            'HasAlternativePaths', 'ExtractedValue', 'IsCircular'
-        ];
+        builder.appendLine('Path,Name,Type,Depth,Safety Level,Is Collection,Is Method,Object ID,Alternative Paths,Properties Count,Module Version');
         
-        builder.appendLine(arrayJoin(headers, ','));
-        
-        // Generate CSV rows
+        // Generate CSV rows from DOM structure
         if (domStructure.structure && domStructure.structure.document) {
             generateCSVRows(domStructure.structure.document, builder, config);
         }
@@ -652,79 +731,134 @@ function exportToCSV(domStructure, config) {
         return builder.toString();
         
     } catch (exc) {
-        return 'CSV export failed: ' + exc.message;
+        return 'CSV export generation failed: ' + exc.message;
     }
 }
 
 /**
- * Generate CSV rows recursively
+ * Generate CSV rows for DOM node and children
  * @param {Object} domNode - DOM node
  * @param {Object} builder - String builder
  * @param {Object} config - Configuration
  */
 function generateCSVRows(domNode, builder, config) {
     try {
-        if (!domNode || !builder) {
-            return;
-        }
+        if (!domNode) return;
         
         // Generate row for current node
         var altPaths = domNode.alternativeAccessPaths ? 
-                      arrayJoin(domNode.alternativeAccessPaths, ';') : '';
+            arrayJoin(domNode.alternativeAccessPaths, ';') : '';
         var propCount = (domNode.properties ? domNode.properties.length : 0) + 
                        (domNode.collections ? domNode.collections.length : 0) + 
                        (domNode.methods ? domNode.methods.length : 0);
         
-        var row = [
+        builder.appendLine([
             csvEscape(domNode.path || ''),
             csvEscape(domNode.name || ''),
             csvEscape(domNode.type || ''),
-            String(domNode.depth || 0),
+            domNode.depth || 0,
+            csvEscape('safe'), // Default safety level
+            'false', // Is collection
+            'false', // Is method
             csvEscape(domNode.objectId || ''),
-            String(domNode.properties ? domNode.properties.length : 0),
-            String(domNode.collections ? domNode.collections.length : 0),
-            String(domNode.methods ? domNode.methods.length : 0),
-            domNode.alternativeAccessPaths && domNode.alternativeAccessPaths.length > 0 ? 'Yes' : 'No',
-            '', // Placeholder for extracted value
-            domNode.objectMetadata && domNode.objectMetadata.isCircular ? 'Yes' : 'No'
-        ];
+            csvEscape(altPaths),
+            propCount,
+            csvEscape('3.1') // Module version
+        ].join(','));
         
-        builder.appendLine(arrayJoin(row, ','));
+        // Add rows for properties
+        if (domNode.properties) {
+            for (var p = 0; p < domNode.properties.length; p++) {
+                var prop = domNode.properties[p];
+                builder.appendLine([
+                    csvEscape(prop.path || ''),
+                    csvEscape(prop.name || ''),
+                    csvEscape(prop.type || ''),
+                    (domNode.depth || 0) + 1,
+                    csvEscape(prop.safetyLevel || 'unknown'),
+                    'false',
+                    'false',
+                    csvEscape(''),
+                    csvEscape(''),
+                    0,
+                    csvEscape('3.1')
+                ].join(','));
+            }
+        }
         
-        // Generate rows for child nodes
-        if (domNode.childNodes && domNode.childNodes.length > 0) {
+        // Add rows for collections
+        if (domNode.collections) {
+            for (var c = 0; c < domNode.collections.length; c++) {
+                var collection = domNode.collections[c];
+                builder.appendLine([
+                    csvEscape(collection.path || ''),
+                    csvEscape(collection.name || ''),
+                    csvEscape(collection.type || ''),
+                    (domNode.depth || 0) + 1,
+                    csvEscape(collection.safetyLevel || 'unknown'),
+                    'true',
+                    'false',
+                    csvEscape(''),
+                    csvEscape(''),
+                    0,
+                    csvEscape('3.1')
+                ].join(','));
+            }
+        }
+        
+        // Add rows for methods
+        if (domNode.methods) {
+            for (var m = 0; m < domNode.methods.length; m++) {
+                var method = domNode.methods[m];
+                builder.appendLine([
+                    csvEscape(method.path || ''),
+                    csvEscape(method.name || ''),
+                    csvEscape(method.type || ''),
+                    (domNode.depth || 0) + 1,
+                    csvEscape(method.safetyLevel || 'unknown'),
+                    'false',
+                    'true',
+                    csvEscape(''),
+                    csvEscape(''),
+                    0,
+                    csvEscape('3.1')
+                ].join(','));
+            }
+        }
+        
+        // Add rows for child nodes
+        if (domNode.childNodes && domNode.childNodes.length) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
                 generateCSVRows(domNode.childNodes[i], builder, config);
             }
         }
         
     } catch (exc) {
-        // Continue with other rows
+        // Continue processing
     }
 }
 
 /**
- * Escape CSV field value
- * @param {String} value - Value to escape
- * @returns {String} Escaped value
+ * Escape CSV field content
+ * @param {String} field - Field content
+ * @returns {String} Escaped field
  */
-function csvEscape(value) {
+function csvEscape(field) {
     try {
-        if (!value) return '';
-        
-        var str = String(value);
-        
-        // If contains comma, quote, or newline, wrap in quotes and escape quotes
-        if (stringIndexOf(str, ',') !== -1 || 
-            stringIndexOf(str, '"') !== -1 || 
-            stringIndexOf(str, '\n') !== -1) {
-            str = '"' + stringReplace(str, '"', '""') + '"';
+        if (typeof field !== 'string') {
+            field = String(field);
         }
         
-        return str;
+        if (stringIndexOf(field, ',') !== -1 || 
+            stringIndexOf(field, '"') !== -1 || 
+            stringIndexOf(field, '\n') !== -1) {
+            return '"' + stringReplace(field, '"', '""') + '"';
+        }
+        
+        return field;
         
     } catch (exc) {
-        return '';
+        return '""';
     }
 }
 
@@ -741,12 +875,12 @@ function csvEscape(value) {
 function generateExportStatistics(domStructure, exportResult) {
     try {
         return {
-            contentSize: exportResult.contentLength,
-            exportTime: exportResult.exportTime,
             nodeCount: domStructure.statistics ? domStructure.statistics.totalNodes : 0,
             propertyCount: domStructure.statistics ? domStructure.statistics.totalProperties : 0,
             format: exportResult.format,
-            timestamp: getCurrentTimestamp()
+            timestamp: getCurrentTimestamp(),
+            contentLength: exportResult.contentLength,
+            exportTime: exportResult.exportTime
         };
     } catch (exc) {
         return {
@@ -770,8 +904,8 @@ registerModule('3.2_dom-exporter', '3.1', [
     
     // Text Export
     'exportToText', 'generateMetadataSection', 'generateStatisticsSection',
-    'generateStructureSection', 'generateNodeText', 'generateObjectReferenceSection',
-    'generateExportEnhancementsSection',
+    'generateAccessGuideSection', 'generateStructureSection', 'generateNodeText', 
+    'generateObjectReferenceSection', 'generateExportEnhancementsSection',
     
     // CSV Export
     'exportToCSV', 'generateCSVRows', 'csvEscape',
