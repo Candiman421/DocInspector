@@ -1068,47 +1068,95 @@ function runDOMEnumeration() {
                     generateValueFingerprints: true
                 };
                 
-                updateStatus('Property sampling config: Safety=' + samplingConfig.safetyFilter + 
-                            ', Collections=' + samplingConfig.includeCollectionSamples + 
-                            ', MaxSamples=' + samplingConfig.maxSamples + 
-                            ', Timeout=' + samplingConfig.timeoutMs + 'ms');
+                // PROPER FIX: Override the broken path resolution in property sampler
+                updateStatus('PROPER FIX: Applying path resolution fix...');
                 
-                // DEBUG: Check if sampleDOMValues function is available and working
-                updateStatus('DEBUG: Checking property sampler availability...');
-                if (typeof meetsSafetyFilter === 'function') {
-                    updateStatus('DEBUG: Safety filter function available');
-                } else {
-                    updateStatus('DEBUG: WARNING - Safety filter function not available');
+                // Save original functions if not already saved
+                if (typeof window.originalSamplePropertiesFromArray === 'undefined') {
+                    window.originalSamplePropertiesFromArray = window.samplePropertiesFromArray;
+                    window.originalSafeGetObjectFromPath = window.safeGetObjectFromPath;
                 }
                 
-                if (typeof safeGetPropertyValue === 'function') {
-                    updateStatus('DEBUG: Property value getter available');
-                } else {
-                    updateStatus('DEBUG: WARNING - Property value getter not available');
-                }
+                // Create a fixed version of samplePropertiesFromArray
+                                
+                var originalSamplePropertiesFromArray = window.samplePropertiesFromArray;
                 
-                // DEBUG: Check the DOM structure format before sampling
-                if (domStructure && domStructure.structure && domStructure.structure.document) {
-                    var docNode = domStructure.structure.document;
-                    if (docNode.properties && docNode.properties.length > 0) {
-                        updateStatus('DEBUG: Document node has ' + docNode.properties.length + ' properties');
-                        var sampleProp = docNode.properties[0];
-                        if (sampleProp) {
-                            updateStatus('DEBUG: Sample property format - name: ' + (sampleProp.name || 'undefined') + 
-                                        ', safetyLevel: ' + (sampleProp.safetyLevel || 'undefined') +
-                                        ', path: ' + (sampleProp.path || 'undefined'));
+                window.samplePropertiesFromArray = function(properties, sourceDocument, config, samplingStats, referenceTracker) {
+                    try {
+                        var sampledCount = 0;
+                        var timeoutChecker = createTimeoutChecker(config.timeoutMs);
+                        
+                        var propertiesToSample = arraySlice(properties, 0, Math.min(properties.length, config.maxSamples));
+                        
+                        for (var i = 0; i < propertiesToSample.length; i++) {
+                            if (timeoutChecker && timeoutChecker()) break;
+                            if (sampledCount >= config.maxSamples) break;
+                            
+                            var propertyData = propertiesToSample[i];
+                            
+                            if (meetsSafetyFilter(propertyData, config.safetyFilter)) {
+                                var pathComponents = splitPath(propertyData.path);
+                                if (pathComponents.length >= 2) {
+                                    var parentPath = getParentPath(propertyData.path);
+                                    var propName = pathComponents[pathComponents.length - 1];
+                                    
+                                    // PROPER FIX: Handle document root case
+                                    var parentObject = null;
+                                    if (parentPath === 'document' || parentPath === '') {
+                                        // Parent is the document itself
+                                        parentObject = sourceDocument;
+                                    } else {
+                                        // Use normal path resolution for deeper paths
+                                        var parentAccess = window.originalSafeGetObjectFromPath(sourceDocument, parentPath, config.timeoutMs);
+                                        if (parentAccess.success) {
+                                            parentObject = parentAccess.value;
+                                        }
+                                    }
+                                    
+                                    if (parentObject) {
+                                        // Extract the property value
+                                        var valueResult = samplePropertyValue(
+                                            parentObject,
+                                            propName,
+                                            propertyData.path,
+                                            config,
+                                            referenceTracker
+                                        );
+                                        
+                                        if (valueResult.success) {
+                                            propertyData.samplingMetadata = {
+                                                actualValue: valueResult.formattedValue,
+                                                rawValue: valueResult.value,
+                                                valueType: valueResult.valueType,
+                                                extractionSuccessful: true,
+                                                method: 'fixed_path_resolution'
+                                            };
+                                            
+                                            propertyData.extractedValue = valueResult.value;
+                                            samplingStats.valuesSampled++;
+                                            samplingStats.propertiesSampled++;
+                                            sampledCount++;
+                                            
+                                            updateStatus('PROPER FIX: Extracted ' + propName + ' = ' + valueResult.formattedValue);
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    } else {
-                        updateStatus('DEBUG: Document node has no properties array or empty');
+                        
+                        updateStatus('PROPER FIX: Processed ' + sampledCount + ' properties successfully');
+                        
+                    } catch (exc) {
+                        updateStatus('PROPER FIX: Error in fixed sampler: ' + exc.message);
+                        samplingStats.samplingErrors++;
                     }
-                    if (docNode.childNodes && docNode.childNodes.length > 0) {
-                        updateStatus('DEBUG: Document has ' + docNode.childNodes.length + ' child nodes');
-                    }
-                } else {
-                    updateStatus('DEBUG: DOM structure is malformed or missing');
-                }
+                };
                 
-                // Extract the actual property values
+                updateStatus('PROPER FIX: Fixed property sampler applied, retrying extraction...');
+                
+                // Extract the actual property values with path resolution fix
+                updateStatus('Extracting property values...');
+                var domStructureWithValues = sampleDOMValues(domStructure, envValidation.document, samplingConfig);
                 var domStructureWithValues = sampleDOMValues(domStructure, envValidation.document, samplingConfig);
                 
                 if (domStructureWithValues) {
@@ -1118,22 +1166,19 @@ function runDOMEnumeration() {
                     updateStatus('Property value extraction failed');
                 }
                 
-                // IMMEDIATE FIX: Always try direct property extraction as backup
-                updateStatus('IMMEDIATE FIX: Running direct property extraction as backup...');
-                var directCount = attemptManualPropertySampling(g_domViz_currentDOMStructure, envValidation.document);
-                if (directCount > 0) {
-                    updateStatus('IMMEDIATE FIX: Successfully extracted ' + directCount + ' properties via direct access!');
-                    // Force display update
-                    var displayText = formatDOMForDisplay(g_domViz_currentDOMStructure);
-                    if (g_domViz_domDisplay && displayText) {
-                        g_domViz_domDisplay.text = displayText;
-                    }
-                } else {
-                    updateStatus('IMMEDIATE FIX: Direct extraction found no accessible properties');
+                // Restore original function after sampling
+                if (window.originalSamplePropertiesFromArray) {
+                    window.samplePropertiesFromArray = window.originalSamplePropertiesFromArray;
+                    updateStatus('Original functions restored');
                 }
                 
             } catch (samplingExc) {
                 updateStatus('Property sampling error: ' + samplingExc.message);
+                
+                // Restore original function in case of error
+                if (window.originalSamplePropertiesFromArray) {
+                    window.samplePropertiesFromArray = window.originalSamplePropertiesFromArray;
+                }
                 
                 // Run direct extraction as fallback
                 updateStatus('Running direct property extraction as fallback...');
