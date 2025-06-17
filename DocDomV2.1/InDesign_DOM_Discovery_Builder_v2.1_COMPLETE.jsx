@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T03:16:22.173Z
+// Generated: 2025-06-17T03:21:40.120Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v0.0): 0.0_module-loader.jsx
@@ -10903,6 +10903,72 @@ try {
         ]);
     }
 
+/**
+ * Manual property sampling as fallback when formal sampling fails
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} sourceDocument - Source document
+ * @returns {Number} Number of properties attempted
+ */
+function attemptManualPropertySampling(domStructure, sourceDocument) {
+    var count = 0;
+    
+    try {
+        updateStatus('Manual sampling: Starting direct property access...');
+        
+        // Try some basic document properties directly
+        var basicProperties = [
+            { name: 'name', path: 'document.name' },
+            { name: 'saved', path: 'document.saved' },
+            { name: 'modified', path: 'document.modified' }
+        ];
+        
+        for (var i = 0; i < basicProperties.length; i++) {
+            var prop = basicProperties[i];
+            try {
+                var value = null;
+                if (prop.name === 'name' && sourceDocument.name) {
+                    value = sourceDocument.name;
+                } else if (prop.name === 'saved' && typeof sourceDocument.saved !== 'undefined') {
+                    value = sourceDocument.saved;
+                } else if (prop.name === 'modified' && typeof sourceDocument.modified !== 'undefined') {
+                    value = sourceDocument.modified;
+                }
+                
+                if (value !== null) {
+                    updateStatus('Manual sampling: ' + prop.name + ' = ' + value);
+                    count++;
+                }
+            } catch (propExc) {
+                updateStatus('Manual sampling failed for ' + prop.name + ': ' + propExc.message);
+            }
+        }
+        
+        // Try to access collections directly
+        try {
+            if (sourceDocument.pages && sourceDocument.pages.length) {
+                updateStatus('Manual sampling: pages collection has ' + sourceDocument.pages.length + ' items');
+                count++;
+            }
+        } catch (pagesExc) {
+            updateStatus('Manual sampling: pages access failed: ' + pagesExc.message);
+        }
+        
+        try {
+            if (sourceDocument.stories && sourceDocument.stories.length) {
+                updateStatus('Manual sampling: stories collection has ' + sourceDocument.stories.length + ' items');
+                count++;
+            }
+        } catch (storiesExc) {
+            updateStatus('Manual sampling: stories access failed: ' + storiesExc.message);
+        }
+        
+    } catch (exc) {
+        updateStatus('Manual sampling error: ' + exc.message);
+    }
+    
+    return count;
+}
+
     // Validate dependencies
     if (typeof validateDependencies === 'function') {
         var depResult = validateDependencies(['safe-foundation', 'dom-enumerator', 'collection-sampler', 'dom-exporter']);
@@ -11812,6 +11878,41 @@ function runDOMEnumeration() {
                             ', MaxSamples=' + samplingConfig.maxSamples + 
                             ', Timeout=' + samplingConfig.timeoutMs + 'ms');
                 
+                // DEBUG: Check if sampleDOMValues function is available and working
+                updateStatus('DEBUG: Checking property sampler availability...');
+                if (typeof meetsSafetyFilter === 'function') {
+                    updateStatus('DEBUG: Safety filter function available');
+                } else {
+                    updateStatus('DEBUG: WARNING - Safety filter function not available');
+                }
+                
+                if (typeof safeGetPropertyValue === 'function') {
+                    updateStatus('DEBUG: Property value getter available');
+                } else {
+                    updateStatus('DEBUG: WARNING - Property value getter not available');
+                }
+                
+                // DEBUG: Check the DOM structure format before sampling
+                if (domStructure && domStructure.structure && domStructure.structure.document) {
+                    var docNode = domStructure.structure.document;
+                    if (docNode.properties && docNode.properties.length > 0) {
+                        updateStatus('DEBUG: Document node has ' + docNode.properties.length + ' properties');
+                        var sampleProp = docNode.properties[0];
+                        if (sampleProp) {
+                            updateStatus('DEBUG: Sample property format - name: ' + (sampleProp.name || 'undefined') + 
+                                        ', safetyLevel: ' + (sampleProp.safetyLevel || 'undefined') +
+                                        ', path: ' + (sampleProp.path || 'undefined'));
+                        }
+                    } else {
+                        updateStatus('DEBUG: Document node has no properties array or empty');
+                    }
+                    if (docNode.childNodes && docNode.childNodes.length > 0) {
+                        updateStatus('DEBUG: Document has ' + docNode.childNodes.length + ' child nodes');
+                    }
+                } else {
+                    updateStatus('DEBUG: DOM structure is malformed or missing');
+                }
+                
                 // Extract the actual property values
                 var domStructureWithValues = sampleDOMValues(domStructure, envValidation.document, samplingConfig);
                 
@@ -11824,6 +11925,43 @@ function runDOMEnumeration() {
                 
             } catch (samplingExc) {
                 updateStatus('Property sampling error: ' + samplingExc.message);
+                
+                // EMERGENCY FALLBACK: Try with 'all' safety filter to bypass filtering
+                try {
+                    updateStatus('Attempting emergency property extraction with all safety levels...');
+                    var emergencyConfig = {
+                        safetyFilter: 'all',  // Override to 'all' to bypass safety filtering
+                        includeCollectionSamples: true,
+                        maxSamples: 10,       // Reduce to be safe
+                        timeoutMs: 3000,      // Shorter timeout 
+                        trackObjectReferences: true,
+                        includeValueMetadata: true,
+                        generateValueFingerprints: false
+                    };
+                    
+                    var emergencyResult = sampleDOMValues(domStructure, envValidation.document, emergencyConfig);
+                    if (emergencyResult) {
+                        g_domViz_currentDOMStructure = emergencyResult;
+                        updateStatus('Emergency property extraction succeeded with safety bypass!');
+                    } else {
+                        updateStatus('Emergency property extraction also failed');
+                    }
+                    
+                } catch (emergencyExc) {
+                    updateStatus('Emergency extraction failed: ' + emergencyExc.message);
+                    
+                    // LAST RESORT: Try manual property sampling
+                    updateStatus('Attempting manual property sampling as last resort...');
+                    try {
+                        var manualCount = 0;
+                        if (domStructure && domStructure.structure && domStructure.structure.document) {
+                            manualCount = attemptManualPropertySampling(domStructure, envValidation.document);
+                        }
+                        updateStatus('Manual sampling attempted on ' + manualCount + ' properties');
+                    } catch (manualExc) {
+                        updateStatus('Manual sampling also failed: ' + manualExc.message);
+                    }
+                }
             }
         } else {
             updateStatus('Warning: Property value sampling not available - structure only');
