@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T03:00:50.639Z
+// Generated: 2025-06-17T03:08:48.545Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v0.0): 0.0_module-loader.jsx
@@ -11843,13 +11843,11 @@ function runDOMEnumeration() {
         // Auto-run collection sampling if enabled in user config
         if (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples) {
             updateStatus('Auto-running collection sampling with custom config...');
-            setTimeout(function() {
-                try {
-                    runCollectionSampling();
-                } catch (exc) {
-                    updateStatus('Auto collection sampling error: ' + exc.message);
-                }
-            }, 500);
+            try {
+                runCollectionSampling();
+            } catch (exc) {
+                updateStatus('Auto collection sampling error: ' + exc.message);
+            }
         }
         
         updateStatus('Complete! Found ' + totalNodes + ' objects, ' + 

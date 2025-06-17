@@ -978,13 +978,11 @@ function runDOMEnumeration() {
         // Auto-run collection sampling if enabled in user config
         if (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples) {
             updateStatus('Auto-running collection sampling with custom config...');
-            setTimeout(function() {
-                try {
-                    runCollectionSampling();
-                } catch (exc) {
-                    updateStatus('Auto collection sampling error: ' + exc.message);
-                }
-            }, 500);
+            try {
+                runCollectionSampling();
+            } catch (exc) {
+                updateStatus('Auto collection sampling error: ' + exc.message);
+            }
         }
         
         updateStatus('Complete! Found ' + totalNodes + ' objects, ' + 
