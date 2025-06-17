@@ -924,7 +924,45 @@ function runDOMEnumeration() {
         // Store result
         g_domViz_currentDOMStructure = domStructure;
         
-        updateStatus('DOM enumeration complete! Processing extracted values...');
+        updateStatus('DOM enumeration complete! Extracting property values...');
+        
+        // CRITICAL: Extract actual property values using the property sampler
+        if (typeof sampleDOMValues === 'function') {
+            try {
+                updateStatus('Sampling property values with custom config...');
+                
+                // Apply user configuration to property sampler
+                var samplingConfig = {
+                    safetyFilter: (g_domViz_userConfiguration && g_domViz_userConfiguration.safetyFilter) || 'moderate',
+                    includeCollectionSamples: (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples) || true,
+                    maxSamples: (g_domViz_userConfiguration && g_domViz_userConfiguration.maxSamples) || 25,
+                    timeoutMs: (g_domViz_userConfiguration && g_domViz_userConfiguration.timeoutMs) || 5000,
+                    trackObjectReferences: true,
+                    includeValueMetadata: true,
+                    generateValueFingerprints: true
+                };
+                
+                updateStatus('Property sampling config: Safety=' + samplingConfig.safetyFilter + 
+                            ', Collections=' + samplingConfig.includeCollectionSamples + 
+                            ', MaxSamples=' + samplingConfig.maxSamples + 
+                            ', Timeout=' + samplingConfig.timeoutMs + 'ms');
+                
+                // Extract the actual property values
+                var domStructureWithValues = sampleDOMValues(domStructure, envValidation.document, samplingConfig);
+                
+                if (domStructureWithValues) {
+                    g_domViz_currentDOMStructure = domStructureWithValues;
+                    updateStatus('Property value extraction complete!');
+                } else {
+                    updateStatus('Property value extraction failed');
+                }
+                
+            } catch (samplingExc) {
+                updateStatus('Property sampling error: ' + samplingExc.message);
+            }
+        } else {
+            updateStatus('Warning: Property value sampling not available - structure only');
+        }
         
         // Update display with enumeration results
         var displayText = formatDOMForDisplay(domStructure);
@@ -975,22 +1013,11 @@ function runDOMEnumeration() {
         var valuesExtracted = samplingStats.valuesSampled || 0;
         var propertiesSampled = samplingStats.propertiesSampled || 0;
         
-        // Auto-run collection sampling if enabled in user config
-        if (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples) {
-            updateStatus('Auto-running collection sampling with custom config...');
-            try {
-                runCollectionSampling();
-            } catch (exc) {
-                updateStatus('Auto collection sampling error: ' + exc.message);
-            }
-        }
-        
         updateStatus('Complete! Found ' + totalNodes + ' objects, ' + 
                     totalProperties + ' properties. ' +
                     'Extracted ' + valuesExtracted + ' actual values from ' + 
                     propertiesSampled + ' properties in ' + elapsedTime + 'ms. ' +
-                    'Object references: ' + objectReferences + 
-                    (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples ? ' [Auto-sampling collections...]' : ''));
+                    'Object references: ' + objectReferences);
         
     } catch (exc) {
         updateStatus('Enumeration error: ' + exc.message);
