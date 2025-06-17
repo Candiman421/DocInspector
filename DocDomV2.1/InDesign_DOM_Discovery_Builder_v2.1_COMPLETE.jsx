@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T02:46:48.901Z
+// Generated: 2025-06-17T03:00:50.639Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v0.0): 0.0_module-loader.jsx
@@ -10962,7 +10962,7 @@ function getDefaultConfiguration() {
             includeFrames: true,
             includeFonts: false
         },
-        export: {
+        exportSettings: {
             includeTextExport: true,
             includeJSONExport: true,
             includeCSVExport: false,

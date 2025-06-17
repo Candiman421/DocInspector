@@ -97,7 +97,7 @@ function getDefaultConfiguration() {
             includeFrames: true,
             includeFonts: false
         },
-        export: {
+        exportSettings: {
             includeTextExport: true,
             includeJSONExport: true,
             includeCSVExport: false,
