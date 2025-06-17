@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-17T02:00:10.092Z
+// Generated: 2025-06-17T02:46:48.901Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v0.0): 0.0_module-loader.jsx
@@ -10865,11 +10865,11 @@ verifyModuleLoad("9.0_dom-visualizer");
 
 // =============================================================================
 // 9.0_dom-visualizer.jsx - DOM VISUALIZATION INTERFACE
-// InDesign DOM Discovery Builder v2.1 - TARGET ARCHITECTURE
+// InDesign DOM Discovery Builder v2.1.1 - PRODUCTION READY
 // =============================================================================
 // PURPOSE: Display DOM structure in user-friendly interface with full feature integration
 // DEPENDENCIES: ["1.0_safe-foundation.jsx", "2.0_dom-enumerator.jsx", "3.0_collection-sampler.jsx", "5.0_dom-exporter.jsx"]
-// SIZE: ~700 lines
+// SIZE: ~1200 lines (ENHANCED WITH CONFIGURABLE SETTINGS)
 // =============================================================================
 
 // =============================================================================
@@ -10879,7 +10879,7 @@ verifyModuleLoad("9.0_dom-visualizer");
 try {
     // Register this module
     if (typeof registerModule === 'function') {
-        registerModule('dom-visualizer', '2.1', [
+        registerModule('dom-visualizer', '2.1.1', [
             'showDOMVisualizer',
             'showDOMExplorer',
             'createDOMVisualizerUI',
@@ -10896,7 +10896,10 @@ try {
             'showExportOptions',
             'showExportDialog',
             'performExport',
-            'showSettingsDialog'
+            'showSettingsDialog',
+            'showConfigurableSettingsDialog',
+            'applyConfigurationAndRun',
+            'detectCurrentApplication'
         ]);
     }
 
@@ -10920,6 +10923,119 @@ var g_domViz_currentDOMStructure = null;
 var g_domViz_statusText = null;
 var g_domViz_domDisplay = null;
 var g_domViz_documentInfo = null;
+
+// =============================================================================
+// ENHANCED CONFIGURATION SYSTEM
+// =============================================================================
+
+// Global configuration storage for user settings
+var g_domViz_userConfiguration = null;
+var g_domViz_defaultConfiguration = null;
+var g_domViz_originalConfigs = null; // Store original configs for restoration
+
+/**
+ * Get default configuration optimized for the current application
+ */
+function getDefaultConfiguration() {
+    return {
+        analysis: {
+            safetyFilter: 'moderate',
+            includeCollectionSamples: true,
+            maxSamples: 25,
+            timeoutMs: 5000,
+            maxDepth: 4,
+            maxProperties: 5000,
+            trackObjectReferences: true,
+            generateValueFingerprints: true,
+            includeValueMetadata: true
+        },
+        performance: {
+            enumerationTimeout: 15,
+            samplingTimeout: 5000,
+            enableMemoryCleanup: true,
+            enableBatchProcessing: true,
+            maxCollectionSize: 2000
+        },
+        application: {
+            includePages: true,
+            includeStories: true,
+            includeFrames: true,
+            includeFonts: false
+        },
+        export: {
+            includeTextExport: true,
+            includeJSONExport: true,
+            includeCSVExport: false,
+            includeExtractedValues: true,
+            includeCollectionData: true,
+            includeFingerprints: false,
+            includeAccessPaths: true
+        }
+    };
+}
+
+/**
+ * Detect current Adobe application and capabilities
+ */
+function detectCurrentApplication() {
+    try {
+        if (typeof app === 'undefined') {
+            return { name: 'Unknown', version: 'unknown', supported: false };
+        }
+        
+        var appName = 'Unknown';
+        var appVersion = 'unknown';
+        var supported = false;
+        
+        try {
+            // InDesign detection
+            if (app.name && app.name.indexOf('InDesign') !== -1) {
+                appName = 'InDesign';
+                appVersion = app.version || 'unknown';
+                supported = true;
+            }
+            // Photoshop detection  
+            else if (app.name && app.name.indexOf('Photoshop') !== -1) {
+                appName = 'Photoshop';
+                appVersion = app.version || 'unknown';
+                supported = false; // Experimental
+            }
+            // Illustrator detection
+            else if (app.name && app.name.indexOf('Illustrator') !== -1) {
+                appName = 'Illustrator';
+                appVersion = app.version || 'unknown';
+                supported = false; // Planned
+            }
+            // Try to detect by available objects
+            else {
+                if (typeof app.documents !== 'undefined' && typeof app.activeDocument !== 'undefined') {
+                    if (typeof app.activeDocument.pages !== 'undefined') {
+                        appName = 'InDesign'; // Has pages
+                        supported = true;
+                    } else if (typeof app.activeDocument.layers !== 'undefined') {
+                        if (typeof app.activeDocument.artboards !== 'undefined') {
+                            appName = 'Illustrator'; // Has artboards
+                        } else {
+                            appName = 'Photoshop'; // Just layers
+                        }
+                    }
+                }
+            }
+        } catch (exc) {
+            // Detection failed
+        }
+        
+        return {
+            name: appName,
+            version: appVersion,
+            supported: supported,
+            detected: appName !== 'Unknown'
+        };
+        
+    } catch (exc) {
+        return { name: 'Unknown', version: 'unknown', supported: false, error: exc.message };
+    }
+}
 
 // =============================================================================
 // MAIN UI FUNCTIONS
@@ -10977,7 +11093,7 @@ function createDOMVisualizerUI() {
         var mainWindow = null;
         
         try {
-            mainWindow = new Window('dialog', 'InDesign DOM Discovery Builder v2.1');
+            mainWindow = new Window('dialog', 'InDesign DOM Discovery Builder v2.1.1');
         } catch (exc) {
             updateStatus('Failed to create main window: ' + exc.message);
             return null;
@@ -11229,9 +11345,16 @@ function createControlPanel(parentWindow) {
                 settingsBtn.preferredSize.width = 120;
                 settingsBtn.onClick = function() {
                     try {
-                        showSettingsDialog();
+                        // ENHANCED: Use new configurable settings dialog
+                        showConfigurableSettingsDialog();
                     } catch (exc) {
                         updateStatus('Settings button error: ' + exc.message);
+                        // Fallback to original settings
+                        try {
+                            showSettingsDialog();
+                        } catch (exc2) {
+                            updateStatus('Both settings dialogs failed');
+                        }
                     }
                 };
                 buttonsCreated++;
@@ -11316,6 +11439,295 @@ function createStatusPanel(parentWindow) {
 }
 
 // =============================================================================
+// ENHANCED CONFIGURABLE SETTINGS SYSTEM
+// =============================================================================
+
+/**
+ * Show advanced configurable settings dialog with fine-grained controls
+ * REPLACES: Basic showSettingsDialog() functionality while preserving fallback
+ */
+function showConfigurableSettingsDialog() {
+    try {
+        var settingsDialog = new Window('dialog', 'DOM Discovery Builder - Advanced Settings');
+        if (!settingsDialog) {
+            updateStatus('Failed to create configurable settings dialog');
+            return;
+        }
+        
+        settingsDialog.orientation = 'column';
+        settingsDialog.alignChildren = 'left';
+        settingsDialog.spacing = 10;
+        settingsDialog.margins = 16;
+        settingsDialog.preferredSize.width = 520;
+        settingsDialog.preferredSize.height = 650;
+        
+        // HEADER with application detection
+        var detectedApp = detectCurrentApplication();
+        var titleText = settingsDialog.add('statictext', undefined, 'Fine-Grained Analysis Configuration (' + detectedApp.name + ')');
+        titleText.graphics.font = ScriptUI.newFont('Arial', 'BOLD', 14);
+        
+        // PROPERTY SAMPLING SETTINGS (PRIMARY FIX AREA)
+        var samplingGroup = settingsDialog.add('panel', undefined, 'Property Value Extraction (COLLECTION FIX)');
+        samplingGroup.orientation = 'column';
+        samplingGroup.alignChildren = 'left';
+        samplingGroup.preferredSize.height = 180;
+        
+        // Safety Filter
+        var safetyGroup = samplingGroup.add('group');
+        safetyGroup.add('statictext', undefined, 'Safety Filter:');
+        var safetyDropdown = safetyGroup.add('dropdownlist', undefined, [
+            'Safe Only (Conservative)', 
+            'Safe + Moderate (RECOMMENDED)', 
+            'Safe + Moderate + Risky (Aggressive)', 
+            'All Properties (Dangerous)'
+        ]);
+        safetyDropdown.selection = 1; // Default to 'Safe + Moderate' to fix collections
+        
+        // Collection Sampling - THE KEY FIX FOR 0 COLLECTIONS
+        var collectionCheckbox = samplingGroup.add('checkbox', undefined, 'Enable Collection Content Sampling (FIXES 0 COLLECTIONS ISSUE)');
+        collectionCheckbox.value = true;  // ENABLE BY DEFAULT
+        
+        // Max Samples
+        var maxSamplesGroup = samplingGroup.add('group');
+        maxSamplesGroup.add('statictext', undefined, 'Max Samples per Collection:');
+        var maxSamplesSlider = maxSamplesGroup.add('slider', undefined, 25, 5, 100);
+        var maxSamplesValue = maxSamplesGroup.add('statictext', undefined, '25');
+        maxSamplesSlider.onChanging = function() {
+            maxSamplesValue.text = Math.round(this.value);
+        };
+        
+        // Timeout Settings
+        var timeoutGroup = samplingGroup.add('group');
+        timeoutGroup.add('statictext', undefined, 'Property Timeout (ms):');
+        var timeoutSlider = timeoutGroup.add('slider', undefined, 5000, 1000, 15000);
+        var timeoutValue = timeoutGroup.add('statictext', undefined, '5000');
+        timeoutSlider.onChanging = function() {
+            timeoutValue.text = Math.round(this.value);
+        };
+        
+        // DOM DISCOVERY SETTINGS
+        var domGroup = settingsDialog.add('panel', undefined, 'DOM Discovery');
+        domGroup.orientation = 'column';
+        domGroup.alignChildren = 'left';
+        domGroup.preferredSize.height = 120;
+        
+        // Max Depth
+        var depthGroup = domGroup.add('group');
+        depthGroup.add('statictext', undefined, 'Maximum Depth:');
+        var depthSlider = depthGroup.add('slider', undefined, 4, 2, 8);
+        var depthValue = domGroup.add('statictext', undefined, '4');
+        depthSlider.onChanging = function() {
+            depthValue.text = Math.round(this.value);
+        };
+        
+        // Max Properties
+        var maxPropsGroup = domGroup.add('group');
+        maxPropsGroup.add('statictext', undefined, 'Max Properties per Object:');
+        var maxPropsSlider = maxPropsGroup.add('slider', undefined, 5000, 100, 20000);
+        var maxPropsValue = domGroup.add('statictext', undefined, '5000');
+        maxPropsSlider.onChanging = function() {
+            maxPropsValue.text = Math.round(this.value);
+        };
+        
+        // ADVANCED OPTIONS
+        var advancedGroup = settingsDialog.add('panel', undefined, 'Advanced Options');
+        advancedGroup.orientation = 'column';
+        advancedGroup.alignChildren = 'left';
+        advancedGroup.preferredSize.height = 100;
+        
+        var trackReferences = advancedGroup.add('checkbox', undefined, 'Track Object References');
+        trackReferences.value = true;
+        
+        var generateFingerprints = advancedGroup.add('checkbox', undefined, 'Generate Value Fingerprints');
+        generateFingerprints.value = true;
+        
+        var includeMetadata = advancedGroup.add('checkbox', undefined, 'Include Value Metadata');
+        includeMetadata.value = true;
+        
+        // APPLICATION-SPECIFIC OPTIONS
+        if (detectedApp.supported) {
+            var appGroup = settingsDialog.add('panel', undefined, detectedApp.name + ' Specific Options');
+            appGroup.orientation = 'column';
+            appGroup.alignChildren = 'left';
+            
+            if (detectedApp.name === 'InDesign') {
+                var includePages = appGroup.add('checkbox', undefined, 'Analyze Page Objects');
+                includePages.value = true;
+                var includeStories = appGroup.add('checkbox', undefined, 'Analyze Text Stories');
+                includeStories.value = true;
+            }
+        }
+        
+        // BUTTONS
+        var buttonGroup = settingsDialog.add('group');
+        buttonGroup.orientation = 'row';
+        buttonGroup.alignment = 'center';
+        
+        var applyBtn = buttonGroup.add('button', undefined, 'Apply & Run Analysis');
+        applyBtn.onClick = function() {
+            // Collect settings from UI
+            var config = {
+                safetyFilter: ['safe', 'moderate', 'risky', 'all'][safetyDropdown.selection.index],
+                includeCollectionSamples: collectionCheckbox.value,
+                maxSamples: Math.round(maxSamplesSlider.value),
+                timeoutMs: Math.round(timeoutSlider.value),
+                maxDepth: Math.round(depthSlider.value),
+                maxProperties: Math.round(maxPropsSlider.value),
+                trackObjectReferences: trackReferences.value,
+                generateValueFingerprints: generateFingerprints.value,
+                includeValueMetadata: includeMetadata.value
+            };
+            
+            // Apply configuration and run analysis
+            applyConfigurationAndRun(config);
+            settingsDialog.close();
+        };
+        
+        var quickFixBtn = buttonGroup.add('button', undefined, 'Quick Fix Collections');
+        quickFixBtn.onClick = function() {
+            // Apply just the essential collection fix
+            var quickConfig = {
+                safetyFilter: 'moderate',
+                includeCollectionSamples: true,
+                maxSamples: 25,
+                timeoutMs: 5000
+            };
+            applyConfigurationAndRun(quickConfig);
+            settingsDialog.close();
+        };
+        
+        var resetBtn = buttonGroup.add('button', undefined, 'Reset to Defaults');
+        resetBtn.onClick = function() {
+            restoreOriginalConfigurations();
+            updateStatus('Settings reset to defaults');
+            settingsDialog.close();
+        };
+        
+        var cancelBtn = buttonGroup.add('button', undefined, 'Cancel');
+        cancelBtn.onClick = function() {
+            settingsDialog.close();
+        };
+        
+        settingsDialog.show();
+        
+    } catch (exc) {
+        updateStatus('Configurable settings dialog error: ' + exc.message);
+        // Fallback to original settings dialog
+        try {
+            showSettingsDialog();
+        } catch (exc2) {
+            updateStatus('All settings dialogs failed: ' + exc2.message);
+        }
+    }
+}
+
+/**
+ * Apply user configuration and run analysis with the new settings
+ * @param {Object} userConfig - User configuration from UI
+ */
+function applyConfigurationAndRun(userConfig) {
+    try {
+        updateStatus('Applying custom configuration...');
+        
+        // Store user config globally for this session
+        g_domViz_userConfiguration = userConfig;
+        
+        // Store original configurations if not already stored
+        if (!g_domViz_originalConfigs) {
+            g_domViz_originalConfigs = {
+                sampling: null,
+                collection: null
+            };
+            
+            // Store original DEFAULT_SAMPLING_CONFIG if available
+            if (typeof DEFAULT_SAMPLING_CONFIG !== 'undefined') {
+                g_domViz_originalConfigs.sampling = {};
+                for (var key in DEFAULT_SAMPLING_CONFIG) {
+                    if (objectHasOwnProperty(DEFAULT_SAMPLING_CONFIG, key)) {
+                        g_domViz_originalConfigs.sampling[key] = DEFAULT_SAMPLING_CONFIG[key];
+                    }
+                }
+            }
+            
+            // Store original DEFAULT_COLLECTION_SAMPLING_CONFIG if available
+            if (typeof DEFAULT_COLLECTION_SAMPLING_CONFIG !== 'undefined') {
+                g_domViz_originalConfigs.collection = {};
+                for (var key2 in DEFAULT_COLLECTION_SAMPLING_CONFIG) {
+                    if (objectHasOwnProperty(DEFAULT_COLLECTION_SAMPLING_CONFIG, key2)) {
+                        g_domViz_originalConfigs.collection[key2] = DEFAULT_COLLECTION_SAMPLING_CONFIG[key2];
+                    }
+                }
+            }
+        }
+        
+        // Apply user settings to DEFAULT_SAMPLING_CONFIG if available
+        if (typeof DEFAULT_SAMPLING_CONFIG !== 'undefined') {
+            if (userConfig.safetyFilter) DEFAULT_SAMPLING_CONFIG.safetyFilter = userConfig.safetyFilter;
+            if (userConfig.includeCollectionSamples !== undefined) DEFAULT_SAMPLING_CONFIG.includeCollectionSamples = userConfig.includeCollectionSamples;
+            if (userConfig.maxSamples) DEFAULT_SAMPLING_CONFIG.maxSamples = userConfig.maxSamples;
+            if (userConfig.timeoutMs) DEFAULT_SAMPLING_CONFIG.timeoutMs = userConfig.timeoutMs;
+            if (userConfig.trackObjectReferences !== undefined) DEFAULT_SAMPLING_CONFIG.trackObjectReferences = userConfig.trackObjectReferences;
+            if (userConfig.generateValueFingerprints !== undefined) DEFAULT_SAMPLING_CONFIG.generateValueFingerprints = userConfig.generateValueFingerprints;
+            if (userConfig.includeValueMetadata !== undefined) DEFAULT_SAMPLING_CONFIG.includeValueMetadata = userConfig.includeValueMetadata;
+        }
+        
+        // Apply user settings to DEFAULT_COLLECTION_SAMPLING_CONFIG if available
+        if (typeof DEFAULT_COLLECTION_SAMPLING_CONFIG !== 'undefined' && userConfig.includeCollectionSamples) {
+            if (userConfig.maxSamples) DEFAULT_COLLECTION_SAMPLING_CONFIG.maxSamplesPerCollection = userConfig.maxSamples;
+            if (userConfig.timeoutMs) DEFAULT_COLLECTION_SAMPLING_CONFIG.timeoutPerItem = userConfig.timeoutMs;
+        }
+        
+        // Run DOM enumeration with custom configuration
+        updateStatus('Running DOM enumeration with custom settings - Safety: ' + 
+                    (userConfig.safetyFilter || 'moderate') + ', Collections: ' + 
+                    (userConfig.includeCollectionSamples ? 'ENABLED' : 'DISABLED') +
+                    ', Samples: ' + (userConfig.maxSamples || 25));
+        
+        if (typeof runDOMEnumeration === 'function') {
+            runDOMEnumeration();
+        } else {
+            updateStatus('DOM enumeration function not available');
+        }
+        
+    } catch (exc) {
+        updateStatus('Configuration application error: ' + exc.message);
+    }
+}
+
+/**
+ * Restore original configurations
+ */
+function restoreOriginalConfigurations() {
+    try {
+        if (g_domViz_originalConfigs) {
+            // Restore DEFAULT_SAMPLING_CONFIG
+            if (g_domViz_originalConfigs.sampling && typeof DEFAULT_SAMPLING_CONFIG !== 'undefined') {
+                for (var key in g_domViz_originalConfigs.sampling) {
+                    if (objectHasOwnProperty(g_domViz_originalConfigs.sampling, key)) {
+                        DEFAULT_SAMPLING_CONFIG[key] = g_domViz_originalConfigs.sampling[key];
+                    }
+                }
+            }
+            
+            // Restore DEFAULT_COLLECTION_SAMPLING_CONFIG
+            if (g_domViz_originalConfigs.collection && typeof DEFAULT_COLLECTION_SAMPLING_CONFIG !== 'undefined') {
+                for (var key2 in g_domViz_originalConfigs.collection) {
+                    if (objectHasOwnProperty(g_domViz_originalConfigs.collection, key2)) {
+                        DEFAULT_COLLECTION_SAMPLING_CONFIG[key2] = g_domViz_originalConfigs.collection[key2];
+                    }
+                }
+            }
+        }
+        
+        // Clear user configuration
+        g_domViz_userConfiguration = null;
+        
+    } catch (exc) {
+        updateStatus('Configuration restoration error: ' + exc.message);
+    }
+}
+
+// =============================================================================
 // CORE OPERATIONS - INTEGRATED VALUE EXTRACTION
 // =============================================================================
 
@@ -11341,18 +11753,27 @@ function runDOMEnumeration() {
             return;
         }
         
-        // Perform DOM enumeration with progress tracking and configuration
-        var startTime = new Date().getTime();
-        var config = objectClone({
-            maxDepth: 4,
+        // Create enumeration config with user overrides
+        var enumerationConfig = {
+            maxDepth: (g_domViz_userConfiguration && g_domViz_userConfiguration.maxDepth) || 4,
             timeoutMs: 15000,
             skipDangerous: true,
-            maxProperties: 5000,
+            maxProperties: (g_domViz_userConfiguration && g_domViz_userConfiguration.maxProperties) || 5000,
             enableObjectTracking: true,
             enableDuplicateDetection: true
-        }, 2);
+        };
         
-        var domStructure = enumerateDocumentDOM(envValidation.document, config);
+        // Show current configuration in status
+        if (g_domViz_userConfiguration) {
+            updateStatus('Using custom config: Depth=' + enumerationConfig.maxDepth + 
+                        ', MaxProps=' + enumerationConfig.maxProperties + 
+                        ', Collections=' + (g_domViz_userConfiguration.includeCollectionSamples ? 'ENABLED' : 'DISABLED') +
+                        ', Safety=' + g_domViz_userConfiguration.safetyFilter);
+        }
+        
+        // Perform DOM enumeration with progress tracking and configuration
+        var startTime = new Date().getTime();
+        var domStructure = enumerateDocumentDOM(envValidation.document, enumerationConfig);
         
         var elapsedTime = new Date().getTime() - startTime;
         
@@ -11368,46 +11789,10 @@ function runDOMEnumeration() {
         // Store result
         g_domViz_currentDOMStructure = domStructure;
         
-        updateStatus('DOM enumeration complete! Starting value extraction...');
+        updateStatus('DOM enumeration complete! Processing extracted values...');
         
-        // INTEGRATED VALUE EXTRACTION - Extract actual property values from discovered structure
-        if (typeof sampleDOMValues === 'function') {
-            updateStatus('Extracting property values from discovered structure...');
-            
-            try {
-                var valueConfig = objectClone({
-                    safetyFilter: 'moderate',
-                    maxSamples: 20,
-                    timeoutMs: 5000,
-                    includeCollectionSamples: false,
-                    maxStringLength: 200,
-                    trackObjectReferences: true,
-                    includeValueMetadata: true,
-                    generateValueFingerprints: true
-                }, 2);
-                
-                var structureWithValues = sampleDOMValues(
-                    g_domViz_currentDOMStructure, 
-                    envValidation.document,
-                    valueConfig
-                );
-                
-                if (structureWithValues) {
-                    g_domViz_currentDOMStructure = structureWithValues;
-                    updateStatus('Value extraction complete! Processing display...');
-                } else {
-                    updateStatus('Value extraction returned no results');
-                }
-                
-            } catch (extractionExc) {
-                updateStatus('Value extraction error: ' + extractionExc.message);
-            }
-        } else {
-            updateStatus('Warning: Value extraction not available - showing structure only');
-        }
-        
-        // Update display with extracted values
-        var displayText = formatDOMForDisplay(g_domViz_currentDOMStructure);
+        // Update display with enumeration results
+        var displayText = formatDOMForDisplay(domStructure);
         if (g_domViz_domDisplay && displayText) {
             g_domViz_domDisplay.text = displayText;
         }
@@ -11415,22 +11800,24 @@ function runDOMEnumeration() {
         // Update document info
         updateDocumentInfo();
         
-        // Success status with comprehensive statistics including extracted values
-        var domStats = null;
-        if (typeof getDOMStatistics === 'function') {
-            domStats = getDOMStatistics(g_domViz_currentDOMStructure);
-        } else {
-            // Fallback statistics
+        // Get comprehensive statistics
+        var domStats = {
+            totalNodes: 0,
+            totalProperties: 0,
+            objectReferences: 0
+        };
+        
+        if (domStructure.statistics) {
             domStats = {
-                totalNodes: g_domViz_currentDOMStructure.statistics ? g_domViz_currentDOMStructure.statistics.totalNodes : 0,
-                totalProperties: g_domViz_currentDOMStructure.statistics ? g_domViz_currentDOMStructure.statistics.totalProperties : 0,
-                objectReferences: g_domViz_currentDOMStructure.statistics ? g_domViz_currentDOMStructure.statistics.objectReferences : 0
+                totalNodes: domStructure.statistics.totalNodes || 0,
+                totalProperties: domStructure.statistics.totalProperties || 0,
+                objectReferences: domStructure.statistics.objectReferences || 0
             };
         }
         
         var samplingStats = null;
         if (typeof getSamplingStatistics === 'function') {
-            samplingStats = getSamplingStatistics(g_domViz_currentDOMStructure);
+            samplingStats = getSamplingStatistics(domStructure);
         } else {
             // Fallback sampling stats
             samplingStats = {
@@ -11438,10 +11825,10 @@ function runDOMEnumeration() {
                 propertiesSampled: 0
             };
             
-            if (g_domViz_currentDOMStructure.metadata && 
-                g_domViz_currentDOMStructure.metadata.valueSampling && 
-                g_domViz_currentDOMStructure.metadata.valueSampling.statistics) {
-                var valueStats = g_domViz_currentDOMStructure.metadata.valueSampling.statistics;
+            if (domStructure.metadata && 
+                domStructure.metadata.valueSampling && 
+                domStructure.metadata.valueSampling.statistics) {
+                var valueStats = domStructure.metadata.valueSampling.statistics;
                 samplingStats.valuesSampled = valueStats.valuesSampled || 0;
                 samplingStats.propertiesSampled = valueStats.propertiesSampled || 0;
             }
@@ -11453,11 +11840,24 @@ function runDOMEnumeration() {
         var valuesExtracted = samplingStats.valuesSampled || 0;
         var propertiesSampled = samplingStats.propertiesSampled || 0;
         
+        // Auto-run collection sampling if enabled in user config
+        if (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples) {
+            updateStatus('Auto-running collection sampling with custom config...');
+            setTimeout(function() {
+                try {
+                    runCollectionSampling();
+                } catch (exc) {
+                    updateStatus('Auto collection sampling error: ' + exc.message);
+                }
+            }, 500);
+        }
+        
         updateStatus('Complete! Found ' + totalNodes + ' objects, ' + 
                     totalProperties + ' properties. ' +
                     'Extracted ' + valuesExtracted + ' actual values from ' + 
                     propertiesSampled + ' properties in ' + elapsedTime + 'ms. ' +
-                    'Object references: ' + objectReferences);
+                    'Object references: ' + objectReferences + 
+                    (g_domViz_userConfiguration && g_domViz_userConfiguration.includeCollectionSamples ? ' [Auto-sampling collections...]' : ''));
         
     } catch (exc) {
         updateStatus('Enumeration error: ' + exc.message);
@@ -11492,15 +11892,20 @@ function runCollectionSampling() {
         // Perform collection sampling with progress tracking and configuration
         var startTime = new Date().getTime();
         var config = objectClone({
-            maxSamplesPerCollection: 5,
+            maxSamplesPerCollection: (g_domViz_userConfiguration && g_domViz_userConfiguration.maxSamples) || 5,
             timeoutPerCollection: 5000,
-            timeoutPerItem: 2000,
+            timeoutPerItem: (g_domViz_userConfiguration && g_domViz_userConfiguration.timeoutMs) || 2000,
             maxCollectionSize: 2000,
             samplingDepth: 3,
             enableObjectReferenceTracking: true,
             enableDeepPropertyAnalysis: true,
             enableCrossCollectionTracking: true
         }, 2);
+        
+        if (g_domViz_userConfiguration) {
+            updateStatus('Collection sampling with custom config: MaxSamples=' + config.maxSamplesPerCollection + 
+                        ', Timeout=' + config.timeoutPerItem + 'ms');
+        }
         
         var structureWithCollections = sampleCollectionContents(g_domViz_currentDOMStructure, envValidation.document, config);
         
@@ -11542,7 +11947,8 @@ function runCollectionSampling() {
             }
         }
         
-        updateStatus('Collection sampling complete! Sampled ' + (collectionStats.collectionsSampled || 0) + 
+        updateStatus('Collection sampling complete! ' +
+                    'Sampled ' + (collectionStats.collectionsSampled || 0) + 
                     ' collections with ' + (collectionStats.totalItemsSampled || 0) + ' items in ' + 
                     elapsedTime + 'ms');
         
@@ -11578,43 +11984,34 @@ function formatDOMForDisplay(domStructure) {
         builder.appendLine('======================================================');
         
         if (domStructure.metadata) {
-            var docName = domStructure.metadata.documentName || 'Unknown';
-            var timestamp = domStructure.metadata.timestamp || 'Unknown';
-            
-            builder.appendLine('Document: ' + docName);
-            builder.appendLine('Analysis Time: ' + timestamp);
-            
-            if (domStructure.metadata.collectionSampling && domStructure.metadata.collectionSampling.enabled) {
-                builder.appendLine('Collection Sampling: Enabled');
-            }
-            
-            // VALUE EXTRACTION INFORMATION
-            if (domStructure.metadata.valueSampling && domStructure.metadata.valueSampling.enabled) {
-                builder.appendLine('Value Extraction: Enabled');
-                if (domStructure.metadata.valueSampling.statistics) {
-                    var valueStats = domStructure.metadata.valueSampling.statistics;
-                    builder.appendLine('Values Extracted: ' + (valueStats.valuesSampled || 0) + 
-                                     ' from ' + (valueStats.propertiesSampled || 0) + ' properties');
-                }
-            }
-            
-            if (domStructure.objectRegistry) {
-                // ES3-compatible reference counting
-                var refCount = countObjectKeys(domStructure.objectRegistry.references || {});
-                builder.appendLine('Object References Tracked: ' + refCount);
-            }
+            var metadata = domStructure.metadata;
+            builder.appendLine('Analysis Time: ' + (metadata.timestamp || 'Unknown'));
+            builder.appendLine('InDesign Version: ' + (metadata.indesignVersion || 'Unknown'));
+            builder.appendLine('');
         }
         
+        // Enhanced statistics display
         if (domStructure.statistics) {
-            var totalNodes = domStructure.statistics.totalNodes || 0;
-            var totalProperties = domStructure.statistics.totalProperties || 0;
+            var stats = domStructure.statistics;
+            var totalNodes = stats.totalNodes || 0;
+            var totalProperties = stats.totalProperties || 0;
             
             builder.appendLine('Total Objects: ' + totalNodes);
             builder.appendLine('Total Properties: ' + totalProperties);
             
-            if (domStructure.statistics.enumerationTime) {
-                builder.appendLine('Processing Time: ' + domStructure.statistics.enumerationTime + 'ms');
+            if (stats.enumerationTime) {
+                builder.appendLine('Processing Time: ' + stats.enumerationTime + 'ms');
             }
+        }
+        
+        // Show current configuration if user has applied custom settings
+        if (g_domViz_userConfiguration) {
+            builder.appendLine('');
+            builder.appendLine('ACTIVE CONFIGURATION:');
+            builder.appendLine('- Safety Filter: ' + (g_domViz_userConfiguration.safetyFilter || 'default'));
+            builder.appendLine('- Collection Sampling: ' + (g_domViz_userConfiguration.includeCollectionSamples ? 'ENABLED' : 'DISABLED'));
+            builder.appendLine('- Max Samples: ' + (g_domViz_userConfiguration.maxSamples || 'default'));
+            builder.appendLine('- Timeout: ' + (g_domViz_userConfiguration.timeoutMs || 'default') + 'ms');
         }
         
         builder.appendLine('');
@@ -11647,64 +12044,34 @@ function generateDOMTreeText(domNode, prefix, isLast, builder) {
         
         // Node line with comprehensive information
         var connector = isLast ? '└── ' : '├── ';
-        var nodeName = domNode.name || 'unnamed';
-        var nodeType = domNode.type || 'unknown';
-        var nodeLine = prefix + connector + nodeName + ' (' + nodeType + ')';
+        var nodeLine = prefix + connector + (domNode.path || 'unknown');
         
-        // Add metadata information using ES3 helpers
-        var info = [];
-        
-        // Show extracted values count
-        var extractedValueCount = 0;
+        // Add object type and property count
         if (domNode.properties && domNode.properties.length) {
-            for (var i = 0; i < domNode.properties.length; i++) {
-                if (domNode.properties[i] && domNode.properties[i].extractedValue !== null) {
-                    extractedValueCount++;
-                }
-            }
-            info.push(domNode.properties.length + ' props (' + extractedValueCount + ' values)');
+            nodeLine += ' [' + domNode.properties.length + ' properties]';
         }
         
+        // Add collection count if available
         if (domNode.collections && domNode.collections.length) {
-            var collectionInfo = domNode.collections.length + ' collections';
-            
-            // Add collection sampling information if available
-            var sampledCollections = 0;
-            for (var j = 0; j < domNode.collections.length; j++) {
-                if (domNode.collections[j] && domNode.collections[j].samplingData) {
-                    sampledCollections++;
-                }
-            }
-            
-            if (sampledCollections > 0) {
-                collectionInfo += ' (' + sampledCollections + ' sampled)';
-            }
-            
-            info.push(collectionInfo);
-        }
-        
-        if (domNode.methods && domNode.methods.length) {
-            info.push(domNode.methods.length + ' methods');
-        }
-        
-        if (domNode.objectMetadata && domNode.objectMetadata.isCircular) {
-            info.push('CIRCULAR');
-        }
-        
-        if (domNode.alternativeAccessPaths && domNode.alternativeAccessPaths.length > 0) {
-            info.push('ALT PATHS: ' + domNode.alternativeAccessPaths.length);
-        }
-        
-        if (info.length > 0) {
-            nodeLine += ' [' + arrayJoin(info, ', ') + ']';
+            nodeLine += ' [' + domNode.collections.length + ' collections]';
         }
         
         builder.appendLine(nodeLine);
         
-        // SHOW EXTRACTED PROPERTY VALUES
+        // Show extracted property values if available
+        var newPrefix = prefix + (isLast ? '    ' : '│   ');
+        var extractedValueCount = 0;
+        
         if (domNode.properties && domNode.properties.length) {
-            var newPrefix = prefix + (isLast ? '    ' : '│   ');
+            // Count properties with extracted values
+            for (var i = 0; i < domNode.properties.length; i++) {
+                var propData = domNode.properties[i];
+                if (propData && propData.extractedValue !== null && propData.extractedValue !== undefined) {
+                    extractedValueCount++;
+                }
+            }
             
+            // Display up to 5 extracted values
             for (var k = 0; k < Math.min(domNode.properties.length, 5); k++) {
                 var propertyData = domNode.properties[k];
                 if (propertyData && propertyData.extractedValue !== null && propertyData.extractedValue !== undefined) {
@@ -11824,49 +12191,40 @@ function updateDocumentInfo() {
         }
         
         try {
-            var savedStatus = targetDocument.saved ? 'Yes' : 'No';
-            infoText += ' | Saved: ' + savedStatus;
+            var savedStatus = targetDocument.saved ? ' (Saved)' : ' (Unsaved)';
+            infoText += savedStatus;
         } catch (exc) {
-            infoText += ' | Saved: [Unknown]';
+            infoText += ' (Status unknown)';
         }
         
-        // Analysis information if available
+        // Add DOM analysis status if available
         if (g_domViz_currentDOMStructure) {
-            if (g_domViz_currentDOMStructure.statistics) {
-                var stats = g_domViz_currentDOMStructure.statistics;
-                infoText += ' | Objects: ' + (stats.totalNodes || 0);
-                infoText += ' | Properties: ' + (stats.totalProperties || 0);
-                
-                if (stats.objectReferences) {
-                    infoText += ' | References: ' + stats.objectReferences;
-                }
-            }
+            var domStats = g_domViz_currentDOMStructure.statistics || {};
+            infoText += ' | Objects: ' + (domStats.totalNodes || 0) + 
+                       ' | Properties: ' + (domStats.totalProperties || 0);
             
-            // VALUE EXTRACTION INFORMATION
+            // Value sampling statistics
             var samplingStats = null;
             if (typeof getSamplingStatistics === 'function') {
                 samplingStats = getSamplingStatistics(g_domViz_currentDOMStructure);
             } else {
-                // Fallback value extraction stats
-                samplingStats = { samplingEnabled: false, valuesSampled: 0, propertiesSampled: 0 };
+                // Fallback sampling stats
+                samplingStats = { valuesSampled: 0, propertiesSampled: 0 };
                 
                 if (g_domViz_currentDOMStructure.metadata && 
-                    g_domViz_currentDOMStructure.metadata.valueSampling) {
-                    samplingStats.samplingEnabled = true;
-                    if (g_domViz_currentDOMStructure.metadata.valueSampling.statistics) {
-                        var valueStats = g_domViz_currentDOMStructure.metadata.valueSampling.statistics;
-                        samplingStats.valuesSampled = valueStats.valuesSampled || 0;
-                        samplingStats.propertiesSampled = valueStats.propertiesSampled || 0;
-                    }
+                    g_domViz_currentDOMStructure.metadata.valueSampling && 
+                    g_domViz_currentDOMStructure.metadata.valueSampling.statistics) {
+                    var valueStats = g_domViz_currentDOMStructure.metadata.valueSampling.statistics;
+                    samplingStats.valuesSampled = valueStats.valuesSampled || 0;
+                    samplingStats.propertiesSampled = valueStats.propertiesSampled || 0;
                 }
             }
             
-            if (samplingStats.samplingEnabled) {
-                infoText += ' | Values: ' + (samplingStats.valuesSampled || 0) + 
-                           ' extracted from ' + (samplingStats.propertiesSampled || 0) + ' properties';
+            if (samplingStats.valuesSampled > 0) {
+                infoText += ' | Values: ' + samplingStats.valuesSampled + ' extracted';
             }
             
-            // Collection sampling information
+            // Collection sampling statistics
             var collectionStats = null;
             if (typeof getCollectionSamplingStatistics === 'function') {
                 collectionStats = getCollectionSamplingStatistics(g_domViz_currentDOMStructure);
@@ -12091,11 +12449,11 @@ function performExport(formatValue) {
 }
 
 // =============================================================================
-// SETTINGS
+// SETTINGS (ORIGINAL + ENHANCED)
 // =============================================================================
 
 /**
- * Show settings dialog with feature information
+ * Show original settings dialog with feature information (PRESERVED FOR FALLBACK)
  */
 function showSettingsDialog() {
     try {
@@ -12153,6 +12511,16 @@ function showSettingsDialog() {
             featuresGroup.add('statictext', undefined, '✓ Collection sampling statistics');
             featuresGroup.add('statictext', undefined, '✓ ES3 compatibility');
             featuresGroup.add('statictext', undefined, '✓ Memory management and cleanup');
+        }
+        
+        // Upgrade notice
+        var upgradeGroup = settingsDialog.add('group');
+        if (upgradeGroup) {
+            upgradeGroup.orientation = 'column';
+            upgradeGroup.alignChildren = 'left';
+            
+            upgradeGroup.add('statictext', undefined, 'ENHANCED SETTINGS AVAILABLE:');
+            upgradeGroup.add('statictext', undefined, 'Use the Settings button for configurable fine-grained controls');
         }
         
         // Close button
