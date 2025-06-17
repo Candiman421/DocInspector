@@ -10,7 +10,7 @@ const path = require('path');
 const BUILD_MODES = {
     OLD_CHUNKS: false,      // Original chunk-based system
     NEW_MODULES: false,     // New modular system  
-    DOM_DISCOVERY: true     // New DOM Discovery system (v2.1 - TARGET ARCHITECTURE)
+    DOM_DISCOVERY: true     // New DOM Discovery system (v3.1 - TARGET ARCHITECTURE)
 };
 
 // ============================================================================
@@ -42,28 +42,29 @@ const BUILD_CONFIG = {
         ]
     },
     
-    // DOM DISCOVERY SYSTEM CONFIG (v2.1 TARGET ARCHITECTURE)
+    // DOM DISCOVERY SYSTEM CONFIG (v3.1 TARGET ARCHITECTURE)
     domDiscovery: {
-        TARGET_FOLDER: './DocDomV2.1',
-        OUTPUT_FILE: 'InDesign_DOM_Discovery_Builder_v2.1_COMPLETE.jsx',
-        INCLUDE_FILE: 'DOM_Discovery_Builder_v2.1_INCLUDES.jsx',
+        TARGET_FOLDER: './DocDomV3.1',
+        OUTPUT_FILE: 'InDesign_DOM_Discovery_Builder_v3.1_COMPLETE.jsx',
+        INCLUDE_FILE: 'DOM_Discovery_Builder_v3.1_INCLUDES.jsx',
         PATTERN: /^([0-9]+\.[0-9]+)_.*\.jsx$/,
-        SYSTEM_NAME: 'InDesign DOM Discovery Builder v2.1',
+        SYSTEM_NAME: 'InDesign DOM Discovery Builder v3.1',
         EXPECTED_MODULES: [
-            '1.0_safe-foundation.jsx',
-            '2.0_dom-enumerator.jsx', 
-            '3.0_collection-sampler.jsx',
-            '4.0_property-sampler.jsx',
-            '5.0_dom-exporter.jsx',
-            '6.0_json-analyzer.jsx',
-            '7.0_dom-comparator.jsx',
-            '8.0_deep-mapper.jsx',
-            '9.0_dom-visualizer.jsx',
-            '10.0_advanced-ui.jsx'
+            '1.1_bootstrap-foundation.jsx',
+            '1.2_safety-utilities.jsx',
+            '2.1_dom-enumerator.jsx',
+            '2.2_collection-sampler.jsx',
+            '3.1_property-sampler.jsx',
+            '3.2_dom-exporter.jsx',
+            '4.1_json-analyzer.jsx',
+            '4.2_dom-comparator.jsx',
+            '5.1_deep-mapper.jsx',
+            '5.2_dom-visualizer.jsx',
+            '6.1_advanced-ui.jsx'
         ],
         FILES_TO_EXCLUDE: [
-            'InDesign_DOM_Discovery_Builder_v2.1_COMPLETE.jsx',
-            'DOM_Discovery_Builder_v2.1_INCLUDES.jsx',
+            'InDesign_DOM_Discovery_Builder_v3.1_COMPLETE.jsx',
+            'DOM_Discovery_Builder_v3.1_INCLUDES.jsx',
             'doc-dom-loader.jsx',
             '9_DEMO_Test_DOM_Discovery.jsx'
         ]
@@ -76,9 +77,42 @@ const BUILD_CONFIG = {
         VALIDATE_FILES: true,
         SHOW_PROGRESS: true,
         AUTO_START_DOM: true,  // Auto-start DOM interface after build
-        GENERATE_BOTH_FORMATS: true  // Generate both concatenated and include versions
+        GENERATE_BOTH_FORMATS: true,  // Generate both concatenated and include versions
+        AUTO_DETECT_FOLDERS: true     // Auto-detect available folders
     }
 };
+
+// ============================================================================
+// AUTO-FOLDER DETECTION
+// ============================================================================
+
+function autoDetectAvailableFolders() {
+    const currentDir = './';
+    const folders = fs.readdirSync(currentDir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
+    
+    const domFolders = folders.filter(folder => 
+        folder.toLowerCase().includes('dom') || 
+        folder.toLowerCase().includes('docdim') ||
+        folder.match(/^DocDom.*/)
+    );
+    
+    console.log(`🔍 Auto-detected DOM folders: ${domFolders.join(', ')}`);
+    
+    // Prefer the newest version
+    domFolders.sort((a, b) => {
+        const aVersion = a.match(/v?([0-9]+\.?[0-9]*)/);
+        const bVersion = b.match(/v?([0-9]+\.?[0-9]*)/);
+        
+        if (aVersion && bVersion) {
+            return parseFloat(bVersion[1]) - parseFloat(aVersion[1]);
+        }
+        return b.localeCompare(a);
+    });
+    
+    return domFolders;
+}
 
 // ============================================================================
 // BUILD MODE VALIDATION AND SELECTION
@@ -92,7 +126,7 @@ function validateAndSelectBuildMode() {
         console.error('   Set exactly ONE of these to true in BUILD_MODES:');
         console.error('   - OLD_CHUNKS: for legacy chunk system');
         console.error('   - NEW_MODULES: for v3.0 modular system');
-        console.error('   - DOM_DISCOVERY: for v2.1 target architecture');
+        console.error('   - DOM_DISCOVERY: for v3.1 target architecture');
         process.exit(1);
     }
     
@@ -127,6 +161,16 @@ function validateAndSelectBuildMode() {
             process.exit(1);
     }
     
+    // Auto-detect and update target folder if enabled
+    if (selectedMode === 'DOM_DISCOVERY' && BUILD_CONFIG.options.AUTO_DETECT_FOLDERS) {
+        const detectedFolders = autoDetectAvailableFolders();
+        if (detectedFolders.length > 0) {
+            const newestFolder = detectedFolders[0];
+            console.log(`🎯 Auto-detected newest DOM folder: ${newestFolder}`);
+            BUILD_CONFIG[configKey].TARGET_FOLDER = './' + newestFolder;
+        }
+    }
+    
     return {
         mode: selectedMode,
         config: BUILD_CONFIG[configKey],
@@ -155,9 +199,9 @@ function discoverAndValidateFiles(buildInfo) {
         
         if (buildType === 'DOM_DISCOVERY') {
             console.error('');
-            console.error('📁 SETUP INSTRUCTIONS for DOM Discovery v2.1:');
-            console.error('   1. Create folder: DocDomV2.1/');
-            console.error('   2. Place these 10 modules in the folder:');
+            console.error('📁 SETUP INSTRUCTIONS for DOM Discovery v3.1:');
+            console.error('   1. Create folder: DocDomV3.1/');
+            console.error('   2. Place these 11 modules in the folder:');
             config.EXPECTED_MODULES.forEach((module, index) => {
                 console.error(`      ${index + 1}. ${module}`);
             });
@@ -183,7 +227,7 @@ function discoverAndValidateFiles(buildInfo) {
         
         if (buildType === 'DOM_DISCOVERY') {
             console.error('');
-            console.error('📝 Expected files for DOM Discovery v2.1:');
+            console.error('📝 Expected files for DOM Discovery v3.1:');
             config.EXPECTED_MODULES.forEach((module, index) => {
                 console.error(`   ${index + 1}. ${module}`);
             });
@@ -246,7 +290,7 @@ function discoverAndValidateFiles(buildInfo) {
             missingModules.forEach(module => {
                 console.error(`   🚫 ${module}`);
             });
-            console.error('\n💡 The target architecture requires all 10 modules for complete functionality');
+            console.error('\n💡 The target architecture requires all 11 modules for complete functionality');
             process.exit(1);
         } else {
             console.log('✅ All required modules found for target architecture');
@@ -548,17 +592,19 @@ function generateFileFooter(files, buildInfo) {
         footer += '    // Auto-start DOM Discovery interface\n';
         footer += '    try {\n';
         footer += '        $.writeln("🚀 Starting DOM Discovery interface...");\n';
-        footer += '        if (typeof showDOMVisualizer === "function") {\n';
+        footer += '        if (typeof showAdvancedUI === "function") {\n';
+        footer += '            showAdvancedUI();\n';
+        footer += '        } else if (typeof showDOMVisualizer === "function") {\n';
         footer += '            showDOMVisualizer();\n';
         footer += '        } else if (typeof showDOMExplorer === "function") {\n';
         footer += '            showDOMExplorer();\n';
         footer += '        } else {\n';
         footer += '            $.writeln("⚠️  DOM interface functions not found - manual start required");\n';
-        footer += '            $.writeln("💡 Try running showDOMVisualizer() or showDOMExplorer() manually");\n';
+        footer += '            $.writeln("💡 Try running showAdvancedUI() or showDOMVisualizer() manually");\n';
         footer += '        }\n';
         footer += '    } catch (exc) {\n';
         footer += '        $.writeln("❌ Auto-start failed: " + exc.message);\n';
-        footer += '        $.writeln("💡 Try running showDOMVisualizer() manually");\n';
+        footer += '        $.writeln("💡 Try running showAdvancedUI() manually");\n';
         footer += '    }\n';
     }
     
@@ -604,13 +650,15 @@ function generateIncludeFooter(files, buildInfo) {
     if (buildType === 'DOM_DISCOVERY' && BUILD_CONFIG.options.AUTO_START_DOM) {
         footer += '\n// Auto-start DOM Discovery interface\n';
         footer += 'try {\n';
-        footer += '    if (typeof showDOMVisualizer === "function") {\n';
-        footer += '        $.writeln("🚀 Starting DOM Discovery interface...");\n';
+        footer += '    if (typeof showAdvancedUI === "function") {\n';
+        footer += '        $.writeln("🚀 Starting Advanced UI interface...");\n';
+        footer += '        showAdvancedUI();\n';
+        footer += '    } else if (typeof showDOMVisualizer === "function") {\n';
         footer += '        showDOMVisualizer();\n';
         footer += '    } else if (typeof showDOMExplorer === "function") {\n';
         footer += '        showDOMExplorer();\n';
         footer += '    } else {\n';
-        footer += '        $.writeln("💡 Use showDOMVisualizer() to open the interface");\n';
+        footer += '        $.writeln("💡 Use showAdvancedUI() to open the interface");\n';
         footer += '    }\n';
         footer += '} catch (exc) {\n';
         footer += '    $.writeln("❌ Auto-start failed: " + exc.message);\n';
@@ -658,7 +706,7 @@ function showBuildSummary(concatenatedPath, includePath, files, buildInfo) {
     console.log(`  2. Run: ${config.OUTPUT_FILE}`);
     console.log('  3. Everything loads in one script');
     if (BUILD_CONFIG.options.AUTO_START_DOM && buildInfo.buildType === 'DOM_DISCOVERY') {
-        console.log('  4. DOM interface opens automatically');
+        console.log('  4. Advanced UI interface opens automatically');
     }
     
     console.log('\nOPTION 2 - Include-based (Development):');
@@ -674,13 +722,15 @@ function showBuildSummary(concatenatedPath, includePath, files, buildInfo) {
     console.log('• ✅ Comprehensive build verification');
     
     if (buildInfo.buildType === 'DOM_DISCOVERY') {
-        console.log('\n🎯 DOM Discovery v2.1 Features:');
+        console.log('\n🎯 DOM Discovery v3.1 Features:');
         console.log('• Perfect sequential dependency architecture');
+        console.log('• Advanced UI with tabbed interface');
         console.log('• Object reference tracking and deduplication');
         console.log('• Before/after document comparison');
         console.log('• Multiple export formats with analysis');
         console.log('• Advanced JSON post-processing');
         console.log('• Deep DOM mapping with performance optimization');
+        console.log('• Live analysis and monitoring capabilities');
     }
 }
 
@@ -692,13 +742,13 @@ function showConfigurationHelp() {
     console.log('Edit BUILD_MODES at the top of this script:');
     console.log('• OLD_CHUNKS: true/false - Legacy chunk system');
     console.log('• NEW_MODULES: true/false - v3.0 modular system');
-    console.log('• DOM_DISCOVERY: true/false - v2.1 target architecture');
+    console.log('• DOM_DISCOVERY: true/false - v3.1 target architecture');
     console.log('⚠️  Set exactly ONE to true, others to false');
     
     console.log('\nFOLDER SETUP:');
-    console.log('For DOM Discovery v2.1:');
-    console.log('1. Create folder: DocDomV2.1/');
-    console.log('2. Place these 10 modules:');
+    console.log('For DOM Discovery v3.1:');
+    console.log('1. Create folder: DocDomV3.1/');
+    console.log('2. Place these 11 modules:');
     
     if (BUILD_MODES.DOM_DISCOVERY) {
         BUILD_CONFIG.domDiscovery.EXPECTED_MODULES.forEach((module, index) => {
@@ -712,6 +762,7 @@ function showConfigurationHelp() {
     console.log('• AUTO_START_DOM: Auto-open DOM interface');
     console.log('• GENERATE_BOTH_FORMATS: Create both concatenated and include files');
     console.log('• SHOW_PROGRESS: Display detailed build progress');
+    console.log('• AUTO_DETECT_FOLDERS: Automatically find newest DOM folder');
 }
 
 // ============================================================================
@@ -719,7 +770,7 @@ function showConfigurationHelp() {
 // ============================================================================
 
 function main() {
-    console.log('🔧 Enhanced InDesign Auto-Discovery Builder v3.0');
+    console.log('🔧 Enhanced InDesign Auto-Discovery Builder v3.1');
     console.log('================================================');
     
     // Allow command line override of target folder
