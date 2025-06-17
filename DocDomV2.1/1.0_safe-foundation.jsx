@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Ultra-safe property access with object reference tracking and ES3 helpers
 // DEPENDENCIES: ["0.0_module-loader.jsx"] (optional - will work standalone)
-// SIZE: ~1200 lines
+// SIZE: ~1300 lines
 // =============================================================================
 
 // =============================================================================
@@ -247,7 +247,7 @@ function createDependencyError(missingModules) {
 }
 
 // =============================================================================
-// ENHANCED ES3 COMPATIBILITY HELPERS
+// ES3 COMPATIBILITY HELPERS
 // =============================================================================
 
 /**
@@ -317,7 +317,7 @@ function arraySlice(array, start, end) {
 }
 
 /**
- * ES3-compatible Array.prototype.join with enhanced safety
+ * ES3-compatible Array.prototype.join
  * @param {Array} array - Array to join
  * @param {String} separator - Separator string
  * @returns {String} Joined string
@@ -377,7 +377,7 @@ function arrayConcat(array1, array2) {
 }
 
 /**
- * Enhanced string replace function
+ * String replace function
  * @param {String} str - String to process
  * @param {String} searchValue - Value to search for
  * @param {String} replaceValue - Value to replace with
@@ -410,7 +410,7 @@ function stringReplace(str, searchValue, replaceValue) {
 }
 
 /**
- * Enhanced string match function (ES3 compatible)
+ * String match function (ES3 compatible)
  * @param {String} str - String to search
  * @param {String} pattern - Pattern to match (simplified)
  * @returns {Boolean} True if pattern found
@@ -649,12 +649,8 @@ function safeCall(functionName, args, context) {
     }
 }
 
-// =============================================================================
-// ORIGINAL ES3 COMPATIBILITY HELPERS (ENHANCED)
-// =============================================================================
-
 /**
- * ES3-compatible object key counting (enhanced)
+ * ES3-compatible object key counting
  * @param {Object} obj - Object to count keys for
  * @returns {Number} Number of enumerable properties
  */
@@ -679,7 +675,7 @@ function countObjectKeys(obj) {
 }
 
 /**
- * ES3-compatible object key array generation (enhanced)
+ * ES3-compatible object key array generation
  * @param {Object} obj - Object to get keys from
  * @returns {Array} Array of object keys
  */
@@ -704,7 +700,7 @@ function getObjectKeys(obj) {
 }
 
 /**
- * ES3-compatible string trimming (enhanced)
+ * ES3-compatible string trimming
  * @param {String} str - String to trim
  * @returns {String} Trimmed string
  */
@@ -722,11 +718,11 @@ function trimString(str) {
 }
 
 // =============================================================================
-// PROPERTY SAFETY FUNCTIONS (ENHANCED)
+// PROPERTY SAFETY FUNCTIONS
 // =============================================================================
 
 /**
- * Get property type without accessing value (enhanced)
+ * Get property type without accessing value
  * @param {Object} targetObj - Object to check
  * @param {String} propName - Property name to check
  * @returns {String} Type: 'undefined'|'string'|'number'|'boolean'|'object'|'function'|'error'
@@ -749,7 +745,7 @@ function safeTypeCheck(targetObj, propName) {
 }
 
 /**
- * Check if property exists without accessing it (enhanced)
+ * Check if property exists without accessing it
  * @param {Object} targetObj - Object to check
  * @param {String} propName - Property name to check
  * @returns {Boolean} True if property exists
@@ -768,7 +764,7 @@ function safeHasProperty(targetObj, propName) {
 }
 
 /**
- * Get collection size safely (enhanced)
+ * Get collection size safely
  * @param {Object} collection - Collection to measure
  * @returns {Number} Integer size or -1 if inaccessible
  */
@@ -801,12 +797,71 @@ function safeGetLength(collection) {
     }
 }
 
+/**
+ * Safely get object reference from path
+ * @param {Object} sourceObj - Source object
+ * @param {String} path - Dot notation path
+ * @param {Number} timeoutMs - Timeout in milliseconds
+ * @returns {Object} Result with success, value, and error
+ */
+function safeGetObjectFromPath(sourceObj, path, timeoutMs) {
+    var result = {
+        success: false,
+        value: null,
+        error: ''
+    };
+    
+    try {
+        if (!sourceObj || !path || typeof path !== 'string') {
+            result.error = 'Invalid source object or path';
+            return result;
+        }
+        
+        var timeoutChecker = createTimeoutChecker(timeoutMs || 5000);
+        var pathComponents = splitPath(path);
+        var currentObj = sourceObj;
+        
+        for (var i = 0; i < pathComponents.length; i++) {
+            if (timeoutChecker && timeoutChecker()) {
+                result.error = 'Timeout accessing path';
+                return result;
+            }
+            
+            var componentName = pathComponents[i];
+            if (!safeHasProperty(currentObj, componentName)) {
+                result.error = 'Property not found: ' + componentName;
+                return result;
+            }
+            
+            try {
+                currentObj = currentObj[componentName];
+            } catch (accessExc) {
+                result.error = 'Error accessing property: ' + componentName + ' - ' + accessExc.message;
+                return result;
+            }
+            
+            if (!currentObj) {
+                result.error = 'Null object at: ' + componentName;
+                return result;
+            }
+        }
+        
+        result.success = true;
+        result.value = currentObj;
+        return result;
+        
+    } catch (exc) {
+        result.error = 'Path access error: ' + exc.message;
+        return result;
+    }
+}
+
 // =============================================================================
-// OBJECT REFERENCE TRACKING FUNCTIONS (ENHANCED)
+// OBJECT REFERENCE TRACKING FUNCTIONS
 // =============================================================================
 
 /**
- * Generate unique object reference ID (enhanced)
+ * Generate unique object reference ID
  * @param {Object} targetObj - Object to generate ID for
  * @returns {String} Unique reference ID
  */
@@ -828,7 +883,7 @@ function generateObjectReferenceID(targetObj) {
 }
 
 /**
- * Check if two objects are the same reference (enhanced)
+ * Check if two objects are the same reference
  * @param {Object} obj1 - First object
  * @param {Object} obj2 - Second object
  * @returns {Boolean} True if same reference
@@ -842,7 +897,7 @@ function isSameObjectReference(obj1, obj2) {
 }
 
 /**
- * Create object reference tracker for deduplication (enhanced)
+ * Create object reference tracker for deduplication
  * @returns {Object} Reference tracker with methods
  */
 function createObjectReferenceTracker() {
@@ -903,11 +958,11 @@ function createObjectReferenceTracker() {
 }
 
 // =============================================================================
-// PATH UTILITIES (ENHANCED)
+// PATH UTILITIES
 // =============================================================================
 
 /**
- * Split dot notation path into components (enhanced)
+ * Split dot notation path into components
  * @param {String} dotPath - Dot notation path
  * @returns {Array} Array of path components
  */
@@ -925,7 +980,7 @@ function splitPath(dotPath) {
 }
 
 /**
- * Join path components into dot notation (enhanced)
+ * Join path components into dot notation
  * @param {Array} pathComponents - Array of path components
  * @returns {String} Dot notation path
  */
@@ -943,7 +998,7 @@ function joinPath(pathComponents) {
 }
 
 /**
- * Get parent path from dot notation path and normalize paths (enhanced)
+ * Get parent path from dot notation path and normalize paths
  * @param {String} dotPath - Dot notation path
  * @param {Boolean} normalize - Whether to normalize the path
  * @returns {String} Parent path or normalized path
@@ -980,7 +1035,7 @@ function getParentPath(dotPath, normalize) {
 }
 
 /**
- * Normalize path by removing empty components (uses getParentPath)
+ * Normalize path by removing empty components
  * @param {String} dotPath - Dot notation path
  * @returns {String} Normalized path
  */
@@ -989,11 +1044,11 @@ function normalizePath(dotPath) {
 }
 
 // =============================================================================
-// MEMORY MANAGEMENT (ENHANCED)
+// MEMORY MANAGEMENT
 // =============================================================================
 
 /**
- * Enhanced memory cleanup with reference tracking (enhanced)
+ * Memory cleanup with reference tracking
  * @param {Array} objsToNull - Objects to null out
  * @param {Object} referenceTracker - Reference tracker to clean
  */
@@ -1026,7 +1081,7 @@ function memoryCleanup(objsToNull, referenceTracker) {
 }
 
 /**
- * Create memory usage monitor (enhanced)
+ * Create memory usage monitor
  * @returns {Object} Memory monitor with methods
  */
 function createMemoryMonitor() {
@@ -1081,11 +1136,11 @@ function createMemoryMonitor() {
 }
 
 // =============================================================================
-// DANGER DETECTION (ENHANCED)
+// DANGER DETECTION
 // =============================================================================
 
 /**
- * Detect dangerous property patterns and reserved words (enhanced)
+ * Detect dangerous property patterns and reserved words
  * @param {String} propName - Property name to check
  * @param {String} checkType - Type of check: 'property', 'path', 'reserved', or 'all' (default)
  * @returns {Boolean} True if dangerous
@@ -1140,7 +1195,7 @@ function isDangerousProperty(propName, checkType) {
 }
 
 /**
- * Detect dangerous path patterns for deep traversal (enhanced)
+ * Detect dangerous path patterns for deep traversal
  * @param {String} dotPath - Path to check
  * @returns {Boolean} True if dangerous
  */
@@ -1172,7 +1227,7 @@ function isDangerousPath(dotPath) {
 }
 
 /**
- * Check if property name is ES3 reserved word (uses isDangerousProperty)
+ * Check if property name is ES3 reserved word
  * @param {String} propName - Property name to check
  * @returns {Boolean} True if reserved
  */
@@ -1181,11 +1236,11 @@ function isReservedWord(propName) {
 }
 
 // =============================================================================
-// OPERATION CONTROL (ENHANCED)
+// OPERATION CONTROL
 // =============================================================================
 
 /**
- * Create timeout checker for long operations (enhanced)
+ * Create timeout checker for long operations
  * @param {Number} maxMs - Maximum milliseconds
  * @returns {Function} Function that returns true if timeout exceeded
  */
@@ -1203,7 +1258,7 @@ function createTimeoutChecker(maxMs) {
 }
 
 /**
- * Enhanced operation counter with reporting (enhanced)
+ * Operation counter with reporting
  * @param {Number} maxOps - Maximum operations
  * @returns {Object} Counter with check, increment, getProgress methods
  */
@@ -1245,11 +1300,11 @@ function createOperationCounter(maxOps) {
 }
 
 // =============================================================================
-// ENVIRONMENT VALIDATION (ENHANCED)
+// ENVIRONMENT VALIDATION
 // =============================================================================
 
 /**
- * Validate InDesign environment and document state (enhanced)
+ * Validate InDesign environment and document state
  * @returns {Object} Validation result with metadata
  */
 function validateInDesignEnvironment() {
@@ -1338,7 +1393,7 @@ function validateInDesignEnvironment() {
 }
 
 /**
- * Validate document state for safe enumeration (enhanced)
+ * Validate document state for safe enumeration
  * @param {Object} documentObj - Document to validate
  * @returns {Object} Validation result with warnings and metadata
  */
@@ -1382,11 +1437,11 @@ function validateDocumentState(documentObj) {
 }
 
 // =============================================================================
-// UTILITIES (ENHANCED)
+// UTILITIES
 // =============================================================================
 
 /**
- * String builder for large text construction with memory management (enhanced)
+ * String builder for large text construction with memory management
  * @returns {Object} String builder with methods
  */
 function createStringBuilder() {
@@ -1433,7 +1488,7 @@ function createStringBuilder() {
 }
 
 /**
- * Get current timestamp in readable format (enhanced)
+ * Get current timestamp in readable format
  * @returns {String} Formatted timestamp
  */
 function getCurrentTimestamp() {
@@ -1454,7 +1509,7 @@ function getCurrentTimestamp() {
 }
 
 /**
- * Generate unique identifier (enhanced)
+ * Generate unique identifier
  * @returns {String} Unique identifier
  */
 function generateUniqueID() {
@@ -1490,17 +1545,17 @@ registerModule('1.0_safe-foundation', '2.1.1', [
     'registerModule', 'isModuleAvailable', 'getFunctionReference', 'safeCallModuleFunction',
     'validateDependencies', 'getMissingDependencies', 'createDependencyError',
     
-    // Enhanced ES3 Helper Functions
+    // ES3 Helper Functions
     'arrayIndexOf', 'arraySlice', 'arrayJoin', 'arrayConcat',
     'stringReplace', 'stringMatch', 'stringIndexOf', 'stringSubstring',
     'objectHasOwnProperty', 'objectClone', 'objectMerge',
     'functionExists', 'safeCall',
     
-    // Original ES3 Compatibility
+    // ES3 Compatibility
     'countObjectKeys', 'getObjectKeys', 'trimString',
     
     // Property Safety Functions
-    'safeTypeCheck', 'safeHasProperty', 'safeGetLength',
+    'safeTypeCheck', 'safeHasProperty', 'safeGetLength', 'safeGetObjectFromPath',
     
     // Object Reference Tracking
     'generateObjectReferenceID', 'isSameObjectReference', 'createObjectReferenceTracker',
@@ -1526,12 +1581,4 @@ registerModule('1.0_safe-foundation', '2.1.1', [
 
 // =============================================================================
 // END OF 1.0_safe-foundation.jsx
-// 
-// ENHANCEMENTS IMPLEMENTED:
-// - Complete module registry and dependency system
-// - Enhanced ES3 compatibility helpers (arrays, strings, objects, functions)
-// - Improved error handling and safety throughout
-// - Module availability checking and safe function calling
-// - All original functionality preserved and enhanced
-// - Production-ready reliability with comprehensive error boundaries
 // =============================================================================

@@ -238,14 +238,14 @@ function enumerateObjectStructure(targetObj, objName, objPath, depth, config, do
             });
         }
         
-        // Enumerate properties - Enhanced ES3 iteration
+        // Enumerate properties - ES3 iteration
         var newParentPaths = arraySlice(parentPaths, 0);
         newParentPaths.push(objPath);
         var newParentObjectIds = arraySlice(parentObjectIds, 0);
         newParentObjectIds.push(objectId);
         
         for (var propName in targetObj) {
-            // Enhanced ES3 property check
+            // ES3 property check
             if (!objectHasOwnProperty(targetObj, propName)) {
                 continue;
             }
@@ -345,12 +345,12 @@ function createDOMNode(name, path, objType, depth, objectId) {
 }
 
 /**
- * Create property classification with access path tracking
+ * Create property classification with value storage
  * @param {String} propName - Property name
  * @param {String} propType - Property type
  * @param {String} objPath - Object path
  * @param {String} objectId - Object ID if property references an object
- * @returns {Object} PropertyClassification object
+ * @returns {Object} PropertyClassification object with value storage
  */
 function createPropertyClassification(propName, propType, objPath, objectId) {
     return {
@@ -361,7 +361,13 @@ function createPropertyClassification(propName, propType, objPath, objectId) {
         isMethod: propType === 'function',
         path: objPath + '.' + propName,
         objectId: objectId || null,
-        alternativeAccessPaths: []
+        alternativeAccessPaths: [],
+        
+        // Value storage for extraction phase
+        extractedValue: null,
+        valueFingerprint: null,
+        lastExtracted: null,
+        extractionMetadata: null
     };
 }
 
@@ -505,7 +511,7 @@ function checkObjectDuplication(domStructure, objectId) {
 // =============================================================================
 
 /**
- * Enhanced circular reference detection
+ * Circular reference detection
  * @param {String} objPath - Current object path
  * @param {Array} parentPaths - Array of parent paths
  * @param {String} objectId - Current object ID
@@ -640,11 +646,11 @@ function processProperty(targetObj, propName, objPath, depth, config, domStructu
 }
 
 // =============================================================================
-// POST-PROCESSING - ENHANCED ES3 COMPLIANCE
+// POST-PROCESSING - ES3 COMPLIANCE
 // =============================================================================
 
 /**
- * Update alternative access paths for duplicate objects - ES3 Enhanced
+ * Update alternative access paths for duplicate objects - ES3 compliant
  * @param {Object} domStructure - DOM structure to update
  */
 function updateAlternativeAccessPaths(domStructure) {
@@ -655,7 +661,7 @@ function updateAlternativeAccessPaths(domStructure) {
         
         var accessPaths = domStructure.objectRegistry.accessPaths;
         
-        // ES3-compatible iteration using enhanced helper
+        // ES3-compatible iteration
         for (var objectId in accessPaths) {
             if (objectHasOwnProperty(accessPaths, objectId)) {
                 var paths = accessPaths[objectId];
@@ -701,11 +707,11 @@ function updateNodeAlternativePaths(node, objectId, alternativePaths) {
 }
 
 // =============================================================================
-// ANALYSIS FUNCTIONS - ENHANCED ES3 COMPLIANCE
+// ANALYSIS FUNCTIONS - ES3 COMPLIANCE
 // =============================================================================
 
 /**
- * Get enumeration statistics - ES3 Enhanced
+ * Get enumeration statistics - ES3 compliant
  * @param {Object} domStructure - DOM structure
  * @returns {Object} Statistics with object tracking data
  */
@@ -723,7 +729,7 @@ function getDOMStatistics(domStructure) {
             countNodeStatistics(domStructure.structure.document, stats);
         }
         
-        // Add object registry statistics - ES3 compatible using enhanced helper
+        // Add object registry statistics - ES3 compatible
         if (domStructure.objectRegistry && domStructure.objectRegistry.references) {
             stats.objectReferences = countObjectKeys(domStructure.objectRegistry.references);
         }
@@ -781,7 +787,7 @@ function countNodeStatistics(node, stats) {
 }
 
 /**
- * Find objects with multiple access paths - ES3 Enhanced
+ * Find objects with multiple access paths - ES3 compliant
  * @param {Object} domStructure - DOM structure
  * @returns {Array} Array of objects with multiple paths
  */
@@ -795,7 +801,7 @@ function findObjectsWithMultiplePaths(domStructure) {
         
         var accessPaths = domStructure.objectRegistry.accessPaths;
         
-        // ES3-compatible iteration using enhanced helper
+        // ES3-compatible iteration
         for (var objectId in accessPaths) {
             if (objectHasOwnProperty(accessPaths, objectId)) {
                 var paths = accessPaths[objectId];
@@ -918,14 +924,4 @@ registerModule('2.0_dom-enumerator', '2.1.1', [
 
 // =============================================================================
 // END OF 2.0_dom-enumerator.jsx
-//
-// ENHANCEMENTS IMPLEMENTED:
-// - Added comprehensive dependency validation
-// - Enhanced ES3 compliance with improved helper usage
-// - Added module registration system integration
-// - Improved error handling with proper error boundaries
-// - Enhanced object iteration using objectHasOwnProperty() throughout
-// - Added config object cloning to prevent mutations
-// - Improved memory management and cleanup
-// - All original functionality preserved and enhanced for production reliability
 // =============================================================================

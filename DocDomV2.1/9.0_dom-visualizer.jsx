@@ -76,7 +76,7 @@ function showDOMVisualizer() {
             g_domViz_visualizerWindow = null;
         }
         
-        // Create and show new visualizer UI with enhanced error handling
+        // Create and show new visualizer UI with error handling
         g_domViz_visualizerWindow = createDOMVisualizerUI();
         if (g_domViz_visualizerWindow) {
             g_domViz_visualizerWindow.show();
@@ -103,12 +103,12 @@ function showDOMExplorer() {
 }
 
 /**
- * Create main DOM visualization interface with enhanced error handling
+ * Create main DOM visualization interface with error handling
  * @returns {Object} Window dialog object
  */
 function createDOMVisualizerUI() {
     try {
-        // Enhanced parameter validation and window creation
+        // Parameter validation and window creation
         var mainWindow = null;
         
         try {
@@ -123,7 +123,7 @@ function createDOMVisualizerUI() {
             return null;
         }
         
-        // Enhanced window configuration with error protection
+        // Window configuration with error protection
         try {
             mainWindow.orientation = 'column';
             mainWindow.alignChildren = 'fill';
@@ -140,7 +140,7 @@ function createDOMVisualizerUI() {
             // Continue with defaults
         }
         
-        // Create UI panels with enhanced error handling
+        // Create UI panels with error handling
         var panelsCreated = 0;
         
         try {
@@ -181,11 +181,11 @@ function createDOMVisualizerUI() {
 }
 
 // =============================================================================
-// UI PANEL CREATION - ENHANCED
+// UI PANEL CREATION
 // =============================================================================
 
 /**
- * Create document information panel with enhanced error handling
+ * Create document information panel with error handling
  * @param {Object} parentWindow - Parent window
  * @returns {Boolean} True if panel created successfully
  */
@@ -205,7 +205,7 @@ function createDocumentInfoPanel(parentWindow) {
         infoGroup.alignChildren = 'left';
         infoGroup.spacing = 5;
         
-        // Title with enhanced font handling
+        // Title with font handling
         var titleText = infoGroup.add('statictext', undefined, 'DOCUMENT INFORMATION');
         if (titleText) {
             try {
@@ -215,7 +215,7 @@ function createDocumentInfoPanel(parentWindow) {
             }
         }
         
-        // Document info display with enhanced sizing
+        // Document info display with sizing
         g_domViz_documentInfo = infoGroup.add('statictext', undefined, 'No document information available');
         if (g_domViz_documentInfo) {
             try {
@@ -234,7 +234,7 @@ function createDocumentInfoPanel(parentWindow) {
 }
 
 /**
- * Create DOM tree display panel with enhanced error handling
+ * Create DOM tree display panel with error handling
  * @param {Object} parentWindow - Parent window
  * @returns {Boolean} True if panel created successfully
  */
@@ -254,7 +254,7 @@ function createDOMDisplayPanel(parentWindow) {
         displayGroup.alignChildren = 'fill';
         displayGroup.spacing = 5;
         
-        // Title with enhanced font handling
+        // Title with font handling
         var titleText = displayGroup.add('statictext', undefined, 'DOM STRUCTURE TREE');
         if (titleText) {
             try {
@@ -264,7 +264,7 @@ function createDOMDisplayPanel(parentWindow) {
             }
         }
         
-        // Scrollable text area for DOM tree with enhanced configuration
+        // Scrollable text area for DOM tree with configuration
         g_domViz_domDisplay = displayGroup.add('edittext', undefined, 'Click "Enumerate DOM" to discover document structure...', {multiline: true, scrolling: true});
         if (g_domViz_domDisplay) {
             try {
@@ -284,7 +284,7 @@ function createDOMDisplayPanel(parentWindow) {
 }
 
 /**
- * Create control panel with action buttons and enhanced error handling
+ * Create control panel with action buttons and error handling
  * @param {Object} parentWindow - Parent window
  * @returns {Boolean} True if panel created successfully
  */
@@ -306,7 +306,7 @@ function createControlPanel(parentWindow) {
         
         var buttonsCreated = 0;
         
-        // Main action buttons with enhanced error handling
+        // Main action buttons with error handling
         try {
             var enumerateBtn = controlGroup.add('button', undefined, 'Enumerate DOM');
             if (enumerateBtn) {
@@ -404,7 +404,7 @@ function createControlPanel(parentWindow) {
 }
 
 /**
- * Create status panel with enhanced error handling
+ * Create status panel with error handling
  * @param {Object} parentWindow - Parent window
  * @returns {Boolean} True if panel created successfully
  */
@@ -451,17 +451,17 @@ function createStatusPanel(parentWindow) {
 }
 
 // =============================================================================
-// CORE OPERATIONS (GUARANTEED TO WORK) - ENHANCED
+// CORE OPERATIONS - INTEGRATED VALUE EXTRACTION
 // =============================================================================
 
 /**
- * Execute DOM enumeration and display results with enhanced error handling
+ * Execute DOM enumeration with integrated value extraction and display results
  */
 function runDOMEnumeration() {
     try {
         updateStatus('Starting DOM enumeration...');
         
-        // Enhanced environment validation
+        // Environment validation
         var envValidation = validateInDesignEnvironment();
         if (!envValidation.valid) {
             updateStatus('Error: ' + envValidation.error);
@@ -476,7 +476,7 @@ function runDOMEnumeration() {
             return;
         }
         
-        // Perform DOM enumeration with progress tracking and enhanced configuration
+        // Perform DOM enumeration with progress tracking and configuration
         var startTime = new Date().getTime();
         var config = objectClone({
             maxDepth: 4,
@@ -503,8 +503,46 @@ function runDOMEnumeration() {
         // Store result
         g_domViz_currentDOMStructure = domStructure;
         
-        // Update display with enhanced formatting
-        var displayText = formatDOMForDisplay(domStructure);
+        updateStatus('DOM enumeration complete! Starting value extraction...');
+        
+        // INTEGRATED VALUE EXTRACTION - Extract actual property values from discovered structure
+        if (typeof sampleDOMValues === 'function') {
+            updateStatus('Extracting property values from discovered structure...');
+            
+            try {
+                var valueConfig = objectClone({
+                    safetyFilter: 'moderate',
+                    maxSamples: 20,
+                    timeoutMs: 5000,
+                    includeCollectionSamples: false,
+                    maxStringLength: 200,
+                    trackObjectReferences: true,
+                    includeValueMetadata: true,
+                    generateValueFingerprints: true
+                }, 2);
+                
+                var structureWithValues = sampleDOMValues(
+                    g_domViz_currentDOMStructure, 
+                    envValidation.document,
+                    valueConfig
+                );
+                
+                if (structureWithValues) {
+                    g_domViz_currentDOMStructure = structureWithValues;
+                    updateStatus('Value extraction complete! Processing display...');
+                } else {
+                    updateStatus('Value extraction returned no results');
+                }
+                
+            } catch (extractionExc) {
+                updateStatus('Value extraction error: ' + extractionExc.message);
+            }
+        } else {
+            updateStatus('Warning: Value extraction not available - showing structure only');
+        }
+        
+        // Update display with extracted values
+        var displayText = formatDOMForDisplay(g_domViz_currentDOMStructure);
         if (g_domViz_domDisplay && displayText) {
             g_domViz_domDisplay.text = displayText;
         }
@@ -512,22 +550,49 @@ function runDOMEnumeration() {
         // Update document info
         updateDocumentInfo();
         
-        // Enhanced success status with comprehensive statistics
-        var stats = null;
+        // Success status with comprehensive statistics including extracted values
+        var domStats = null;
         if (typeof getDOMStatistics === 'function') {
-            stats = getDOMStatistics(domStructure);
+            domStats = getDOMStatistics(g_domViz_currentDOMStructure);
         } else {
             // Fallback statistics
-            stats = {
-                totalNodes: domStructure.statistics ? domStructure.statistics.totalNodes : 0,
-                totalProperties: domStructure.statistics ? domStructure.statistics.totalProperties : 0,
-                objectReferences: domStructure.statistics ? domStructure.statistics.objectReferences : 0
+            domStats = {
+                totalNodes: g_domViz_currentDOMStructure.statistics ? g_domViz_currentDOMStructure.statistics.totalNodes : 0,
+                totalProperties: g_domViz_currentDOMStructure.statistics ? g_domViz_currentDOMStructure.statistics.totalProperties : 0,
+                objectReferences: g_domViz_currentDOMStructure.statistics ? g_domViz_currentDOMStructure.statistics.objectReferences : 0
             };
         }
         
-        updateStatus('Enumeration complete! Found ' + (stats.totalNodes || 0) + ' objects, ' + 
-                    (stats.totalProperties || 0) + ' properties in ' + elapsedTime + 'ms. ' +
-                    'Object references: ' + (stats.objectReferences || 0));
+        var samplingStats = null;
+        if (typeof getSamplingStatistics === 'function') {
+            samplingStats = getSamplingStatistics(g_domViz_currentDOMStructure);
+        } else {
+            // Fallback sampling stats
+            samplingStats = {
+                valuesSampled: 0,
+                propertiesSampled: 0
+            };
+            
+            if (g_domViz_currentDOMStructure.metadata && 
+                g_domViz_currentDOMStructure.metadata.valueSampling && 
+                g_domViz_currentDOMStructure.metadata.valueSampling.statistics) {
+                var valueStats = g_domViz_currentDOMStructure.metadata.valueSampling.statistics;
+                samplingStats.valuesSampled = valueStats.valuesSampled || 0;
+                samplingStats.propertiesSampled = valueStats.propertiesSampled || 0;
+            }
+        }
+        
+        var totalNodes = domStats.totalNodes || 0;
+        var totalProperties = domStats.totalProperties || 0;
+        var objectReferences = domStats.objectReferences || 0;
+        var valuesExtracted = samplingStats.valuesSampled || 0;
+        var propertiesSampled = samplingStats.propertiesSampled || 0;
+        
+        updateStatus('Complete! Found ' + totalNodes + ' objects, ' + 
+                    totalProperties + ' properties. ' +
+                    'Extracted ' + valuesExtracted + ' actual values from ' + 
+                    propertiesSampled + ' properties in ' + elapsedTime + 'ms. ' +
+                    'Object references: ' + objectReferences);
         
     } catch (exc) {
         updateStatus('Enumeration error: ' + exc.message);
@@ -535,7 +600,7 @@ function runDOMEnumeration() {
 }
 
 /**
- * Execute collection sampling and display enhanced results
+ * Execute collection sampling and display results
  */
 function runCollectionSampling() {
     try {
@@ -546,7 +611,7 @@ function runCollectionSampling() {
         
         updateStatus('Sampling collection contents...');
         
-        // Enhanced environment validation
+        // Environment validation
         var envValidation = validateInDesignEnvironment();
         if (!envValidation.valid) {
             updateStatus('Error: ' + envValidation.error);
@@ -559,7 +624,7 @@ function runCollectionSampling() {
             return;
         }
         
-        // Perform collection sampling with progress tracking and enhanced configuration
+        // Perform collection sampling with progress tracking and configuration
         var startTime = new Date().getTime();
         var config = objectClone({
             maxSamplesPerCollection: 5,
@@ -572,20 +637,20 @@ function runCollectionSampling() {
             enableCrossCollectionTracking: true
         }, 2);
         
-        var enhancedStructure = sampleCollectionContents(g_domViz_currentDOMStructure, envValidation.document, config);
+        var structureWithCollections = sampleCollectionContents(g_domViz_currentDOMStructure, envValidation.document, config);
         
         var elapsedTime = new Date().getTime() - startTime;
         
-        if (!enhancedStructure) {
+        if (!structureWithCollections) {
             updateStatus('Collection sampling failed');
             return;
         }
         
         // Update stored structure
-        g_domViz_currentDOMStructure = enhancedStructure;
+        g_domViz_currentDOMStructure = structureWithCollections;
         
-        // Update display with enhanced information
-        var displayText = formatDOMForDisplay(enhancedStructure);
+        // Update display with collection information
+        var displayText = formatDOMForDisplay(structureWithCollections);
         if (g_domViz_domDisplay && displayText) {
             g_domViz_domDisplay.text = displayText;
         }
@@ -593,10 +658,10 @@ function runCollectionSampling() {
         // Update document info
         updateDocumentInfo();
         
-        // Enhanced success status with collection sampling statistics
+        // Success status with collection sampling statistics
         var collectionStats = null;
         if (typeof getCollectionSamplingStatistics === 'function') {
-            collectionStats = getCollectionSamplingStatistics(enhancedStructure);
+            collectionStats = getCollectionSamplingStatistics(structureWithCollections);
         } else {
             // Fallback statistics
             collectionStats = {
@@ -604,9 +669,9 @@ function runCollectionSampling() {
                 totalItemsSampled: 0
             };
             
-            if (enhancedStructure.metadata && enhancedStructure.metadata.collectionSampling && 
-                enhancedStructure.metadata.collectionSampling.statistics) {
-                var stats = enhancedStructure.metadata.collectionSampling.statistics;
+            if (structureWithCollections.metadata && structureWithCollections.metadata.collectionSampling && 
+                structureWithCollections.metadata.collectionSampling.statistics) {
+                var stats = structureWithCollections.metadata.collectionSampling.statistics;
                 collectionStats.collectionsSampled = stats.collectionsSampled || 0;
                 collectionStats.totalItemsSampled = stats.totalItemsSampled || 0;
             }
@@ -622,17 +687,17 @@ function runCollectionSampling() {
 }
 
 // =============================================================================
-// DISPLAY FUNCTIONS - ENHANCED ES3 COMPLIANT
+// DISPLAY FUNCTIONS - SHOW EXTRACTED VALUES
 // =============================================================================
 
 /**
- * Convert DOM structure to human-readable tree format - Enhanced ES3 compliant
+ * Convert DOM structure to human-readable tree format with extracted values - ES3 compliant
  * @param {Object} domStructure - DOM structure to format
- * @returns {String} Formatted tree with comprehensive metadata
+ * @returns {String} Formatted tree with comprehensive metadata and extracted values
  */
 function formatDOMForDisplay(domStructure) {
     try {
-        // Enhanced parameter validation
+        // Parameter validation
         if (!domStructure || typeof domStructure !== 'object') {
             return 'No DOM structure available';
         }
@@ -643,9 +708,9 @@ function formatDOMForDisplay(domStructure) {
         
         var builder = createStringBuilder();
         
-        // Enhanced header with comprehensive metadata
-        builder.appendLine('InDesign DOM Structure Analysis');
-        builder.appendLine('==============================');
+        // Header with comprehensive metadata
+        builder.appendLine('InDesign DOM Structure Analysis with Value Extraction');
+        builder.appendLine('======================================================');
         
         if (domStructure.metadata) {
             var docName = domStructure.metadata.documentName || 'Unknown';
@@ -656,6 +721,16 @@ function formatDOMForDisplay(domStructure) {
             
             if (domStructure.metadata.collectionSampling && domStructure.metadata.collectionSampling.enabled) {
                 builder.appendLine('Collection Sampling: Enabled');
+            }
+            
+            // VALUE EXTRACTION INFORMATION
+            if (domStructure.metadata.valueSampling && domStructure.metadata.valueSampling.enabled) {
+                builder.appendLine('Value Extraction: Enabled');
+                if (domStructure.metadata.valueSampling.statistics) {
+                    var valueStats = domStructure.metadata.valueSampling.statistics;
+                    builder.appendLine('Values Extracted: ' + (valueStats.valuesSampled || 0) + 
+                                     ' from ' + (valueStats.propertiesSampled || 0) + ' properties');
+                }
             }
             
             if (domStructure.objectRegistry) {
@@ -678,10 +753,10 @@ function formatDOMForDisplay(domStructure) {
         }
         
         builder.appendLine('');
-        builder.appendLine('Structure Tree:');
-        builder.appendLine('---------------');
+        builder.appendLine('Structure Tree with Extracted Values:');
+        builder.appendLine('------------------------------------');
         
-        // Generate tree structure with enhanced formatting
+        // Generate tree structure with extracted values
         generateDOMTreeText(domStructure.structure.document, '', true, builder);
         
         return builder.toString();
@@ -692,7 +767,7 @@ function formatDOMForDisplay(domStructure) {
 }
 
 /**
- * Recursively generate tree structure text with comprehensive features - Enhanced
+ * Recursively generate tree structure text with extracted values - Show Actual Values
  * @param {Object} domNode - DOM node
  * @param {String} prefix - Tree prefix
  * @param {Boolean} isLast - Is last node at this level
@@ -700,7 +775,7 @@ function formatDOMForDisplay(domStructure) {
  */
 function generateDOMTreeText(domNode, prefix, isLast, builder) {
     try {
-        // Enhanced parameter validation
+        // Parameter validation
         if (!domNode || !builder) {
             return;
         }
@@ -711,11 +786,18 @@ function generateDOMTreeText(domNode, prefix, isLast, builder) {
         var nodeType = domNode.type || 'unknown';
         var nodeLine = prefix + connector + nodeName + ' (' + nodeType + ')';
         
-        // Add enhanced metadata information using ES3 helpers
+        // Add metadata information using ES3 helpers
         var info = [];
         
+        // Show extracted values count
+        var extractedValueCount = 0;
         if (domNode.properties && domNode.properties.length) {
-            info.push(domNode.properties.length + ' props');
+            for (var i = 0; i < domNode.properties.length; i++) {
+                if (domNode.properties[i] && domNode.properties[i].extractedValue !== null) {
+                    extractedValueCount++;
+                }
+            }
+            info.push(domNode.properties.length + ' props (' + extractedValueCount + ' values)');
         }
         
         if (domNode.collections && domNode.collections.length) {
@@ -723,8 +805,8 @@ function generateDOMTreeText(domNode, prefix, isLast, builder) {
             
             // Add collection sampling information if available
             var sampledCollections = 0;
-            for (var i = 0; i < domNode.collections.length; i++) {
-                if (domNode.collections[i] && domNode.collections[i].samplingData) {
+            for (var j = 0; j < domNode.collections.length; j++) {
+                if (domNode.collections[j] && domNode.collections[j].samplingData) {
                     sampledCollections++;
                 }
             }
@@ -754,16 +836,45 @@ function generateDOMTreeText(domNode, prefix, isLast, builder) {
         
         builder.appendLine(nodeLine);
         
-        // Enhanced collection details if sampling data available
+        // SHOW EXTRACTED PROPERTY VALUES
+        if (domNode.properties && domNode.properties.length) {
+            var newPrefix = prefix + (isLast ? '    ' : '│   ');
+            
+            for (var k = 0; k < Math.min(domNode.properties.length, 5); k++) {
+                var propertyData = domNode.properties[k];
+                if (propertyData && propertyData.extractedValue !== null && propertyData.extractedValue !== undefined) {
+                    var valueLine = newPrefix + '    ↳ ' + propertyData.name + ': ';
+                    
+                    if (propertyData.samplingMetadata && propertyData.samplingMetadata.actualValue) {
+                        valueLine += propertyData.samplingMetadata.actualValue;
+                    } else {
+                        // Fallback display
+                        var valueStr = String(propertyData.extractedValue);
+                        if (valueStr.length > 50) {
+                            valueStr = valueStr.substring(0, 50) + '...';
+                        }
+                        valueLine += valueStr;
+                    }
+                    
+                    builder.appendLine(valueLine);
+                }
+            }
+            
+            if (extractedValueCount > 5) {
+                builder.appendLine(newPrefix + '    ... and ' + (extractedValueCount - 5) + ' more extracted values');
+            }
+        }
+        
+        // Collection details if sampling data available
         if (domNode.collections && domNode.collections.length) {
-            for (var j = 0; j < domNode.collections.length; j++) {
-                var collection = domNode.collections[j];
+            for (var l = 0; l < domNode.collections.length; l++) {
+                var collection = domNode.collections[l];
                 if (collection && collection.samplingData) {
-                    var newPrefix = prefix + (isLast ? '    ' : '│   ');
+                    var collNewPrefix = prefix + (isLast ? '    ' : '│   ');
                     var collectionName = collection.name || 'unnamed';
                     var itemsSampled = collection.samplingData.itemsSampled || 0;
                     
-                    var detailLine = newPrefix + '    ↳ ' + collectionName + ': ' + itemsSampled + ' items sampled';
+                    var detailLine = collNewPrefix + '    ↳ ' + collectionName + ': ' + itemsSampled + ' items sampled';
                     
                     if (collection.samplingData.patterns && collection.samplingData.patterns.accessRecommendations) {
                         var recommendations = collection.samplingData.patterns.accessRecommendations;
@@ -777,13 +888,13 @@ function generateDOMTreeText(domNode, prefix, isLast, builder) {
             }
         }
         
-        // Enhanced child nodes processing
+        // Child nodes processing
         if (domNode.childNodes && domNode.childNodes.length) {
-            var newPrefix = prefix + (isLast ? '    ' : '│   ');
+            var childNewPrefix = prefix + (isLast ? '    ' : '│   ');
             
-            for (var k = 0; k < domNode.childNodes.length; k++) {
-                var isLastChild = (k === domNode.childNodes.length - 1);
-                generateDOMTreeText(domNode.childNodes[k], newPrefix, isLastChild, builder);
+            for (var m = 0; m < domNode.childNodes.length; m++) {
+                var isLastChild = (m === domNode.childNodes.length - 1);
+                generateDOMTreeText(domNode.childNodes[m], childNewPrefix, isLastChild, builder);
             }
         }
         
@@ -795,11 +906,11 @@ function generateDOMTreeText(domNode, prefix, isLast, builder) {
 }
 
 // =============================================================================
-// UI UPDATE FUNCTIONS - ENHANCED
+// UI UPDATE FUNCTIONS
 // =============================================================================
 
 /**
- * Update status display with enhanced error handling
+ * Update status display with error handling
  * @param {String} message - Status message
  */
 function updateStatus(message) {
@@ -813,7 +924,7 @@ function updateStatus(message) {
             g_domViz_statusText.text = message;
         }
         
-        // Also output to console for debugging with enhanced formatting
+        // Also output to console for debugging with formatting
         $.writeln('[DOM Visualizer] ' + getCurrentTimestamp() + ': ' + message);
         
     } catch (exc) {
@@ -822,7 +933,7 @@ function updateStatus(message) {
 }
 
 /**
- * Update document information display with comprehensive metadata - Enhanced
+ * Update document information display with comprehensive metadata including extracted values
  */
 function updateDocumentInfo() {
     try {
@@ -839,7 +950,7 @@ function updateDocumentInfo() {
         var infoText = '';
         var targetDocument = envValidation.document;
         
-        // Enhanced basic document information
+        // Basic document information
         try {
             var docName = targetDocument.name || 'Unnamed Document';
             infoText += 'Document: ' + docName;
@@ -854,7 +965,7 @@ function updateDocumentInfo() {
             infoText += ' | Saved: [Unknown]';
         }
         
-        // Enhanced analysis information if available
+        // Analysis information if available
         if (g_domViz_currentDOMStructure) {
             if (g_domViz_currentDOMStructure.statistics) {
                 var stats = g_domViz_currentDOMStructure.statistics;
@@ -866,7 +977,31 @@ function updateDocumentInfo() {
                 }
             }
             
-            // Enhanced collection sampling information
+            // VALUE EXTRACTION INFORMATION
+            var samplingStats = null;
+            if (typeof getSamplingStatistics === 'function') {
+                samplingStats = getSamplingStatistics(g_domViz_currentDOMStructure);
+            } else {
+                // Fallback value extraction stats
+                samplingStats = { samplingEnabled: false, valuesSampled: 0, propertiesSampled: 0 };
+                
+                if (g_domViz_currentDOMStructure.metadata && 
+                    g_domViz_currentDOMStructure.metadata.valueSampling) {
+                    samplingStats.samplingEnabled = true;
+                    if (g_domViz_currentDOMStructure.metadata.valueSampling.statistics) {
+                        var valueStats = g_domViz_currentDOMStructure.metadata.valueSampling.statistics;
+                        samplingStats.valuesSampled = valueStats.valuesSampled || 0;
+                        samplingStats.propertiesSampled = valueStats.propertiesSampled || 0;
+                    }
+                }
+            }
+            
+            if (samplingStats.samplingEnabled) {
+                infoText += ' | Values: ' + (samplingStats.valuesSampled || 0) + 
+                           ' extracted from ' + (samplingStats.propertiesSampled || 0) + ' properties';
+            }
+            
+            // Collection sampling information
             var collectionStats = null;
             if (typeof getCollectionSamplingStatistics === 'function') {
                 collectionStats = getCollectionSamplingStatistics(g_domViz_currentDOMStructure);
@@ -878,9 +1013,9 @@ function updateDocumentInfo() {
                     g_domViz_currentDOMStructure.metadata.collectionSampling) {
                     collectionStats.samplingEnabled = true;
                     if (g_domViz_currentDOMStructure.metadata.collectionSampling.statistics) {
-                        var samplingStats = g_domViz_currentDOMStructure.metadata.collectionSampling.statistics;
-                        collectionStats.collectionsFound = samplingStats.collectionsFound || 0;
-                        collectionStats.collectionsSampled = samplingStats.collectionsSampled || 0;
+                        var collStats = g_domViz_currentDOMStructure.metadata.collectionSampling.statistics;
+                        collectionStats.collectionsFound = collStats.collectionsFound || 0;
+                        collectionStats.collectionsSampled = collStats.collectionsSampled || 0;
                     }
                 }
             }
@@ -901,11 +1036,11 @@ function updateDocumentInfo() {
 }
 
 // =============================================================================
-// EXPORT INTEGRATION (GUARANTEED TO WORK) - ENHANCED
+// EXPORT INTEGRATION
 // =============================================================================
 
 /**
- * Show export options dialog with enhanced validation
+ * Show export options dialog with validation
  */
 function showExportOptions() {
     try {
@@ -928,7 +1063,7 @@ function showExportOptions() {
 }
 
 /**
- * Show export format selection dialog with enhanced error handling
+ * Show export format selection dialog with error handling
  */
 function showExportDialog() {
     try {
@@ -943,7 +1078,7 @@ function showExportDialog() {
         exportDialog.spacing = 10;
         exportDialog.margins = 16;
         
-        // Enhanced format selection with error protection
+        // Format selection with error protection
         var formatGroup = exportDialog.add('group');
         if (formatGroup) {
             formatGroup.orientation = 'column';
@@ -958,7 +1093,7 @@ function showExportDialog() {
             if (textRadio) textRadio.value = true; // Default selection
         }
         
-        // Enhanced buttons with error protection
+        // Buttons with error protection
         var buttonGroup = exportDialog.add('group');
         if (buttonGroup) {
             buttonGroup.orientation = 'row';
@@ -971,12 +1106,12 @@ function showExportDialog() {
             if (exportBtn) {
                 exportBtn.onClick = function() {
                     try {
-                        var format = 'text';
-                        if (jsonRadio && jsonRadio.value) format = 'json';
-                        else if (csvRadio && csvRadio.value) format = 'csv';
+                        var formatValue = 'text';
+                        if (jsonRadio && jsonRadio.value) formatValue = 'json';
+                        else if (csvRadio && csvRadio.value) formatValue = 'csv';
                         
                         exportDialog.close();
-                        performExport(format);
+                        performExport(formatValue);
                     } catch (exc) {
                         updateStatus('Export button error: ' + exc.message);
                     }
@@ -1002,19 +1137,19 @@ function showExportDialog() {
 }
 
 /**
- * Perform the actual export operation with all formats guaranteed available - Enhanced
- * @param {String} format - Export format (text, json, csv)
+ * Perform the actual export operation with all formats available
+ * @param {String} formatValue - Export format (text, json, csv)
  */
-function performExport(format) {
+function performExport(formatValue) {
     try {
-        // Enhanced parameter validation
+        // Parameter validation
         if (!g_domViz_currentDOMStructure) {
             updateStatus('No DOM structure to export');
             return;
         }
         
-        if (!format || typeof format !== 'string') {
-            format = 'text';
+        if (!formatValue || typeof formatValue !== 'string') {
+            formatValue = 'text';
         }
         
         // Check if export function is available
@@ -1023,7 +1158,7 @@ function performExport(format) {
             return;
         }
         
-        updateStatus('Exporting DOM structure as ' + format.toUpperCase() + '...');
+        updateStatus('Exporting DOM structure as ' + formatValue.toUpperCase() + '...');
         
         var exportOptions = objectClone({
             includeMetadata: true,
@@ -1034,12 +1169,12 @@ function performExport(format) {
             includeComparisonData: true
         }, 2);
         
-        var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, format, null, exportOptions);
+        var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, formatValue, null, exportOptions);
         
         if (exportResult && exportResult.success) {
             updateStatus('Export successful! File saved: ' + exportResult.filePath);
             
-            // Enhanced success dialog with file location
+            // Success dialog with file location
             try {
                 var successDialog = new Window('dialog', 'Export Complete');
                 if (successDialog) {
@@ -1091,11 +1226,11 @@ function performExport(format) {
 }
 
 // =============================================================================
-// SETTINGS - ENHANCED
+// SETTINGS
 // =============================================================================
 
 /**
- * Show settings dialog with enhanced feature information
+ * Show settings dialog with feature information
  */
 function showSettingsDialog() {
     try {
@@ -1110,7 +1245,7 @@ function showSettingsDialog() {
         settingsDialog.spacing = 10;
         settingsDialog.margins = 16;
         
-        // Enhanced current settings display
+        // Current settings display
         var infoGroup = settingsDialog.add('group');
         if (infoGroup) {
             infoGroup.orientation = 'column';
@@ -1120,13 +1255,14 @@ function showSettingsDialog() {
             infoGroup.add('statictext', undefined, '• Maximum Depth: 4 levels');
             infoGroup.add('statictext', undefined, '• Timeout Protection: 15 seconds');
             infoGroup.add('statictext', undefined, '• Object Tracking: Enabled');
+            infoGroup.add('statictext', undefined, '• Value Extraction: Enabled');
             infoGroup.add('statictext', undefined, '• Collection Sampling: Available');
             infoGroup.add('statictext', undefined, '• Export Formats: Text, JSON, CSV');
             infoGroup.add('statictext', undefined, '• Safety Filters: Enabled');
             infoGroup.add('statictext', undefined, '• Memory Management: Enhanced');
         }
         
-        // Enhanced available features with dependency checking
+        // Available features with dependency checking
         var featuresGroup = settingsDialog.add('group');
         if (featuresGroup) {
             featuresGroup.orientation = 'column';
@@ -1139,6 +1275,10 @@ function showSettingsDialog() {
             var collectionStatus = typeof sampleCollectionContents === 'function' ? '✓' : '✗';
             featuresGroup.add('statictext', undefined, collectionStatus + ' Collection content sampling with deep analysis');
             
+            // Check for value extraction availability
+            var valueStatus = typeof sampleDOMValues === 'function' ? '✓' : '✗';
+            featuresGroup.add('statictext', undefined, valueStatus + ' Property value extraction with fingerprinting');
+            
             // Check for export availability
             var exportStatus = typeof exportDOMStructure === 'function' ? '✓' : '✗';
             featuresGroup.add('statictext', undefined, exportStatus + ' All export formats (text, JSON, CSV)');
@@ -1146,11 +1286,11 @@ function showSettingsDialog() {
             featuresGroup.add('statictext', undefined, '✓ Object reference visualization');
             featuresGroup.add('statictext', undefined, '✓ Access pattern display');
             featuresGroup.add('statictext', undefined, '✓ Collection sampling statistics');
-            featuresGroup.add('statictext', undefined, '✓ Enhanced ES3 compatibility');
+            featuresGroup.add('statictext', undefined, '✓ ES3 compatibility');
             featuresGroup.add('statictext', undefined, '✓ Memory management and cleanup');
         }
         
-        // Enhanced close button
+        // Close button
         var okBtn = settingsDialog.add('button', undefined, 'OK');
         if (okBtn) {
             okBtn.onClick = function() {
@@ -1171,18 +1311,4 @@ function showSettingsDialog() {
 
 // =============================================================================
 // END OF 9.0_dom-visualizer.jsx
-//
-// ENHANCEMENTS IMPLEMENTED:
-// - Added comprehensive dependency validation and module registration
-// - Namespaced all global variables with g_domViz_ prefix to prevent conflicts
-// - Enhanced ES3 compliance with improved helper usage (arrayJoin, objectClone, countObjectKeys)
-// - Added comprehensive error handling and parameter validation throughout
-// - Enhanced UI creation with fallback handling for failed components
-// - Improved string operations using ES3 helpers throughout
-// - Added dependency availability checking before calling module functions
-// - Enhanced export functionality with better error handling and validation
-// - Added comprehensive status reporting and error logging
-// - Enhanced settings dialog with feature availability detection
-// - All original functionality preserved and enhanced for production reliability
-// - Added graceful degradation when dependent modules are not available
 // =============================================================================

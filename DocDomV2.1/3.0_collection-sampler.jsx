@@ -186,9 +186,9 @@ function sampleSingleCollection(collection, sourceDocument, config, samplingStat
             }
         } else {
             // Sample distributed items
-            var step = Math.floor(collectionLength / maxSamples);
+            var stepValue = Math.floor(collectionLength / maxSamples);
             for (var j = 0; j < maxSamples; j++) {
-                sampleIndices.push(j * step);
+                sampleIndices.push(j * stepValue);
             }
         }
         
@@ -277,9 +277,9 @@ function sampleCollectionItem(collection, itemIndex, itemPath, config, crossColl
         var timeoutChecker = createTimeoutChecker(config.timeoutPerItem);
         var propertyCounter = createOperationCounter(config.maxItemPropertiesPerSample);
         
-        // Enumerate properties of the item - Enhanced ES3 iteration
+        // Enumerate properties of the item - ES3 iteration
         for (var propName in collectionItem) {
-            // Enhanced ES3 property check
+            // ES3 property check
             if (!objectHasOwnProperty(collectionItem, propName)) {
                 continue;
             }
@@ -357,9 +357,9 @@ function performDeepItemAnalysis(collectionItem, itemPath, config, timeoutChecke
         
         var operationCounter = createOperationCounter(config.maxItemPropertiesPerSample);
         
-        // Analyze each property in depth - Enhanced ES3 iteration
+        // Analyze each property in depth - ES3 iteration
         for (var propName in collectionItem) {
-            // Enhanced ES3 property check
+            // ES3 property check
             if (!objectHasOwnProperty(collectionItem, propName)) {
                 continue;
             }
@@ -423,10 +423,10 @@ function performDeepItemAnalysis(collectionItem, itemPath, config, timeoutChecke
 }
 
 /**
- * Analyze common patterns with deep analysis - Enhanced ES3 Compliance
+ * Analyze common patterns with deep analysis - ES3 Compliance
  * @param {Array} samplingData - Array of sampling results
  * @param {Object} config - Configuration
- * @returns {Object} Pattern analysis with enhanced findings
+ * @returns {Object} Pattern analysis with findings
  */
 function analyzeCommonPatterns(samplingData, config) {
     try {
@@ -449,15 +449,15 @@ function analyzeCommonPatterns(samplingData, config) {
         
         // Analyze common properties across all samples
         for (var i = 0; i < samplingData.length; i++) {
-            var sample = samplingData[i];
+            var sampleData = samplingData[i];
             
-            if (sample.properties) {
-                for (var j = 0; j < sample.properties.length; j++) {
-                    var prop = sample.properties[j];
+            if (sampleData.properties) {
+                for (var j = 0; j < sampleData.properties.length; j++) {
+                    var propData = sampleData.properties[j];
                     
                     // Count property occurrences
-                    if (!patterns.commonProperties[prop.name]) {
-                        patterns.commonProperties[prop.name] = {
+                    if (!patterns.commonProperties[propData.name]) {
+                        patterns.commonProperties[propData.name] = {
                             count: 0,
                             types: {},
                             safetyLevels: {},
@@ -465,40 +465,40 @@ function analyzeCommonPatterns(samplingData, config) {
                         };
                     }
                     
-                    patterns.commonProperties[prop.name].count++;
-                    patterns.commonProperties[prop.name].types[prop.type] = 
-                        (patterns.commonProperties[prop.name].types[prop.type] || 0) + 1;
-                    patterns.commonProperties[prop.name].safetyLevels[prop.safetyLevel] = 
-                        (patterns.commonProperties[prop.name].safetyLevels[prop.safetyLevel] || 0) + 1;
+                    patterns.commonProperties[propData.name].count++;
+                    patterns.commonProperties[propData.name].types[propData.type] = 
+                        (patterns.commonProperties[propData.name].types[propData.type] || 0) + 1;
+                    patterns.commonProperties[propData.name].safetyLevels[propData.safetyLevel] = 
+                        (patterns.commonProperties[propData.name].safetyLevels[propData.safetyLevel] || 0) + 1;
                     
-                    if (patterns.commonProperties[prop.name].examples.length < 3) {
-                        patterns.commonProperties[prop.name].examples.push(prop.path);
+                    if (patterns.commonProperties[propData.name].examples.length < 3) {
+                        patterns.commonProperties[propData.name].examples.push(propData.path);
                     }
                     
                     // Count safety distribution
-                    if (patterns.safetyDistribution[prop.safetyLevel] !== undefined) {
-                        patterns.safetyDistribution[prop.safetyLevel]++;
+                    if (patterns.safetyDistribution[propData.safetyLevel] !== undefined) {
+                        patterns.safetyDistribution[propData.safetyLevel]++;
                     }
                 }
             }
         }
         
-        // Generate access recommendations based on common safe properties - Enhanced ES3 iteration
+        // Generate access recommendations based on common safe properties - ES3 iteration
         for (var propName in patterns.commonProperties) {
             if (!objectHasOwnProperty(patterns.commonProperties, propName)) {
                 continue;
             }
             
-            var propData = patterns.commonProperties[propName];
+            var propInfo = patterns.commonProperties[propName];
             var totalSamples = samplingData.length;
-            var occurrence = propData.count / totalSamples;
+            var occurrence = propInfo.count / totalSamples;
             
             // Recommend properties that appear in most samples and are safe
-            if (occurrence > 0.5 && propData.safetyLevels.safe > 0) {
+            if (occurrence > 0.5 && propInfo.safetyLevels.safe > 0) {
                 patterns.accessRecommendations.push({
                     property: propName,
                     occurrence: Math.round(occurrence * 100) + '%',
-                    primaryType: getMostCommonType(propData.types),
+                    primaryType: getMostCommonType(propInfo.types),
                     recommendation: 'Safe to access in iteration loops',
                     example: 'for (var i = 0; i < collection.length; i++) { var value = collection[i].' + propName + '; }'
                 });
@@ -519,7 +519,7 @@ function analyzeCommonPatterns(samplingData, config) {
 }
 
 // =============================================================================
-// CROSS-COLLECTION TRACKING - ENHANCED ES3 COMPLIANCE
+// CROSS-COLLECTION TRACKING - ES3 COMPLIANCE
 // =============================================================================
 
 /**
@@ -656,7 +656,7 @@ function findCollectionsInNode(node, collections) {
 }
 
 /**
- * Check if collection should be sampled
+ * Check if collection should be sampled - Trust DOM Discovery Results
  * @param {Object} collection - Collection to check
  * @param {Object} config - Configuration
  * @returns {Boolean} True if collection should be sampled
@@ -667,17 +667,21 @@ function meetsDiscoveryFirstCriteria(collection, config) {
             return false;
         }
         
-        // Skip dangerous collections
-        if (collection.safetyLevel === 'dangerous') {
-            return false;
+        // DOM discovery already verified this exists and classified safety
+        // Trust those results - don't re-filter for safety during value extraction
+        // Only check for technical access issues that would prevent extraction
+        
+        // Skip only paths with technical access problems (not safety concerns)
+        if (stringIndexOf(collection.path, 'constructor.constructor') !== -1) {
+            return false; // Technical issue - infinite recursion
         }
         
-        // Skip collections that are likely too large or complex
-        if (stringIndexOf(collection.path, 'constructor') !== -1 || 
-            stringIndexOf(collection.path, 'prototype') !== -1) {
-            return false;
+        // Skip paths that are clearly broken/malformed
+        if (stringIndexOf(collection.path, '..') !== -1) {
+            return false; // Malformed path
         }
         
+        // Trust DOM discovery results - if discovered, we can safely access it using safe functions
         return true;
         
     } catch (exc) {
@@ -714,66 +718,6 @@ function getSafetyAdjustedConfig(collection, baseConfig) {
         
     } catch (exc) {
         return baseConfig;
-    }
-}
-
-/**
- * Safely get object reference from path
- * @param {Object} sourceObj - Source object
- * @param {String} path - Dot notation path
- * @param {Number} timeoutMs - Timeout in milliseconds
- * @returns {Object} Result with success, value, and error
- */
-function safeGetObjectFromPath(sourceObj, path, timeoutMs) {
-    var result = {
-        success: false,
-        value: null,
-        error: ''
-    };
-    
-    try {
-        if (!sourceObj || !path) {
-            result.error = 'Invalid source object or path';
-            return result;
-        }
-        
-        var timeoutChecker = createTimeoutChecker(timeoutMs);
-        var pathComponents = splitPath(path);
-        var currentObj = sourceObj;
-        
-        for (var i = 0; i < pathComponents.length; i++) {
-            if (timeoutChecker && timeoutChecker()) {
-                result.error = 'Timeout accessing path';
-                return result;
-            }
-            
-            var component = pathComponents[i];
-            
-            if (!safeHasProperty(currentObj, component)) {
-                result.error = 'Property not found: ' + component;
-                return result;
-            }
-            
-            try {
-                currentObj = currentObj[component];
-            } catch (exc) {
-                result.error = 'Error accessing property: ' + component;
-                return result;
-            }
-            
-            if (!currentObj) {
-                result.error = 'Null object at: ' + component;
-                return result;
-            }
-        }
-        
-        result.success = true;
-        result.value = currentObj;
-        return result;
-        
-    } catch (exc) {
-        result.error = 'Path access error: ' + exc.message;
-        return result;
     }
 }
 
@@ -857,11 +801,11 @@ function enhanceCollectionWithSamplingData(collection, samplingData) {
 }
 
 // =============================================================================
-// UTILITY FUNCTIONS - ENHANCED ES3 COMPLIANCE
+// UTILITY FUNCTIONS - ES3 COMPLIANCE
 // =============================================================================
 
 /**
- * Get most common type from type counts - Enhanced ES3 iteration
+ * Get most common type from type counts - ES3 iteration
  * @param {Object} typeCounts - Object with type counts
  * @returns {String} Most common type
  */
@@ -870,7 +814,7 @@ function getMostCommonType(typeCounts) {
         var maxCount = 0;
         var mostCommon = 'unknown';
         
-        // Enhanced ES3 iteration
+        // ES3 iteration
         for (var objType in typeCounts) {
             if (!objectHasOwnProperty(typeCounts, objType)) {
                 continue;
@@ -909,7 +853,7 @@ registerModule('3.0_collection-sampler', '2.1.1', [
     'findAllCollections', 'findCollectionsInNode', 'meetsDiscoveryFirstCriteria',
     
     // Safety and Configuration
-    'getSafetyAdjustedConfig', 'safeGetObjectFromPath',
+    'getSafetyAdjustedConfig',
     
     // Statistics and Results
     'getCollectionSamplingStatistics', 'enhanceCollectionWithSamplingData',
@@ -920,15 +864,4 @@ registerModule('3.0_collection-sampler', '2.1.1', [
 
 // =============================================================================
 // END OF 3.0_collection-sampler.jsx
-//
-// ENHANCEMENTS IMPLEMENTED:
-// - Added comprehensive dependency validation and module registration
-// - Enhanced ES3 compliance with objectHasOwnProperty() throughout all iterations
-// - Fixed unsafe for...in loops with proper ES3 safety checks
-// - Added config object cloning to prevent mutations
-// - Improved error handling with comprehensive error boundaries
-// - Enhanced cross-collection tracking with ES3 compatibility
-// - Added module system integration and dependency validation
-// - All original functionality preserved and enhanced for production reliability
-// - Memory management improvements and progressive cleanup capabilities
 // =============================================================================

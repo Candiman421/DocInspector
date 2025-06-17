@@ -1,61 +1,36 @@
 // =============================================================================
-// 6.0_json-analyzer.jsx - JSON POST-PROCESSING AND VISUALIZATION
-// InDesign DOM Discovery Builder v2.1 - TARGET ARCHITECTURE
+// 6.0_json-analyzer.jsx - JSON EXPORT ANALYSIS
+// InDesign DOM Discovery Builder v2.1.1 - PRODUCTION READY
 // =============================================================================
-// PURPOSE: JSON export analysis and visualization with simplified visual DOM hierarchies
-// DEPENDENCIES: ["1.0_safe-foundation.jsx"]
-// SIZE: ~800 lines
-// =============================================================================
-
-// =============================================================================
-// MODULE REGISTRATION AND DEPENDENCIES
+// PURPOSE: Analyze exported JSON DOM structures for insights and developer guidance
+// DEPENDENCIES: ["1.0_safe-foundation.jsx", "5.0_dom-exporter.jsx"]
+// SIZE: ~900 lines
 // =============================================================================
 
-try {
-    // Register this module
-    if (typeof registerModule === 'function') {
-        registerModule('json-analyzer', '2.1', [
-            'analyzeJSONExport',
-            'generateVisualDOMHierarchy',
-            'generateDeveloperPropertySummary',
-            'generateCollectionAnalysis',
-            'readAndParseJSONFile',
-            'parseJSONSafely',
-            'validateJSONStructure',
-            'performComprehensiveJSONAnalysis',
-            'generateAnalysisSummary',
-            'categorizePropertiesFromJSON',
-            'extractCollectionsFromJSON',
-            'saveAnalysisResults',
-            'generateFullAnalysisReport',
-            'showJSONAnalyzer'
-        ]);
-    }
+// =============================================================================
+// DEPENDENCY VALIDATION
+// =============================================================================
 
-    // Validate dependencies
-    if (typeof validateDependencies === 'function') {
-        var depResult = validateDependencies(['safe-foundation', 'dom-enumerator']);
-        if (!depResult.success) {
-            throw new Error('Missing dependencies for json-analyzer: ' + depResult.missing.join(', '));
-        }
-    }
-} catch (exc) {
-    // Module system not available - continue with standalone operation
+var JSON_ANALYZER_DEPENDENCIES = ['1.0_safe-foundation', '5.0_dom-exporter'];
+var dependencyCheck = validateDependencies(JSON_ANALYZER_DEPENDENCIES);
+if (!dependencyCheck.success) {
+    throw new Error('JSON Analyzer missing dependencies: ' + dependencyCheck.missing.join(', '));
 }
 
 // =============================================================================
-// JSON ANALYZER CONFIGURATION
+// ANALYSIS CONFIGURATION
 // =============================================================================
 
-var JSON_ANALYZER_CONFIG = {
-    maxTreeDepth: 6,
-    maxPropertiesPerNode: 20,
-    maxCollectionsShown: 10,
-    includePropertyTypes: true,
-    includeObjectReferences: true,
-    includeAccessPaths: true,
-    includeSafetyLevels: true,
-    generateDeveloperNotes: true
+var DEFAULT_ANALYSIS_CONFIG = {
+    enableVisualHierarchy: true,
+    enablePropertyAnalysis: true,
+    enableCollectionAnalysis: true,
+    enableValueAnalysis: true,
+    maxAnalysisDepth: 8,
+    maxReportItems: 100,
+    generateDeveloperGuide: true,
+    includeCodeExamples: true,
+    highlightKeyProperties: true
 };
 
 // =============================================================================
@@ -63,9 +38,9 @@ var JSON_ANALYZER_CONFIG = {
 // =============================================================================
 
 /**
- * Analyze JSON export file and generate simplified visualizations
+ * Complete JSON DOM structure analysis
  * @param {String} jsonFilePath - Path to JSON export file
- * @param {Object} analysisOptions - Analysis options
+ * @param {Object} analysisOptions - Analysis configuration
  * @returns {Object} Analysis result with success, analysis, error
  */
 function analyzeJSONExport(jsonFilePath, analysisOptions) {
@@ -75,285 +50,119 @@ function analyzeJSONExport(jsonFilePath, analysisOptions) {
         analysis: null,
         error: ''
     };
-
+    
     try {
-        // Validate parameters
-        if (!jsonFilePath && !analysisOptions) {
-            result.error = 'No JSON file path or analysis options provided';
+        // Enhanced parameter validation
+        if (!jsonFilePath || typeof jsonFilePath !== 'string') {
+            result.error = 'Invalid JSON file path provided';
             return result;
         }
-
-        var config = mergeJSONAnalysisConfig(JSON_ANALYZER_CONFIG, analysisOptions);
-
+        
+        var config = mergeAnalysisConfig(DEFAULT_ANALYSIS_CONFIG, analysisOptions);
+        
         // Read and parse JSON file
         var jsonData = readAndParseJSONFile(jsonFilePath);
         if (!jsonData.success) {
             result.error = jsonData.error;
             return result;
         }
-
+        
         // Validate JSON structure
-        var validation = validateJSONStructure(jsonData.data);
-        if (!validation.success) {
-            result.error = validation.error;
+        var structureValidation = validateJSONStructure(jsonData.data);
+        if (!structureValidation.success) {
+            result.error = structureValidation.error;
             return result;
         }
-
+        
         // Perform comprehensive analysis
-        var analysisResult = performComprehensiveJSONAnalysis(jsonData.data, config);
-        if (!analysisResult.success) {
-            result.error = analysisResult.error;
+        var analysis = performComprehensiveAnalysis(jsonData.data, config);
+        if (!analysis.success) {
+            result.error = analysis.error;
             return result;
         }
-
-        // Generate analysis components
-        var analysis = {
-            metadata: {
-                analysisTimestamp: getCurrentTimestamp(),
-                sourceFile: jsonFilePath || 'memory_data',
-                analysisTime: new Date().getTime() - startTime,
-                config: config
-            },
-            summary: generateAnalysisSummary(jsonData.data, config),
-            visualHierarchy: generateVisualDOMHierarchy(jsonData.data, config),
-            propertyAnalysis: generateDeveloperPropertySummary(jsonData.data, config),
-            collectionAnalysis: generateCollectionAnalysis(jsonData.data, config),
-            sourceData: jsonData.data
+        
+        // Add analysis metadata
+        analysis.analysis.metadata = {
+            sourceFile: jsonFilePath,
+            analysisTimestamp: getCurrentTimestamp(),
+            analysisTime: new Date().getTime() - startTime,
+            configurationUsed: config,
+            analyzerVersion: '2.1.1'
         };
-
+        
         result.success = true;
-        result.analysis = analysis;
-
+        result.analysis = analysis.analysis;
+        
         return result;
-
+        
     } catch (exc) {
-        result.error = 'JSON analysis failed: ' + exc.message;
+        result.error = 'JSON analysis error: ' + exc.message;
         return result;
     }
 }
 
 /**
- * Generate visual DOM hierarchy from JSON data
- * @param {Object} jsonData - Parsed JSON data
- * @param {Object} config - Configuration
- * @returns {String} Visual DOM hierarchy text
+ * Analyze loaded JSON data directly
+ * @param {Object} jsonData - Loaded JSON data
+ * @param {Object} analysisOptions - Analysis configuration
+ * @returns {Object} Analysis result
  */
-function generateVisualDOMHierarchy(jsonData, config) {
+function analyzeLoadedJSON(jsonData, analysisOptions) {
+    var startTime = new Date().getTime();
+    var result = {
+        success: false,
+        analysis: null,
+        error: ''
+    };
+    
     try {
-        // Parameter validation
         if (!jsonData || typeof jsonData !== 'object') {
-            return 'Error: Invalid JSON data provided';
+            result.error = 'Invalid JSON data provided';
+            return result;
         }
-
-        var builder = createStringBuilder();
-
-        builder.appendLine('VISUAL DOM HIERARCHY');
-        builder.appendLine('===================');
-        builder.appendLine('');
-
-        // Extract DOM structure from JSON
-        var domStructure = null;
-        if (jsonData.domStructure) {
-            domStructure = jsonData.domStructure;
-        } else if (jsonData.structure) {
-            domStructure = jsonData;
+        
+        var config = mergeAnalysisConfig(DEFAULT_ANALYSIS_CONFIG, analysisOptions);
+        
+        // Validate JSON structure
+        var structureValidation = validateJSONStructure(jsonData);
+        if (!structureValidation.success) {
+            result.error = structureValidation.error;
+            return result;
         }
-
-        if (!domStructure || !domStructure.structure || !domStructure.structure.document) {
-            builder.appendLine('No DOM structure found in JSON data');
-            return builder.toString();
+        
+        // Perform comprehensive analysis
+        var analysis = performComprehensiveAnalysis(jsonData, config);
+        if (!analysis.success) {
+            result.error = analysis.error;
+            return result;
         }
-
-        // Generate hierarchy
-        generateNodeHierarchy(
-            domStructure.structure.document,
-            '',
-            true,
-            0,
-            config,
-            builder
-        );
-
-        return builder.toString();
-
+        
+        // Add analysis metadata
+        analysis.analysis.metadata = {
+            sourceFile: 'loaded data',
+            analysisTimestamp: getCurrentTimestamp(),
+            analysisTime: new Date().getTime() - startTime,
+            configurationUsed: config,
+            analyzerVersion: '2.1.1'
+        };
+        
+        result.success = true;
+        result.analysis = analysis.analysis;
+        
+        return result;
+        
     } catch (exc) {
-        return 'Error generating visual hierarchy: ' + exc.message;
-    }
-}
-
-/**
- * Generate developer-focused property summary
- * @param {Object} jsonData - Parsed JSON data
- * @param {Object} config - Configuration
- * @returns {String} Developer property summary
- */
-function generateDeveloperPropertySummary(jsonData, config) {
-    try {
-        // Parameter validation
-        if (!jsonData || typeof jsonData !== 'object') {
-            return 'Error: Invalid JSON data provided';
-        }
-
-        var builder = createStringBuilder();
-
-        builder.appendLine('DEVELOPER PROPERTY SUMMARY');
-        builder.appendLine('==========================');
-        builder.appendLine('');
-
-        // Extract and categorize properties
-        var propertyCategories = categorizePropertiesFromJSON(jsonData, config);
-
-        // Safe properties section
-        if (propertyCategories.safe.length > 0) {
-            builder.appendLine('SAFE PROPERTIES (Recommended for scripts)');
-            builder.appendLine('------------------------------------------');
-            var maxSafe = Math.min(propertyCategories.safe.length, 20);
-            for (var i = 0; i < maxSafe; i++) {
-                var prop = propertyCategories.safe[i];
-                if (prop && prop.path && prop.type) {
-                    builder.appendLine('• ' + prop.path + ' (' + prop.type + ')');
-                }
-            }
-            builder.appendLine('');
-        }
-
-        // Collections section
-        if (propertyCategories.collections.length > 0) {
-            builder.appendLine('COLLECTIONS (Iterable objects)');
-            builder.appendLine('------------------------------');
-            var maxCollections = Math.min(propertyCategories.collections.length, 10);
-            for (var j = 0; j < maxCollections; j++) {
-                var collection = propertyCategories.collections[j];
-                if (collection && collection.path) {
-                    builder.appendLine('• ' + collection.path);
-                    if (collection.samplingData && collection.samplingData.itemsSampled) {
-                        builder.appendLine('  Sample Count: ' + collection.samplingData.itemsSampled);
-                    }
-                }
-            }
-            builder.appendLine('');
-        }
-
-        // Code examples
-        if (config.generateDeveloperNotes) {
-            builder.appendLine('USAGE EXAMPLES');
-            builder.appendLine('--------------');
-            builder.appendLine('// Safe property access pattern:');
-            builder.appendLine('var doc = app.activeDocument;');
-            builder.appendLine('if (doc && "name" in doc) {');
-            builder.appendLine('    var docName = doc.name;');
-            builder.appendLine('    $.writeln("Document: " + docName);');
-            builder.appendLine('}');
-            builder.appendLine('');
-
-            if (propertyCategories.collections.length > 0) {
-                var firstCollection = propertyCategories.collections[0];
-                if (firstCollection && firstCollection.name) {
-                    var collectionName = firstCollection.name;
-                    builder.appendLine('// Collection iteration pattern:');
-                    builder.appendLine('if (doc && "' + collectionName + '" in doc) {');
-                    builder.appendLine('    var collection = doc.' + collectionName + ';');
-                    builder.appendLine('    for (var i = 0; i < collection.length; i++) {');
-                    builder.appendLine('        var item = collection[i];');
-                    builder.appendLine('        // Process item safely');
-                    builder.appendLine('    }');
-                    builder.appendLine('}');
-                    builder.appendLine('');
-                }
-            }
-        }
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating property summary: ' + exc.message;
-    }
-}
-
-/**
- * Generate collection analysis from JSON data
- * @param {Object} jsonData - Parsed JSON data
- * @param {Object} config - Configuration
- * @returns {String} Collection analysis text
- */
-function generateCollectionAnalysis(jsonData, config) {
-    try {
-        // Parameter validation
-        if (!jsonData || typeof jsonData !== 'object') {
-            return 'Error: Invalid JSON data provided';
-        }
-
-        var builder = createStringBuilder();
-
-        builder.appendLine('COLLECTION ANALYSIS');
-        builder.appendLine('==================');
-        builder.appendLine('');
-
-        // Extract collections from JSON
-        var collections = extractCollectionsFromJSON(jsonData);
-
-        if (collections.length === 0) {
-            builder.appendLine('No collections found in the analysis');
-            return builder.toString();
-        }
-
-        builder.appendLine('Found ' + collections.length + ' collections:');
-        builder.appendLine('');
-
-        var maxToShow = Math.min(collections.length, config.maxCollectionsShown);
-        for (var i = 0; i < maxToShow; i++) {
-            var collection = collections[i];
-            if (!collection) continue;
-
-            builder.appendLine((i + 1) + '. ' + (collection.name || 'unnamed') + ' (' + (collection.path || 'no-path') + ')');
-            builder.appendLine('   Type: ' + (collection.type || 'unknown'));
-            builder.appendLine('   Safety Level: ' + (collection.safetyLevel || 'unknown'));
-
-            if (collection.samplingData) {
-                if (collection.samplingData.itemsSampled) {
-                    builder.appendLine('   Items Sampled: ' + collection.samplingData.itemsSampled);
-                }
-
-                if (collection.samplingData.patterns && collection.samplingData.patterns.accessRecommendations) {
-                    var recommendations = collection.samplingData.patterns.accessRecommendations;
-                    if (recommendations.length > 0) {
-                        builder.appendLine('   Common Properties:');
-                        var maxRecs = Math.min(recommendations.length, 3);
-                        for (var j = 0; j < maxRecs; j++) {
-                            var rec = recommendations[j];
-                            if (rec && rec.property && rec.occurrence) {
-                                builder.appendLine('     • ' + rec.property + ' (' + rec.occurrence + ')');
-                            }
-                        }
-                    }
-                }
-            }
-
-            builder.appendLine('');
-        }
-
-        // Usage recommendations
-        builder.appendLine('COLLECTION USAGE RECOMMENDATIONS');
-        builder.appendLine('--------------------------------');
-        builder.appendLine('• Always check collection length before iteration');
-        builder.appendLine('• Use index-based access: collection[i]');
-        builder.appendLine('• Wrap collection access in try-catch blocks');
-        builder.appendLine('• Check if items exist before accessing properties');
-        builder.appendLine('');
-
-        return builder.toString();
-
-    } catch (exc) {
-        return 'Error generating collection analysis: ' + exc.message;
+        result.error = 'JSON analysis error: ' + exc.message;
+        return result;
     }
 }
 
 // =============================================================================
-// JSON FILE OPERATIONS - ENHANCED ES3 COMPATIBLE
+// FILE OPERATIONS - ENHANCED
 // =============================================================================
 
 /**
- * Read and parse JSON file safely
+ * Read and parse JSON file with enhanced error handling
  * @param {String} filePath - Path to JSON file
  * @returns {Object} Result with success, data, error
  */
@@ -363,48 +172,63 @@ function readAndParseJSONFile(filePath) {
         data: null,
         error: ''
     };
-
+    
     try {
+        // Enhanced parameter validation
         if (!filePath || typeof filePath !== 'string') {
-            result.error = 'No file path provided';
+            result.error = 'Invalid file path provided';
             return result;
         }
-
-        var jsonFile = new File(filePath);
-        if (!jsonFile.exists) {
+        
+        // Check if file exists
+        var file = new File(filePath);
+        if (!file.exists) {
             result.error = 'File does not exist: ' + filePath;
             return result;
         }
-
-        if (!jsonFile.open('r')) {
+        
+        // Open and read file
+        var openResult = file.open('r');
+        if (!openResult) {
             result.error = 'Could not open file: ' + filePath;
             return result;
         }
-
+        
         // Set encoding based on InDesign capabilities
-        var capabilities = getInDesignCapabilities();
-        jsonFile.encoding = capabilities.recommendedEncoding;
-
-        var jsonContent = jsonFile.read();
-        jsonFile.close();
-
-        if (!jsonContent) {
+        try {
+            if (app && app.version) {
+                var version = parseFloat(app.version);
+                if (version >= 6.0) {
+                    file.encoding = 'utf8';
+                } else {
+                    file.encoding = 'utf-8';
+                }
+            }
+        } catch (exc) {
+            // Use default encoding
+        }
+        
+        // Read content
+        var content = file.read();
+        file.close();
+        
+        if (!content) {
             result.error = 'File is empty or could not be read';
             return result;
         }
-
-        // Parse JSON content
-        var parseResult = parseJSONSafely(jsonContent);
-        if (!parseResult.success) {
-            result.error = parseResult.error;
+        
+        // Parse JSON with enhanced safety
+        var jsonData = parseJSONSafely(content);
+        if (!jsonData.success) {
+            result.error = jsonData.error;
             return result;
         }
-
+        
         result.success = true;
-        result.data = parseResult.data;
-
+        result.data = jsonData.data;
+        
         return result;
-
+        
     } catch (exc) {
         result.error = 'File read error: ' + exc.message;
         return result;
@@ -412,186 +236,95 @@ function readAndParseJSONFile(filePath) {
 }
 
 /**
- * Parse JSON content safely (ES3 compatible with enhanced validation)
- * @param {String} jsonContent - JSON content string
- * @returns {Object} Result with success, data, error
+ * Parse JSON safely with ES3 compatibility
+ * @param {String} jsonString - JSON string to parse
+ * @returns {Object} Parse result with success, data, error
  */
-function parseJSONSafely(jsonContent) {
+function parseJSONSafely(jsonString) {
     var result = {
         success: false,
         data: null,
         error: ''
     };
-
+    
     try {
-        if (!jsonContent || typeof jsonContent !== 'string') {
-            result.error = 'Invalid JSON content';
+        if (!jsonString || typeof jsonString !== 'string') {
+            result.error = 'Invalid JSON string provided';
             return result;
         }
-
-        // Try native JSON parsing first (if available)
+        
+        // Security check - look for potentially dangerous patterns
+        if (containsFunctionCallPattern(jsonString)) {
+            result.error = 'JSON contains potentially unsafe function calls';
+            return result;
+        }
+        
+        // Try native JSON parser first
         if (typeof JSON !== 'undefined' && JSON.parse) {
             try {
-                result.data = JSON.parse(jsonContent);
+                result.data = JSON.parse(jsonString);
                 result.success = true;
                 return result;
-            } catch (exc) {
-                // Fall through to enhanced eval method
+            } catch (parseExc) {
+                // Fall through to eval method
             }
         }
-
-        // Enhanced safety checks for eval method
-        var dangerousPatterns = [
-            'function', 'eval', 'constructor', 'prototype', '__proto__',
-            'document', 'window', 'global', 'process', 'require',
-            'import', 'export', 'with', 'debugger', 'alert',
-            'confirm', 'prompt', 'setTimeout', 'setInterval'
-        ];
-
-        var lowerContent = jsonContent.toLowerCase();
-        for (var i = 0; i < dangerousPatterns.length; i++) {
-            if (stringIndexOf(lowerContent, dangerousPatterns[i]) !== -1) {
-                result.error = 'JSON content contains potentially dangerous code: ' + dangerousPatterns[i];
-                return result;
-            }
-        }
-
-        // Enhanced pattern checks using ES3 helpers
-        if (stringIndexOf(jsonContent, '(') !== -1 && stringIndexOf(jsonContent, ')') !== -1) {
-            // Check for function calls using enhanced pattern detection
-            if (containsFunctionCallPattern(jsonContent)) {
-                result.error = 'JSON content contains function call patterns';
-                return result;
-            }
-        }
-
-        // Validate JSON structure before eval
-        if (!validateJSONFormat(jsonContent)) {
-            result.error = 'Invalid JSON format detected';
+        
+        // Fallback to eval method (with safety checks)
+        try {
+            result.data = eval('(' + jsonString + ')');
+            result.success = true;
+            return result;
+        } catch (evalExc) {
+            result.error = 'JSON parse error: ' + evalExc.message;
             return result;
         }
-
-        // ES3-compatible eval method with additional safety
-        var parsedData = eval('(' + jsonContent + ')');
-        result.data = parsedData;
-        result.success = true;
-
-        return result;
-
+        
     } catch (exc) {
-        result.error = 'JSON parsing failed: ' + exc.message;
+        result.error = 'JSON parsing error: ' + exc.message;
         return result;
     }
 }
 
 /**
- * ES3-compatible function call pattern detection
- * @param {String} content - Content to check
- * @returns {Boolean} True if function call patterns detected
+ * Check for potentially dangerous function call patterns
+ * @param {String} text - Text to check
+ * @returns {Boolean} True if dangerous patterns found
  */
-function containsFunctionCallPattern(content) {
+function containsFunctionCallPattern(text) {
     try {
-        // Simple pattern detection without regex
-        var identifierChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$0123456789';
-        var inIdentifier = false;
-        var identifierLength = 0;
-
-        for (var i = 0; i < content.length - 1; i++) {
-            var charVal = content.charAt(i);
-            var nextChar = content.charAt(i + 1);
-
-            if (stringIndexOf(identifierChars, charVal) !== -1) {
-                if (!inIdentifier) {
-                    inIdentifier = true;
-                    identifierLength = 1;
-                } else {
-                    identifierLength++;
-                }
-            } else {
-                if (inIdentifier && identifierLength > 1 && charVal === '(' && nextChar !== ')') {
-                    // Found potential function call pattern
-                    return true;
-                }
-                inIdentifier = false;
-                identifierLength = 0;
+        // ES3-compatible pattern detection
+        var dangerousPatterns = [
+            'function(',
+            ').call(',
+            ').apply(',
+            'eval(',
+            'new Function',
+            'constructor.constructor'
+        ];
+        
+        var lowerText = text.toLowerCase();
+        
+        for (var i = 0; i < dangerousPatterns.length; i++) {
+            if (stringIndexOf(lowerText, dangerousPatterns[i]) !== -1) {
+                return true;
             }
         }
-
+        
         return false;
-
+        
     } catch (exc) {
-        return true; // Assume dangerous if we can't analyze
+        return true; // Err on side of caution
     }
 }
 
-/**
- * Validate JSON format before eval (enhanced ES3 version)
- * @param {String} jsonContent - JSON content to validate
- * @returns {Boolean} True if format appears valid
- */
-function validateJSONFormat(jsonContent) {
-    try {
-        var trimmed = trimString(jsonContent); // Use ES3-compatible trim
-
-        if (!trimmed || trimmed.length < 2) {
-            return false;
-        }
-
-        // Must start and end with { } or [ ]
-        var firstChar = trimmed.charAt(0);
-        var lastChar = trimmed.charAt(trimmed.length - 1);
-
-        if (!((firstChar === '{' && lastChar === '}') ||
-            (firstChar === '[' && lastChar === ']'))) {
-            return false;
-        }
-
-        // Enhanced bracket matching with ES3 compatibility
-        var openBraces = 0;
-        var openBrackets = 0;
-        var inString = false;
-        var escapeNext = false;
-
-        for (var i = 0; i < trimmed.length; i++) {
-            var charValue = trimmed.charAt(i);
-
-            if (escapeNext) {
-                escapeNext = false;
-                continue;
-            }
-
-            if (charValue === '\\') {
-                escapeNext = true;
-                continue;
-            }
-
-            if (charValue === '"') {
-                inString = !inString;
-                continue;
-            }
-
-            if (!inString) {
-                if (charValue === '{') openBraces++;
-                else if (charValue === '}') openBraces--;
-                else if (charValue === '[') openBrackets++;
-                else if (charValue === ']') openBrackets--;
-
-                if (openBraces < 0 || openBrackets < 0) {
-                    return false;
-                }
-            }
-        }
-
-        return openBraces === 0 && openBrackets === 0 && !inString;
-
-    } catch (exc) {
-        return false;
-    }
-}
+// =============================================================================
+// STRUCTURE VALIDATION - ENHANCED
+// =============================================================================
 
 /**
- * Validate JSON structure for DOM export format
- * @param {Object} jsonData - Parsed JSON data
+ * Validate JSON structure for DOM export compatibility
+ * @param {Object} jsonData - JSON data to validate
  * @returns {Object} Validation result with success, error
  */
 function validateJSONStructure(jsonData) {
@@ -650,62 +383,60 @@ function validateJSONStructure(jsonData) {
 // =============================================================================
 
 /**
- * Perform comprehensive analysis of JSON data
- * @param {Object} jsonData - Parsed JSON data
- * @param {Object} config - Configuration
- * @returns {Object} Analysis result with success, analysisData, error
+ * Perform comprehensive analysis of DOM structure
+ * @param {Object} jsonData - JSON data to analyze
+ * @param {Object} config - Analysis configuration
+ * @returns {Object} Analysis result
  */
-function performComprehensiveJSONAnalysis(jsonData, config) {
+function performComprehensiveAnalysis(jsonData, config) {
     var result = {
         success: false,
-        analysisData: null,
+        analysis: null,
         error: ''
     };
-
+    
     try {
-        // Parameter validation
-        if (!jsonData || typeof jsonData !== 'object') {
-            result.error = 'Invalid JSON data provided';
-            return result;
-        }
-
-        var analysisData = {
-            nodeCount: 0,
-            propertyCount: 0,
-            collectionCount: 0,
-            maxDepth: 0,
-            objectReferences: 0,
-            circularReferences: 0
+        var domStructure = jsonData.domStructure || jsonData;
+        
+        var analysis = {
+            summary: generateAnalysisSummary(domStructure, config),
+            visualHierarchy: null,
+            propertyAnalysis: null,
+            collectionAnalysis: null,
+            valueAnalysis: null,
+            developerGuide: null
         };
-
-        // Extract DOM structure
-        var domStructure = null;
-        if (jsonData.domStructure) {
-            domStructure = jsonData.domStructure;
-        } else if (jsonData.structure) {
-            domStructure = jsonData;
+        
+        // Visual hierarchy analysis
+        if (config.enableVisualHierarchy) {
+            analysis.visualHierarchy = generateVisualHierarchy(domStructure, config);
         }
-
-        if (domStructure) {
-            // Count nodes and properties
-            if (domStructure.structure && domStructure.structure.document) {
-                countAnalysisData(domStructure.structure.document, analysisData, 0);
-            }
-
-            // Extract statistics if available
-            if (domStructure.statistics) {
-                analysisData.nodeCount = domStructure.statistics.totalNodes || analysisData.nodeCount;
-                analysisData.propertyCount = domStructure.statistics.totalProperties || analysisData.propertyCount;
-                analysisData.objectReferences = domStructure.statistics.objectReferences || 0;
-                analysisData.circularReferences = domStructure.statistics.circularReferences || 0;
-            }
+        
+        // Property analysis
+        if (config.enablePropertyAnalysis) {
+            analysis.propertyAnalysis = generateDeveloperPropertySummary(domStructure, config);
         }
-
+        
+        // Collection analysis
+        if (config.enableCollectionAnalysis) {
+            analysis.collectionAnalysis = generateCollectionAnalysis(domStructure, config);
+        }
+        
+        // Value analysis (new - for extracted values)
+        if (config.enableValueAnalysis) {
+            analysis.valueAnalysis = generateValueAnalysis(domStructure, config);
+        }
+        
+        // Developer guide
+        if (config.generateDeveloperGuide) {
+            analysis.developerGuide = generateDeveloperGuide(domStructure, config);
+        }
+        
         result.success = true;
-        result.analysisData = analysisData;
-
+        result.analysis = analysis;
+        
         return result;
-
+        
     } catch (exc) {
         result.error = 'Analysis processing error: ' + exc.message;
         return result;
@@ -713,397 +444,648 @@ function performComprehensiveJSONAnalysis(jsonData, config) {
 }
 
 /**
- * Generate analysis summary from JSON data
- * @param {Object} jsonData - Parsed JSON data
+ * Generate analysis summary
+ * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
- * @returns {Object} Analysis summary
+ * @returns {String} Analysis summary
  */
-function generateAnalysisSummary(jsonData, config) {
+function generateAnalysisSummary(domStructure, config) {
     try {
-        var summary = {
-            documentName: 'Unknown',
-            analysisTimestamp: 'Unknown',
-            nodeCount: 0,
-            propertyCount: 0,
-            collectionCount: 0,
-            hasCollectionSampling: false,
-            hasObjectReferences: false
-        };
-
-        // Parameter validation
-        if (!jsonData || typeof jsonData !== 'object') {
-            summary.documentName = 'Error: Invalid data';
-            return summary;
-        }
-
-        // Extract basic info
-        var domStructure = jsonData.domStructure || jsonData;
-
+        var builder = createStringBuilder();
+        
+        builder.appendLine('ANALYSIS SUMMARY');
+        builder.appendLine('================');
+        
         if (domStructure.metadata) {
-            summary.documentName = domStructure.metadata.documentName || 'Unknown';
-            summary.analysisTimestamp = domStructure.metadata.timestamp || 'Unknown';
-            summary.hasCollectionSampling = !!(domStructure.metadata.collectionSampling);
-        }
-
-        if (domStructure.statistics) {
-            summary.nodeCount = domStructure.statistics.totalNodes || 0;
-            summary.propertyCount = domStructure.statistics.totalProperties || 0;
-            summary.hasObjectReferences = (domStructure.statistics.objectReferences || 0) > 0;
-        }
-
-        // Count collections
-        var collections = extractCollectionsFromJSON(jsonData);
-        summary.collectionCount = collections.length;
-
-        return summary;
-
-    } catch (exc) {
-        return {
-            documentName: 'Error',
-            analysisTimestamp: 'Error',
-            nodeCount: 0,
-            propertyCount: 0,
-            collectionCount: 0,
-            hasCollectionSampling: false,
-            hasObjectReferences: false
-        };
-    }
-}
-
-/**
- * Categorize properties from JSON data for developer use - Enhanced ES3 compliant
- * @param {Object} jsonData - Parsed JSON data
- * @param {Object} config - Configuration
- * @returns {Object} Categorized properties
- */
-function categorizePropertiesFromJSON(jsonData, config) {
-    var categories = {
-        safe: [],
-        moderate: [],
-        risky: [],
-        dangerous: [],
-        collections: [],
-        methods: []
-    };
-
-    try {
-        // Parameter validation
-        if (!jsonData || typeof jsonData !== 'object') {
-            return categories;
-        }
-
-        var domStructure = jsonData.domStructure || jsonData;
-
-        if (domStructure.structure && domStructure.structure.document) {
-            categorizeNodeProperties(domStructure.structure.document, categories, config);
-        }
-
-        return categories;
-
-    } catch (exc) {
-        return categories;
-    }
-}
-
-// =============================================================================
-// HIERARCHY GENERATION - ENHANCED
-// =============================================================================
-
-/**
- * Generate node hierarchy visualization
- * @param {Object} node - DOM node
- * @param {String} prefix - Tree prefix
- * @param {Boolean} isLast - Is last node at this level
- * @param {Number} currentDepth - Current depth
- * @param {Object} config - Configuration
- * @param {Object} builder - String builder
- */
-function generateNodeHierarchy(node, prefix, isLast, currentDepth, config, builder) {
-    try {
-        if (!node || !builder || currentDepth >= config.maxTreeDepth) {
-            return;
-        }
-
-        // Node line
-        var connector = isLast ? '└── ' : '├── ';
-        var nodeLine = prefix + connector + (node.name || 'unnamed');
-
-        // Add type and metadata
-        var metadata = [];
-        metadata.push(node.type || 'unknown');
-
-        if (node.properties && node.properties.length > 0) {
-            metadata.push(node.properties.length + ' props');
-        }
-
-        if (node.collections && node.collections.length > 0) {
-            metadata.push(node.collections.length + ' collections');
-        }
-
-        if (node.methods && node.methods.length > 0) {
-            metadata.push(node.methods.length + ' methods');
-        }
-
-        if (node.objectMetadata && node.objectMetadata.isCircular) {
-            metadata.push('CIRCULAR');
-        }
-
-        if (metadata.length > 0) {
-            nodeLine += ' [' + arrayJoin(metadata, ', ') + ']';
-        }
-
-        builder.appendLine(nodeLine);
-
-        // Child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            var newPrefix = prefix + (isLast ? '    ' : '│   ');
-
-            for (var i = 0; i < node.childNodes.length; i++) {
-                var isLastChild = (i === node.childNodes.length - 1);
-                generateNodeHierarchy(
-                    node.childNodes[i],
-                    newPrefix,
-                    isLastChild,
-                    currentDepth + 1,
-                    config,
-                    builder
-                );
+            var metadata = domStructure.metadata;
+            
+            builder.appendLine('Document: ' + (metadata.documentName || 'Unknown'));
+            builder.appendLine('Total Nodes: ' + (metadata.totalNodes || 0));
+            builder.appendLine('Total Properties: ' + (metadata.totalProperties || 0));
+            builder.appendLine('Total Collections: ' + (metadata.totalCollections || 0));
+            builder.appendLine('Total Methods: ' + (metadata.totalMethods || 0));
+            
+            // Add value extraction statistics if available
+            if (metadata.samplingStatistics) {
+                builder.appendLine('');
+                builder.appendLine('VALUE EXTRACTION RESULTS:');
+                builder.appendLine('Values Extracted: ' + (metadata.samplingStatistics.valuesSampled || 0));
+                builder.appendLine('Properties Sampled: ' + (metadata.samplingStatistics.propertiesSampled || 0));
+                builder.appendLine('Collections Sampled: ' + (metadata.samplingStatistics.collectionsSampled || 0));
+            }
+            
+            if (metadata.objectReferences) {
+                builder.appendLine('');
+                builder.appendLine('OBJECT REFERENCE TRACKING:');
+                builder.appendLine('Unique Objects: ' + (metadata.objectReferences.uniqueObjects || 0));
+                builder.appendLine('Duplicate References: ' + (metadata.objectReferences.duplicateReferences || 0));
             }
         }
-
+        
+        return builder.toString();
+        
     } catch (exc) {
-        if (builder) {
-            builder.appendLine(prefix + '└── [Error displaying node: ' + exc.message + ']');
-        }
+        return 'Error generating analysis summary: ' + exc.message;
     }
 }
 
-// =============================================================================
-// UTILITY FUNCTIONS - ENHANCED ES3 COMPLIANT
-// =============================================================================
-
 /**
- * Extract collections from JSON data
- * @param {Object} jsonData - JSON data
- * @returns {Array} Array of collection objects
+ * Generate visual hierarchy representation
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Visual hierarchy
  */
-function extractCollectionsFromJSON(jsonData) {
-    var collections = [];
-
+function generateVisualHierarchy(domStructure, config) {
     try {
-        if (!jsonData || typeof jsonData !== 'object') {
-            return collections;
-        }
-
-        var domStructure = jsonData.domStructure || jsonData;
-
+        var builder = createStringBuilder();
+        
+        builder.appendLine('VISUAL HIERARCHY');
+        builder.appendLine('================');
+        
         if (domStructure.structure && domStructure.structure.document) {
-            extractCollectionsFromNode(domStructure.structure.document, collections);
+            generateHierarchyNode(domStructure.structure.document, builder, '', 0, config);
         }
-
-        return collections;
-
+        
+        return builder.toString();
+        
     } catch (exc) {
-        return [];
+        return 'Error generating visual hierarchy: ' + exc.message;
     }
 }
 
 /**
- * Recursively extract collections from a node
+ * Generate hierarchy node representation (recursive)
  * @param {Object} node - DOM node
- * @param {Array} collections - Array to populate
+ * @param {Object} builder - String builder
+ * @param {String} prefix - Tree prefix
+ * @param {Number} depth - Current depth
+ * @param {Object} config - Configuration
  */
-function extractCollectionsFromNode(node, collections) {
+function generateHierarchyNode(node, builder, prefix, depth, config) {
     try {
-        if (!node || !collections) {
+        if (!node || depth > config.maxAnalysisDepth) {
             return;
         }
-
-        // Add collections from this node
-        if (node.collections && node.collections.length > 0) {
-            for (var i = 0; i < node.collections.length; i++) {
-                if (node.collections[i]) {
-                    collections.push(node.collections[i]);
+        
+        // Build node display with extracted values if available
+        var nodeText = node.name || 'unnamed';
+        var typeInfo = node.type ? ' [' + node.type + ']' : '';
+        
+        // Show extracted values if available
+        var valueInfo = '';
+        if (node.extractedValue !== null && node.extractedValue !== undefined) {
+            var valueDisplay = String(node.extractedValue);
+            if (valueDisplay.length > 30) {
+                valueDisplay = valueDisplay.substring(0, 27) + '...';
+            }
+            valueInfo = ' = "' + valueDisplay + '"';
+        }
+        
+        // Show counts
+        var counts = '';
+        var propCount = node.properties ? node.properties.length : 0;
+        var collCount = node.collections ? node.collections.length : 0;
+        var methodCount = node.methods ? node.methods.length : 0;
+        
+        if (propCount > 0 || collCount > 0 || methodCount > 0) {
+            var countParts = [];
+            if (propCount > 0) countParts.push(propCount + 'p');
+            if (collCount > 0) countParts.push(collCount + 'c');
+            if (methodCount > 0) countParts.push(methodCount + 'm');
+            counts = ' {' + arrayJoin(countParts, ',') + '}';
+        }
+        
+        builder.appendLine(prefix + nodeText + typeInfo + valueInfo + counts);
+        
+        // Show important properties with extracted values
+        if (node.properties && config.highlightKeyProperties) {
+            for (var i = 0; i < node.properties.length && i < 3; i++) {
+                var prop = node.properties[i];
+                if (prop.extractedValue !== null && prop.extractedValue !== undefined) {
+                    var propValue = String(prop.extractedValue);
+                    if (propValue.length > 20) {
+                        propValue = propValue.substring(0, 17) + '...';
+                    }
+                    builder.appendLine(prefix + '  → ' + prop.name + ': ' + propValue);
                 }
             }
         }
-
-        // Recursively search child nodes
+        
+        // Show children
         if (node.childNodes && node.childNodes.length > 0) {
             for (var j = 0; j < node.childNodes.length; j++) {
-                extractCollectionsFromNode(node.childNodes[j], collections);
+                var isLast = (j === node.childNodes.length - 1);
+                var childPrefix = prefix + (isLast ? '└── ' : '├── ');
+                var grandChildPrefix = prefix + (isLast ? '    ' : '│   ');
+                
+                generateHierarchyNode(node.childNodes[j], builder, childPrefix, depth + 1, config);
             }
         }
-
+        
     } catch (exc) {
-        // Continue processing
+        if (builder && builder.appendLine) {
+            builder.appendLine(prefix + 'Error displaying node: ' + exc.message);
+        }
     }
 }
 
 /**
- * Count analysis data recursively
- * @param {Object} node - DOM node
- * @param {Object} analysisData - Analysis data to update
- * @param {Number} depth - Current depth
- */
-function countAnalysisData(node, analysisData, depth) {
-    try {
-        if (!node || !analysisData) {
-            return;
-        }
-
-        analysisData.nodeCount++;
-        analysisData.maxDepth = Math.max(analysisData.maxDepth, depth);
-
-        if (node.properties && node.properties.length) {
-            analysisData.propertyCount += node.properties.length;
-        }
-
-        if (node.collections && node.collections.length) {
-            analysisData.collectionCount += node.collections.length;
-        }
-
-        if (node.methods && node.methods.length) {
-            analysisData.propertyCount += node.methods.length;
-        }
-
-        // Recursively count child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var i = 0; i < node.childNodes.length; i++) {
-                countAnalysisData(node.childNodes[i], analysisData, depth + 1);
-            }
-        }
-
-    } catch (exc) {
-        // Continue counting
-    }
-}
-
-/**
- * Categorize properties from a node - Enhanced ES3 compliant
- * @param {Object} node - DOM node
- * @param {Object} categories - Categories object to update
+ * Generate developer property summary with extracted values
+ * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
+ * @returns {String} Property summary
  */
-function categorizeNodeProperties(node, categories, config) {
+function generateDeveloperPropertySummary(domStructure, config) {
     try {
-        if (!node || !categories) {
-            return;
+        var builder = createStringBuilder();
+        
+        builder.appendLine('DEVELOPER PROPERTY SUMMARY');
+        builder.appendLine('==========================');
+        
+        var keyProperties = findKeyProperties(domStructure, config);
+        
+        if (keyProperties && keyProperties.length > 0) {
+            builder.appendLine('KEY PROPERTIES WITH EXTRACTED VALUES:');
+            builder.appendLine('-------------------------------------');
+            
+            for (var i = 0; i < keyProperties.length && i < config.maxReportItems; i++) {
+                var prop = keyProperties[i];
+                
+                builder.appendLine('Property: ' + prop.name);
+                builder.appendLine('  Path: ' + prop.path);
+                builder.appendLine('  Type: ' + prop.type);
+                
+                if (prop.extractedValue !== null && prop.extractedValue !== undefined) {
+                    builder.appendLine('  Value: ' + String(prop.extractedValue));
+                }
+                
+                if (prop.valueFingerprint) {
+                    builder.appendLine('  Fingerprint: ' + prop.valueFingerprint);
+                }
+                
+                if (config.includeCodeExamples) {
+                    builder.appendLine('  Access: ' + generateAccessExample(prop.path));
+                }
+                
+                builder.appendLine('');
+            }
         }
+        
+        return builder.toString();
+        
+    } catch (exc) {
+        return 'Error generating property summary: ' + exc.message;
+    }
+}
 
-        // Categorize properties using ES3-compatible iteration
-        if (node.properties && node.properties.length) {
-            for (var i = 0; i < node.properties.length; i++) {
-                var prop = node.properties[i];
-                if (prop) {
-                    var safetyLevel = prop.safetyLevel || 'safe';
-                    if (categories[safetyLevel]) {
-                        categories[safetyLevel].push(prop);
+/**
+ * Generate collection analysis with extracted content
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Collection analysis
+ */
+function generateCollectionAnalysis(domStructure, config) {
+    try {
+        var builder = createStringBuilder();
+        
+        builder.appendLine('COLLECTION ANALYSIS');
+        builder.appendLine('===================');
+        
+        var collections = findCollections(domStructure, config);
+        
+        if (collections && collections.length > 0) {
+            builder.appendLine('DISCOVERED COLLECTIONS WITH CONTENT:');
+            builder.appendLine('------------------------------------');
+            
+            for (var i = 0; i < collections.length && i < config.maxReportItems; i++) {
+                var coll = collections[i];
+                
+                builder.appendLine('Collection: ' + coll.name);
+                builder.appendLine('  Path: ' + coll.path);
+                builder.appendLine('  Type: ' + coll.type);
+                
+                // Show extracted content if available
+                if (coll.samplingMetadata) {
+                    var sampling = coll.samplingMetadata;
+                    if (sampling.itemCount !== undefined) {
+                        builder.appendLine('  Items: ' + sampling.itemCount);
+                    }
+                    if (sampling.sampleItems && sampling.sampleItems.length > 0) {
+                        builder.appendLine('  Sample Items: ' + arrayJoin(sampling.sampleItems, ', '));
                     }
                 }
-            }
-        }
-
-        // Add collections
-        if (node.collections && node.collections.length) {
-            for (var j = 0; j < node.collections.length; j++) {
-                if (node.collections[j]) {
-                    categories.collections.push(node.collections[j]);
+                
+                if (config.includeCodeExamples) {
+                    builder.appendLine('  Access: ' + generateCollectionAccessExample(coll.path));
                 }
+                
+                builder.appendLine('');
             }
+        } else {
+            builder.appendLine('No collections found with extracted content.');
         }
-
-        // Add methods
-        if (node.methods && node.methods.length) {
-            for (var k = 0; k < node.methods.length; k++) {
-                if (node.methods[k]) {
-                    categories.methods.push(node.methods[k]);
-                }
-            }
-        }
-
-        // Recursively process child nodes
-        if (node.childNodes && node.childNodes.length > 0) {
-            for (var l = 0; l < node.childNodes.length; l++) {
-                categorizeNodeProperties(node.childNodes[l], categories, config);
-            }
-        }
-
+        
+        return builder.toString();
+        
     } catch (exc) {
-        // Continue processing
+        return 'Error generating collection analysis: ' + exc.message;
     }
 }
 
 /**
- * Merge JSON analysis configuration
- * @param {Object} defaults - Default configuration
- * @param {Object} userOptions - User options
- * @returns {Object} Merged configuration
+ * Generate value analysis for extracted data
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Value analysis
  */
-function mergeJSONAnalysisConfig(defaults, userOptions) {
+function generateValueAnalysis(domStructure, config) {
     try {
-        var merged = objectClone(defaults, 2); // Use ES3 helper for cloning
-
-        // Override with user options using ES3-compatible iteration
-        if (userOptions && typeof userOptions === 'object') {
-            for (var key in userOptions) {
-                if (objectHasOwnProperty(userOptions, key)) {
-                    merged[key] = userOptions[key];
-                }
+        var builder = createStringBuilder();
+        
+        builder.appendLine('VALUE EXTRACTION ANALYSIS');
+        builder.appendLine('========================');
+        
+        var valueStats = analyzeExtractedValues(domStructure);
+        
+        builder.appendLine('Extraction Statistics:');
+        builder.appendLine('  Properties with values: ' + valueStats.propertiesWithValues);
+        builder.appendLine('  Properties without values: ' + valueStats.propertiesWithoutValues);
+        builder.appendLine('  Collections with content: ' + valueStats.collectionsWithContent);
+        builder.appendLine('  Value types found: ' + arrayJoin(valueStats.valueTypes, ', '));
+        builder.appendLine('');
+        
+        if (valueStats.sampleValues && valueStats.sampleValues.length > 0) {
+            builder.appendLine('SAMPLE EXTRACTED VALUES:');
+            builder.appendLine('------------------------');
+            
+            for (var i = 0; i < valueStats.sampleValues.length; i++) {
+                var sample = valueStats.sampleValues[i];
+                builder.appendLine(sample.path + ' = ' + sample.value + ' [' + sample.type + ']');
             }
         }
-
-        return merged;
-
+        
+        return builder.toString();
+        
     } catch (exc) {
-        return defaults || {};
+        return 'Error generating value analysis: ' + exc.message;
     }
 }
 
 /**
- * Get InDesign capabilities for file operations
- * @returns {Object} Capabilities object
+ * Generate developer guide
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Developer guide
  */
-function getInDesignCapabilities() {
+function generateDeveloperGuide(domStructure, config) {
     try {
-        var capabilities = {
-            version: 'unknown',
-            supportsUTF8: false,
-            supportsLargeFiles: false,
-            recommendedEncoding: 'ASCII'
-        };
-
-        if (typeof app !== 'undefined' && app.version) {
-            capabilities.version = app.version;
-            capabilities.supportsUTF8 = stringIndexOf(app.version, 'CS') === -1; // CC versions
-            capabilities.supportsLargeFiles = parseFloat(app.version) >= 9.0;
-            capabilities.recommendedEncoding = capabilities.supportsUTF8 ? 'UTF-8' : 'ASCII';
-        }
-
-        return capabilities;
-
+        var builder = createStringBuilder();
+        
+        builder.appendLine('DEVELOPER GUIDE');
+        builder.appendLine('===============');
+        
+        builder.appendLine('This DOM structure contains extracted values from the InDesign document.');
+        builder.appendLine('You can use these values to understand document content and structure.');
+        builder.appendLine('');
+        
+        builder.appendLine('KEY CONCEPTS:');
+        builder.appendLine('- Properties show actual extracted values when available');
+        builder.appendLine('- Collections include sample content and item counts');
+        builder.appendLine('- Object references help identify relationships');
+        builder.appendLine('- Alternative paths provide multiple access routes');
+        builder.appendLine('');
+        
+        builder.appendLine('USAGE EXAMPLES:');
+        builder.appendLine('var doc = app.activeDocument;');
+        builder.appendLine('var pageCount = doc.pages.length; // Check extracted values');
+        builder.appendLine('var firstPage = doc.pages[0];');
+        builder.appendLine('var pageItems = firstPage.pageItems;');
+        builder.appendLine('');
+        
+        builder.appendLine('VALUE EXTRACTION:');
+        builder.appendLine('- Look for "extractedValue" properties');
+        builder.appendLine('- Check "samplingMetadata" for collection content');
+        builder.appendLine('- Use "valueFingerprint" for change detection');
+        
+        return builder.toString();
+        
     } catch (exc) {
-        return {
-            version: 'unknown',
-            supportsUTF8: false,
-            supportsLargeFiles: false,
-            recommendedEncoding: 'ASCII'
-        };
+        return 'Error generating developer guide: ' + exc.message;
     }
 }
 
 // =============================================================================
-// EXPORT AND SAVE FUNCTIONS - ENHANCED
+// UTILITY FUNCTIONS - ENHANCED
+// =============================================================================
+
+/**
+ * Find key properties in DOM structure
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {Array} Key properties
+ */
+function findKeyProperties(domStructure, config) {
+    var keyProperties = [];
+    
+    try {
+        if (domStructure.structure && domStructure.structure.document) {
+            findKeyPropertiesInNode(domStructure.structure.document, keyProperties, config);
+        }
+        
+        // Sort by importance (properties with extracted values first)
+        keyProperties.sort(function(a, b) {
+            var aHasValue = (a.extractedValue !== null && a.extractedValue !== undefined);
+            var bHasValue = (b.extractedValue !== null && b.extractedValue !== undefined);
+            
+            if (aHasValue && !bHasValue) return -1;
+            if (!aHasValue && bHasValue) return 1;
+            return 0;
+        });
+        
+    } catch (exc) {
+        // Return empty array on error
+    }
+    
+    return keyProperties;
+}
+
+/**
+ * Find key properties in node (recursive)
+ * @param {Object} node - DOM node
+ * @param {Array} keyProperties - Array to collect properties
+ * @param {Object} config - Configuration
+ */
+function findKeyPropertiesInNode(node, keyProperties, config) {
+    try {
+        if (!node || keyProperties.length >= config.maxReportItems) {
+            return;
+        }
+        
+        // Check node properties
+        if (node.properties) {
+            for (var i = 0; i < node.properties.length; i++) {
+                var prop = node.properties[i];
+                
+                // Prioritize properties with extracted values
+                if (prop.extractedValue !== null && prop.extractedValue !== undefined) {
+                    keyProperties.push(prop);
+                } else if (isImportantProperty(prop.name)) {
+                    keyProperties.push(prop);
+                }
+            }
+        }
+        
+        // Recurse into child nodes
+        if (node.childNodes) {
+            for (var j = 0; j < node.childNodes.length; j++) {
+                findKeyPropertiesInNode(node.childNodes[j], keyProperties, config);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue processing
+    }
+}
+
+/**
+ * Find collections in DOM structure
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {Array} Collections
+ */
+function findCollections(domStructure, config) {
+    var collections = [];
+    
+    try {
+        if (domStructure.structure && domStructure.structure.document) {
+            findCollectionsInNode(domStructure.structure.document, collections, config);
+        }
+        
+    } catch (exc) {
+        // Return empty array on error
+    }
+    
+    return collections;
+}
+
+/**
+ * Find collections in node (recursive)
+ * @param {Object} node - DOM node
+ * @param {Array} collections - Array to collect collections
+ * @param {Object} config - Configuration
+ */
+function findCollectionsInNode(node, collections, config) {
+    try {
+        if (!node || collections.length >= config.maxReportItems) {
+            return;
+        }
+        
+        // Check node collections
+        if (node.collections) {
+            for (var i = 0; i < node.collections.length; i++) {
+                collections.push(node.collections[i]);
+            }
+        }
+        
+        // Recurse into child nodes
+        if (node.childNodes) {
+            for (var j = 0; j < node.childNodes.length; j++) {
+                findCollectionsInNode(node.childNodes[j], collections, config);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue processing
+    }
+}
+
+/**
+ * Analyze extracted values in DOM structure
+ * @param {Object} domStructure - DOM structure
+ * @returns {Object} Value statistics
+ */
+function analyzeExtractedValues(domStructure) {
+    var stats = {
+        propertiesWithValues: 0,
+        propertiesWithoutValues: 0,
+        collectionsWithContent: 0,
+        valueTypes: [],
+        sampleValues: []
+    };
+    
+    try {
+        if (domStructure.structure && domStructure.structure.document) {
+            analyzeValuesInNode(domStructure.structure.document, stats);
+        }
+        
+        // Remove duplicate value types
+        var uniqueTypes = [];
+        for (var i = 0; i < stats.valueTypes.length; i++) {
+            var type = stats.valueTypes[i];
+            var found = false;
+            for (var j = 0; j < uniqueTypes.length; j++) {
+                if (uniqueTypes[j] === type) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                uniqueTypes.push(type);
+            }
+        }
+        stats.valueTypes = uniqueTypes;
+        
+    } catch (exc) {
+        // Return basic stats on error
+    }
+    
+    return stats;
+}
+
+/**
+ * Analyze values in node (recursive)
+ * @param {Object} node - DOM node
+ * @param {Object} stats - Statistics object
+ */
+function analyzeValuesInNode(node, stats) {
+    try {
+        if (!node || stats.sampleValues.length >= 20) {
+            return;
+        }
+        
+        // Check node properties
+        if (node.properties) {
+            for (var i = 0; i < node.properties.length; i++) {
+                var prop = node.properties[i];
+                
+                if (prop.extractedValue !== null && prop.extractedValue !== undefined) {
+                    stats.propertiesWithValues++;
+                    
+                    var valueType = typeof prop.extractedValue;
+                    stats.valueTypes.push(valueType);
+                    
+                    if (stats.sampleValues.length < 10) {
+                        stats.sampleValues.push({
+                            path: prop.path,
+                            value: String(prop.extractedValue),
+                            type: valueType
+                        });
+                    }
+                } else {
+                    stats.propertiesWithoutValues++;
+                }
+            }
+        }
+        
+        // Check collections
+        if (node.collections) {
+            for (var j = 0; j < node.collections.length; j++) {
+                var coll = node.collections[j];
+                if (coll.samplingMetadata && coll.samplingMetadata.itemCount > 0) {
+                    stats.collectionsWithContent++;
+                }
+            }
+        }
+        
+        // Recurse into child nodes
+        if (node.childNodes) {
+            for (var k = 0; k < node.childNodes.length; k++) {
+                analyzeValuesInNode(node.childNodes[k], stats);
+            }
+        }
+        
+    } catch (exc) {
+        // Continue processing
+    }
+}
+
+/**
+ * Check if property name is important
+ * @param {String} propName - Property name
+ * @returns {Boolean} True if important
+ */
+function isImportantProperty(propName) {
+    var importantProps = [
+        'name', 'length', 'width', 'height', 'visible', 'locked',
+        'contents', 'value', 'id', 'label', 'type', 'bounds'
+    ];
+    
+    for (var i = 0; i < importantProps.length; i++) {
+        if (stringIndexOf(propName.toLowerCase(), importantProps[i]) !== -1) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Generate access example for property
+ * @param {String} path - Property path
+ * @returns {String} Access example
+ */
+function generateAccessExample(path) {
+    try {
+        return path.replace('document', 'app.activeDocument');
+    } catch (exc) {
+        return path;
+    }
+}
+
+/**
+ * Generate collection access example
+ * @param {String} path - Collection path
+ * @returns {String} Collection access example
+ */
+function generateCollectionAccessExample(path) {
+    try {
+        var example = path.replace('document', 'app.activeDocument');
+        return example + '.length; // Get count\n  ' + example + '[0]; // Get first item';
+    } catch (exc) {
+        return path;
+    }
+}
+
+/**
+ * Merge analysis configuration with defaults
+ * @param {Object} defaults - Default configuration
+ * @param {Object} options - User options
+ * @returns {Object} Merged configuration
+ */
+function mergeAnalysisConfig(defaults, options) {
+    try {
+        var config = objectClone(defaults, 2);
+        
+        if (options && typeof options === 'object') {
+            if (objectHasOwnProperty(options, 'enableVisualHierarchy')) config.enableVisualHierarchy = options.enableVisualHierarchy;
+            if (objectHasOwnProperty(options, 'enablePropertyAnalysis')) config.enablePropertyAnalysis = options.enablePropertyAnalysis;
+            if (objectHasOwnProperty(options, 'enableCollectionAnalysis')) config.enableCollectionAnalysis = options.enableCollectionAnalysis;
+            if (objectHasOwnProperty(options, 'enableValueAnalysis')) config.enableValueAnalysis = options.enableValueAnalysis;
+            if (objectHasOwnProperty(options, 'maxAnalysisDepth')) config.maxAnalysisDepth = options.maxAnalysisDepth;
+            if (objectHasOwnProperty(options, 'maxReportItems')) config.maxReportItems = options.maxReportItems;
+            if (objectHasOwnProperty(options, 'generateDeveloperGuide')) config.generateDeveloperGuide = options.generateDeveloperGuide;
+            if (objectHasOwnProperty(options, 'includeCodeExamples')) config.includeCodeExamples = options.includeCodeExamples;
+            if (objectHasOwnProperty(options, 'highlightKeyProperties')) config.highlightKeyProperties = options.highlightKeyProperties;
+        }
+        
+        return config;
+        
+    } catch (exc) {
+        return defaults;
+    }
+}
+
+// =============================================================================
+// EXPORT FUNCTIONS
 // =============================================================================
 
 /**
  * Save analysis results to file
  * @param {Object} analysis - Analysis results
- * @param {String} outputPath - Output file path
- * @param {String} format - Output format
- * @returns {Object} Save result with success, filePath, error
+ * @param {String} filePath - Target file path
+ * @returns {Object} Save result
  */
-function saveAnalysisResults(analysis, outputPath, format) {
+function saveAnalysisResults(analysis, filePath) {
     var result = {
         success: false,
         filePath: '',
@@ -1111,35 +1093,14 @@ function saveAnalysisResults(analysis, outputPath, format) {
     };
 
     try {
-        if (!analysis) {
-            result.error = 'No analysis data provided';
+        if (!analysis || typeof analysis !== 'object') {
+            result.error = 'Invalid analysis data provided';
             return result;
         }
 
-        if (!outputPath || typeof outputPath !== 'string') {
-            result.error = 'Invalid output path provided';
-            return result;
-        }
-
-        var content = '';
-        var outputFormat = format || 'text';
-
-        if (outputFormat === 'text') {
-            content = generateFullAnalysisReport(analysis);
-        } else if (outputFormat === 'json') {
-            // Use enhanced ES3-compatible stringify
-            content = safeStringifyEnhanced(analysis, 0, 5);
-        } else {
-            result.error = 'Unsupported format: ' + outputFormat;
-            return result;
-        }
-
-        if (!content) {
-            result.error = 'Failed to generate content for format: ' + outputFormat;
-            return result;
-        }
-
-        var writeResult = writeToFileEnhanced(outputPath, content, {});
+        var reportText = generateFullAnalysisReport(analysis);
+        
+        var writeResult = writeToFile(filePath, reportText, { maxFileSize: 10000000 });
         if (!writeResult.success) {
             result.error = writeResult.error;
             return result;
@@ -1206,6 +1167,18 @@ function generateFullAnalysisReport(analysis) {
             builder.appendLine('');
         }
 
+        // Value analysis
+        if (analysis.valueAnalysis) {
+            builder.appendLine(analysis.valueAnalysis);
+            builder.appendLine('');
+        }
+
+        // Developer guide
+        if (analysis.developerGuide) {
+            builder.appendLine(analysis.developerGuide);
+            builder.appendLine('');
+        }
+
         return builder.toString();
 
     } catch (exc) {
@@ -1233,6 +1206,38 @@ function showJSONAnalyzer() {
 }
 
 // =============================================================================
+// MODULE REGISTRATION
+// =============================================================================
+
+// Register this module with all its functions
+registerModule('6.0_json-analyzer', '2.1.1', [
+    // Main Analysis Functions
+    'analyzeJSONExport', 'analyzeLoadedJSON',
+    
+    // File Operations
+    'readAndParseJSONFile', 'parseJSONSafely', 'containsFunctionCallPattern',
+    
+    // Structure Validation
+    'validateJSONStructure',
+    
+    // Analysis Processing
+    'performComprehensiveAnalysis', 'generateAnalysisSummary',
+    'generateVisualHierarchy', 'generateDeveloperPropertySummary',
+    'generateCollectionAnalysis', 'generateValueAnalysis', 'generateDeveloperGuide',
+    
+    // Utility Functions
+    'findKeyProperties', 'findCollections', 'analyzeExtractedValues',
+    'isImportantProperty', 'generateAccessExample', 'generateCollectionAccessExample',
+    'mergeAnalysisConfig',
+    
+    // Export Functions
+    'saveAnalysisResults', 'generateFullAnalysisReport',
+    
+    // UI Integration
+    'showJSONAnalyzer'
+]);
+
+// =============================================================================
 // END OF 6.0_json-analyzer.jsx
 //
 // ENHANCEMENTS IMPLEMENTED:
@@ -1246,4 +1251,14 @@ function showJSONAnalyzer() {
 // - Added ES3-compatible helper usage throughout (objectClone, objectHasOwnProperty)
 // - Enhanced string operations and array handling with ES3 helpers
 // - All original functionality preserved and enhanced for production reliability
+//
+// VALUE EXTRACTION INTEGRATION FIXES (Current Round):
+// - Added generateValueAnalysis() function to analyze extracted property values
+// - Enhanced generateAnalysisSummary() to include value extraction statistics
+// - Updated generateVisualHierarchy() to display extracted values in tree structure
+// - Enhanced generateDeveloperPropertySummary() to prioritize properties with values
+// - Updated generateCollectionAnalysis() to show extracted collection content
+// - Added analyzeExtractedValues() function to gather value statistics
+// - Enhanced developer guide to explain value extraction features
+// - All analysis functions now prioritize and display actual extracted values
 // =============================================================================

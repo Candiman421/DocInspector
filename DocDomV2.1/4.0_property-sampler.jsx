@@ -40,15 +40,20 @@ var DEFAULT_SAMPLING_CONFIG = {
 /**
  * Property value sampling with reference tracking
  * @param {Object} domStructure - DOM structure to sample
+ * @param {Object} sourceDocument - Source document for value access
  * @param {Object} samplingConfig - Sampling configuration
  * @returns {Object} DOM structure with values and reference tracking
  */
-function sampleDOMValues(domStructure, samplingConfig) {
+function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
     var startTime = new Date().getTime();
     var config = samplingConfig ? objectClone(samplingConfig, 2) : objectClone(DEFAULT_SAMPLING_CONFIG, 2);
     
     try {
         if (!domStructure || !domStructure.structure) {
+            return domStructure;
+        }
+        
+        if (!sourceDocument) {
             return domStructure;
         }
         
@@ -81,6 +86,7 @@ function sampleDOMValues(domStructure, samplingConfig) {
         if (domStructure.structure.document) {
             sampleNodeValues(
                 domStructure.structure.document,
+                sourceDocument,
                 config,
                 samplingStats,
                 referenceTracker
@@ -133,7 +139,7 @@ function samplePropertyValue(targetObj, propName, propPath, config, referenceTra
     };
     
     try {
-        // Enhanced parameter validation
+        // Parameter validation
         if (!targetObj || typeof targetObj !== 'object') {
             result.error = 'Invalid target object';
             return result;
@@ -153,7 +159,7 @@ function samplePropertyValue(targetObj, propName, propPath, config, referenceTra
         
         var propertyValue = valueAccess.value;
         result.value = propertyValue;
-        result.valueType = safeTypeCheck(targetObj, propName); // Enhanced type checking
+        result.valueType = safeTypeCheck(targetObj, propName);
         result.success = true;
         
         // Generate value metadata if enabled
@@ -187,11 +193,11 @@ function samplePropertyValue(targetObj, propName, propPath, config, referenceTra
 }
 
 // =============================================================================
-// CORE VALUE ACCESS - ENHANCED
+// CORE VALUE ACCESS
 // =============================================================================
 
 /**
- * Safely retrieve property value with timeout (enhanced)
+ * Safely retrieve property value with timeout
  * @param {Object} targetObj - Object to access
  * @param {String} propName - Property name
  * @param {Number} timeoutMs - Timeout in milliseconds
@@ -206,7 +212,7 @@ function safeGetPropertyValue(targetObj, propName, timeoutMs) {
     };
     
     try {
-        // Enhanced parameter validation
+        // Parameter validation
         if (!targetObj) {
             result.error = 'Target object is null or undefined';
             return result;
@@ -217,7 +223,7 @@ function safeGetPropertyValue(targetObj, propName, timeoutMs) {
             return result;
         }
         
-        // Check if property exists using enhanced helper
+        // Check if property exists
         if (!safeHasProperty(targetObj, propName)) {
             result.error = 'Property does not exist: ' + propName;
             return result;
@@ -255,11 +261,11 @@ function safeGetPropertyValue(targetObj, propName, timeoutMs) {
 }
 
 // =============================================================================
-// VALUE ANALYSIS - ENHANCED
+// VALUE ANALYSIS
 // =============================================================================
 
 /**
- * Generate metadata about sampled value (enhanced)
+ * Generate metadata about sampled value
  * @param {*} propertyValue - Value to analyze
  * @param {Object} config - Configuration
  * @returns {Object} Value metadata with size, complexity, collection info
@@ -293,13 +299,13 @@ function generateValueMetadata(propertyValue, config) {
             metadata.complexity = 'simple';
             
         } else if (metadata.type === 'object' && propertyValue) {
-            // Analyze object properties using enhanced ES3 iteration
+            // Analyze object properties using ES3 iteration
             var propCount = 0;
             var timeoutChecker = createTimeoutChecker(500); // 500ms timeout for analysis
             
             try {
-                for (var prop in propertyValue) {
-                    if (!objectHasOwnProperty(propertyValue, prop)) {
+                for (var propName in propertyValue) {
+                    if (!objectHasOwnProperty(propertyValue, propName)) {
                         continue;
                     }
                     
@@ -316,7 +322,7 @@ function generateValueMetadata(propertyValue, config) {
             metadata.propertyCount = propCount;
             metadata.complexity = propCount > 5 ? 'complex' : 'moderate';
             
-            // Check if it's a collection using enhanced helper
+            // Check if it's a collection
             var collectionLength = safeGetLength(propertyValue);
             if (collectionLength >= 0) {
                 metadata.isCollection = true;
@@ -342,7 +348,7 @@ function generateValueMetadata(propertyValue, config) {
 }
 
 /**
- * Generate fingerprint for value comparison (enhanced)
+ * Generate fingerprint for value comparison
  * @param {*} propertyValue - Value to fingerprint
  * @returns {String} Value fingerprint for before/after comparison
  */
@@ -380,7 +386,7 @@ function generateValueFingerprint(propertyValue) {
             fingerprint.push('function');
         }
         
-        return arrayJoin(fingerprint, '|'); // Enhanced ES3 join
+        return arrayJoin(fingerprint, '|');
         
     } catch (exc) {
         return 'fingerprint_error';
@@ -388,7 +394,7 @@ function generateValueFingerprint(propertyValue) {
 }
 
 /**
- * Format value with metadata integration (enhanced)
+ * Format value with metadata integration
  * @param {*} propertyValue - Value to format
  * @param {Object} config - Configuration
  * @param {Object} metadata - Value metadata
@@ -409,7 +415,7 @@ function formatSampleValue(propertyValue, config, metadata) {
         if (valueType === 'string') {
             var stringValue = propertyValue;
             if (stringValue.length > config.maxStringLength) {
-                stringValue = stringSubstring(stringValue, 0, config.maxStringLength) + '...'; // Enhanced substring
+                stringValue = stringSubstring(stringValue, 0, config.maxStringLength) + '...';
             }
             return '"' + stringValue + '"';
             
@@ -440,38 +446,39 @@ function formatSampleValue(propertyValue, config, metadata) {
 }
 
 // =============================================================================
-// NODE VALUE SAMPLING - ENHANCED ES3 COMPLIANCE
+// NODE VALUE SAMPLING - ES3 COMPLIANCE
 // =============================================================================
 
 /**
- * Recursively sample values from DOM nodes (enhanced)
+ * Recursively sample values from DOM nodes
  * @param {Object} domNode - DOM node to sample
+ * @param {Object} sourceDocument - Source document for value access
  * @param {Object} config - Sampling configuration
  * @param {Object} samplingStats - Statistics to update
  * @param {Object} referenceTracker - Reference tracker
  */
-function sampleNodeValues(domNode, config, samplingStats, referenceTracker) {
+function sampleNodeValues(domNode, sourceDocument, config, samplingStats, referenceTracker) {
     try {
         if (!domNode) {
             return;
         }
         
-        // Enhanced error boundary for this node
+        // Error boundary for this node
         try {
             // Sample property values if they meet safety criteria
             if (domNode.properties && domNode.properties.length) {
-                samplePropertiesFromArray(domNode.properties, config, samplingStats, referenceTracker);
+                samplePropertiesFromArray(domNode.properties, sourceDocument, config, samplingStats, referenceTracker);
             }
             
             // Sample collection values if enabled
             if (config.includeCollectionSamples && domNode.collections && domNode.collections.length) {
-                samplePropertiesFromArray(domNode.collections, config, samplingStats, referenceTracker);
+                samplePropertiesFromArray(domNode.collections, sourceDocument, config, samplingStats, referenceTracker);
             }
             
             // Recursively sample child nodes
             if (domNode.childNodes && domNode.childNodes.length) {
                 for (var i = 0; i < domNode.childNodes.length; i++) {
-                    sampleNodeValues(domNode.childNodes[i], config, samplingStats, referenceTracker);
+                    sampleNodeValues(domNode.childNodes[i], sourceDocument, config, samplingStats, referenceTracker);
                 }
             }
             
@@ -485,18 +492,19 @@ function sampleNodeValues(domNode, config, samplingStats, referenceTracker) {
 }
 
 /**
- * Sample property values from property array (enhanced)
+ * Sample property values from property array - ACTUAL VALUE EXTRACTION
  * @param {Array} properties - Array of property classifications
+ * @param {Object} sourceDocument - Source document for value access
  * @param {Object} config - Configuration
  * @param {Object} samplingStats - Statistics to update
  * @param {Object} referenceTracker - Reference tracker
  */
-function samplePropertiesFromArray(properties, config, samplingStats, referenceTracker) {
+function samplePropertiesFromArray(properties, sourceDocument, config, samplingStats, referenceTracker) {
     try {
         var sampledCount = 0;
         var timeoutChecker = createTimeoutChecker(config.timeoutMs);
         
-        // Enhanced array iteration using arraySlice for safety
+        // Safe array iteration
         var propertiesToSample = arraySlice(properties, 0, Math.min(properties.length, config.maxSamples));
         
         for (var i = 0; i < propertiesToSample.length; i++) {
@@ -508,39 +516,70 @@ function samplePropertiesFromArray(properties, config, samplingStats, referenceT
                 break;
             }
             
-            var property = propertiesToSample[i];
+            var propertyData = propertiesToSample[i];
             
-            if (meetsSafetyFilter(property, config.safetyFilter)) {
+            if (meetsSafetyFilter(propertyData, config.safetyFilter)) {
                 // Get the parent object for value sampling
-                var pathComponents = splitPath(property.path);
+                var pathComponents = splitPath(propertyData.path);
                 if (pathComponents.length >= 2) {
-                    var parentPath = getParentPath(property.path);
+                    var parentPath = getParentPath(propertyData.path);
                     var propName = pathComponents[pathComponents.length - 1];
                     
-                    // This would require actual object access which is beyond structure discovery
-                    // For now, we'll just track that we would sample this property
-                    samplingStats.propertiesSampled++;
-                    sampledCount++;
-                    
-                    // Add sampling metadata to the property
-                    property.samplingMetadata = {
-                        wouldSample: true,
-                        safetyLevel: property.safetyLevel,
-                        samplingPath: property.path,
-                        timestamp: getCurrentTimestamp(),
-                        es3Compliant: true
-                    };
-                    
-                    // Generate fingerprint if enabled
-                    if (config.generateValueFingerprints) {
-                        property.samplingMetadata.fingerprint = 'property_fingerprint_' + generateUniqueID();
-                        samplingStats.fingerprintsGenerated++;
+                    // ACTUAL VALUE EXTRACTION - Use safe function to access discovered object
+                    var parentAccess = safeGetObjectFromPath(sourceDocument, parentPath, config.timeoutMs);
+                    if (parentAccess.success && parentAccess.value) {
+                        // Use existing safe function to extract the actual value
+                        var valueResult = samplePropertyValue(
+                            parentAccess.value, 
+                            propName, 
+                            propertyData.path, 
+                            config, 
+                            referenceTracker
+                        );
+                        
+                        if (valueResult.success) {
+                            // Store actual extracted value instead of placeholder
+                            propertyData.samplingMetadata = {
+                                actualValue: valueResult.formattedValue,
+                                rawValue: valueResult.value,
+                                valueType: valueResult.valueType,
+                                valueFingerprint: valueResult.valueFingerprint,
+                                safetyLevel: propertyData.safetyLevel,
+                                samplingPath: propertyData.path,
+                                timestamp: getCurrentTimestamp(),
+                                extractionSuccessful: true
+                            };
+                            
+                            // Store in property classification for access
+                            propertyData.extractedValue = valueResult.value;
+                            propertyData.valueFingerprint = valueResult.valueFingerprint;
+                            propertyData.lastExtracted = getCurrentTimestamp();
+                            propertyData.extractionMetadata = valueResult.valueMetadata;
+                            
+                            samplingStats.valuesSampled++;
+                            samplingStats.propertiesSampled++;
+                            
+                            if (valueResult.valueFingerprint) {
+                                samplingStats.fingerprintsGenerated++;
+                            }
+                            
+                        } else {
+                            // Store extraction failure information
+                            propertyData.samplingMetadata = {
+                                extractionFailed: true,
+                                error: valueResult.error,
+                                safetyLevel: propertyData.safetyLevel,
+                                samplingPath: propertyData.path,
+                                timestamp: getCurrentTimestamp()
+                            };
+                            samplingStats.samplingErrors++;
+                        }
+                        
+                        sampledCount++;
                     }
                 }
             }
         }
-        
-        samplingStats.valuesSampled += sampledCount;
         
     } catch (exc) {
         samplingStats.samplingErrors++;
@@ -548,11 +587,11 @@ function samplePropertiesFromArray(properties, config, samplingStats, referenceT
 }
 
 // =============================================================================
-// UTILITY FUNCTIONS - ENHANCED ES3 COMPLIANCE
+// UTILITY FUNCTIONS - ES3 COMPLIANCE
 // =============================================================================
 
 /**
- * Check if property meets safety filter criteria (enhanced)
+ * Check if property meets safety filter criteria
  * @param {Object} propertyObj - Property classification object
  * @param {String} safetyFilter - Safety filter level
  * @returns {Boolean} True if property meets criteria
@@ -572,7 +611,7 @@ function meetsSafetyFilter(propertyObj, safetyFilter) {
         
         var allowedLevels = safetyLevels[safetyFilter] || safetyLevels['safe'];
         
-        // Enhanced ES3 search using arrayIndexOf helper
+        // ES3 search
         return arrayIndexOf(allowedLevels, propertyObj.safetyLevel) !== -1;
         
     } catch (exc) {
@@ -581,7 +620,7 @@ function meetsSafetyFilter(propertyObj, safetyFilter) {
 }
 
 /**
- * Get sampling statistics (enhanced)
+ * Get sampling statistics
  * @param {Object} domStructure - DOM structure with sampling data
  * @returns {Object} Sampling statistics including reference tracking
  */
@@ -634,7 +673,7 @@ function getSamplingStatistics(domStructure) {
 }
 
 /**
- * Create sampling result object (enhanced)
+ * Create sampling result object
  * @param {Boolean} success - Success status
  * @param {*} value - Sampled value (optional)
  * @param {String} error - Error message (optional)
@@ -674,16 +713,4 @@ registerModule('4.0_property-sampler', '2.1.1', [
 
 // =============================================================================
 // END OF 4.0_property-sampler.jsx
-//
-// ENHANCEMENTS IMPLEMENTED:
-// - Added comprehensive dependency validation and module registration
-// - Enhanced ES3 compliance with improved helper usage throughout
-// - Enhanced type checking using safeTypeCheck() consistently
-// - Replaced array iteration with ES3-compatible arraySlice() and helpers
-// - Added config object cloning to prevent mutations
-// - Enhanced parameter validation and error handling
-// - Improved timeout and safety management
-// - Added metadata analysis timing and comprehensive statistics
-// - Enhanced string operations using ES3 helpers (stringSubstring, arrayJoin)
-// - All original functionality preserved and enhanced for production reliability
 // =============================================================================
