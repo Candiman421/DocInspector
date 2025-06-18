@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-18T01:38:46.043Z
+// Generated: 2025-06-18T01:50:28.371Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v1.1): 1.1_bootstrap-foundation.jsx
@@ -2788,22 +2788,35 @@ var DEFAULT_ENUMERATION_CONFIG = {
  */
 function enumerateDocumentDOM(documentObject, config) {
     var startTime = new Date().getTime();
-    var enumerationConfig = config ? 
+    
+    $.writeln('[ENUM DEBUG] === STARTING enumerateDocumentDOM ===');
+    $.writeln('[ENUM DEBUG] Start time: ' + startTime);
+    $.writeln('[ENUM DEBUG] Config received: ' + (config ? 'YES' : 'NO'));
+    
+    var enumerationConfig = config ?
         objectMerge(DEFAULT_ENUMERATION_CONFIG, config) : 
         objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
+    
+    $.writeln('[ENUM DEBUG] Final config maxDepth: ' + enumerationConfig.maxDepth);
+    $.writeln('[ENUM DEBUG] Final config timeoutMs: ' + enumerationConfig.timeoutMs);
+    $.writeln('[ENUM DEBUG] Final config maxProperties: ' + enumerationConfig.maxProperties);
     
     try {
         // Validate environment
         var envValidation = validateInDesignEnvironment();
         if (!envValidation.valid) {
+            $.writeln('[ENUM DEBUG] Environment validation FAILED: ' + envValidation.error);
             return createErrorDOMStructure(envValidation.error);
         }
+        $.writeln('[ENUM DEBUG] Environment validation PASSED');
         
         var targetDocument = documentObject || envValidation.document;
         var docValidation = validateDocumentState(targetDocument);
+        $.writeln('[ENUM DEBUG] Document validation completed');
         
         // Create DOM structure container
         var domStructure = createDOMStructure();
+        $.writeln('[ENUM DEBUG] DOM structure container created');
         
         // Set up metadata
         domStructure.metadata = {
@@ -2838,11 +2851,15 @@ function enumerateDocumentDOM(documentObject, config) {
                 circularReferences: [],
                 totalTracked: 0
             };
+            $.writeln('[ENUM DEBUG] Object registry initialized');
         }
         
         // Create progress reporter if enabled
-        var progressReporter = enumerationConfig.enableProgressReporting ? 
+        var progressReporter = enumerationConfig.enableProgressReporting ?
             createProgressReporter() : null;
+            
+        $.writeln('[ENUM DEBUG] About to call enumerateObjectStructure...');
+        var enumStartTime = new Date().getTime();
         
         // Enumerate document structure
         domStructure.structure = {
@@ -2856,19 +2873,33 @@ function enumerateDocumentDOM(documentObject, config) {
             )
         };
         
+        var enumEndTime = new Date().getTime();
+        $.writeln('[ENUM DEBUG] enumerateObjectStructure completed in: ' + (enumEndTime - enumStartTime) + 'ms');
+        $.writeln('[ENUM DEBUG] Document node created, properties: ' + 
+                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
+        
         // Post-processing
         if (enumerationConfig.includeAlternativeAccessPaths) {
+            $.writeln('[ENUM DEBUG] Running updateAlternativeAccessPaths...');
             updateAlternativeAccessPaths(domStructure);
         }
         
         // Generate statistics
         if (enumerationConfig.generateStatistics) {
+            $.writeln('[ENUM DEBUG] Generating statistics...');
             domStructure.statistics = getDOMStatistics(domStructure);
         }
         
         // Final metadata
         domStructure.metadata.enumerationTime = new Date().getTime() - startTime;
         domStructure.metadata.completed = true;
+        
+        $.writeln('[ENUM DEBUG] === ENUMERATION COMPLETED ===');
+        $.writeln('[ENUM DEBUG] Total time: ' + domStructure.metadata.enumerationTime + 'ms');
+        $.writeln('[ENUM DEBUG] Properties found: ' + 
+                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
+        $.writeln('[ENUM DEBUG] Methods found: ' + 
+                 (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
         
         if (progressReporter) {
             progressReporter.complete();
@@ -2877,6 +2908,7 @@ function enumerateDocumentDOM(documentObject, config) {
         return domStructure;
         
     } catch (exc) {
+        $.writeln('[ENUM DEBUG] EXCEPTION: ' + exc.message);
         return createErrorDOMStructure('DOM enumeration failed: ' + exc.message);
     }
 }
@@ -4707,91 +4739,123 @@ var DEFAULT_SAMPLING_CONFIG = {
  */
 function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
     var startTime = new Date().getTime();
-    var config = samplingConfig ? 
+    
+    $.writeln('[SAMPLE DEBUG] === STARTING sampleDOMValues ===');
+    $.writeln('[SAMPLE DEBUG] domStructure type: ' + typeof domStructure);
+    $.writeln('[SAMPLE DEBUG] sourceDocument type: ' + typeof sourceDocument);
+    $.writeln('[SAMPLE DEBUG] samplingConfig type: ' + typeof samplingConfig);
+    
+    var config = samplingConfig ?
         objectMerge(DEFAULT_SAMPLING_CONFIG, samplingConfig) : 
         objectClone(DEFAULT_SAMPLING_CONFIG, 2);
     
-    var samplingStats = {
-        propertiesSampled: 0,
-        valuesSampled: 0,
-        samplingErrors: 0,
-        timeoutCount: 0,
-        nullValuesSkipped: 0,
-        undefinedValuesSkipped: 0,
-        collectionsSampled: 0,
-        fingerprintsGenerated: 0,
-        safetyFilterRejects: 0,
-        samplingTime: 0,
-        errorsEncountered: 0
-    };
-    
-    var referenceTracker = config.trackObjectReferences ? 
-        createObjectReferenceTracker() : null;
-    
-    var timeoutChecker = createTimeoutChecker(config.timeoutMs);
+    $.writeln('[SAMPLE DEBUG] Final config maxSamples: ' + config.maxSamples);
+    $.writeln('[SAMPLE DEBUG] Final config safetyFilter: ' + config.safetyFilter);
+    $.writeln('[SAMPLE DEBUG] Final config timeoutMs: ' + config.timeoutMs);
     
     try {
-        if (!domStructure || !sourceDocument) {
-            throw new Error('Invalid parameters for DOM value sampling');
+        // Validate inputs
+        if (!domStructure || typeof domStructure !== 'object') {
+            $.writeln('[SAMPLE DEBUG] ERROR: Invalid domStructure');
+            return {
+                error: 'Invalid DOM structure provided',
+                timestamp: getCurrentTimestamp()
+            };
         }
         
-        if (config.enableProgressReporting) {
-            logSamplingProgress('Starting DOM value sampling with config: ' + 
-                              safeJSONStringify(config, 0));
+        if (!sourceDocument) {
+            $.writeln('[SAMPLE DEBUG] ERROR: No source document');
+            return {
+                error: 'No source document provided',
+                timestamp: getCurrentTimestamp()
+            };
         }
         
-        // Sample values from DOM structure
-        if (domStructure.structure && domStructure.structure.document) {
-            sampleNodeValues(domStructure.structure.document, sourceDocument, 
-                           config, samplingStats, referenceTracker, timeoutChecker);
+        // Check if domStructure has document node
+        if (domStructure.document) {
+            $.writeln('[SAMPLE DEBUG] Found domStructure.document');
+            var docNode = domStructure.document;
+        } else {
+            $.writeln('[SAMPLE DEBUG] No domStructure.document found');
+            return {
+                error: 'No document node in structure',
+                timestamp: getCurrentTimestamp()
+            };
         }
         
-        samplingStats.samplingTime = new Date().getTime() - startTime;
+        // Create sampling session
+        var samplingSession = {
+            startTime: startTime,
+            timeoutChecker: createTimeoutChecker(config.timeoutMs),
+            sampledCount: 0,
+            errorCount: 0,
+            skippedCount: 0
+        };
         
-        // Add sampling metadata to DOM structure
+        $.writeln('[SAMPLE DEBUG] Sampling session created');
+        
+        // Count properties to sample
+        var totalProperties = 0;
+        if (docNode.properties) {
+            totalProperties += docNode.properties.length;
+            $.writeln('[SAMPLE DEBUG] Found ' + docNode.properties.length + ' properties to sample');
+        }
+        if (docNode.collections) {
+            totalProperties += docNode.collections.length;
+            $.writeln('[SAMPLE DEBUG] Found ' + docNode.collections.length + ' collections to sample');
+        }
+        
+        if (totalProperties === 0) {
+            $.writeln('[SAMPLE DEBUG] WARNING: No properties found to sample');
+            return domStructure; // Return unchanged
+        }
+        
+        // Sample properties
+        if (docNode.properties) {
+            for (var i = 0; i < docNode.properties.length; i++) {
+                if (samplingSession.timeoutChecker()) {
+                    $.writeln('[SAMPLE DEBUG] Timeout reached during property sampling');
+                    break;
+                }
+                
+                var prop = docNode.properties[i];
+                try {
+                    // Attempt to sample this property
+                    var sampleResult = sampleSingleProperty(sourceDocument, prop, config);
+                    if (sampleResult.success) {
+                        prop.sampledValue = sampleResult.value;
+                        samplingSession.sampledCount++;
+                    } else {
+                        samplingSession.errorCount++;
+                    }
+                } catch (propExc) {
+                    samplingSession.errorCount++;
+                }
+            }
+        }
+        
+        var endTime = new Date().getTime();
+        $.writeln('[SAMPLE DEBUG] === SAMPLING COMPLETED ===');
+        $.writeln('[SAMPLE DEBUG] Total time: ' + (endTime - startTime) + 'ms');
+        $.writeln('[SAMPLE DEBUG] Properties sampled: ' + samplingSession.sampledCount);
+        $.writeln('[SAMPLE DEBUG] Errors encountered: ' + samplingSession.errorCount);
+        
+        // Add sampling metadata
         if (!domStructure.metadata) {
             domStructure.metadata = {};
         }
-        
-        domStructure.metadata.valueSampling = {
-            enabled: true,
-            timestamp: getCurrentTimestamp(),
-            statistics: samplingStats,
-            configuration: config,
-            referenceTracking: referenceTracker ? 
-                referenceTracker.getStatistics() : null,
-            performance: {
-                totalTime: samplingStats.samplingTime,
-                averageTimePerProperty: samplingStats.propertiesSampled > 0 ? 
-                    samplingStats.samplingTime / samplingStats.propertiesSampled : 0,
-                successRate: samplingStats.propertiesSampled > 0 ? 
-                    (samplingStats.valuesSampled / samplingStats.propertiesSampled) * 100 : 0
-            }
-        };
-        
-        if (config.enableProgressReporting) {
-            logSamplingProgress('Property sampling completed: ' + samplingStats.valuesSampled + 
-                              ' values extracted from ' + samplingStats.propertiesSampled + ' properties');
-        }
+        domStructure.metadata.samplingCompleted = true;
+        domStructure.metadata.samplingTime = endTime - startTime;
+        domStructure.metadata.propertiesSampled = samplingSession.sampledCount;
         
         return domStructure;
         
     } catch (exc) {
-        if (domStructure && domStructure.metadata) {
-            domStructure.metadata.valueSampling = {
-                enabled: false,
-                error: 'Value sampling failed: ' + exc.message,
-                timestamp: getCurrentTimestamp(),
-                statistics: samplingStats,
-                configuration: config
-            };
-        }
-        
-        if (config.enableDetailedLogging) {
-            logSamplingError('Property sampling failed: ' + exc.message);
-        }
-        
-        return domStructure;
+        $.writeln('[SAMPLE DEBUG] EXCEPTION: ' + exc.message);
+        return {
+            error: 'Property sampling failed: ' + exc.message,
+            timestamp: getCurrentTimestamp()
+        };
     }
 }
 
@@ -12278,7 +12342,7 @@ function performFullDiscovery() {
         updateStatus('Phase 1: Enumerating DOM structure...');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
 
-        // DEBUG: Show what we actually got from enumeration
+        // DEBUG: Show what we actually got from enumeration - ES3 COMPATIBLE
         $.writeln('[DEBUG] === PHASE 1 ENUMERATION RESULTS ===');
         $.writeln('[DEBUG] domStructure type: ' + typeof domStructure);
         $.writeln('[DEBUG] domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
@@ -12286,15 +12350,6 @@ function performFullDiscovery() {
 
         if (domStructure.structure) {
             $.writeln('[DEBUG] domStructure.structure type: ' + typeof domStructure.structure);
-            try {
-                var structKeys = [];
-                for (var key in domStructure.structure) {
-                    structKeys.push(key);
-                }
-                $.writeln('[DEBUG] domStructure.structure keys: [' + structKeys.join(', ') + ']');
-            } catch (keyExc) {
-                $.writeln('[DEBUG] Could not enumerate structure keys: ' + keyExc.message);
-            }
             
             if (domStructure.structure.document) {
                 $.writeln('[DEBUG] domStructure.structure.document type: ' + typeof domStructure.structure.document);
@@ -12302,15 +12357,18 @@ function performFullDiscovery() {
                 
                 if (docNode.properties) {
                     $.writeln('[DEBUG] Found ' + docNode.properties.length + ' properties in document node');
+                    // ES3 COMPATIBLE - Show first 3 properties without map/slice
                     if (docNode.properties.length > 0) {
-                        $.writeln('[DEBUG] First few properties: ' + docNode.properties.slice(0, 3).map(function(p) { return p.name; }).join(', '));
+                        var propNames = '';
+                        for (var i = 0; i < Math.min(3, docNode.properties.length); i++) {
+                            if (i > 0) propNames += ', ';
+                            propNames += docNode.properties[i].name;
+                        }
+                        $.writeln('[DEBUG] First few properties: ' + propNames);
                     }
                 }
                 if (docNode.methods) {
                     $.writeln('[DEBUG] Found ' + docNode.methods.length + ' methods in document node');
-                    if (docNode.methods.length > 0) {
-                        $.writeln('[DEBUG] First few methods: ' + docNode.methods.slice(0, 3).map(function(m) { return m.name; }).join(', '));
-                    }
                 }
                 if (docNode.collections) {
                     $.writeln('[DEBUG] Found ' + docNode.collections.length + ' collections in document node');
@@ -12320,14 +12378,13 @@ function performFullDiscovery() {
                 }
                 
                 $.writeln('[DEBUG] Document node depth: ' + (docNode.depth || 'undefined'));
-                $.writeln('[DEBUG] Document node path: ' + (docNode.path || 'undefined'));
             } else {
                 $.writeln('[DEBUG] ERROR: No domStructure.structure.document found!');
             }
         }
 
         // Fix: Check for actual error conditions
-        if (!domStructure || domStructure.metadata.error || !domStructure.structure) {
+        if (!domStructure || (domStructure.metadata && domStructure.metadata.error) || !domStructure.structure) {
             var errorMsg = 'Unknown enumeration error';
             if (domStructure && domStructure.metadata && domStructure.metadata.error) {
                 errorMsg = domStructure.metadata.error;
@@ -12341,17 +12398,11 @@ function performFullDiscovery() {
         // Phase 2: Value Sampling
         $.writeln('[DEBUG] === PHASE 2 VALUE SAMPLING ===');
         updateStatus('Phase 2: Sampling property values...');
-        $.writeln('[DEBUG] Passing to sampleDOMValues:');
-        $.writeln('[DEBUG] - First arg (structure): ' + typeof domStructure.structure);
-        $.writeln('[DEBUG] - Second arg (document): ' + typeof doc);
-        $.writeln('[DEBUG] - Third arg (config): ' + typeof g_domViz_userConfiguration.sampling);
         
         if (functionExists('sampleDOMValues')) {
+            $.writeln('[DEBUG] Calling sampleDOMValues...');
             var sampledStructure = sampleDOMValues(domStructure.structure, doc, g_domViz_userConfiguration.sampling);
-            $.writeln('[DEBUG] sampleDOMValues returned: ' + typeof sampledStructure);
-            if (sampledStructure && sampledStructure.error) {
-                $.writeln('[DEBUG] Phase 2 error: ' + sampledStructure.error);
-            }
+            $.writeln('[DEBUG] sampleDOMValues completed');
         } else {
             $.writeln('[DEBUG] sampleDOMValues function not found! Skipping phase 2');
             var sampledStructure = domStructure;
@@ -12360,15 +12411,11 @@ function performFullDiscovery() {
         // Phase 3: Collection Sampling
         $.writeln('[DEBUG] === PHASE 3 COLLECTION SAMPLING ===');
         updateStatus('Phase 3: Sampling collections...');
-        $.writeln('[DEBUG] Passing to sampleCollectionContents:');
-        $.writeln('[DEBUG] - First arg: ' + typeof (sampledStructure ? sampledStructure.structure : 'undefined'));
         
         if (functionExists('sampleCollectionContents')) {
+            $.writeln('[DEBUG] Calling sampleCollectionContents...');
             var finalStructure = sampleCollectionContents(sampledStructure.structure, doc, g_domViz_userConfiguration.sampling);
-            $.writeln('[DEBUG] sampleCollectionContents returned: ' + typeof finalStructure);
-            if (finalStructure && finalStructure.error) {
-                $.writeln('[DEBUG] Phase 3 error: ' + finalStructure.error);
-            }
+            $.writeln('[DEBUG] sampleCollectionContents completed');
         } else {
             $.writeln('[DEBUG] sampleCollectionContents function not found! Skipping phase 3');
             var finalStructure = sampledStructure;
@@ -12376,13 +12423,6 @@ function performFullDiscovery() {
 
         $.writeln('[DEBUG] === FINAL RESULTS ===');
         g_domViz_currentDOMStructure = finalStructure;
-        $.writeln('[DEBUG] Final structure type: ' + typeof g_domViz_currentDOMStructure);
-        
-        if (g_domViz_currentDOMStructure && g_domViz_currentDOMStructure.structure && g_domViz_currentDOMStructure.structure.document) {
-            var finalDoc = g_domViz_currentDOMStructure.structure.document;
-            $.writeln('[DEBUG] Final document properties: ' + (finalDoc.properties ? finalDoc.properties.length : 'undefined'));
-            $.writeln('[DEBUG] Final document methods: ' + (finalDoc.methods ? finalDoc.methods.length : 'undefined'));
-        }
         
         displayCurrentStructure();
         updateStatus('Full discovery completed successfully');
@@ -12482,15 +12522,76 @@ function performPhase3CollectionSampling() {
  * Display current DOM structure
  */
 function displayCurrentStructure() {
+    $.writeln('[DISPLAY DEBUG] === STARTING displayCurrentStructure ===');
+    
     try {
-        if (!g_domViz_currentDOMStructure || !g_domViz_discoveryDisplay) {
+        if (!g_domViz_currentDOMStructure) {
+            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_currentDOMStructure is null');
             return;
         }
-
-        var displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
-        g_domViz_discoveryDisplay.text = displayText;
+        
+        if (!g_domViz_discoveryDisplay) {
+            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_discoveryDisplay is null');
+            return;
+        }
+        
+        $.writeln('[DISPLAY DEBUG] g_domViz_currentDOMStructure type: ' + typeof g_domViz_currentDOMStructure);
+        
+        // Check structure contents
+        if (g_domViz_currentDOMStructure.structure) {
+            $.writeln('[DISPLAY DEBUG] Structure exists');
+            if (g_domViz_currentDOMStructure.structure.document) {
+                var doc = g_domViz_currentDOMStructure.structure.document;
+                $.writeln('[DISPLAY DEBUG] Document node exists');
+                $.writeln('[DISPLAY DEBUG] Properties: ' + (doc.properties ? doc.properties.length : 'undefined'));
+                $.writeln('[DISPLAY DEBUG] Methods: ' + (doc.methods ? doc.methods.length : 'undefined'));
+                $.writeln('[DISPLAY DEBUG] Collections: ' + (doc.collections ? doc.collections.length : 'undefined'));
+            } else {
+                $.writeln('[DISPLAY DEBUG] No document node in structure');
+            }
+        } else {
+            $.writeln('[DISPLAY DEBUG] No structure property');
+        }
+        
+        if (functionExists('generateStructureDisplayText')) {
+            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function exists - calling it');
+            var displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
+            $.writeln('[DISPLAY DEBUG] Display text generated, length: ' + displayText.length);
+            
+            g_domViz_discoveryDisplay.text = displayText;
+            $.writeln('[DISPLAY DEBUG] Display text set successfully');
+        } else {
+            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function NOT FOUND - creating fallback');
+            
+            // Fallback display
+            var fallbackText = 'DOM Structure Discovered!\n\n';
+            if (g_domViz_currentDOMStructure.metadata) {
+                fallbackText += 'Document: ' + (g_domViz_currentDOMStructure.metadata.documentName || 'Unknown') + '\n';
+                fallbackText += 'Enumeration Time: ' + (g_domViz_currentDOMStructure.metadata.enumerationTime || 'Unknown') + 'ms\n';
+            }
+            
+            if (g_domViz_currentDOMStructure.structure && g_domViz_currentDOMStructure.structure.document) {
+                var docNode = g_domViz_currentDOMStructure.structure.document;
+                fallbackText += '\nDocument Node Properties:\n';
+                fallbackText += '- Properties: ' + (docNode.properties ? docNode.properties.length : 0) + '\n';
+                fallbackText += '- Methods: ' + (docNode.methods ? docNode.methods.length : 0) + '\n';
+                fallbackText += '- Collections: ' + (docNode.collections ? docNode.collections.length : 0) + '\n';
+                
+                // Show first few property names
+                if (docNode.properties && docNode.properties.length > 0) {
+                    fallbackText += '\nFirst few properties:\n';
+                    for (var i = 0; i < Math.min(5, docNode.properties.length); i++) {
+                        fallbackText += '- ' + docNode.properties[i].name + ' (' + docNode.properties[i].type + ')\n';
+                    }
+                }
+            }
+            
+            g_domViz_discoveryDisplay.text = fallbackText;
+            $.writeln('[DISPLAY DEBUG] Fallback display text set');
+        }
 
     } catch (exc) {
+        $.writeln('[DISPLAY DEBUG] EXCEPTION: ' + exc.message);
         updateStatus('Display update error: ' + exc.message);
     }
 }

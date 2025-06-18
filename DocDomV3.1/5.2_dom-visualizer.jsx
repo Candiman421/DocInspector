@@ -632,7 +632,7 @@ function performFullDiscovery() {
         updateStatus('Phase 1: Enumerating DOM structure...');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
 
-        // DEBUG: Show what we actually got from enumeration
+        // DEBUG: Show what we actually got from enumeration - ES3 COMPATIBLE
         $.writeln('[DEBUG] === PHASE 1 ENUMERATION RESULTS ===');
         $.writeln('[DEBUG] domStructure type: ' + typeof domStructure);
         $.writeln('[DEBUG] domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
@@ -640,15 +640,6 @@ function performFullDiscovery() {
 
         if (domStructure.structure) {
             $.writeln('[DEBUG] domStructure.structure type: ' + typeof domStructure.structure);
-            try {
-                var structKeys = [];
-                for (var key in domStructure.structure) {
-                    structKeys.push(key);
-                }
-                $.writeln('[DEBUG] domStructure.structure keys: [' + structKeys.join(', ') + ']');
-            } catch (keyExc) {
-                $.writeln('[DEBUG] Could not enumerate structure keys: ' + keyExc.message);
-            }
             
             if (domStructure.structure.document) {
                 $.writeln('[DEBUG] domStructure.structure.document type: ' + typeof domStructure.structure.document);
@@ -656,15 +647,18 @@ function performFullDiscovery() {
                 
                 if (docNode.properties) {
                     $.writeln('[DEBUG] Found ' + docNode.properties.length + ' properties in document node');
+                    // ES3 COMPATIBLE - Show first 3 properties without map/slice
                     if (docNode.properties.length > 0) {
-                        $.writeln('[DEBUG] First few properties: ' + docNode.properties.slice(0, 3).map(function(p) { return p.name; }).join(', '));
+                        var propNames = '';
+                        for (var i = 0; i < Math.min(3, docNode.properties.length); i++) {
+                            if (i > 0) propNames += ', ';
+                            propNames += docNode.properties[i].name;
+                        }
+                        $.writeln('[DEBUG] First few properties: ' + propNames);
                     }
                 }
                 if (docNode.methods) {
                     $.writeln('[DEBUG] Found ' + docNode.methods.length + ' methods in document node');
-                    if (docNode.methods.length > 0) {
-                        $.writeln('[DEBUG] First few methods: ' + docNode.methods.slice(0, 3).map(function(m) { return m.name; }).join(', '));
-                    }
                 }
                 if (docNode.collections) {
                     $.writeln('[DEBUG] Found ' + docNode.collections.length + ' collections in document node');
@@ -674,14 +668,13 @@ function performFullDiscovery() {
                 }
                 
                 $.writeln('[DEBUG] Document node depth: ' + (docNode.depth || 'undefined'));
-                $.writeln('[DEBUG] Document node path: ' + (docNode.path || 'undefined'));
             } else {
                 $.writeln('[DEBUG] ERROR: No domStructure.structure.document found!');
             }
         }
 
         // Fix: Check for actual error conditions
-        if (!domStructure || domStructure.metadata.error || !domStructure.structure) {
+        if (!domStructure || (domStructure.metadata && domStructure.metadata.error) || !domStructure.structure) {
             var errorMsg = 'Unknown enumeration error';
             if (domStructure && domStructure.metadata && domStructure.metadata.error) {
                 errorMsg = domStructure.metadata.error;
@@ -695,17 +688,11 @@ function performFullDiscovery() {
         // Phase 2: Value Sampling
         $.writeln('[DEBUG] === PHASE 2 VALUE SAMPLING ===');
         updateStatus('Phase 2: Sampling property values...');
-        $.writeln('[DEBUG] Passing to sampleDOMValues:');
-        $.writeln('[DEBUG] - First arg (structure): ' + typeof domStructure.structure);
-        $.writeln('[DEBUG] - Second arg (document): ' + typeof doc);
-        $.writeln('[DEBUG] - Third arg (config): ' + typeof g_domViz_userConfiguration.sampling);
         
         if (functionExists('sampleDOMValues')) {
+            $.writeln('[DEBUG] Calling sampleDOMValues...');
             var sampledStructure = sampleDOMValues(domStructure.structure, doc, g_domViz_userConfiguration.sampling);
-            $.writeln('[DEBUG] sampleDOMValues returned: ' + typeof sampledStructure);
-            if (sampledStructure && sampledStructure.error) {
-                $.writeln('[DEBUG] Phase 2 error: ' + sampledStructure.error);
-            }
+            $.writeln('[DEBUG] sampleDOMValues completed');
         } else {
             $.writeln('[DEBUG] sampleDOMValues function not found! Skipping phase 2');
             var sampledStructure = domStructure;
@@ -714,15 +701,11 @@ function performFullDiscovery() {
         // Phase 3: Collection Sampling
         $.writeln('[DEBUG] === PHASE 3 COLLECTION SAMPLING ===');
         updateStatus('Phase 3: Sampling collections...');
-        $.writeln('[DEBUG] Passing to sampleCollectionContents:');
-        $.writeln('[DEBUG] - First arg: ' + typeof (sampledStructure ? sampledStructure.structure : 'undefined'));
         
         if (functionExists('sampleCollectionContents')) {
+            $.writeln('[DEBUG] Calling sampleCollectionContents...');
             var finalStructure = sampleCollectionContents(sampledStructure.structure, doc, g_domViz_userConfiguration.sampling);
-            $.writeln('[DEBUG] sampleCollectionContents returned: ' + typeof finalStructure);
-            if (finalStructure && finalStructure.error) {
-                $.writeln('[DEBUG] Phase 3 error: ' + finalStructure.error);
-            }
+            $.writeln('[DEBUG] sampleCollectionContents completed');
         } else {
             $.writeln('[DEBUG] sampleCollectionContents function not found! Skipping phase 3');
             var finalStructure = sampledStructure;
@@ -730,13 +713,6 @@ function performFullDiscovery() {
 
         $.writeln('[DEBUG] === FINAL RESULTS ===');
         g_domViz_currentDOMStructure = finalStructure;
-        $.writeln('[DEBUG] Final structure type: ' + typeof g_domViz_currentDOMStructure);
-        
-        if (g_domViz_currentDOMStructure && g_domViz_currentDOMStructure.structure && g_domViz_currentDOMStructure.structure.document) {
-            var finalDoc = g_domViz_currentDOMStructure.structure.document;
-            $.writeln('[DEBUG] Final document properties: ' + (finalDoc.properties ? finalDoc.properties.length : 'undefined'));
-            $.writeln('[DEBUG] Final document methods: ' + (finalDoc.methods ? finalDoc.methods.length : 'undefined'));
-        }
         
         displayCurrentStructure();
         updateStatus('Full discovery completed successfully');
@@ -836,15 +812,76 @@ function performPhase3CollectionSampling() {
  * Display current DOM structure
  */
 function displayCurrentStructure() {
+    $.writeln('[DISPLAY DEBUG] === STARTING displayCurrentStructure ===');
+    
     try {
-        if (!g_domViz_currentDOMStructure || !g_domViz_discoveryDisplay) {
+        if (!g_domViz_currentDOMStructure) {
+            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_currentDOMStructure is null');
             return;
         }
-
-        var displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
-        g_domViz_discoveryDisplay.text = displayText;
+        
+        if (!g_domViz_discoveryDisplay) {
+            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_discoveryDisplay is null');
+            return;
+        }
+        
+        $.writeln('[DISPLAY DEBUG] g_domViz_currentDOMStructure type: ' + typeof g_domViz_currentDOMStructure);
+        
+        // Check structure contents
+        if (g_domViz_currentDOMStructure.structure) {
+            $.writeln('[DISPLAY DEBUG] Structure exists');
+            if (g_domViz_currentDOMStructure.structure.document) {
+                var doc = g_domViz_currentDOMStructure.structure.document;
+                $.writeln('[DISPLAY DEBUG] Document node exists');
+                $.writeln('[DISPLAY DEBUG] Properties: ' + (doc.properties ? doc.properties.length : 'undefined'));
+                $.writeln('[DISPLAY DEBUG] Methods: ' + (doc.methods ? doc.methods.length : 'undefined'));
+                $.writeln('[DISPLAY DEBUG] Collections: ' + (doc.collections ? doc.collections.length : 'undefined'));
+            } else {
+                $.writeln('[DISPLAY DEBUG] No document node in structure');
+            }
+        } else {
+            $.writeln('[DISPLAY DEBUG] No structure property');
+        }
+        
+        if (functionExists('generateStructureDisplayText')) {
+            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function exists - calling it');
+            var displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
+            $.writeln('[DISPLAY DEBUG] Display text generated, length: ' + displayText.length);
+            
+            g_domViz_discoveryDisplay.text = displayText;
+            $.writeln('[DISPLAY DEBUG] Display text set successfully');
+        } else {
+            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function NOT FOUND - creating fallback');
+            
+            // Fallback display
+            var fallbackText = 'DOM Structure Discovered!\n\n';
+            if (g_domViz_currentDOMStructure.metadata) {
+                fallbackText += 'Document: ' + (g_domViz_currentDOMStructure.metadata.documentName || 'Unknown') + '\n';
+                fallbackText += 'Enumeration Time: ' + (g_domViz_currentDOMStructure.metadata.enumerationTime || 'Unknown') + 'ms\n';
+            }
+            
+            if (g_domViz_currentDOMStructure.structure && g_domViz_currentDOMStructure.structure.document) {
+                var docNode = g_domViz_currentDOMStructure.structure.document;
+                fallbackText += '\nDocument Node Properties:\n';
+                fallbackText += '- Properties: ' + (docNode.properties ? docNode.properties.length : 0) + '\n';
+                fallbackText += '- Methods: ' + (docNode.methods ? docNode.methods.length : 0) + '\n';
+                fallbackText += '- Collections: ' + (docNode.collections ? docNode.collections.length : 0) + '\n';
+                
+                // Show first few property names
+                if (docNode.properties && docNode.properties.length > 0) {
+                    fallbackText += '\nFirst few properties:\n';
+                    for (var i = 0; i < Math.min(5, docNode.properties.length); i++) {
+                        fallbackText += '- ' + docNode.properties[i].name + ' (' + docNode.properties[i].type + ')\n';
+                    }
+                }
+            }
+            
+            g_domViz_discoveryDisplay.text = fallbackText;
+            $.writeln('[DISPLAY DEBUG] Fallback display text set');
+        }
 
     } catch (exc) {
+        $.writeln('[DISPLAY DEBUG] EXCEPTION: ' + exc.message);
         updateStatus('Display update error: ' + exc.message);
     }
 }

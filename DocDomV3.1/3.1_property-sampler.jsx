@@ -52,91 +52,123 @@ var DEFAULT_SAMPLING_CONFIG = {
  */
 function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
     var startTime = new Date().getTime();
-    var config = samplingConfig ? 
+    
+    $.writeln('[SAMPLE DEBUG] === STARTING sampleDOMValues ===');
+    $.writeln('[SAMPLE DEBUG] domStructure type: ' + typeof domStructure);
+    $.writeln('[SAMPLE DEBUG] sourceDocument type: ' + typeof sourceDocument);
+    $.writeln('[SAMPLE DEBUG] samplingConfig type: ' + typeof samplingConfig);
+    
+    var config = samplingConfig ?
         objectMerge(DEFAULT_SAMPLING_CONFIG, samplingConfig) : 
         objectClone(DEFAULT_SAMPLING_CONFIG, 2);
     
-    var samplingStats = {
-        propertiesSampled: 0,
-        valuesSampled: 0,
-        samplingErrors: 0,
-        timeoutCount: 0,
-        nullValuesSkipped: 0,
-        undefinedValuesSkipped: 0,
-        collectionsSampled: 0,
-        fingerprintsGenerated: 0,
-        safetyFilterRejects: 0,
-        samplingTime: 0,
-        errorsEncountered: 0
-    };
-    
-    var referenceTracker = config.trackObjectReferences ? 
-        createObjectReferenceTracker() : null;
-    
-    var timeoutChecker = createTimeoutChecker(config.timeoutMs);
+    $.writeln('[SAMPLE DEBUG] Final config maxSamples: ' + config.maxSamples);
+    $.writeln('[SAMPLE DEBUG] Final config safetyFilter: ' + config.safetyFilter);
+    $.writeln('[SAMPLE DEBUG] Final config timeoutMs: ' + config.timeoutMs);
     
     try {
-        if (!domStructure || !sourceDocument) {
-            throw new Error('Invalid parameters for DOM value sampling');
+        // Validate inputs
+        if (!domStructure || typeof domStructure !== 'object') {
+            $.writeln('[SAMPLE DEBUG] ERROR: Invalid domStructure');
+            return {
+                error: 'Invalid DOM structure provided',
+                timestamp: getCurrentTimestamp()
+            };
         }
         
-        if (config.enableProgressReporting) {
-            logSamplingProgress('Starting DOM value sampling with config: ' + 
-                              safeJSONStringify(config, 0));
+        if (!sourceDocument) {
+            $.writeln('[SAMPLE DEBUG] ERROR: No source document');
+            return {
+                error: 'No source document provided',
+                timestamp: getCurrentTimestamp()
+            };
         }
         
-        // Sample values from DOM structure
-        if (domStructure.structure && domStructure.structure.document) {
-            sampleNodeValues(domStructure.structure.document, sourceDocument, 
-                           config, samplingStats, referenceTracker, timeoutChecker);
+        // Check if domStructure has document node
+        if (domStructure.document) {
+            $.writeln('[SAMPLE DEBUG] Found domStructure.document');
+            var docNode = domStructure.document;
+        } else {
+            $.writeln('[SAMPLE DEBUG] No domStructure.document found');
+            return {
+                error: 'No document node in structure',
+                timestamp: getCurrentTimestamp()
+            };
         }
         
-        samplingStats.samplingTime = new Date().getTime() - startTime;
+        // Create sampling session
+        var samplingSession = {
+            startTime: startTime,
+            timeoutChecker: createTimeoutChecker(config.timeoutMs),
+            sampledCount: 0,
+            errorCount: 0,
+            skippedCount: 0
+        };
         
-        // Add sampling metadata to DOM structure
+        $.writeln('[SAMPLE DEBUG] Sampling session created');
+        
+        // Count properties to sample
+        var totalProperties = 0;
+        if (docNode.properties) {
+            totalProperties += docNode.properties.length;
+            $.writeln('[SAMPLE DEBUG] Found ' + docNode.properties.length + ' properties to sample');
+        }
+        if (docNode.collections) {
+            totalProperties += docNode.collections.length;
+            $.writeln('[SAMPLE DEBUG] Found ' + docNode.collections.length + ' collections to sample');
+        }
+        
+        if (totalProperties === 0) {
+            $.writeln('[SAMPLE DEBUG] WARNING: No properties found to sample');
+            return domStructure; // Return unchanged
+        }
+        
+        // Sample properties
+        if (docNode.properties) {
+            for (var i = 0; i < docNode.properties.length; i++) {
+                if (samplingSession.timeoutChecker()) {
+                    $.writeln('[SAMPLE DEBUG] Timeout reached during property sampling');
+                    break;
+                }
+                
+                var prop = docNode.properties[i];
+                try {
+                    // Attempt to sample this property
+                    var sampleResult = sampleSingleProperty(sourceDocument, prop, config);
+                    if (sampleResult.success) {
+                        prop.sampledValue = sampleResult.value;
+                        samplingSession.sampledCount++;
+                    } else {
+                        samplingSession.errorCount++;
+                    }
+                } catch (propExc) {
+                    samplingSession.errorCount++;
+                }
+            }
+        }
+        
+        var endTime = new Date().getTime();
+        $.writeln('[SAMPLE DEBUG] === SAMPLING COMPLETED ===');
+        $.writeln('[SAMPLE DEBUG] Total time: ' + (endTime - startTime) + 'ms');
+        $.writeln('[SAMPLE DEBUG] Properties sampled: ' + samplingSession.sampledCount);
+        $.writeln('[SAMPLE DEBUG] Errors encountered: ' + samplingSession.errorCount);
+        
+        // Add sampling metadata
         if (!domStructure.metadata) {
             domStructure.metadata = {};
         }
-        
-        domStructure.metadata.valueSampling = {
-            enabled: true,
-            timestamp: getCurrentTimestamp(),
-            statistics: samplingStats,
-            configuration: config,
-            referenceTracking: referenceTracker ? 
-                referenceTracker.getStatistics() : null,
-            performance: {
-                totalTime: samplingStats.samplingTime,
-                averageTimePerProperty: samplingStats.propertiesSampled > 0 ? 
-                    samplingStats.samplingTime / samplingStats.propertiesSampled : 0,
-                successRate: samplingStats.propertiesSampled > 0 ? 
-                    (samplingStats.valuesSampled / samplingStats.propertiesSampled) * 100 : 0
-            }
-        };
-        
-        if (config.enableProgressReporting) {
-            logSamplingProgress('Property sampling completed: ' + samplingStats.valuesSampled + 
-                              ' values extracted from ' + samplingStats.propertiesSampled + ' properties');
-        }
+        domStructure.metadata.samplingCompleted = true;
+        domStructure.metadata.samplingTime = endTime - startTime;
+        domStructure.metadata.propertiesSampled = samplingSession.sampledCount;
         
         return domStructure;
         
     } catch (exc) {
-        if (domStructure && domStructure.metadata) {
-            domStructure.metadata.valueSampling = {
-                enabled: false,
-                error: 'Value sampling failed: ' + exc.message,
-                timestamp: getCurrentTimestamp(),
-                statistics: samplingStats,
-                configuration: config
-            };
-        }
-        
-        if (config.enableDetailedLogging) {
-            logSamplingError('Property sampling failed: ' + exc.message);
-        }
-        
-        return domStructure;
+        $.writeln('[SAMPLE DEBUG] EXCEPTION: ' + exc.message);
+        return {
+            error: 'Property sampling failed: ' + exc.message,
+            timestamp: getCurrentTimestamp()
+        };
     }
 }
 

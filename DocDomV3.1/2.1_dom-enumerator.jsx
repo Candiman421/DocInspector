@@ -47,22 +47,35 @@ var DEFAULT_ENUMERATION_CONFIG = {
  */
 function enumerateDocumentDOM(documentObject, config) {
     var startTime = new Date().getTime();
-    var enumerationConfig = config ? 
+    
+    $.writeln('[ENUM DEBUG] === STARTING enumerateDocumentDOM ===');
+    $.writeln('[ENUM DEBUG] Start time: ' + startTime);
+    $.writeln('[ENUM DEBUG] Config received: ' + (config ? 'YES' : 'NO'));
+    
+    var enumerationConfig = config ?
         objectMerge(DEFAULT_ENUMERATION_CONFIG, config) : 
         objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
+    
+    $.writeln('[ENUM DEBUG] Final config maxDepth: ' + enumerationConfig.maxDepth);
+    $.writeln('[ENUM DEBUG] Final config timeoutMs: ' + enumerationConfig.timeoutMs);
+    $.writeln('[ENUM DEBUG] Final config maxProperties: ' + enumerationConfig.maxProperties);
     
     try {
         // Validate environment
         var envValidation = validateInDesignEnvironment();
         if (!envValidation.valid) {
+            $.writeln('[ENUM DEBUG] Environment validation FAILED: ' + envValidation.error);
             return createErrorDOMStructure(envValidation.error);
         }
+        $.writeln('[ENUM DEBUG] Environment validation PASSED');
         
         var targetDocument = documentObject || envValidation.document;
         var docValidation = validateDocumentState(targetDocument);
+        $.writeln('[ENUM DEBUG] Document validation completed');
         
         // Create DOM structure container
         var domStructure = createDOMStructure();
+        $.writeln('[ENUM DEBUG] DOM structure container created');
         
         // Set up metadata
         domStructure.metadata = {
@@ -97,11 +110,15 @@ function enumerateDocumentDOM(documentObject, config) {
                 circularReferences: [],
                 totalTracked: 0
             };
+            $.writeln('[ENUM DEBUG] Object registry initialized');
         }
         
         // Create progress reporter if enabled
-        var progressReporter = enumerationConfig.enableProgressReporting ? 
+        var progressReporter = enumerationConfig.enableProgressReporting ?
             createProgressReporter() : null;
+            
+        $.writeln('[ENUM DEBUG] About to call enumerateObjectStructure...');
+        var enumStartTime = new Date().getTime();
         
         // Enumerate document structure
         domStructure.structure = {
@@ -115,19 +132,33 @@ function enumerateDocumentDOM(documentObject, config) {
             )
         };
         
+        var enumEndTime = new Date().getTime();
+        $.writeln('[ENUM DEBUG] enumerateObjectStructure completed in: ' + (enumEndTime - enumStartTime) + 'ms');
+        $.writeln('[ENUM DEBUG] Document node created, properties: ' + 
+                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
+        
         // Post-processing
         if (enumerationConfig.includeAlternativeAccessPaths) {
+            $.writeln('[ENUM DEBUG] Running updateAlternativeAccessPaths...');
             updateAlternativeAccessPaths(domStructure);
         }
         
         // Generate statistics
         if (enumerationConfig.generateStatistics) {
+            $.writeln('[ENUM DEBUG] Generating statistics...');
             domStructure.statistics = getDOMStatistics(domStructure);
         }
         
         // Final metadata
         domStructure.metadata.enumerationTime = new Date().getTime() - startTime;
         domStructure.metadata.completed = true;
+        
+        $.writeln('[ENUM DEBUG] === ENUMERATION COMPLETED ===');
+        $.writeln('[ENUM DEBUG] Total time: ' + domStructure.metadata.enumerationTime + 'ms');
+        $.writeln('[ENUM DEBUG] Properties found: ' + 
+                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
+        $.writeln('[ENUM DEBUG] Methods found: ' + 
+                 (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
         
         if (progressReporter) {
             progressReporter.complete();
@@ -136,6 +167,7 @@ function enumerateDocumentDOM(documentObject, config) {
         return domStructure;
         
     } catch (exc) {
+        $.writeln('[ENUM DEBUG] EXCEPTION: ' + exc.message);
         return createErrorDOMStructure('DOM enumeration failed: ' + exc.message);
     }
 }
