@@ -183,13 +183,19 @@ function enumerateDocumentDOM(documentObject, config) {
  * @returns {Object} DOM node structure
  */
 function enumerateObjectStructure(targetObject, objectPath, depth, config, domStructure, progressReporter) {
+    var startTime = new Date().getTime();
+    
+    $.writeln('[STRUCT DEBUG] Starting enumeration: ' + objectPath + ' (depth: ' + depth + ')');
+    
     try {
         // Check depth and timeout limits
         if (depth >= config.maxDepth) {
+            $.writeln('[STRUCT DEBUG] Max depth reached at: ' + objectPath);
             return createDOMNode(objectPath, 'MaxDepthReached', 'limit', depth);
         }
         
         if (!targetObject) {
+            $.writeln('[STRUCT DEBUG] Null object at: ' + objectPath);
             return createDOMNode(objectPath, 'NullObject', 'null', depth);
         }
         
@@ -197,6 +203,7 @@ function enumerateObjectStructure(targetObject, objectPath, depth, config, domSt
         if (config.enableCircularReferenceDetection) {
             var circularRef = detectCircularReference(targetObject, objectPath, domStructure);
             if (circularRef.isCircular) {
+                $.writeln('[STRUCT DEBUG] Circular reference detected at: ' + objectPath);
                 return createDOMNode(objectPath, 'CircularReference', 'circular', depth, circularRef.originalPath);
             }
         }
@@ -215,17 +222,56 @@ function enumerateObjectStructure(targetObject, objectPath, depth, config, domSt
             progressReporter.reportProgress('Enumerating: ' + objectPath);
         }
         
-        // Enumerate properties
+        // Create timeout checker for this enumeration
+        var timeoutChecker = createTimeoutChecker(config.timeoutMs);
+        var initialElapsed = new Date().getTime() - startTime;
+        
+        $.writeln('[STRUCT DEBUG] Starting property enumeration for: ' + objectPath);
+        $.writeln('[STRUCT DEBUG] Timeout limit: ' + config.timeoutMs + 'ms');
+        
+        // Enumerate properties with timeout checking
         var propertyCount = 0;
         var operationCount = 0;
+        var timeoutReached = false;
         
         try {
             for (var propName in targetObject) {
+                // CRITICAL: Check timeout every 10 properties
+                if (operationCount % 10 === 0) {
+                    var elapsed = new Date().getTime() - startTime;
+                    
+                    if (operationCount === 0) {
+                        $.writeln('[STRUCT DEBUG] Starting property loop for: ' + objectPath + ' (elapsed: ' + elapsed + 'ms)');
+                    } else if (operationCount % 50 === 0) {
+                        $.writeln('[STRUCT DEBUG] Progress: ' + operationCount + ' properties processed for ' + objectPath + ' (elapsed: ' + elapsed + 'ms)');
+                    }
+                    
+                    // TIMEOUT CHECK
+                    if (config.timeoutMs && elapsed > config.timeoutMs) {
+                        $.writeln('[STRUCT DEBUG] TIMEOUT REACHED! Breaking enumeration at: ' + objectPath);
+                        $.writeln('[STRUCT DEBUG] Processed ' + operationCount + ' properties in ' + elapsed + 'ms');
+                        domNode.truncated = true;
+                        domNode.truncationReason = 'Timeout reached (' + elapsed + 'ms > ' + config.timeoutMs + 'ms)';
+                        timeoutReached = true;
+                        break;
+                    }
+                    
+                    // Alternative timeout check using timeoutChecker function
+                    if (timeoutChecker && timeoutChecker()) {
+                        $.writeln('[STRUCT DEBUG] TimeoutChecker triggered! Breaking enumeration at: ' + objectPath);
+                        domNode.truncated = true;
+                        domNode.truncationReason = 'TimeoutChecker triggered after ' + elapsed + 'ms';
+                        timeoutReached = true;
+                        break;
+                    }
+                }
+                
                 // Check operation limits
                 operationCount++;
                 if (operationCount > config.maxProperties) {
+                    $.writeln('[STRUCT DEBUG] Property limit reached at: ' + objectPath + ' (' + operationCount + ' properties)');
                     domNode.truncated = true;
-                    domNode.truncationReason = 'Property limit exceeded';
+                    domNode.truncationReason = 'Property limit exceeded (' + operationCount + ' > ' + config.maxProperties + ')';
                     break;
                 }
                 
@@ -247,14 +293,29 @@ function enumerateObjectStructure(targetObject, objectPath, depth, config, domSt
                 }
             }
         } catch (enumExc) {
+            $.writeln('[STRUCT DEBUG] Property enumeration exception at: ' + objectPath + ' - ' + enumExc.message);
             domNode.enumerationError = 'Property enumeration failed: ' + enumExc.message;
         }
         
+        var endTime = new Date().getTime();
+        var totalTime = endTime - startTime;
+        
         domNode.propertyCount = propertyCount;
+        domNode.operationCount = operationCount;
+        domNode.enumerationTime = totalTime;
+        
+        $.writeln('[STRUCT DEBUG] Completed enumeration for: ' + objectPath);
+        $.writeln('[STRUCT DEBUG] - Properties found: ' + propertyCount);
+        $.writeln('[STRUCT DEBUG] - Operations performed: ' + operationCount);
+        $.writeln('[STRUCT DEBUG] - Time taken: ' + totalTime + 'ms');
+        $.writeln('[STRUCT DEBUG] - Timeout reached: ' + (timeoutReached ? 'YES' : 'NO'));
+        $.writeln('[STRUCT DEBUG] - Truncated: ' + (domNode.truncated ? 'YES' : 'NO'));
         
         return domNode;
         
     } catch (exc) {
+        var exceptionTime = new Date().getTime() - startTime;
+        $.writeln('[STRUCT DEBUG] EXCEPTION in enumeration for: ' + objectPath + ' after ' + exceptionTime + 'ms - ' + exc.message);
         return createErrorDOMNode(objectPath, 'Enumeration error: ' + exc.message, depth);
     }
 }
