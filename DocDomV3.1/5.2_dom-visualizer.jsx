@@ -49,7 +49,7 @@ var g_domViz_mappingDisplay = null;
 
 var DEFAULT_VISUALIZER_CONFIG = {
     enumeration: {
-        maxDepth: 4,
+        maxDepth: 8,
         timeoutMs: 15000,
         skipDangerous: true,
         maxProperties: 5000,
@@ -82,6 +82,14 @@ var DEFAULT_VISUALIZER_CONFIG = {
         autoRefresh: false,
         enableProgressReporting: false,
         enableDetailedLogging: false
+    },
+    debug: {
+        enabled: true,  // NEW: Debug flag - set to true by default
+        showEnumeration: true,
+        showSampling: true,
+        showCircularDetection: true,
+        showDisplay: true,
+        showPerformance: true
     }
 };
 
@@ -612,10 +620,10 @@ function initializeVisualizerComponents() {
  * Perform full discovery (all phases)
  */
 function performFullDiscovery() {
-    $.writeln('[DEBUG] Config exists: ' + (g_domViz_userConfiguration ? 'YES' : 'NO'));
-    $.writeln('[DEBUG] objectClone available: ' + functionExists('objectClone'));
+    debugLog('Config exists: ' + (g_domViz_userConfiguration ? 'YES' : 'NO'));
+    debugLog('objectClone available: ' + functionExists('objectClone'));
     if (g_domViz_userConfiguration) {
-        $.writeln('[DEBUG] maxDepth setting: ' + g_domViz_userConfiguration.enumeration.maxDepth);
+        debugLog('maxDepth setting: ' + g_domViz_userConfiguration.enumeration.maxDepth);
     }
     try {
         updateStatus('Starting full DOM discovery...');
@@ -623,7 +631,7 @@ function performFullDiscovery() {
         // FIX: Initialize configuration if not available
         if (!g_domViz_userConfiguration) {
             g_domViz_userConfiguration = objectClone(DEFAULT_VISUALIZER_CONFIG, 4);
-            $.writeln('[DEBUG] Configuration initialized with defaults');
+            debugLog('Configuration initialized with defaults');
         }
 
         if (!app.documents.length) {
@@ -632,25 +640,25 @@ function performFullDiscovery() {
         }
 
         var doc = app.activeDocument;
-        $.writeln('[DEBUG] Document name: ' + (doc.name || 'Unknown'));
+        debugLog('Document name: ' + (doc.name || 'Unknown'));
 
         // Phase 1: Enumeration
         updateStatus('Phase 1: Enumerating DOM structure...');
-        $.writeln('[DEBUG] === STARTING PHASE 1 ===');
+        debugLog('=== STARTING PHASE 1 ===');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
 
         // DEBUG: Show what we actually got from enumeration - ES3 COMPATIBLE
-        $.writeln('[DEBUG] === PHASE 1 ENUMERATION RESULTS ===');
-        $.writeln('[DEBUG] domStructure type: ' + typeof domStructure);
-        $.writeln('[DEBUG] domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
-        $.writeln('[DEBUG] domStructure has .metadata: ' + (domStructure.metadata ? 'YES' : 'NO'));
+        debugLog('=== PHASE 1 ENUMERATION RESULTS ===');
+        debugLog('domStructure type: ' + typeof domStructure);
+        debugLog('domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
+        debugLog('domStructure has .metadata: ' + (domStructure.metadata ? 'YES' : 'NO'));
 
         if (domStructure.structure && domStructure.structure.document) {
             var docNode = domStructure.structure.document;
-            $.writeln('[DEBUG] Document node properties: ' + (docNode.properties ? docNode.properties.length : 0));
-            $.writeln('[DEBUG] Document node methods: ' + (docNode.methods ? docNode.methods.length : 0));
-            $.writeln('[DEBUG] Document node collections: ' + (docNode.collections ? docNode.collections.length : 0));
-            $.writeln('[DEBUG] Document node child nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
+            debugLog('Document node properties: ' + (docNode.properties ? docNode.properties.length : 0));
+            debugLog('Document node methods: ' + (docNode.methods ? docNode.methods.length : 0));
+            debugLog('Document node collections: ' + (docNode.collections ? docNode.collections.length : 0));
+            debugLog('Document node child nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
         }
 
         // FIX: Check for actual error conditions (not .success property)
@@ -666,62 +674,62 @@ function performFullDiscovery() {
         }
 
         // Phase 2: Value Sampling
-        $.writeln('[DEBUG] === STARTING PHASE 2 ===');
+        debugLog('=== STARTING PHASE 2 ===');
         updateStatus('Phase 2: Sampling property values...');
         var sampledStructure = domStructure; // Default fallback
         
         if (functionExists('sampleDOMValues')) {
-            $.writeln('[DEBUG] Calling sampleDOMValues with FULL domStructure (not .structure)');
+            debugLog('Calling sampleDOMValues with FULL domStructure (not .structure)');
             // FIX: Pass full domStructure, not domStructure.structure
             var phase2Result = sampleDOMValues(domStructure, doc, g_domViz_userConfiguration.sampling);
             
             if (phase2Result && !phase2Result.error) {
                 sampledStructure = phase2Result;
-                $.writeln('[DEBUG] Phase 2 completed successfully');
+                debugLog('Phase 2 completed successfully');
             } else {
-                $.writeln('[DEBUG] Phase 2 had errors: ' + (phase2Result ? phase2Result.error : 'unknown'));
-                $.writeln('[DEBUG] Using Phase 1 results for Phase 3');
+                debugLog('Phase 2 had errors: ' + (phase2Result ? phase2Result.error : 'unknown'));
+                debugLog('Using Phase 1 results for Phase 3');
             }
         } else {
-            $.writeln('[DEBUG] sampleDOMValues function not found! Skipping phase 2');
+            debugLog('sampleDOMValues function not found! Skipping phase 2');
         }
 
         // Phase 3: Collection Sampling
-        $.writeln('[DEBUG] === STARTING PHASE 3 ===');
+        debugLog('=== STARTING PHASE 3 ===');
         updateStatus('Phase 3: Sampling collections...');
         var finalStructure = sampledStructure; // Default fallback
         
         if (functionExists('sampleCollectionContents')) {
-            $.writeln('[DEBUG] Calling sampleCollectionContents with FULL structure (not .structure)');
+            debugLog('Calling sampleCollectionContents with FULL structure (not .structure)');
             // FIX: Pass full structure, not .structure
             var phase3Result = sampleCollectionContents(sampledStructure, doc, g_domViz_userConfiguration.sampling);
             
             if (phase3Result && !phase3Result.error) {
                 finalStructure = phase3Result;
-                $.writeln('[DEBUG] Phase 3 completed successfully');
+                debugLog('Phase 3 completed successfully');
             } else {
-                $.writeln('[DEBUG] Phase 3 had errors: ' + (phase3Result ? phase3Result.error : 'unknown'));
-                $.writeln('[DEBUG] Using Phase 2 results as final');
+                debugLog('Phase 3 had errors: ' + (phase3Result ? phase3Result.error : 'unknown'));
+                debugLog('Using Phase 2 results as final');
             }
         } else {
-            $.writeln('[DEBUG] sampleCollectionContents function not found! Skipping phase 3');
+            debugLog('sampleCollectionContents function not found! Skipping phase 3');
         }
 
-        $.writeln('[DEBUG] === SETTING FINAL RESULTS ===');
+        debugLog('=== SETTING FINAL RESULTS ===');
         g_domViz_currentDOMStructure = finalStructure;
-        $.writeln('[DEBUG] g_domViz_currentDOMStructure set, type: ' + typeof g_domViz_currentDOMStructure);
+        debugLog('g_domViz_currentDOMStructure set, type: ' + typeof g_domViz_currentDOMStructure);
         
         if (g_domViz_currentDOMStructure) {
-            $.writeln('[DEBUG] Final structure is not null - proceeding to display');
+            debugLog('Final structure is not null - proceeding to display');
         } else {
-            $.writeln('[DEBUG] ERROR: Final structure is null!');
+            debugLog('ERROR: Final structure is null!');
         }
         
         displayCurrentStructure();
         updateStatus('Full discovery completed successfully');
 
     } catch (exc) {
-        $.writeln('[DEBUG] EXCEPTION in performFullDiscovery: ' + exc.message);
+        debugLog('EXCEPTION in performFullDiscovery: ' + exc.message);
         updateStatus('Full discovery error: ' + exc.message);
     }
 }
@@ -812,80 +820,182 @@ function performPhase3CollectionSampling() {
 }
 
 /**
- * Display current DOM structure
+ * Display current DOM structure - FIXED VERSION
  */
 function displayCurrentStructure() {
-    $.writeln('[DISPLAY DEBUG] === STARTING displayCurrentStructure ===');
-    
+    debugLog('Starting displayCurrentStructure', 'display');
+
     try {
         if (!g_domViz_currentDOMStructure) {
-            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_currentDOMStructure is null');
+            debugLog('ERROR: g_domViz_currentDOMStructure is null', 'display');
+            if (g_domViz_discoveryDisplay) {
+                g_domViz_discoveryDisplay.text = 'No DOM structure available. Please run discovery first.';
+            }
             return;
-        }
-        
-        if (!g_domViz_discoveryDisplay) {
-            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_discoveryDisplay is null');
-            return;
-        }
-        
-        $.writeln('[DISPLAY DEBUG] g_domViz_currentDOMStructure type: ' + typeof g_domViz_currentDOMStructure);
-        
-        // Check structure contents
-        if (g_domViz_currentDOMStructure.structure) {
-            $.writeln('[DISPLAY DEBUG] Structure exists');
-            if (g_domViz_currentDOMStructure.structure.document) {
-                var doc = g_domViz_currentDOMStructure.structure.document;
-                $.writeln('[DISPLAY DEBUG] Document node exists');
-                $.writeln('[DISPLAY DEBUG] Properties: ' + (doc.properties ? doc.properties.length : 'undefined'));
-                $.writeln('[DISPLAY DEBUG] Methods: ' + (doc.methods ? doc.methods.length : 'undefined'));
-                $.writeln('[DISPLAY DEBUG] Collections: ' + (doc.collections ? doc.collections.length : 'undefined'));
-            } else {
-                $.writeln('[DISPLAY DEBUG] No document node in structure');
-            }
-        } else {
-            $.writeln('[DISPLAY DEBUG] No structure property');
-        }
-        
-        if (functionExists('generateStructureDisplayText')) {
-            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function exists - calling it');
-            var displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
-            $.writeln('[DISPLAY DEBUG] Display text generated, length: ' + displayText.length);
-            
-            g_domViz_discoveryDisplay.text = displayText;
-            $.writeln('[DISPLAY DEBUG] Display text set successfully');
-        } else {
-            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function NOT FOUND - creating fallback');
-            
-            // Fallback display
-            var fallbackText = 'DOM Structure Discovered!\n\n';
-            if (g_domViz_currentDOMStructure.metadata) {
-                fallbackText += 'Document: ' + (g_domViz_currentDOMStructure.metadata.documentName || 'Unknown') + '\n';
-                fallbackText += 'Enumeration Time: ' + (g_domViz_currentDOMStructure.metadata.enumerationTime || 'Unknown') + 'ms\n';
-            }
-            
-            if (g_domViz_currentDOMStructure.structure && g_domViz_currentDOMStructure.structure.document) {
-                var docNode = g_domViz_currentDOMStructure.structure.document;
-                fallbackText += '\nDocument Node Properties:\n';
-                fallbackText += '- Properties: ' + (docNode.properties ? docNode.properties.length : 0) + '\n';
-                fallbackText += '- Methods: ' + (docNode.methods ? docNode.methods.length : 0) + '\n';
-                fallbackText += '- Collections: ' + (docNode.collections ? docNode.collections.length : 0) + '\n';
-                
-                // Show first few property names
-                if (docNode.properties && docNode.properties.length > 0) {
-                    fallbackText += '\nFirst few properties:\n';
-                    for (var i = 0; i < Math.min(5, docNode.properties.length); i++) {
-                        fallbackText += '- ' + docNode.properties[i].name + ' (' + docNode.properties[i].type + ')\n';
-                    }
-                }
-            }
-            
-            g_domViz_discoveryDisplay.text = fallbackText;
-            $.writeln('[DISPLAY DEBUG] Fallback display text set');
         }
 
+        if (!g_domViz_discoveryDisplay) {
+            debugLog('ERROR: g_domViz_discoveryDisplay is null', 'display');
+            return;
+        }
+
+        debugLog('g_domViz_currentDOMStructure type: ' + typeof g_domViz_currentDOMStructure, 'display');
+
+        // Debug structure contents
+        if (g_domViz_currentDOMStructure.structure) {
+            debugLog('Structure exists', 'display');
+            if (g_domViz_currentDOMStructure.structure.document) {
+                var doc = g_domViz_currentDOMStructure.structure.document;
+                debugLog('Document node exists', 'display');
+                debugLog('Properties: ' + (doc.properties ? doc.properties.length : 'undefined'), 'display');
+                debugLog('Methods: ' + (doc.methods ? doc.methods.length : 'undefined'), 'display');
+                debugLog('Collections: ' + (doc.collections ? doc.collections.length : 'undefined'), 'display');
+                debugLog('Child nodes: ' + (doc.childNodes ? doc.childNodes.length : 'undefined'), 'display');
+            } else {
+                debugLog('No document node in structure', 'display');
+            }
+        } else {
+            debugLog('No structure property', 'display');
+        }
+
+        // Generate display text
+        var displayText = '';
+
+        if (functionExists('generateStructureDisplayText')) {
+            debugLog('generateStructureDisplayText function exists - calling it', 'display');
+            displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
+            debugLog('Display text generated, length: ' + displayText.length, 'display');
+        } else {
+            debugLog('generateStructureDisplayText function NOT FOUND - creating enhanced fallback', 'display');
+            displayText = generateEnhancedFallbackDisplay(g_domViz_currentDOMStructure);
+        }
+
+        g_domViz_discoveryDisplay.text = displayText;
+        debugLog('Display text set successfully', 'display');
+
     } catch (exc) {
-        $.writeln('[DISPLAY DEBUG] EXCEPTION: ' + exc.message);
+        debugLog('EXCEPTION: ' + exc.message, 'display');
         updateStatus('Display update error: ' + exc.message);
+    }
+}
+
+/**
+ * Generate enhanced fallback display when main function missing
+ * @param {Object} structure - DOM structure
+ * @returns {String} Display text
+ */
+function generateEnhancedFallbackDisplay(structure) {
+    debugLog('Generating enhanced fallback display', 'display');
+
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('DOM DISCOVERY RESULTS (Fallback Display)');
+        builder.appendLine('=========================================');
+        builder.appendLine('');
+
+        // Metadata section
+        if (structure.metadata) {
+            builder.appendLine('METADATA:');
+            builder.appendLine('Document: ' + (structure.metadata.documentName || 'Unknown'));
+            builder.appendLine('Version: ' + (structure.metadata.version || 'Unknown'));
+            builder.appendLine('Timestamp: ' + (structure.metadata.timestamp || 'Unknown'));
+            builder.appendLine('Enumeration Time: ' + (structure.metadata.enumerationTime || 'Unknown') + 'ms');
+
+            if (structure.metadata.config) {
+                builder.appendLine('Max Depth Used: ' + (structure.metadata.config.maxDepth || 'Unknown'));
+                builder.appendLine('Timeout Setting: ' + (structure.metadata.config.timeoutMs || 'Unknown') + 'ms');
+            }
+            builder.appendLine('');
+        }
+
+        // Document structure
+        if (structure.structure && structure.structure.document) {
+            var docNode = structure.structure.document;
+
+            builder.appendLine('DOCUMENT STRUCTURE:');
+            builder.appendLine('Properties: ' + (docNode.properties ? docNode.properties.length : 0));
+            builder.appendLine('Methods: ' + (docNode.methods ? docNode.methods.length : 0));
+            builder.appendLine('Collections: ' + (docNode.collections ? docNode.collections.length : 0));
+            builder.appendLine('Child Nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
+            builder.appendLine('');
+
+            // Show first few properties
+            if (docNode.properties && docNode.properties.length > 0) {
+                builder.appendLine('SAMPLE PROPERTIES:');
+                for (var i = 0; i < Math.min(10, docNode.properties.length); i++) {
+                    var prop = docNode.properties[i];
+                    var valueInfo = '';
+                    if (prop.sampledValue) {
+                        valueInfo = ' = ' + prop.sampledValue;
+                    }
+                    builder.appendLine('  • ' + prop.name + ' (' + prop.type + ')' + valueInfo);
+                }
+
+                if (docNode.properties.length > 10) {
+                    builder.appendLine('  ... and ' + (docNode.properties.length - 10) + ' more properties');
+                }
+                builder.appendLine('');
+            }
+
+            // Show collections
+            if (docNode.collections && docNode.collections.length > 0) {
+                builder.appendLine('COLLECTIONS:');
+                for (var j = 0; j < Math.min(5, docNode.collections.length); j++) {
+                    var coll = docNode.collections[j];
+                    builder.appendLine('  • ' + coll.name + ' (' + coll.type + ')');
+                }
+                if (docNode.collections.length > 5) {
+                    builder.appendLine('  ... and ' + (docNode.collections.length - 5) + ' more collections');
+                }
+                builder.appendLine('');
+            }
+
+            // Show child node summary
+            if (docNode.childNodes && docNode.childNodes.length > 0) {
+                builder.appendLine('CHILD OBJECTS:');
+                var childSummary = {};
+                for (var k = 0; k < docNode.childNodes.length; k++) {
+                    var child = docNode.childNodes[k];
+                    var childType = child.type || 'unknown';
+                    if (!childSummary[childType]) {
+                        childSummary[childType] = 0;
+                    }
+                    childSummary[childType]++;
+                }
+
+                for (var type in childSummary) {
+                    if (objectHasOwnProperty(childSummary, type)) {
+                        builder.appendLine('  • ' + type + ': ' + childSummary[type] + ' objects');
+                    }
+                }
+                builder.appendLine('');
+            }
+        } else {
+            builder.appendLine('ERROR: No document structure found!');
+            builder.appendLine('Structure type: ' + typeof structure.structure);
+            if (structure.structure) {
+                var structKeys = [];
+                for (var key in structure.structure) {
+                    structKeys.push(key);
+                }
+                builder.appendLine('Structure keys: ' + structKeys.join(', '));
+            }
+        }
+
+        // Statistics
+        if (structure.statistics) {
+            builder.appendLine('STATISTICS:');
+            builder.appendLine('Total Nodes: ' + (structure.statistics.totalNodes || 0));
+            builder.appendLine('Total Properties: ' + (structure.statistics.totalProperties || 0));
+            builder.appendLine('Max Depth Reached: ' + (structure.statistics.maxDepth || 0));
+            builder.appendLine('');
+        }
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating fallback display: ' + exc.message;
     }
 }
 
@@ -1760,6 +1870,7 @@ function closeVisualizer() {
 // =============================================================================
 
 // Register this module with all its functions
+// Register this module with all its functions
 registerModule('5.2_dom-visualizer', '3.1', [
     // Main Functions
     'showDOMVisualizer', 'createVisualizerWindow', 'initializeVisualizerComponents',
@@ -1771,6 +1882,7 @@ registerModule('5.2_dom-visualizer', '3.1', [
     // Discovery Operations
     'performFullDiscovery', 'performPhase1Enumeration', 'performPhase2ValueSampling',
     'performPhase3CollectionSampling', 'displayCurrentStructure', 'generateStructureDisplayText',
+    'generateEnhancedFallbackDisplay',  // ← NEW FUNCTION ADDED
     'clearDiscoveryDisplay',
 
     // Export Operations

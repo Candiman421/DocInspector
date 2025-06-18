@@ -45,14 +45,14 @@ function arrayIndexOf(targetArray, searchElement) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return -1;
         }
-        
+
         for (var i = 0; i < targetArray.length; i++) {
             if (targetArray[i] === searchElement) {
                 return i;
             }
         }
         return -1;
-        
+
     } catch (exc) {
         return -1;
     }
@@ -70,20 +70,20 @@ function arraySlice(targetArray, startIndex, endIndex) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return [];
         }
-        
+
         var result = [];
         var startIdx = startIndex || 0;
         var endIdx = (typeof endIndex !== 'undefined') ? endIndex : targetArray.length;
-        
+
         if (startIdx < 0) startIdx = Math.max(0, targetArray.length + startIdx);
         if (endIdx < 0) endIdx = Math.max(0, targetArray.length + endIdx);
-        
+
         for (var i = startIdx; i < endIdx && i < targetArray.length; i++) {
             result[result.length] = targetArray[i];
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return [];
     }
@@ -100,17 +100,17 @@ function arrayJoin(targetArray, separator) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return '';
         }
-        
+
         var sep = (typeof separator !== 'undefined') ? separator : ',';
         var result = '';
-        
+
         for (var i = 0; i < targetArray.length; i++) {
             if (i > 0) result += sep;
             result += String(targetArray[i]);
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return '';
     }
@@ -127,10 +127,10 @@ function arrayPush(targetArray, element) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return 0;
         }
-        
+
         targetArray[targetArray.length] = element;
         return targetArray.length;
-        
+
     } catch (exc) {
         return 0;
     }
@@ -146,11 +146,11 @@ function arrayPop(targetArray) {
         if (!targetArray || typeof targetArray.length === 'undefined' || targetArray.length === 0) {
             return undefined;
         }
-        
+
         var lastElement = targetArray[targetArray.length - 1];
         targetArray.length = targetArray.length - 1;
         return lastElement;
-        
+
     } catch (exc) {
         return undefined;
     }
@@ -165,21 +165,21 @@ function arrayPop(targetArray) {
 function arrayConcat(targetArray, sourceArray) {
     try {
         var result = [];
-        
+
         if (targetArray && typeof targetArray.length !== 'undefined') {
             for (var i = 0; i < targetArray.length; i++) {
                 result[result.length] = targetArray[i];
             }
         }
-        
+
         if (sourceArray && typeof sourceArray.length !== 'undefined') {
             for (var j = 0; j < sourceArray.length; j++) {
                 result[result.length] = sourceArray[j];
             }
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return [];
     }
@@ -201,10 +201,10 @@ function stringIndexOf(targetString, searchString, startIndex) {
         if (typeof targetString !== 'string' || typeof searchString !== 'string') {
             return -1;
         }
-        
+
         var startPos = startIndex || 0;
         return targetString.indexOf(searchString, startPos);
-        
+
     } catch (exc) {
         return -1;
     }
@@ -220,12 +220,12 @@ function stringIndexOf(targetString, searchString, startIndex) {
 function stringSubstring(targetString, startIndex, endIndex) {
     try {
         if (typeof targetString !== 'string') return '';
-        
+
         var startIdx = startIndex || 0;
         var endIdx = (typeof endIndex !== 'undefined') ? endIndex : targetString.length;
-        
+
         return targetString.substring(startIdx, endIdx);
-        
+
     } catch (exc) {
         return '';
     }
@@ -255,10 +255,10 @@ function stringCharAt(targetString, index) {
 function stringSplit(targetString, separator) {
     try {
         if (typeof targetString !== 'string') return [];
-        
+
         var sep = (typeof separator !== 'undefined') ? separator : '';
         return targetString.split(sep);
-        
+
     } catch (exc) {
         return [];
     }
@@ -304,23 +304,23 @@ function stringReplace(targetString, searchValue, replaceValue) {
         if (typeof targetString !== 'string') return '';
         if (typeof searchValue !== 'string') return targetString;
         if (typeof replaceValue !== 'string') replaceValue = '';
-        
+
         var result = '';
         var lastIndex = 0;
         var searchLen = searchValue.length;
-        
+
         if (searchLen === 0) return targetString;
-        
+
         var index = stringIndexOf(targetString, searchValue, 0);
         while (index !== -1) {
             result += stringSubstring(targetString, lastIndex, index) + replaceValue;
             lastIndex = index + searchLen;
             index = stringIndexOf(targetString, searchValue, lastIndex);
         }
-        
+
         result += stringSubstring(targetString, lastIndex);
         return result;
-        
+
     } catch (exc) {
         return targetString || '';
     }
@@ -337,12 +337,12 @@ function stringMatch(targetString, pattern) {
         if (typeof targetString !== 'string' || typeof pattern !== 'string') {
             return null;
         }
-        
+
         var index = stringIndexOf(targetString, pattern);
         if (index === -1) return null;
-        
+
         return [pattern];
-        
+
     } catch (exc) {
         return null;
     }
@@ -375,16 +375,16 @@ function objectHasOwnProperty(targetObject, prop) {
 function countObjectKeys(targetObject) {
     try {
         if (!targetObject || typeof targetObject !== 'object') return 0;
-        
+
         var count = 0;
         for (var key in targetObject) {
             if (objectHasOwnProperty(targetObject, key)) {
                 count++;
             }
         }
-        
+
         return count;
-        
+
     } catch (exc) {
         return 0;
     }
@@ -398,16 +398,16 @@ function countObjectKeys(targetObject) {
 function getObjectKeys(targetObject) {
     try {
         if (!targetObject || typeof targetObject !== 'object') return [];
-        
+
         var keys = [];
         for (var key in targetObject) {
             if (objectHasOwnProperty(targetObject, key)) {
                 keys[keys.length] = key;
             }
         }
-        
+
         return keys;
-        
+
     } catch (exc) {
         return [];
     }
@@ -422,29 +422,29 @@ function getObjectKeys(targetObject) {
 // function objectClone(originalObject, maxDepth) {
 //     var depth = maxDepth || 3;
 //     var seen = [];
-    
+
 //     function cloneRecursive(sourceObject, currentDepth) {
 //         try {
 //             if (currentDepth >= depth) return '[Max Depth Reached]';
-            
+
 //             if (sourceObject === null || sourceObject === undefined) {
 //                 return sourceObject;
 //             }
-            
+
 //             var objType = typeof sourceObject;
 //             if (objType !== 'object') {
 //                 return sourceObject;
 //             }
-            
+
 //             // Check for circular references
 //             for (var i = 0; i < seen.length; i++) {
 //                 if (seen[i] === sourceObject) {
 //                     return '[Circular Reference]';
 //                 }
 //             }
-            
+
 //             seen[seen.length] = sourceObject;
-            
+
 //             // Handle arrays
 //             if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
 //                 var clonedArray = [];
@@ -453,7 +453,7 @@ function getObjectKeys(targetObject) {
 //                 }
 //                 return clonedArray;
 //             }
-            
+
 //             // Handle objects
 //             var clonedObject = {};
 //             for (var prop in sourceObject) {
@@ -461,14 +461,14 @@ function getObjectKeys(targetObject) {
 //                     clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
 //                 }
 //             }
-            
+
 //             return clonedObject;
-            
+
 //         } catch (exc) {
 //             return '[Clone Error: ' + exc.message + ']';
 //         }
 //     }
-    
+
 //     try {
 //         return cloneRecursive(originalObject, 0);
 //     } catch (exc) {
@@ -485,7 +485,7 @@ function getObjectKeys(targetObject) {
 function objectMerge(target, source) {
     try {
         var result = objectClone(target, 1);
-        
+
         if (source && typeof source === 'object') {
             for (var prop in source) {
                 if (objectHasOwnProperty(source, prop)) {
@@ -493,9 +493,9 @@ function objectMerge(target, source) {
                 }
             }
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return target || {};
     }
@@ -510,11 +510,11 @@ function objectMerge(target, source) {
 function objectDeepMerge(target, source) {
     try {
         var result = objectClone(target, 3);
-        
+
         if (source && typeof source === 'object') {
             for (var prop in source) {
                 if (objectHasOwnProperty(source, prop)) {
-                    if (result[prop] && typeof result[prop] === 'object' && 
+                    if (result[prop] && typeof result[prop] === 'object' &&
                         source[prop] && typeof source[prop] === 'object') {
                         result[prop] = objectDeepMerge(result[prop], source[prop]);
                     } else {
@@ -523,9 +523,9 @@ function objectDeepMerge(target, source) {
                 }
             }
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return target || {};
     }
@@ -561,28 +561,28 @@ function safeCall(func, args, context) {
         value: null,
         error: null
     };
-    
+
     try {
         if (typeof func !== 'function') {
             result.error = 'Not a function';
             return result;
         }
-        
+
         var argsArray = args || [];
         var callContext = context || null;
-        
+
         if (callContext) {
             result.value = func.apply(callContext, argsArray);
         } else {
             result.value = func.apply(null, argsArray);
         }
-        
+
         result.success = true;
-        
+
     } catch (exc) {
         result.error = exc.message || 'Function call failed';
     }
-    
+
     return result;
 }
 
@@ -598,22 +598,22 @@ function safeCall(func, args, context) {
 function trimString(sourceString) {
     try {
         if (typeof sourceString !== 'string') return '';
-        
+
         var start = 0;
         var end = sourceString.length;
-        
+
         // Find start of non-whitespace
         while (start < end && stringCharAt(sourceString, start) <= ' ') {
             start++;
         }
-        
+
         // Find end of non-whitespace
         while (end > start && stringCharAt(sourceString, end - 1) <= ' ') {
             end--;
         }
-        
+
         return stringSubstring(sourceString, start, end);
-        
+
     } catch (exc) {
         return sourceString || '';
     }
@@ -628,9 +628,9 @@ function safeToString(value) {
     try {
         if (value === null) return 'null';
         if (value === undefined) return 'undefined';
-        
+
         return String(value);
-        
+
     } catch (exc) {
         return '[toString error]';
     }
@@ -695,42 +695,42 @@ function safeJSONStringify(data, indentLevel) {
 function fallbackStringify(data, indentLevel) {
     var indent = indentLevel || 0;
     var seen = [];
-    
+
     function stringify(value, depth) {
         try {
             if (depth > 10) return '"[max depth]"';
-            
+
             if (value === null) return 'null';
             if (value === undefined) return 'undefined';
-            
+
             var valueType = typeof value;
-            
+
             if (valueType === 'string') {
                 return '"' + stringReplace(value, '"', '\\"') + '"';
             }
-            
+
             if (valueType === 'number' || valueType === 'boolean') {
                 return String(value);
             }
-            
+
             if (valueType !== 'object') return '"[' + valueType + ']"';
-            
+
             // Check for circular references
             for (var i = 0; i < seen.length; i++) {
                 if (seen[i] === value) {
                     return '"[circular reference]"';
                 }
             }
-            
+
             seen[seen.length] = value;
-            
+
             var indentStr = '';
             for (var j = 0; j < depth * 2; j++) {
                 indentStr += ' ';
             }
-            
+
             var nextIndentStr = indentStr + '  ';
-            
+
             // Handle arrays
             if (value.length !== undefined && typeof value.length === 'number') {
                 var arrayItems = [];
@@ -739,7 +739,7 @@ function fallbackStringify(data, indentLevel) {
                 }
                 return '[' + arrayJoin(arrayItems, ', ') + ']';
             }
-            
+
             // Handle objects
             var objectPairs = [];
             for (var prop in value) {
@@ -748,14 +748,14 @@ function fallbackStringify(data, indentLevel) {
                     objectPairs[objectPairs.length] = '"' + prop + '": ' + propValue;
                 }
             }
-            
+
             return '{' + arrayJoin(objectPairs, ', ') + '}';
-            
+
         } catch (exc) {
             return '"[stringify error: ' + exc.message + ']"';
         }
     }
-    
+
     try {
         return stringify(data, 0);
     } catch (exc) {
@@ -796,13 +796,13 @@ function safeTypeCheck(targetObject, propName) {
         if (!targetObject || typeof targetObject !== 'object') {
             return 'error';
         }
-        
+
         if (!objectHasOwnProperty(targetObject, propName)) {
             return 'undefined';
         }
-        
+
         return typeof targetObject[propName];
-        
+
     } catch (exc) {
         return 'error';
     }
@@ -819,9 +819,9 @@ function safeHasProperty(targetObject, propName) {
         if (!targetObject || typeof targetObject !== 'object') {
             return false;
         }
-        
+
         return objectHasOwnProperty(targetObject, propName);
-        
+
     } catch (exc) {
         return false;
     }
@@ -837,13 +837,13 @@ function safeGetLength(targetObject) {
         if (!targetObject || typeof targetObject !== 'object') {
             return 0;
         }
-        
+
         if (typeof targetObject.length === 'number') {
             return targetObject.length;
         }
-        
+
         return 0;
-        
+
     } catch (exc) {
         return 0;
     }
@@ -862,45 +862,45 @@ function safeGetObjectFromPath(rootObject, path, timeoutMs) {
         value: null,
         error: null
     };
-    
+
     try {
         if (!rootObject) {
             result.error = 'Root object is null or undefined';
             return result;
         }
-        
+
         if (!path || typeof path !== 'string') {
             result.value = rootObject;
             result.success = true;
             return result;
         }
-        
+
         var pathComponents = stringSplit(path, '.');
         var currentObject = rootObject;
-        
+
         for (var i = 0; i < pathComponents.length; i++) {
             var component = pathComponents[i];
-            
+
             if (!currentObject || typeof currentObject !== 'object') {
                 result.error = 'Path component ' + component + ' is not accessible';
                 return result;
             }
-            
+
             if (!safeHasProperty(currentObject, component)) {
                 result.error = 'Property ' + component + ' does not exist';
                 return result;
             }
-            
+
             currentObject = currentObject[component];
         }
-        
+
         result.value = currentObject;
         result.success = true;
-        
+
     } catch (exc) {
         result.error = 'Path access failed: ' + exc.message;
     }
-    
+
     return result;
 }
 
@@ -916,13 +916,13 @@ function safeGetPropertyValue(targetObject, propName, defaultValue) {
         if (!targetObject || typeof targetObject !== 'object') {
             return defaultValue;
         }
-        
+
         if (!safeHasProperty(targetObject, propName)) {
             return defaultValue;
         }
-        
+
         return targetObject[propName];
-        
+
     } catch (exc) {
         return defaultValue;
     }
@@ -942,21 +942,21 @@ function generateObjectReferenceID(targetObject) {
         if (!targetObject || typeof targetObject !== 'object') {
             return 'non_object_' + (new Date().getTime());
         }
-        
+
         var refComponents = [];
-        
+
         if (targetObject.constructor && targetObject.constructor.name) {
             refComponents[refComponents.length] = targetObject.constructor.name;
         }
-        
+
         if (typeof targetObject.length === 'number') {
             refComponents[refComponents.length] = 'length_' + targetObject.length;
         }
-        
+
         refComponents[refComponents.length] = 'time_' + (new Date().getTime());
-        
+
         return arrayJoin(refComponents, '_');
-        
+
     } catch (exc) {
         return 'ref_error_' + (new Date().getTime());
     }
@@ -987,35 +987,35 @@ function createObjectReferenceTracker() {
             visitedObjects: [],
             duplicateCount: 0,
             totalTracked: 0,
-            
-            track: function(targetObject, refId) {
+
+            track: function (targetObject, refId) {
                 try {
                     if (!targetObject || typeof targetObject !== 'object') {
                         return null;
                     }
-                    
+
                     var referenceId = refId || generateObjectReferenceID(targetObject);
-                    
+
                     if (this.references[referenceId]) {
                         this.duplicateCount++;
                         return referenceId;
                     }
-                    
+
                     this.references[referenceId] = {
                         reference: targetObject,
                         firstSeen: new Date().getTime(),
                         accessCount: 1
                     };
-                    
+
                     this.totalTracked++;
                     return referenceId;
-                    
+
                 } catch (exc) {
                     return null;
                 }
             },
-            
-            isVisited: function(targetObject) {
+
+            isVisited: function (targetObject) {
                 try {
                     for (var i = 0; i < this.visitedObjects.length; i++) {
                         if (this.visitedObjects[i] === targetObject) {
@@ -1027,8 +1027,8 @@ function createObjectReferenceTracker() {
                     return false;
                 }
             },
-            
-            markVisited: function(targetObject) {
+
+            markVisited: function (targetObject) {
                 try {
                     if (!this.isVisited(targetObject)) {
                         this.visitedObjects[this.visitedObjects.length] = targetObject;
@@ -1037,8 +1037,8 @@ function createObjectReferenceTracker() {
                     // Continue operation
                 }
             },
-            
-            getStatistics: function() {
+
+            getStatistics: function () {
                 try {
                     return {
                         totalTracked: this.totalTracked,
@@ -1055,8 +1055,8 @@ function createObjectReferenceTracker() {
                     };
                 }
             },
-            
-            cleanup: function() {
+
+            cleanup: function () {
                 try {
                     this.references = {};
                     this.visitedObjects = [];
@@ -1067,18 +1067,18 @@ function createObjectReferenceTracker() {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
             references: {},
             visitedObjects: [],
             duplicateCount: 0,
             totalTracked: 0,
-            track: function() { return null; },
-            isVisited: function() { return false; },
-            markVisited: function() { },
-            getStatistics: function() { return {}; },
-            cleanup: function() { }
+            track: function () { return null; },
+            isVisited: function () { return false; },
+            markVisited: function () { },
+            getStatistics: function () { return {}; },
+            cleanup: function () { }
         };
     }
 }
@@ -1097,9 +1097,9 @@ function splitPath(dotPath) {
         if (!dotPath || typeof dotPath !== 'string') {
             return [];
         }
-        
+
         return stringSplit(dotPath, '.');
-        
+
     } catch (exc) {
         return [];
     }
@@ -1115,9 +1115,9 @@ function joinPath(pathComponents) {
         if (!pathComponents || !pathComponents.length) {
             return '';
         }
-        
+
         return arrayJoin(pathComponents, '.');
-        
+
     } catch (exc) {
         return '';
     }
@@ -1133,14 +1133,14 @@ function getParentPath(path) {
         if (!path || typeof path !== 'string') {
             return '';
         }
-        
+
         var components = splitPath(path);
         if (components.length <= 1) {
             return '';
         }
-        
+
         return joinPath(arraySlice(components, 0, components.length - 1));
-        
+
     } catch (exc) {
         return '';
     }
@@ -1156,10 +1156,10 @@ function normalizePath(path) {
         if (!path || typeof path !== 'string') {
             return '';
         }
-        
+
         // Remove multiple consecutive dots
         var normalized = stringReplace(path, '..', '.');
-        
+
         // Remove leading/trailing dots
         normalized = trimString(normalized);
         if (stringCharAt(normalized, 0) === '.') {
@@ -1168,9 +1168,9 @@ function normalizePath(path) {
         if (stringCharAt(normalized, normalized.length - 1) === '.') {
             normalized = stringSubstring(normalized, 0, normalized.length - 1);
         }
-        
+
         return normalized;
-        
+
     } catch (exc) {
         return path || '';
     }
@@ -1184,9 +1184,9 @@ function normalizePath(path) {
 function isAbsolutePath(path) {
     try {
         if (!path || typeof path !== 'string') return false;
-        
+
         return stringIndexOf(path, 'document') === 0 || stringIndexOf(path, 'app') === 0;
-        
+
     } catch (exc) {
         return false;
     }
@@ -1201,14 +1201,14 @@ function isAbsolutePath(path) {
 function makeAbsolutePath(path, base) {
     try {
         if (!path || typeof path !== 'string') return '';
-        
+
         if (isAbsolutePath(path)) {
             return path;
         }
-        
+
         var basePath = base || 'document';
         return basePath + '.' + path;
-        
+
     } catch (exc) {
         return path || '';
     }
@@ -1225,7 +1225,7 @@ function makeAbsolutePath(path, base) {
 function memoryCleanup(objectsToClean) {
     try {
         if (!objectsToClean || !objectsToClean.length) return;
-        
+
         for (var i = 0; i < objectsToClean.length; i++) {
             try {
                 if (objectsToClean[i] && typeof objectsToClean[i].cleanup === 'function') {
@@ -1235,7 +1235,7 @@ function memoryCleanup(objectsToClean) {
                 // Continue cleanup
             }
         }
-        
+
     } catch (exc) {
         // Silent cleanup failure
     }
@@ -1250,32 +1250,32 @@ function createMemoryMonitor() {
         return {
             objectCount: 0,
             maxObjects: 10000,
-            
-            check: function() {
+
+            check: function () {
                 try {
                     return this.objectCount < this.maxObjects;
                 } catch (exc) {
                     return false;
                 }
             },
-            
-            increment: function() {
+
+            increment: function () {
                 try {
                     this.objectCount++;
                 } catch (exc) {
                     // Continue operation
                 }
             },
-            
-            forceCleanup: function() {
+
+            forceCleanup: function () {
                 try {
                     this.objectCount = 0;
                 } catch (exc) {
                     // Continue operation
                 }
             },
-            
-            getStats: function() {
+
+            getStats: function () {
                 try {
                     return {
                         current: this.objectCount,
@@ -1287,13 +1287,13 @@ function createMemoryMonitor() {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            check: function() { return false; },
-            increment: function() { },
-            forceCleanup: function() { },
-            getStats: function() { return {}; }
+            check: function () { return false; },
+            increment: function () { },
+            forceCleanup: function () { },
+            getStats: function () { return {}; }
         };
     }
 }
@@ -1310,16 +1310,16 @@ function createMemoryMonitor() {
 function isDangerousProperty(propName) {
     try {
         if (typeof propName !== 'string') return true;
-        
+
         var dangerousProps = [
             'prototype', '__proto__', 'constructor', 'caller', 'arguments',
             'eval', 'Function', 'valueOf', 'toString', 'hasOwnProperty',
             'call', 'apply', 'bind', '__defineGetter__', '__defineSetter__',
             '__lookupGetter__', '__lookupSetter__', 'propertyIsEnumerable'
         ];
-        
+
         return arrayIndexOf(dangerousProps, propName) !== -1;
-        
+
     } catch (exc) {
         return true;
     }
@@ -1333,16 +1333,16 @@ function isDangerousProperty(propName) {
 function isDangerousPath(path) {
     try {
         if (typeof path !== 'string') return true;
-        
+
         var components = splitPath(path);
         for (var i = 0; i < components.length; i++) {
             if (isDangerousProperty(components[i])) {
                 return true;
             }
         }
-        
+
         return false;
-        
+
     } catch (exc) {
         return true;
     }
@@ -1356,7 +1356,7 @@ function isDangerousPath(path) {
 function isReservedWord(word) {
     try {
         if (typeof word !== 'string') return true;
-        
+
         var reserved = [
             'break', 'case', 'catch', 'continue', 'default', 'delete', 'do', 'else',
             'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
@@ -1367,9 +1367,9 @@ function isReservedWord(word) {
             'package', 'private', 'protected', 'public', 'short', 'static', 'super',
             'synchronized', 'throws', 'transient', 'volatile'
         ];
-        
+
         return arrayIndexOf(reserved, word) !== -1;
-        
+
     } catch (exc) {
         return true;
     }
@@ -1383,19 +1383,19 @@ function isReservedWord(word) {
 function getPropertySafetyLevel(propName) {
     try {
         if (typeof propName !== 'string') return 'dangerous';
-        
+
         if (isDangerousProperty(propName)) return 'dangerous';
         if (isReservedWord(propName)) return 'dangerous';
-        
+
         var cautionProps = [
             'parent', 'document', 'application', 'activeDocument',
             'selection', 'preferences', 'menuActions'
         ];
-        
+
         if (arrayIndexOf(cautionProps, propName) !== -1) return 'caution';
-        
+
         return 'safe';
-        
+
     } catch (exc) {
         return 'dangerous';
     }
@@ -1414,17 +1414,17 @@ function createTimeoutChecker(timeoutMs) {
     try {
         var startTime = new Date().getTime();
         var timeout = timeoutMs || 30000;
-        
-        return function() {
+
+        return function () {
             try {
                 return (new Date().getTime() - startTime) > timeout;
             } catch (exc) {
                 return true;
             }
         };
-        
+
     } catch (exc) {
-        return function() { return true; };
+        return function () { return true; };
     }
 }
 
@@ -1438,8 +1438,8 @@ function createOperationCounter(maxOps) {
         return {
             count: 0,
             maximum: maxOps || 10000,
-            
-            increment: function() {
+
+            increment: function () {
                 try {
                     this.count++;
                     return this.count < this.maximum;
@@ -1447,16 +1447,16 @@ function createOperationCounter(maxOps) {
                     return false;
                 }
             },
-            
-            isWithinLimit: function() {
+
+            isWithinLimit: function () {
                 try {
                     return this.count < this.maximum;
                 } catch (exc) {
                     return false;
                 }
             },
-            
-            reset: function() {
+
+            reset: function () {
                 try {
                     this.count = 0;
                 } catch (exc) {
@@ -1464,12 +1464,12 @@ function createOperationCounter(maxOps) {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            increment: function() { return false; },
-            isWithinLimit: function() { return false; },
-            reset: function() { }
+            increment: function () { return false; },
+            isWithinLimit: function () { return false; },
+            reset: function () { }
         };
     }
 }
@@ -1484,12 +1484,12 @@ function createRateLimiter(maxPerSecond) {
         return {
             operations: [],
             maxRate: maxPerSecond || 100,
-            
-            canProceed: function() {
+
+            canProceed: function () {
                 try {
                     var now = new Date().getTime();
                     var oneSecondAgo = now - 1000;
-                    
+
                     // Remove old operations
                     var recentOps = [];
                     for (var i = 0; i < this.operations.length; i++) {
@@ -1498,23 +1498,23 @@ function createRateLimiter(maxPerSecond) {
                         }
                     }
                     this.operations = recentOps;
-                    
+
                     if (this.operations.length < this.maxRate) {
                         this.operations[this.operations.length] = now;
                         return true;
                     }
-                    
+
                     return false;
-                    
+
                 } catch (exc) {
                     return false;
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            canProceed: function() { return false; }
+            canProceed: function () { return false; }
         };
     }
 }
@@ -1534,25 +1534,25 @@ function validateInDesignEnvironment() {
         error: null,
         metadata: {}
     };
-    
+
     try {
         if (typeof app === 'undefined') {
             result.error = 'InDesign application not available';
             return result;
         }
-        
+
         try {
             result.metadata.indesignVersion = app.version || 'unknown';
         } catch (versionExc) {
             result.metadata.indesignVersion = 'version_unknown';
         }
-        
+
         try {
             result.metadata.hasNativeJSON = (typeof JSON !== 'undefined');
         } catch (jsonExc) {
             result.metadata.hasNativeJSON = false;
         }
-        
+
         try {
             if (app.documents && app.documents.length > 0) {
                 result.document = app.documents[0];
@@ -1565,10 +1565,10 @@ function validateInDesignEnvironment() {
             result.error = 'Cannot access document: ' + docExc.message;
             return result;
         }
-        
+
         result.valid = true;
         return result;
-        
+
     } catch (exc) {
         result.error = 'Environment validation failed: ' + exc.message;
         return result;
@@ -1586,13 +1586,13 @@ function validateDocumentState(documentObj) {
         warnings: [],
         metadata: {}
     };
-    
+
     try {
         if (!documentObj) {
             result.warnings[result.warnings.length] = 'No document provided';
             return result;
         }
-        
+
         // Collect basic metadata
         try {
             result.metadata.name = documentObj.name || 'Unnamed Document';
@@ -1600,21 +1600,21 @@ function validateDocumentState(documentObj) {
             result.metadata.name = 'Unknown Document';
             result.warnings[result.warnings.length] = 'Could not access document name';
         }
-        
+
         try {
             result.metadata.saved = documentObj.saved || false;
         } catch (exc) {
             result.metadata.saved = false;
             result.warnings[result.warnings.length] = 'Could not check document saved status';
         }
-        
+
         try {
             result.metadata.modified = documentObj.modified || false;
         } catch (exc) {
             result.metadata.modified = false;
             result.warnings[result.warnings.length] = 'Could not check document modified status';
         }
-        
+
         // Check for collections
         try {
             result.metadata.pageCount = safeGetLength(documentObj.pages);
@@ -1623,14 +1623,14 @@ function validateDocumentState(documentObj) {
         } catch (exc) {
             result.warnings[result.warnings.length] = 'Could not access document collections';
         }
-        
+
         // Document is considered safe if we can access basic properties
         if (result.metadata.name) {
             result.safe = true;
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         result.warnings[result.warnings.length] = 'Document validation failed: ' + exc.message;
         return result;
@@ -1649,32 +1649,32 @@ function createStringBuilder() {
     try {
         return {
             parts: [],
-            
-            append: function(text) {
+
+            append: function (text) {
                 try {
                     this.parts[this.parts.length] = safeToString(text);
                 } catch (exc) {
                     this.parts[this.parts.length] = '[append error]';
                 }
             },
-            
-            appendLine: function(text) {
+
+            appendLine: function (text) {
                 try {
                     this.parts[this.parts.length] = safeToString(text) + '\n';
                 } catch (exc) {
                     this.parts[this.parts.length] = '[append line error]\n';
                 }
             },
-            
-            toString: function() {
+
+            toString: function () {
                 try {
                     return arrayJoin(this.parts, '');
                 } catch (exc) {
                     return '[string builder error]';
                 }
             },
-            
-            clear: function() {
+
+            clear: function () {
                 try {
                     this.parts = [];
                 } catch (exc) {
@@ -1682,13 +1682,13 @@ function createStringBuilder() {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            append: function() { },
-            appendLine: function() { },
-            toString: function() { return '[string builder creation error]'; },
-            clear: function() { }
+            append: function () { },
+            appendLine: function () { },
+            toString: function () { return '[string builder creation error]'; },
+            clear: function () { }
         };
     }
 }
@@ -1700,12 +1700,12 @@ function createStringBuilder() {
 function getCurrentTimestamp() {
     try {
         var now = new Date();
-        return now.getFullYear() + '-' + 
-               (now.getMonth() + 1) + '-' + 
-               now.getDate() + ' ' + 
-               now.getHours() + ':' + 
-               now.getMinutes() + ':' + 
-               now.getSeconds();
+        return now.getFullYear() + '-' +
+            (now.getMonth() + 1) + '-' +
+            now.getDate() + ' ' +
+            now.getHours() + ':' +
+            now.getMinutes() + ':' +
+            now.getSeconds();
     } catch (exc) {
         return 'timestamp_error';
     }
@@ -1775,7 +1775,7 @@ function createSuccessResult(value) {
 function retryOperation(operation, maxAttempts, baseDelay) {
     var attempts = maxAttempts || 3;
     var delay = baseDelay || 100;
-    
+
     try {
         for (var attempt = 1; attempt <= attempts; attempt++) {
             try {
@@ -1783,7 +1783,7 @@ function retryOperation(operation, maxAttempts, baseDelay) {
                 if (result && result.success) {
                     return result;
                 }
-                
+
                 if (attempt < attempts) {
                     // Simple delay simulation (not ideal but ES3 compatible)
                     var start = new Date().getTime();
@@ -1791,16 +1791,16 @@ function retryOperation(operation, maxAttempts, baseDelay) {
                         // Wait
                     }
                 }
-                
+
             } catch (operationExc) {
                 if (attempt === attempts) {
                     return createErrorResult('Operation failed after ' + attempts + ' attempts: ' + operationExc.message);
                 }
             }
         }
-        
+
         return createErrorResult('Operation failed after ' + attempts + ' attempts');
-        
+
     } catch (exc) {
         return createErrorResult('Retry operation error: ' + exc.message);
     }
@@ -1818,6 +1818,94 @@ function updateStatus(message) {
     }
 }
 
+/**
+ * Debug output wrapper - only outputs if debug enabled
+ * @param {String} message - Debug message
+ * @param {String} category - Debug category (enumeration, sampling, etc.)
+ */
+function debugLog(message, category) {
+    try {
+        // Check global debug config
+        var debugEnabled = false;
+
+        if (typeof g_domViz_userConfiguration !== 'undefined' &&
+            g_domViz_userConfiguration &&
+            g_domViz_userConfiguration.debug &&
+            g_domViz_userConfiguration.debug.enabled) {
+
+            debugEnabled = true;
+
+            // Check category-specific flags
+            if (category) {
+                switch (category) {
+                    case 'enumeration':
+                        debugEnabled = g_domViz_userConfiguration.debug.showEnumeration;
+                        break;
+                    case 'sampling':
+                        debugEnabled = g_domViz_userConfiguration.debug.showSampling;
+                        break;
+                    case 'circular':
+                        debugEnabled = g_domViz_userConfiguration.debug.showCircularDetection;
+                        break;
+                    case 'display':
+                        debugEnabled = g_domViz_userConfiguration.debug.showDisplay;
+                        break;
+                    case 'performance':
+                        debugEnabled = g_domViz_userConfiguration.debug.showPerformance;
+                        break;
+                }
+            }
+        }
+
+        if (debugEnabled) {
+            $.writeln('[DEBUG' + (category ? ' ' + category.toUpperCase() : '') + '] ' + message);
+        }
+    } catch (exc) {
+        // Fallback - always show if debug system fails
+        $.writeln('[DEBUG FALLBACK] ' + message);
+    }
+}
+
+/**
+ * Performance timing wrapper
+ * @param {String} operation - Operation name
+ * @param {Number} startTime - Start time
+ * @param {Number} endTime - End time
+ */
+function debugPerformance(operation, startTime, endTime) {
+    var elapsed = endTime - startTime;
+    debugLog(operation + ' completed in ' + elapsed + 'ms', 'performance');
+}
+
+/**
+ * Check if specific debug category is enabled
+ * @param {String} category - Debug category
+ * @returns {Boolean} True if enabled
+ */
+function isDebugEnabled(category) {
+    try {
+        if (typeof g_domViz_userConfiguration === 'undefined' ||
+            !g_domViz_userConfiguration ||
+            !g_domViz_userConfiguration.debug ||
+            !g_domViz_userConfiguration.debug.enabled) {
+            return false;
+        }
+
+        if (!category) return true;
+
+        switch (category) {
+            case 'enumeration': return g_domViz_userConfiguration.debug.showEnumeration;
+            case 'sampling': return g_domViz_userConfiguration.debug.showSampling;
+            case 'circular': return g_domViz_userConfiguration.debug.showCircularDetection;
+            case 'display': return g_domViz_userConfiguration.debug.showDisplay;
+            case 'performance': return g_domViz_userConfiguration.debug.showPerformance;
+            default: return true;
+        }
+    } catch (exc) {
+        return false;
+    }
+}
+
 // =============================================================================
 // MODULE REGISTRATION
 // =============================================================================
@@ -1826,48 +1914,51 @@ function updateStatus(message) {
 registerModule('1.2_safety-utilities', '3.1', [
     // Array Helpers
     'arrayIndexOf', 'arraySlice', 'arrayJoin', 'arrayPush', 'arrayPop', 'arrayConcat',
-    
+
     // String Helpers
     'stringIndexOf', 'stringSubstring', 'stringCharAt', 'stringSplit',
     'stringToLowerCase', 'stringToUpperCase', 'stringReplace', 'stringMatch',
-    
+
     // Object Helpers
     'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', //'objectClone',
     'objectMerge', 'objectDeepMerge',
-    
+
     // Function Utilities
     'functionExists', 'safeCall',
-    
+
     // ES3 Compatibility
     'trimString', 'safeToString', 'safeParseInt', 'safeParseFloat',
-    
+
     // JSON Handling
     'safeJSONStringify', 'fallbackStringify', 'safeJSONParse',
-    
+
     // Property Safety Functions
     'safeTypeCheck', 'safeHasProperty', 'safeGetLength', 'safeGetObjectFromPath',
     'safeGetPropertyValue',
-    
+
     // Object Reference Tracking
     'generateObjectReferenceID', 'isSameObjectReference', 'createObjectReferenceTracker',
-    
+
     // Path Utilities
     'splitPath', 'joinPath', 'getParentPath', 'normalizePath', 'isAbsolutePath', 'makeAbsolutePath',
-    
+
     // Memory Management
     'memoryCleanup', 'createMemoryMonitor',
-    
+
     // Danger Detection
     'isDangerousProperty', 'isDangerousPath', 'isReservedWord', 'getPropertySafetyLevel',
-    
+
     // Operation Control
     'createTimeoutChecker', 'createOperationCounter', 'createRateLimiter',
-    
+
     // Environment Validation
     'validateInDesignEnvironment', 'validateDocumentState',
-    
+
+    // Debug System Functions - NEW
+    'debugLog', 'debugPerformance', 'isDebugEnabled',
+
     // Utilities
-    'createStringBuilder', 'getCurrentTimestamp', 'generateUniqueID', 
+    'createStringBuilder', 'getCurrentTimestamp', 'generateUniqueID',
     'createErrorResult', 'createSuccessResult', 'retryOperation', 'updateStatus'
 ]);
 

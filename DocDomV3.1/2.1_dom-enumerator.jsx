@@ -47,19 +47,19 @@ var DEFAULT_ENUMERATION_CONFIG = {
  */
 function enumerateDocumentDOM(documentObject, config) {
     var startTime = new Date().getTime();
-    
+
     $.writeln('[ENUM DEBUG] === STARTING enumerateDocumentDOM ===');
     $.writeln('[ENUM DEBUG] Start time: ' + startTime);
     $.writeln('[ENUM DEBUG] Config received: ' + (config ? 'YES' : 'NO'));
-    
+
     var enumerationConfig = config ?
-        objectMerge(DEFAULT_ENUMERATION_CONFIG, config) : 
+        objectMerge(DEFAULT_ENUMERATION_CONFIG, config) :
         objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
-    
+
     $.writeln('[ENUM DEBUG] Final config maxDepth: ' + enumerationConfig.maxDepth);
     $.writeln('[ENUM DEBUG] Final config timeoutMs: ' + enumerationConfig.timeoutMs);
     $.writeln('[ENUM DEBUG] Final config maxProperties: ' + enumerationConfig.maxProperties);
-    
+
     try {
         // Validate environment
         var envValidation = validateInDesignEnvironment();
@@ -68,15 +68,15 @@ function enumerateDocumentDOM(documentObject, config) {
             return createErrorDOMStructure(envValidation.error);
         }
         $.writeln('[ENUM DEBUG] Environment validation PASSED');
-        
+
         var targetDocument = documentObject || envValidation.document;
         var docValidation = validateDocumentState(targetDocument);
         $.writeln('[ENUM DEBUG] Document validation completed');
-        
+
         // Create DOM structure container
         var domStructure = createDOMStructure();
         $.writeln('[ENUM DEBUG] DOM structure container created');
-        
+
         // Set up metadata
         domStructure.metadata = {
             timestamp: getCurrentTimestamp(),
@@ -90,18 +90,18 @@ function enumerateDocumentDOM(documentObject, config) {
                 moduleSystem: true
             },
             environment: {
-                indesignVersion: envValidation.metadata ? 
+                indesignVersion: envValidation.metadata ?
                     envValidation.metadata.indesignVersion : 'unknown',
-                hasNativeJSON: envValidation.metadata ? 
+                hasNativeJSON: envValidation.metadata ?
                     envValidation.metadata.hasNativeJSON : false
             }
         };
-        
+
         // Add document validation warnings
         if (docValidation.warnings && docValidation.warnings.length > 0) {
             domStructure.metadata.warnings = docValidation.warnings;
         }
-        
+
         // Initialize object registry for tracking
         if (enumerationConfig.enableObjectTracking) {
             domStructure.objectRegistry = {
@@ -112,60 +112,60 @@ function enumerateDocumentDOM(documentObject, config) {
             };
             $.writeln('[ENUM DEBUG] Object registry initialized');
         }
-        
+
         // Create progress reporter if enabled
         var progressReporter = enumerationConfig.enableProgressReporting ?
             createProgressReporter() : null;
-            
+
         $.writeln('[ENUM DEBUG] About to call enumerateObjectStructure...');
         var enumStartTime = new Date().getTime();
-        
+
         // Enumerate document structure
         domStructure.structure = {
             document: enumerateObjectStructure(
-                targetDocument, 
-                'document', 
-                0, 
-                enumerationConfig, 
+                targetDocument,
+                'document',
+                0,
+                enumerationConfig,
                 domStructure,
                 progressReporter
             )
         };
-        
+
         var enumEndTime = new Date().getTime();
         $.writeln('[ENUM DEBUG] enumerateObjectStructure completed in: ' + (enumEndTime - enumStartTime) + 'ms');
-        $.writeln('[ENUM DEBUG] Document node created, properties: ' + 
-                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
-        
+        $.writeln('[ENUM DEBUG] Document node created, properties: ' +
+            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
+
         // Post-processing
         if (enumerationConfig.includeAlternativeAccessPaths) {
             $.writeln('[ENUM DEBUG] Running updateAlternativeAccessPaths...');
             updateAlternativeAccessPaths(domStructure);
         }
-        
+
         // Generate statistics
         if (enumerationConfig.generateStatistics) {
             $.writeln('[ENUM DEBUG] Generating statistics...');
             domStructure.statistics = getDOMStatistics(domStructure);
         }
-        
+
         // Final metadata
         domStructure.metadata.enumerationTime = new Date().getTime() - startTime;
         domStructure.metadata.completed = true;
-        
+
         $.writeln('[ENUM DEBUG] === ENUMERATION COMPLETED ===');
         $.writeln('[ENUM DEBUG] Total time: ' + domStructure.metadata.enumerationTime + 'ms');
-        $.writeln('[ENUM DEBUG] Properties found: ' + 
-                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
-        $.writeln('[ENUM DEBUG] Methods found: ' + 
-                 (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
-        
+        $.writeln('[ENUM DEBUG] Properties found: ' +
+            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
+        $.writeln('[ENUM DEBUG] Methods found: ' +
+            (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
+
         if (progressReporter) {
             progressReporter.complete();
         }
-        
+
         return domStructure;
-        
+
     } catch (exc) {
         $.writeln('[ENUM DEBUG] EXCEPTION: ' + exc.message);
         return createErrorDOMStructure('DOM enumeration failed: ' + exc.message);
@@ -173,150 +173,225 @@ function enumerateDocumentDOM(documentObject, config) {
 }
 
 /**
- * Enumerate object structure recursively
- * @param {Object} targetObject - Object to enumerate
- * @param {String} objectPath - Current object path
- * @param {Number} depth - Current recursion depth
- * @param {Object} config - Enumeration configuration
- * @param {Object} domStructure - DOM structure container
- * @param {Object} progressReporter - Progress reporter
- * @returns {Object} DOM node structure
+ * Enumerate object structure with improved filtering and global timeout
  */
-function enumerateObjectStructure(targetObject, objectPath, depth, config, domStructure, progressReporter) {
-    var startTime = new Date().getTime();
-    
-    $.writeln('[STRUCT DEBUG] Starting enumeration: ' + objectPath + ' (depth: ' + depth + ')');
-    
+function enumerateObjectStructure(targetObject, objectPath, depth, config, domStructure, progressReporter, globalStartTime) {
+    var realGlobalStartTime = globalStartTime || new Date().getTime();
+    var localStartTime = new Date().getTime();
+
+    // GLOBAL TIMEOUT CHECK FIRST
+    var globalElapsed = localStartTime - realGlobalStartTime;
+    if (config.timeoutMs && globalElapsed > config.timeoutMs) {
+        debugLog('GLOBAL TIMEOUT REACHED! Stopping at: ' + objectPath + ' (elapsed: ' + globalElapsed + 'ms)', 'enumeration');
+        var timeoutNode = createDOMNode(objectPath, 'GlobalTimeoutReached', 'timeout', depth);
+        timeoutNode.globalTimeoutReached = true;
+        timeoutNode.globalElapsedTime = globalElapsed;
+        return timeoutNode;
+    }
+
+    debugLog('Starting: ' + objectPath + ' (depth: ' + depth + ', global elapsed: ' + globalElapsed + 'ms)', 'enumeration');
+
     try {
-        // Check depth and timeout limits
+        // Check depth limits
         if (depth >= config.maxDepth) {
-            $.writeln('[STRUCT DEBUG] Max depth reached at: ' + objectPath);
+            debugLog('Max depth reached at: ' + objectPath, 'enumeration');
             return createDOMNode(objectPath, 'MaxDepthReached', 'limit', depth);
         }
-        
+
         if (!targetObject) {
-            $.writeln('[STRUCT DEBUG] Null object at: ' + objectPath);
+            debugLog('Null object at: ' + objectPath, 'enumeration');
             return createDOMNode(objectPath, 'NullObject', 'null', depth);
         }
-        
-        // Check for circular references
+
+        // IMPROVED: Skip InDesign internal objects that aren't useful
+        if (shouldSkipObject(objectPath, targetObject)) {
+            debugLog('Skipping internal object: ' + objectPath, 'enumeration');
+            var skippedNode = createDOMNode(objectPath, 'SkippedInternal', 'skipped', depth);
+            skippedNode.skipReason = 'InDesign internal object filtered';
+            return skippedNode;
+        }
+
+        // Check for circular references with improved logic
         if (config.enableCircularReferenceDetection) {
             var circularRef = detectCircularReference(targetObject, objectPath, domStructure);
             if (circularRef.isCircular) {
-                $.writeln('[STRUCT DEBUG] Circular reference detected at: ' + objectPath);
+                debugLog('Circular reference detected at: ' + objectPath + ' (' + circularRef.reason + ')', 'enumeration');
                 return createDOMNode(objectPath, 'CircularReference', 'circular', depth, circularRef.originalPath);
             }
         }
-        
+
         // Create DOM node for this object
         var domNode = createDOMNode(objectPath, objectPath, typeof targetObject, depth);
-        
+
         // Generate object identity hash for tracking
         if (config.enableObjectTracking) {
             domNode.objectId = generateObjectIdentityHash(targetObject, objectPath);
             registerObjectReference(domNode.objectId, targetObject, objectPath, domStructure);
         }
-        
+
         // Report progress
         if (progressReporter) {
             progressReporter.reportProgress('Enumerating: ' + objectPath);
         }
-        
-        // Create timeout checker for this enumeration
-        var timeoutChecker = createTimeoutChecker(config.timeoutMs);
-        var initialElapsed = new Date().getTime() - startTime;
-        
-        $.writeln('[STRUCT DEBUG] Starting property enumeration for: ' + objectPath);
-        $.writeln('[STRUCT DEBUG] Timeout limit: ' + config.timeoutMs + 'ms');
-        
-        // Enumerate properties with timeout checking
+
+        debugLog('Starting property enumeration for: ' + objectPath, 'enumeration');
+
+        // Enumerate properties with GLOBAL timeout and filtering
         var propertyCount = 0;
         var operationCount = 0;
-        var timeoutReached = false;
-        
+        var globalTimeoutReached = false;
+        var skippedCount = 0;
+
         try {
             for (var propName in targetObject) {
-                // CRITICAL: Check timeout every 10 properties
-                if (operationCount % 10 === 0) {
-                    var elapsed = new Date().getTime() - startTime;
-                    
-                    if (operationCount === 0) {
-                        $.writeln('[STRUCT DEBUG] Starting property loop for: ' + objectPath + ' (elapsed: ' + elapsed + 'ms)');
-                    } else if (operationCount % 50 === 0) {
-                        $.writeln('[STRUCT DEBUG] Progress: ' + operationCount + ' properties processed for ' + objectPath + ' (elapsed: ' + elapsed + 'ms)');
+                // CRITICAL: Check GLOBAL timeout every 5 properties
+                if (operationCount % 5 === 0) {
+                    var currentGlobalElapsed = new Date().getTime() - realGlobalStartTime;
+
+                    if (operationCount % 25 === 0 && operationCount > 0) {
+                        debugLog('Progress: ' + operationCount + ' properties at ' + objectPath + ' (global elapsed: ' + currentGlobalElapsed + 'ms)', 'enumeration');
                     }
-                    
-                    // TIMEOUT CHECK
-                    if (config.timeoutMs && elapsed > config.timeoutMs) {
-                        $.writeln('[STRUCT DEBUG] TIMEOUT REACHED! Breaking enumeration at: ' + objectPath);
-                        $.writeln('[STRUCT DEBUG] Processed ' + operationCount + ' properties in ' + elapsed + 'ms');
+
+                    // GLOBAL TIMEOUT CHECK
+                    if (config.timeoutMs && currentGlobalElapsed > config.timeoutMs) {
+                        debugLog('GLOBAL TIMEOUT during property enum! Stopping at: ' + objectPath, 'enumeration');
                         domNode.truncated = true;
-                        domNode.truncationReason = 'Timeout reached (' + elapsed + 'ms > ' + config.timeoutMs + 'ms)';
-                        timeoutReached = true;
-                        break;
-                    }
-                    
-                    // Alternative timeout check using timeoutChecker function
-                    if (timeoutChecker && timeoutChecker()) {
-                        $.writeln('[STRUCT DEBUG] TimeoutChecker triggered! Breaking enumeration at: ' + objectPath);
-                        domNode.truncated = true;
-                        domNode.truncationReason = 'TimeoutChecker triggered after ' + elapsed + 'ms';
-                        timeoutReached = true;
+                        domNode.truncationReason = 'Global timeout reached (' + currentGlobalElapsed + 'ms > ' + config.timeoutMs + 'ms)';
+                        globalTimeoutReached = true;
                         break;
                     }
                 }
-                
+
                 // Check operation limits
                 operationCount++;
                 if (operationCount > config.maxProperties) {
-                    $.writeln('[STRUCT DEBUG] Property limit reached at: ' + objectPath + ' (' + operationCount + ' properties)');
+                    debugLog('Property limit reached at: ' + objectPath + ' (' + operationCount + ' properties)', 'enumeration');
                     domNode.truncated = true;
                     domNode.truncationReason = 'Property limit exceeded (' + operationCount + ' > ' + config.maxProperties + ')';
                     break;
                 }
-                
+
+                // IMPROVED: Skip properties that are likely InDesign internals
+                if (shouldSkipProperty(propName, objectPath)) {
+                    skippedCount++;
+                    continue;
+                }
+
                 if (objectHasOwnProperty(targetObject, propName)) {
                     var processed = processProperty(
-                        targetObject, 
-                        propName, 
-                        objectPath, 
-                        depth, 
-                        config, 
-                        domStructure, 
+                        targetObject,
+                        propName,
+                        objectPath,
+                        depth,
+                        config,
+                        domStructure,
                         domNode,
-                        []  // parentPaths for circular detection
+                        [],
+                        realGlobalStartTime
                     );
-                    
+
                     if (processed) {
                         propertyCount++;
                     }
                 }
+
+                // Double-check global timeout after each property
+                var postPropertyElapsed = new Date().getTime() - realGlobalStartTime;
+                if (config.timeoutMs && postPropertyElapsed > config.timeoutMs) {
+                    debugLog('Global timeout after property: ' + propName, 'enumeration');
+                    globalTimeoutReached = true;
+                    break;
+                }
             }
         } catch (enumExc) {
-            $.writeln('[STRUCT DEBUG] Property enumeration exception at: ' + objectPath + ' - ' + enumExc.message);
+            debugLog('Property enumeration exception at: ' + objectPath + ' - ' + enumExc.message, 'enumeration');
             domNode.enumerationError = 'Property enumeration failed: ' + enumExc.message;
         }
-        
+
         var endTime = new Date().getTime();
-        var totalTime = endTime - startTime;
-        
+        var localTime = endTime - localStartTime;
+        var finalGlobalElapsed = endTime - realGlobalStartTime;
+
         domNode.propertyCount = propertyCount;
         domNode.operationCount = operationCount;
-        domNode.enumerationTime = totalTime;
-        
-        $.writeln('[STRUCT DEBUG] Completed enumeration for: ' + objectPath);
-        $.writeln('[STRUCT DEBUG] - Properties found: ' + propertyCount);
-        $.writeln('[STRUCT DEBUG] - Operations performed: ' + operationCount);
-        $.writeln('[STRUCT DEBUG] - Time taken: ' + totalTime + 'ms');
-        $.writeln('[STRUCT DEBUG] - Timeout reached: ' + (timeoutReached ? 'YES' : 'NO'));
-        $.writeln('[STRUCT DEBUG] - Truncated: ' + (domNode.truncated ? 'YES' : 'NO'));
-        
+        domNode.skippedCount = skippedCount;
+        domNode.localEnumerationTime = localTime;
+        domNode.globalElapsedTime = finalGlobalElapsed;
+        domNode.globalTimeoutReached = globalTimeoutReached;
+
+        debugLog('Completed: ' + objectPath + ' - Props: ' + propertyCount + ', Skipped: ' + skippedCount + ', Local: ' + localTime + 'ms, Global: ' + finalGlobalElapsed + 'ms', 'enumeration');
+
         return domNode;
-        
+
     } catch (exc) {
-        var exceptionTime = new Date().getTime() - startTime;
-        $.writeln('[STRUCT DEBUG] EXCEPTION in enumeration for: ' + objectPath + ' after ' + exceptionTime + 'ms - ' + exc.message);
+        var exceptionTime = new Date().getTime() - localStartTime;
+        var exceptionGlobalElapsed = new Date().getTime() - realGlobalStartTime;
+        debugLog('EXCEPTION in: ' + objectPath + ' after ' + exceptionTime + 'ms (global: ' + exceptionGlobalElapsed + 'ms) - ' + exc.message, 'enumeration');
         return createErrorDOMNode(objectPath, 'Enumeration error: ' + exc.message, depth);
+    }
+}
+
+/**
+ * Determine if an object should be skipped during enumeration
+ * @param {String} objectPath - Object path
+ * @param {Object} targetObject - Object to check
+ * @returns {Boolean} True if should skip
+ */
+function shouldSkipObject(objectPath, targetObject) {
+    try {
+        // Skip deep InDesign preference objects that aren't useful for most users
+        var skipPatterns = [
+            'metadataPreferences.properties.',
+            'indexGenerationOptions.properties.',
+            'dataGroupPreferences.',
+            'adjustLayoutPreferences.properties.',
+            'epubFixedLayoutExportPreferences.properties.'
+        ];
+
+        for (var i = 0; i < skipPatterns.length; i++) {
+            if (stringIndexOf(objectPath, skipPatterns[i]) !== -1) {
+                return true;
+            }
+        }
+
+        // Skip if object path is too deep in preferences
+        var pathParts = objectPath.split('.');
+        if (pathParts.length > 6 && stringIndexOf(objectPath, 'preferences') !== -1) {
+            return true;
+        }
+
+        return false;
+
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Determine if a property should be skipped during enumeration
+ * @param {String} propName - Property name
+ * @param {String} objectPath - Object path
+ * @returns {Boolean} True if should skip
+ */
+function shouldSkipProperty(propName, objectPath) {
+    try {
+        // Skip certain property patterns that are rarely useful
+        var skipPropertyPatterns = [
+            'eventListeners',
+            'scriptPreferences',
+            'insertionPoints'
+        ];
+
+        for (var i = 0; i < skipPropertyPatterns.length; i++) {
+            if (stringIndexOf(propName, skipPropertyPatterns[i]) !== -1) {
+                return true;
+            }
+        }
+
+        return false;
+
+    } catch (exc) {
+        return false;
     }
 }
 
@@ -332,32 +407,40 @@ function enumerateObjectStructure(targetObject, objectPath, depth, config, domSt
  * @param {Array} parentPaths - Parent paths for circular detection
  * @returns {Boolean} True if processed successfully
  */
-function processProperty(targetObject, propName, objectPath, depth, config, domStructure, domNode, parentPaths) {
+function processProperty(targetObject, propName, objectPath, depth, config, domStructure, domNode, parentPaths, globalStartTime) {
     try {
+        // Check global timeout first
+        if (globalStartTime && config.timeoutMs) {
+            var globalElapsed = new Date().getTime() - globalStartTime;
+            if (globalElapsed > config.timeoutMs) {
+                return true; // Skip this property due to global timeout
+            }
+        }
+
         // Skip dangerous properties if configured
         if (config.skipDangerous && isDangerousProperty(propName)) {
             return true;
         }
-        
+
         // Skip ES3 reserved words
         if (isReservedWord(propName)) {
             return true;
         }
-        
+
         // Get property type safely
         var propertyType = safeTypeCheck(targetObject, propName);
         if (propertyType === 'error') {
             return true;
         }
-        
+
         // Create property classification
         var propClassification = createPropertyClassification(propName, propertyType, objectPath, null);
-        
+
         // Add safety classification if enabled
         if (config.trackPropertySafety) {
             propClassification.safetyLevel = getPropertySafetyLevel(propName);
         }
-        
+
         // Add to appropriate collection
         if (propClassification.isMethod) {
             domNode.methods[domNode.methods.length] = propClassification;
@@ -366,27 +449,28 @@ function processProperty(targetObject, propName, objectPath, depth, config, domS
         } else {
             domNode.properties[domNode.properties.length] = propClassification;
         }
-        
+
         // If property is an object, recursively enumerate it
         if (propertyType === 'object' && depth < config.maxDepth - 1) {
             try {
                 var childObject = targetObject[propName];
                 if (childObject) {
                     var childPath = objectPath + '.' + propName;
-                    
+
                     // Check for circular references in parent chain
                     var newParentPaths = arraySlice(parentPaths, 0);
                     newParentPaths[newParentPaths.length] = objectPath;
-                    
+
                     var childNode = enumerateObjectStructure(
-                        childObject, 
-                        childPath, 
-                        depth + 1, 
-                        config, 
+                        childObject,
+                        childPath,
+                        depth + 1,
+                        config,
                         domStructure,
-                        null // No progress reporter for child nodes
+                        null, // No progress reporter for child nodes
+                        globalStartTime // Pass global start time to children
                     );
-                    
+
                     if (childNode) {
                         domNode.childNodes[domNode.childNodes.length] = childNode;
                     }
@@ -396,9 +480,9 @@ function processProperty(targetObject, propName, objectPath, depth, config, domS
                 propClassification.childEnumerationError = childExc.message;
             }
         }
-        
+
         return true;
-        
+
     } catch (exc) {
         return false;
     }
@@ -454,13 +538,13 @@ function createDOMNode(path, name, nodeType, depth, additionalInfo) {
             alternativeAccessPaths: [],
             created: getCurrentTimestamp()
         };
-        
+
         if (additionalInfo) {
             node.additionalInfo = additionalInfo;
         }
-        
+
         return node;
-        
+
     } catch (exc) {
         return {
             path: path || 'error',
@@ -487,7 +571,7 @@ function createDOMNode(path, name, nodeType, depth, additionalInfo) {
 function createPropertyClassification(propName, propType, parentPath, propValue) {
     try {
         var fullPath = parentPath ? parentPath + '.' + propName : propName;
-        
+
         return {
             name: propName,
             type: propType,
@@ -498,7 +582,7 @@ function createPropertyClassification(propName, propType, parentPath, propValue)
             safetyLevel: 'unknown',
             created: getCurrentTimestamp()
         };
-        
+
     } catch (exc) {
         return {
             name: propName || 'unknown',
@@ -591,26 +675,26 @@ function createErrorDOMStructure(errorMessage) {
 function generateObjectIdentityHash(targetObject, path) {
     try {
         var hashComponents = [];
-        
+
         hashComponents[hashComponents.length] = 'path:' + (path || 'unknown');
         hashComponents[hashComponents.length] = 'type:' + typeof targetObject;
-        
+
         if (targetObject && typeof targetObject === 'object') {
             if (targetObject.constructor && targetObject.constructor.name) {
                 hashComponents[hashComponents.length] = 'constructor:' + targetObject.constructor.name;
             }
-            
+
             if (typeof targetObject.length === 'number') {
                 hashComponents[hashComponents.length] = 'length:' + targetObject.length;
             }
-            
+
             hashComponents[hashComponents.length] = 'keys:' + countObjectKeys(targetObject);
         }
-        
+
         hashComponents[hashComponents.length] = 'time:' + (new Date().getTime());
-        
+
         return arrayJoin(hashComponents, '|');
-        
+
     } catch (exc) {
         return 'hash_error:' + (path || 'unknown') + ':' + (new Date().getTime());
     }
@@ -628,7 +712,7 @@ function registerObjectReference(objectId, targetObject, path, domStructure) {
         if (!domStructure.objectRegistry) {
             return;
         }
-        
+
         if (domStructure.objectRegistry.references[objectId]) {
             // Object already registered - potential duplicate
             if (!domStructure.objectRegistry.duplicateDetections[objectId]) {
@@ -643,7 +727,7 @@ function registerObjectReference(objectId, targetObject, path, domStructure) {
             };
             domStructure.objectRegistry.totalTracked++;
         }
-        
+
     } catch (exc) {
         // Silent failure for object registration
     }
@@ -661,23 +745,23 @@ function checkObjectDuplication(objectId, domStructure) {
         originalPath: null,
         duplicatePaths: []
     };
-    
+
     try {
         if (!domStructure.objectRegistry || !objectId) {
             return result;
         }
-        
+
         if (domStructure.objectRegistry.references[objectId]) {
             result.originalPath = domStructure.objectRegistry.references[objectId].firstPath;
         }
-        
+
         if (domStructure.objectRegistry.duplicateDetections[objectId]) {
             result.isDuplicate = true;
             result.duplicatePaths = domStructure.objectRegistry.duplicateDetections[objectId];
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return result;
     }
@@ -688,54 +772,93 @@ function checkObjectDuplication(objectId, domStructure) {
 // =============================================================================
 
 /**
- * Detect circular reference
+ * Detect circular references with improved logic - LESS AGGRESSIVE
  * @param {Object} targetObject - Object to check
- * @param {String} currentPath - Current path
+ * @param {String} objectPath - Current path
  * @param {Object} domStructure - DOM structure
- * @returns {Object} Circular reference result
+ * @returns {Object} Detection result
  */
-function detectCircularReference(targetObject, currentPath, domStructure) {
+function detectCircularReference(targetObject, objectPath, domStructure) {
+    debugLog('Checking circular reference for: ' + objectPath, 'circular');
+
     var result = {
         isCircular: false,
         originalPath: null,
-        depth: 0
+        reason: ''
     };
-    
+
     try {
-        if (!targetObject || typeof targetObject !== 'object') {
+        if (!domStructure.objectRegistry || !targetObject) {
+            debugLog('No object registry or null object: ' + objectPath, 'circular');
             return result;
         }
-        
-        if (!domStructure.objectRegistry) {
-            return result;
+
+        // Generate object identity
+        var objectId = generateObjectIdentityHash(targetObject, objectPath);
+
+        // Check if we've seen this exact object before
+        if (domStructure.objectRegistry.references[objectId]) {
+            var originalPath = domStructure.objectRegistry.references[objectId].path;
+
+            // IMPROVED: Only consider it circular if it's actually in the parent chain
+            if (isInParentChain(originalPath, objectPath)) {
+                result.isCircular = true;
+                result.originalPath = originalPath;
+                result.reason = 'Object found in parent chain';
+                debugLog('TRUE CIRCULAR REFERENCE: ' + objectPath + ' -> ' + originalPath, 'circular');
+            } else {
+                // This is just a duplicate reference, not a circular one
+                result.isCircular = false;
+                result.reason = 'Duplicate reference, but not circular';
+                debugLog('Duplicate reference (not circular): ' + objectPath + ' (original: ' + originalPath + ')', 'circular');
+            }
+        } else {
+            debugLog('New object reference: ' + objectPath, 'circular');
         }
-        
-        // Check if object is already being processed
-        for (var refId in domStructure.objectRegistry.references) {
-            if (objectHasOwnProperty(domStructure.objectRegistry.references, refId)) {
-                var refData = domStructure.objectRegistry.references[refId];
-                if (refData.object === targetObject) {
-                    result.isCircular = true;
-                    result.originalPath = refData.firstPath;
-                    
-                    // Add to circular references list
-                    var circularInfo = {
-                        originalPath: refData.firstPath,
-                        circularPath: currentPath,
-                        detectedAt: getCurrentTimestamp()
-                    };
-                    
-                    domStructure.objectRegistry.circularReferences[domStructure.objectRegistry.circularReferences.length] = circularInfo;
-                    
-                    break;
-                }
+
+        return result;
+
+    } catch (exc) {
+        debugLog('Circular detection error for ' + objectPath + ': ' + exc.message, 'circular');
+        result.reason = 'Detection error: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Check if originalPath is in the parent chain of currentPath
+ * @param {String} originalPath - Original object path
+ * @param {String} currentPath - Current object path
+ * @returns {Boolean} True if originalPath is parent of currentPath
+ */
+function isInParentChain(originalPath, currentPath) {
+    try {
+        if (!originalPath || !currentPath) {
+            return false;
+        }
+
+        // Split paths into components
+        var originalParts = originalPath.split('.');
+        var currentParts = currentPath.split('.');
+
+        // Original path must be shorter to be a parent
+        if (originalParts.length >= currentParts.length) {
+            return false;
+        }
+
+        // Check if original path is prefix of current path
+        for (var i = 0; i < originalParts.length; i++) {
+            if (originalParts[i] !== currentParts[i]) {
+                return false;
             }
         }
-        
-        return result;
-        
+
+        debugLog('Parent chain detected: ' + originalPath + ' is parent of ' + currentPath, 'circular');
+        return true;
+
     } catch (exc) {
-        return result;
+        debugLog('Parent chain check error: ' + exc.message, 'circular');
+        return false;
     }
 }
 
@@ -752,9 +875,9 @@ function updateAlternativeAccessPaths(domStructure) {
         if (!domStructure.structure || !domStructure.structure.document) {
             return;
         }
-        
+
         updateNodeAlternativePaths(domStructure.structure.document, domStructure);
-        
+
     } catch (exc) {
         // Silent failure for post-processing
     }
@@ -770,25 +893,25 @@ function updateNodeAlternativePaths(domNode, domStructure) {
         if (!domNode || !domStructure.objectRegistry) {
             return;
         }
-        
+
         // Check for duplicate objects that provide alternative access paths
         if (domNode.objectId) {
             var duplicationCheck = checkObjectDuplication(domNode.objectId, domStructure);
             if (duplicationCheck.isDuplicate) {
                 domNode.alternativeAccessPaths = arrayConcat(
-                    domNode.alternativeAccessPaths, 
+                    domNode.alternativeAccessPaths,
                     duplicationCheck.duplicatePaths
                 );
             }
         }
-        
+
         // Process child nodes recursively
         if (domNode.childNodes) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
                 updateNodeAlternativePaths(domNode.childNodes[i], domStructure);
             }
         }
-        
+
     } catch (exc) {
         // Continue processing
     }
@@ -817,21 +940,21 @@ function getDOMStatistics(domStructure) {
             enumerationSuccess: true,
             generatedAt: getCurrentTimestamp()
         };
-        
+
         if (domStructure.structure && domStructure.structure.document) {
             countNodeStatistics(domStructure.structure.document, stats);
         }
-        
+
         // Add object registry statistics
         if (domStructure.objectRegistry) {
             stats.objectsTracked = domStructure.objectRegistry.totalTracked || 0;
             stats.duplicateObjects = countObjectKeys(domStructure.objectRegistry.duplicateDetections || {});
-            stats.circularReferences = domStructure.objectRegistry.circularReferences ? 
+            stats.circularReferences = domStructure.objectRegistry.circularReferences ?
                 domStructure.objectRegistry.circularReferences.length : 0;
         }
-        
+
         return stats;
-        
+
     } catch (exc) {
         return {
             totalNodes: 0,
@@ -853,32 +976,32 @@ function countNodeStatistics(domNode, stats) {
         if (!domNode || !stats) {
             return;
         }
-        
+
         stats.totalNodes++;
-        
+
         if (domNode.depth > stats.maxDepth) {
             stats.maxDepth = domNode.depth;
         }
-        
+
         if (domNode.properties) {
             stats.totalProperties += domNode.properties.length;
         }
-        
+
         if (domNode.collections) {
             stats.totalCollections += domNode.collections.length;
         }
-        
+
         if (domNode.methods) {
             stats.totalMethods += domNode.methods.length;
         }
-        
+
         // Process child nodes
         if (domNode.childNodes) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
                 countNodeStatistics(domNode.childNodes[i], stats);
             }
         }
-        
+
     } catch (exc) {
         // Continue counting
     }
@@ -892,20 +1015,20 @@ function countNodeStatistics(domNode, stats) {
 function findObjectsWithMultiplePaths(domStructure) {
     try {
         var multiPathObjects = [];
-        
+
         if (!domStructure.objectRegistry || !domStructure.objectRegistry.duplicateDetections) {
             return multiPathObjects;
         }
-        
+
         for (var objectId in domStructure.objectRegistry.duplicateDetections) {
             if (objectHasOwnProperty(domStructure.objectRegistry.duplicateDetections, objectId)) {
                 var duplicatePaths = domStructure.objectRegistry.duplicateDetections[objectId];
-                var originalPath = domStructure.objectRegistry.references[objectId] ? 
+                var originalPath = domStructure.objectRegistry.references[objectId] ?
                     domStructure.objectRegistry.references[objectId].firstPath : 'unknown';
-                
+
                 var allPaths = [originalPath];
                 allPaths = arrayConcat(allPaths, duplicatePaths);
-                
+
                 multiPathObjects[multiPathObjects.length] = {
                     objectId: objectId,
                     name: originalPath,
@@ -914,9 +1037,9 @@ function findObjectsWithMultiplePaths(domStructure) {
                 };
             }
         }
-        
+
         return multiPathObjects;
-        
+
     } catch (exc) {
         return [];
     }
@@ -937,26 +1060,26 @@ function classifyPropertySafety(propName, propType) {
         if (isDangerousProperty(propName)) {
             return 'dangerous';
         }
-        
+
         if (isReservedWord(propName)) {
             return 'reserved';
         }
-        
+
         if (propType === 'function') {
             return 'method';
         }
-        
+
         var cautionProperties = [
             'parent', 'document', 'application', 'activeDocument',
             'selection', 'preferences', 'menuActions'
         ];
-        
+
         if (arrayIndexOf(cautionProperties, propName) !== -1) {
             return 'caution';
         }
-        
+
         return 'safe';
-        
+
     } catch (exc) {
         return 'unknown';
     }
@@ -972,24 +1095,24 @@ function isLikelyCollection(propName) {
         if (typeof propName !== 'string') {
             return false;
         }
-        
+
         var collectionIndicators = [
             'items', 'pages', 'layers', 'stories', 'textFrames',
             'rectangles', 'ovals', 'groups', 'spreads',
             'masterspread', 'characters', 'words', 'lines',
             'paragraphs', 'tables', 'rows', 'cells', 'columns'
         ];
-        
+
         var lowerPropName = stringToLowerCase(propName);
-        
+
         for (var i = 0; i < collectionIndicators.length; i++) {
             if (stringIndexOf(lowerPropName, collectionIndicators[i]) !== -1) {
                 return true;
             }
         }
-        
+
         return false;
-        
+
     } catch (exc) {
         return false;
     }
@@ -1008,34 +1131,34 @@ function createProgressReporter() {
         return {
             startTime: new Date().getTime(),
             itemsProcessed: 0,
-            
-            reportProgress: function(message) {
+
+            reportProgress: function (message) {
                 try {
                     this.itemsProcessed++;
                     if (this.itemsProcessed % 100 === 0) {
-                        $.writeln('[DOM Enumerator] Progress: ' + message + 
-                                 ' (Items: ' + this.itemsProcessed + ')');
+                        $.writeln('[DOM Enumerator] Progress: ' + message +
+                            ' (Items: ' + this.itemsProcessed + ')');
                     }
                 } catch (exc) {
                     // Silent failure
                 }
             },
-            
-            complete: function() {
+
+            complete: function () {
                 try {
                     var elapsed = new Date().getTime() - this.startTime;
-                    $.writeln('[DOM Enumerator] Completed enumeration of ' + 
-                             this.itemsProcessed + ' items in ' + elapsed + 'ms');
+                    $.writeln('[DOM Enumerator] Completed enumeration of ' +
+                        this.itemsProcessed + ' items in ' + elapsed + 'ms');
                 } catch (exc) {
                     // Silent failure
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            reportProgress: function() { },
-            complete: function() { }
+            reportProgress: function () { },
+            complete: function () { }
         };
     }
 }
@@ -1045,32 +1168,36 @@ function createProgressReporter() {
 // =============================================================================
 
 // Register this module with all its functions
+// Register this module with all its functions
 registerModule('2.1_dom-enumerator', '3.1', [
     // Main Functions
     'enumerateDocumentDOM', 'enumerateObjectStructure',
-    
+
     // Data Structure Creation
     'createDOMStructure', 'createDOMNode', 'createPropertyClassification',
     'createErrorDOMNode', 'createErrorDOMStructure',
-    
+
     // Object Reference Management  
     'generateObjectIdentityHash', 'registerObjectReference', 'checkObjectDuplication',
-    
+
     // Circular Reference Detection
-    'detectCircularReference',
-    
+    'detectCircularReference', 'isInParentChain',  // ← NEW FUNCTION ADDED
+
     // Property Processing
     'processProperty',
-    
+
+    // Enumeration Filtering - NEW FUNCTIONS
+    'shouldSkipObject', 'shouldSkipProperty',  // ← NEW FUNCTIONS ADDED
+
     // Post-Processing
     'updateAlternativeAccessPaths', 'updateNodeAlternativePaths',
-    
+
     // Analysis Functions
     'getDOMStatistics', 'countNodeStatistics', 'findObjectsWithMultiplePaths',
-    
+
     // Property Classification
     'classifyPropertySafety', 'isLikelyCollection',
-    
+
     // Utilities
     'createProgressReporter'
 ]);

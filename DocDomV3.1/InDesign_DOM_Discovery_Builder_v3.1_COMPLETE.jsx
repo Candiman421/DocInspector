@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-18T02:34:55.254Z
+// Generated: 2025-06-18T03:39:48.189Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v1.1): 1.1_bootstrap-foundation.jsx
@@ -903,14 +903,14 @@ function arrayIndexOf(targetArray, searchElement) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return -1;
         }
-        
+
         for (var i = 0; i < targetArray.length; i++) {
             if (targetArray[i] === searchElement) {
                 return i;
             }
         }
         return -1;
-        
+
     } catch (exc) {
         return -1;
     }
@@ -928,20 +928,20 @@ function arraySlice(targetArray, startIndex, endIndex) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return [];
         }
-        
+
         var result = [];
         var startIdx = startIndex || 0;
         var endIdx = (typeof endIndex !== 'undefined') ? endIndex : targetArray.length;
-        
+
         if (startIdx < 0) startIdx = Math.max(0, targetArray.length + startIdx);
         if (endIdx < 0) endIdx = Math.max(0, targetArray.length + endIdx);
-        
+
         for (var i = startIdx; i < endIdx && i < targetArray.length; i++) {
             result[result.length] = targetArray[i];
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return [];
     }
@@ -958,17 +958,17 @@ function arrayJoin(targetArray, separator) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return '';
         }
-        
+
         var sep = (typeof separator !== 'undefined') ? separator : ',';
         var result = '';
-        
+
         for (var i = 0; i < targetArray.length; i++) {
             if (i > 0) result += sep;
             result += String(targetArray[i]);
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return '';
     }
@@ -985,10 +985,10 @@ function arrayPush(targetArray, element) {
         if (!targetArray || typeof targetArray.length === 'undefined') {
             return 0;
         }
-        
+
         targetArray[targetArray.length] = element;
         return targetArray.length;
-        
+
     } catch (exc) {
         return 0;
     }
@@ -1004,11 +1004,11 @@ function arrayPop(targetArray) {
         if (!targetArray || typeof targetArray.length === 'undefined' || targetArray.length === 0) {
             return undefined;
         }
-        
+
         var lastElement = targetArray[targetArray.length - 1];
         targetArray.length = targetArray.length - 1;
         return lastElement;
-        
+
     } catch (exc) {
         return undefined;
     }
@@ -1023,21 +1023,21 @@ function arrayPop(targetArray) {
 function arrayConcat(targetArray, sourceArray) {
     try {
         var result = [];
-        
+
         if (targetArray && typeof targetArray.length !== 'undefined') {
             for (var i = 0; i < targetArray.length; i++) {
                 result[result.length] = targetArray[i];
             }
         }
-        
+
         if (sourceArray && typeof sourceArray.length !== 'undefined') {
             for (var j = 0; j < sourceArray.length; j++) {
                 result[result.length] = sourceArray[j];
             }
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return [];
     }
@@ -1059,10 +1059,10 @@ function stringIndexOf(targetString, searchString, startIndex) {
         if (typeof targetString !== 'string' || typeof searchString !== 'string') {
             return -1;
         }
-        
+
         var startPos = startIndex || 0;
         return targetString.indexOf(searchString, startPos);
-        
+
     } catch (exc) {
         return -1;
     }
@@ -1078,12 +1078,12 @@ function stringIndexOf(targetString, searchString, startIndex) {
 function stringSubstring(targetString, startIndex, endIndex) {
     try {
         if (typeof targetString !== 'string') return '';
-        
+
         var startIdx = startIndex || 0;
         var endIdx = (typeof endIndex !== 'undefined') ? endIndex : targetString.length;
-        
+
         return targetString.substring(startIdx, endIdx);
-        
+
     } catch (exc) {
         return '';
     }
@@ -1113,10 +1113,10 @@ function stringCharAt(targetString, index) {
 function stringSplit(targetString, separator) {
     try {
         if (typeof targetString !== 'string') return [];
-        
+
         var sep = (typeof separator !== 'undefined') ? separator : '';
         return targetString.split(sep);
-        
+
     } catch (exc) {
         return [];
     }
@@ -1162,23 +1162,23 @@ function stringReplace(targetString, searchValue, replaceValue) {
         if (typeof targetString !== 'string') return '';
         if (typeof searchValue !== 'string') return targetString;
         if (typeof replaceValue !== 'string') replaceValue = '';
-        
+
         var result = '';
         var lastIndex = 0;
         var searchLen = searchValue.length;
-        
+
         if (searchLen === 0) return targetString;
-        
+
         var index = stringIndexOf(targetString, searchValue, 0);
         while (index !== -1) {
             result += stringSubstring(targetString, lastIndex, index) + replaceValue;
             lastIndex = index + searchLen;
             index = stringIndexOf(targetString, searchValue, lastIndex);
         }
-        
+
         result += stringSubstring(targetString, lastIndex);
         return result;
-        
+
     } catch (exc) {
         return targetString || '';
     }
@@ -1195,12 +1195,12 @@ function stringMatch(targetString, pattern) {
         if (typeof targetString !== 'string' || typeof pattern !== 'string') {
             return null;
         }
-        
+
         var index = stringIndexOf(targetString, pattern);
         if (index === -1) return null;
-        
+
         return [pattern];
-        
+
     } catch (exc) {
         return null;
     }
@@ -1233,16 +1233,16 @@ function objectHasOwnProperty(targetObject, prop) {
 function countObjectKeys(targetObject) {
     try {
         if (!targetObject || typeof targetObject !== 'object') return 0;
-        
+
         var count = 0;
         for (var key in targetObject) {
             if (objectHasOwnProperty(targetObject, key)) {
                 count++;
             }
         }
-        
+
         return count;
-        
+
     } catch (exc) {
         return 0;
     }
@@ -1256,16 +1256,16 @@ function countObjectKeys(targetObject) {
 function getObjectKeys(targetObject) {
     try {
         if (!targetObject || typeof targetObject !== 'object') return [];
-        
+
         var keys = [];
         for (var key in targetObject) {
             if (objectHasOwnProperty(targetObject, key)) {
                 keys[keys.length] = key;
             }
         }
-        
+
         return keys;
-        
+
     } catch (exc) {
         return [];
     }
@@ -1280,29 +1280,29 @@ function getObjectKeys(targetObject) {
 // function objectClone(originalObject, maxDepth) {
 //     var depth = maxDepth || 3;
 //     var seen = [];
-    
+
 //     function cloneRecursive(sourceObject, currentDepth) {
 //         try {
 //             if (currentDepth >= depth) return '[Max Depth Reached]';
-            
+
 //             if (sourceObject === null || sourceObject === undefined) {
 //                 return sourceObject;
 //             }
-            
+
 //             var objType = typeof sourceObject;
 //             if (objType !== 'object') {
 //                 return sourceObject;
 //             }
-            
+
 //             // Check for circular references
 //             for (var i = 0; i < seen.length; i++) {
 //                 if (seen[i] === sourceObject) {
 //                     return '[Circular Reference]';
 //                 }
 //             }
-            
+
 //             seen[seen.length] = sourceObject;
-            
+
 //             // Handle arrays
 //             if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
 //                 var clonedArray = [];
@@ -1311,7 +1311,7 @@ function getObjectKeys(targetObject) {
 //                 }
 //                 return clonedArray;
 //             }
-            
+
 //             // Handle objects
 //             var clonedObject = {};
 //             for (var prop in sourceObject) {
@@ -1319,14 +1319,14 @@ function getObjectKeys(targetObject) {
 //                     clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
 //                 }
 //             }
-            
+
 //             return clonedObject;
-            
+
 //         } catch (exc) {
 //             return '[Clone Error: ' + exc.message + ']';
 //         }
 //     }
-    
+
 //     try {
 //         return cloneRecursive(originalObject, 0);
 //     } catch (exc) {
@@ -1343,7 +1343,7 @@ function getObjectKeys(targetObject) {
 function objectMerge(target, source) {
     try {
         var result = objectClone(target, 1);
-        
+
         if (source && typeof source === 'object') {
             for (var prop in source) {
                 if (objectHasOwnProperty(source, prop)) {
@@ -1351,9 +1351,9 @@ function objectMerge(target, source) {
                 }
             }
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return target || {};
     }
@@ -1368,11 +1368,11 @@ function objectMerge(target, source) {
 function objectDeepMerge(target, source) {
     try {
         var result = objectClone(target, 3);
-        
+
         if (source && typeof source === 'object') {
             for (var prop in source) {
                 if (objectHasOwnProperty(source, prop)) {
-                    if (result[prop] && typeof result[prop] === 'object' && 
+                    if (result[prop] && typeof result[prop] === 'object' &&
                         source[prop] && typeof source[prop] === 'object') {
                         result[prop] = objectDeepMerge(result[prop], source[prop]);
                     } else {
@@ -1381,9 +1381,9 @@ function objectDeepMerge(target, source) {
                 }
             }
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return target || {};
     }
@@ -1419,28 +1419,28 @@ function safeCall(func, args, context) {
         value: null,
         error: null
     };
-    
+
     try {
         if (typeof func !== 'function') {
             result.error = 'Not a function';
             return result;
         }
-        
+
         var argsArray = args || [];
         var callContext = context || null;
-        
+
         if (callContext) {
             result.value = func.apply(callContext, argsArray);
         } else {
             result.value = func.apply(null, argsArray);
         }
-        
+
         result.success = true;
-        
+
     } catch (exc) {
         result.error = exc.message || 'Function call failed';
     }
-    
+
     return result;
 }
 
@@ -1456,22 +1456,22 @@ function safeCall(func, args, context) {
 function trimString(sourceString) {
     try {
         if (typeof sourceString !== 'string') return '';
-        
+
         var start = 0;
         var end = sourceString.length;
-        
+
         // Find start of non-whitespace
         while (start < end && stringCharAt(sourceString, start) <= ' ') {
             start++;
         }
-        
+
         // Find end of non-whitespace
         while (end > start && stringCharAt(sourceString, end - 1) <= ' ') {
             end--;
         }
-        
+
         return stringSubstring(sourceString, start, end);
-        
+
     } catch (exc) {
         return sourceString || '';
     }
@@ -1486,9 +1486,9 @@ function safeToString(value) {
     try {
         if (value === null) return 'null';
         if (value === undefined) return 'undefined';
-        
+
         return String(value);
-        
+
     } catch (exc) {
         return '[toString error]';
     }
@@ -1553,42 +1553,42 @@ function safeJSONStringify(data, indentLevel) {
 function fallbackStringify(data, indentLevel) {
     var indent = indentLevel || 0;
     var seen = [];
-    
+
     function stringify(value, depth) {
         try {
             if (depth > 10) return '"[max depth]"';
-            
+
             if (value === null) return 'null';
             if (value === undefined) return 'undefined';
-            
+
             var valueType = typeof value;
-            
+
             if (valueType === 'string') {
                 return '"' + stringReplace(value, '"', '\\"') + '"';
             }
-            
+
             if (valueType === 'number' || valueType === 'boolean') {
                 return String(value);
             }
-            
+
             if (valueType !== 'object') return '"[' + valueType + ']"';
-            
+
             // Check for circular references
             for (var i = 0; i < seen.length; i++) {
                 if (seen[i] === value) {
                     return '"[circular reference]"';
                 }
             }
-            
+
             seen[seen.length] = value;
-            
+
             var indentStr = '';
             for (var j = 0; j < depth * 2; j++) {
                 indentStr += ' ';
             }
-            
+
             var nextIndentStr = indentStr + '  ';
-            
+
             // Handle arrays
             if (value.length !== undefined && typeof value.length === 'number') {
                 var arrayItems = [];
@@ -1597,7 +1597,7 @@ function fallbackStringify(data, indentLevel) {
                 }
                 return '[' + arrayJoin(arrayItems, ', ') + ']';
             }
-            
+
             // Handle objects
             var objectPairs = [];
             for (var prop in value) {
@@ -1606,14 +1606,14 @@ function fallbackStringify(data, indentLevel) {
                     objectPairs[objectPairs.length] = '"' + prop + '": ' + propValue;
                 }
             }
-            
+
             return '{' + arrayJoin(objectPairs, ', ') + '}';
-            
+
         } catch (exc) {
             return '"[stringify error: ' + exc.message + ']"';
         }
     }
-    
+
     try {
         return stringify(data, 0);
     } catch (exc) {
@@ -1654,13 +1654,13 @@ function safeTypeCheck(targetObject, propName) {
         if (!targetObject || typeof targetObject !== 'object') {
             return 'error';
         }
-        
+
         if (!objectHasOwnProperty(targetObject, propName)) {
             return 'undefined';
         }
-        
+
         return typeof targetObject[propName];
-        
+
     } catch (exc) {
         return 'error';
     }
@@ -1677,9 +1677,9 @@ function safeHasProperty(targetObject, propName) {
         if (!targetObject || typeof targetObject !== 'object') {
             return false;
         }
-        
+
         return objectHasOwnProperty(targetObject, propName);
-        
+
     } catch (exc) {
         return false;
     }
@@ -1695,13 +1695,13 @@ function safeGetLength(targetObject) {
         if (!targetObject || typeof targetObject !== 'object') {
             return 0;
         }
-        
+
         if (typeof targetObject.length === 'number') {
             return targetObject.length;
         }
-        
+
         return 0;
-        
+
     } catch (exc) {
         return 0;
     }
@@ -1720,45 +1720,45 @@ function safeGetObjectFromPath(rootObject, path, timeoutMs) {
         value: null,
         error: null
     };
-    
+
     try {
         if (!rootObject) {
             result.error = 'Root object is null or undefined';
             return result;
         }
-        
+
         if (!path || typeof path !== 'string') {
             result.value = rootObject;
             result.success = true;
             return result;
         }
-        
+
         var pathComponents = stringSplit(path, '.');
         var currentObject = rootObject;
-        
+
         for (var i = 0; i < pathComponents.length; i++) {
             var component = pathComponents[i];
-            
+
             if (!currentObject || typeof currentObject !== 'object') {
                 result.error = 'Path component ' + component + ' is not accessible';
                 return result;
             }
-            
+
             if (!safeHasProperty(currentObject, component)) {
                 result.error = 'Property ' + component + ' does not exist';
                 return result;
             }
-            
+
             currentObject = currentObject[component];
         }
-        
+
         result.value = currentObject;
         result.success = true;
-        
+
     } catch (exc) {
         result.error = 'Path access failed: ' + exc.message;
     }
-    
+
     return result;
 }
 
@@ -1774,13 +1774,13 @@ function safeGetPropertyValue(targetObject, propName, defaultValue) {
         if (!targetObject || typeof targetObject !== 'object') {
             return defaultValue;
         }
-        
+
         if (!safeHasProperty(targetObject, propName)) {
             return defaultValue;
         }
-        
+
         return targetObject[propName];
-        
+
     } catch (exc) {
         return defaultValue;
     }
@@ -1800,21 +1800,21 @@ function generateObjectReferenceID(targetObject) {
         if (!targetObject || typeof targetObject !== 'object') {
             return 'non_object_' + (new Date().getTime());
         }
-        
+
         var refComponents = [];
-        
+
         if (targetObject.constructor && targetObject.constructor.name) {
             refComponents[refComponents.length] = targetObject.constructor.name;
         }
-        
+
         if (typeof targetObject.length === 'number') {
             refComponents[refComponents.length] = 'length_' + targetObject.length;
         }
-        
+
         refComponents[refComponents.length] = 'time_' + (new Date().getTime());
-        
+
         return arrayJoin(refComponents, '_');
-        
+
     } catch (exc) {
         return 'ref_error_' + (new Date().getTime());
     }
@@ -1845,35 +1845,35 @@ function createObjectReferenceTracker() {
             visitedObjects: [],
             duplicateCount: 0,
             totalTracked: 0,
-            
-            track: function(targetObject, refId) {
+
+            track: function (targetObject, refId) {
                 try {
                     if (!targetObject || typeof targetObject !== 'object') {
                         return null;
                     }
-                    
+
                     var referenceId = refId || generateObjectReferenceID(targetObject);
-                    
+
                     if (this.references[referenceId]) {
                         this.duplicateCount++;
                         return referenceId;
                     }
-                    
+
                     this.references[referenceId] = {
                         reference: targetObject,
                         firstSeen: new Date().getTime(),
                         accessCount: 1
                     };
-                    
+
                     this.totalTracked++;
                     return referenceId;
-                    
+
                 } catch (exc) {
                     return null;
                 }
             },
-            
-            isVisited: function(targetObject) {
+
+            isVisited: function (targetObject) {
                 try {
                     for (var i = 0; i < this.visitedObjects.length; i++) {
                         if (this.visitedObjects[i] === targetObject) {
@@ -1885,8 +1885,8 @@ function createObjectReferenceTracker() {
                     return false;
                 }
             },
-            
-            markVisited: function(targetObject) {
+
+            markVisited: function (targetObject) {
                 try {
                     if (!this.isVisited(targetObject)) {
                         this.visitedObjects[this.visitedObjects.length] = targetObject;
@@ -1895,8 +1895,8 @@ function createObjectReferenceTracker() {
                     // Continue operation
                 }
             },
-            
-            getStatistics: function() {
+
+            getStatistics: function () {
                 try {
                     return {
                         totalTracked: this.totalTracked,
@@ -1913,8 +1913,8 @@ function createObjectReferenceTracker() {
                     };
                 }
             },
-            
-            cleanup: function() {
+
+            cleanup: function () {
                 try {
                     this.references = {};
                     this.visitedObjects = [];
@@ -1925,18 +1925,18 @@ function createObjectReferenceTracker() {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
             references: {},
             visitedObjects: [],
             duplicateCount: 0,
             totalTracked: 0,
-            track: function() { return null; },
-            isVisited: function() { return false; },
-            markVisited: function() { },
-            getStatistics: function() { return {}; },
-            cleanup: function() { }
+            track: function () { return null; },
+            isVisited: function () { return false; },
+            markVisited: function () { },
+            getStatistics: function () { return {}; },
+            cleanup: function () { }
         };
     }
 }
@@ -1955,9 +1955,9 @@ function splitPath(dotPath) {
         if (!dotPath || typeof dotPath !== 'string') {
             return [];
         }
-        
+
         return stringSplit(dotPath, '.');
-        
+
     } catch (exc) {
         return [];
     }
@@ -1973,9 +1973,9 @@ function joinPath(pathComponents) {
         if (!pathComponents || !pathComponents.length) {
             return '';
         }
-        
+
         return arrayJoin(pathComponents, '.');
-        
+
     } catch (exc) {
         return '';
     }
@@ -1991,14 +1991,14 @@ function getParentPath(path) {
         if (!path || typeof path !== 'string') {
             return '';
         }
-        
+
         var components = splitPath(path);
         if (components.length <= 1) {
             return '';
         }
-        
+
         return joinPath(arraySlice(components, 0, components.length - 1));
-        
+
     } catch (exc) {
         return '';
     }
@@ -2014,10 +2014,10 @@ function normalizePath(path) {
         if (!path || typeof path !== 'string') {
             return '';
         }
-        
+
         // Remove multiple consecutive dots
         var normalized = stringReplace(path, '..', '.');
-        
+
         // Remove leading/trailing dots
         normalized = trimString(normalized);
         if (stringCharAt(normalized, 0) === '.') {
@@ -2026,9 +2026,9 @@ function normalizePath(path) {
         if (stringCharAt(normalized, normalized.length - 1) === '.') {
             normalized = stringSubstring(normalized, 0, normalized.length - 1);
         }
-        
+
         return normalized;
-        
+
     } catch (exc) {
         return path || '';
     }
@@ -2042,9 +2042,9 @@ function normalizePath(path) {
 function isAbsolutePath(path) {
     try {
         if (!path || typeof path !== 'string') return false;
-        
+
         return stringIndexOf(path, 'document') === 0 || stringIndexOf(path, 'app') === 0;
-        
+
     } catch (exc) {
         return false;
     }
@@ -2059,14 +2059,14 @@ function isAbsolutePath(path) {
 function makeAbsolutePath(path, base) {
     try {
         if (!path || typeof path !== 'string') return '';
-        
+
         if (isAbsolutePath(path)) {
             return path;
         }
-        
+
         var basePath = base || 'document';
         return basePath + '.' + path;
-        
+
     } catch (exc) {
         return path || '';
     }
@@ -2083,7 +2083,7 @@ function makeAbsolutePath(path, base) {
 function memoryCleanup(objectsToClean) {
     try {
         if (!objectsToClean || !objectsToClean.length) return;
-        
+
         for (var i = 0; i < objectsToClean.length; i++) {
             try {
                 if (objectsToClean[i] && typeof objectsToClean[i].cleanup === 'function') {
@@ -2093,7 +2093,7 @@ function memoryCleanup(objectsToClean) {
                 // Continue cleanup
             }
         }
-        
+
     } catch (exc) {
         // Silent cleanup failure
     }
@@ -2108,32 +2108,32 @@ function createMemoryMonitor() {
         return {
             objectCount: 0,
             maxObjects: 10000,
-            
-            check: function() {
+
+            check: function () {
                 try {
                     return this.objectCount < this.maxObjects;
                 } catch (exc) {
                     return false;
                 }
             },
-            
-            increment: function() {
+
+            increment: function () {
                 try {
                     this.objectCount++;
                 } catch (exc) {
                     // Continue operation
                 }
             },
-            
-            forceCleanup: function() {
+
+            forceCleanup: function () {
                 try {
                     this.objectCount = 0;
                 } catch (exc) {
                     // Continue operation
                 }
             },
-            
-            getStats: function() {
+
+            getStats: function () {
                 try {
                     return {
                         current: this.objectCount,
@@ -2145,13 +2145,13 @@ function createMemoryMonitor() {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            check: function() { return false; },
-            increment: function() { },
-            forceCleanup: function() { },
-            getStats: function() { return {}; }
+            check: function () { return false; },
+            increment: function () { },
+            forceCleanup: function () { },
+            getStats: function () { return {}; }
         };
     }
 }
@@ -2168,16 +2168,16 @@ function createMemoryMonitor() {
 function isDangerousProperty(propName) {
     try {
         if (typeof propName !== 'string') return true;
-        
+
         var dangerousProps = [
             'prototype', '__proto__', 'constructor', 'caller', 'arguments',
             'eval', 'Function', 'valueOf', 'toString', 'hasOwnProperty',
             'call', 'apply', 'bind', '__defineGetter__', '__defineSetter__',
             '__lookupGetter__', '__lookupSetter__', 'propertyIsEnumerable'
         ];
-        
+
         return arrayIndexOf(dangerousProps, propName) !== -1;
-        
+
     } catch (exc) {
         return true;
     }
@@ -2191,16 +2191,16 @@ function isDangerousProperty(propName) {
 function isDangerousPath(path) {
     try {
         if (typeof path !== 'string') return true;
-        
+
         var components = splitPath(path);
         for (var i = 0; i < components.length; i++) {
             if (isDangerousProperty(components[i])) {
                 return true;
             }
         }
-        
+
         return false;
-        
+
     } catch (exc) {
         return true;
     }
@@ -2214,7 +2214,7 @@ function isDangerousPath(path) {
 function isReservedWord(word) {
     try {
         if (typeof word !== 'string') return true;
-        
+
         var reserved = [
             'break', 'case', 'catch', 'continue', 'default', 'delete', 'do', 'else',
             'finally', 'for', 'function', 'if', 'in', 'instanceof', 'new', 'return',
@@ -2225,9 +2225,9 @@ function isReservedWord(word) {
             'package', 'private', 'protected', 'public', 'short', 'static', 'super',
             'synchronized', 'throws', 'transient', 'volatile'
         ];
-        
+
         return arrayIndexOf(reserved, word) !== -1;
-        
+
     } catch (exc) {
         return true;
     }
@@ -2241,19 +2241,19 @@ function isReservedWord(word) {
 function getPropertySafetyLevel(propName) {
     try {
         if (typeof propName !== 'string') return 'dangerous';
-        
+
         if (isDangerousProperty(propName)) return 'dangerous';
         if (isReservedWord(propName)) return 'dangerous';
-        
+
         var cautionProps = [
             'parent', 'document', 'application', 'activeDocument',
             'selection', 'preferences', 'menuActions'
         ];
-        
+
         if (arrayIndexOf(cautionProps, propName) !== -1) return 'caution';
-        
+
         return 'safe';
-        
+
     } catch (exc) {
         return 'dangerous';
     }
@@ -2272,17 +2272,17 @@ function createTimeoutChecker(timeoutMs) {
     try {
         var startTime = new Date().getTime();
         var timeout = timeoutMs || 30000;
-        
-        return function() {
+
+        return function () {
             try {
                 return (new Date().getTime() - startTime) > timeout;
             } catch (exc) {
                 return true;
             }
         };
-        
+
     } catch (exc) {
-        return function() { return true; };
+        return function () { return true; };
     }
 }
 
@@ -2296,8 +2296,8 @@ function createOperationCounter(maxOps) {
         return {
             count: 0,
             maximum: maxOps || 10000,
-            
-            increment: function() {
+
+            increment: function () {
                 try {
                     this.count++;
                     return this.count < this.maximum;
@@ -2305,16 +2305,16 @@ function createOperationCounter(maxOps) {
                     return false;
                 }
             },
-            
-            isWithinLimit: function() {
+
+            isWithinLimit: function () {
                 try {
                     return this.count < this.maximum;
                 } catch (exc) {
                     return false;
                 }
             },
-            
-            reset: function() {
+
+            reset: function () {
                 try {
                     this.count = 0;
                 } catch (exc) {
@@ -2322,12 +2322,12 @@ function createOperationCounter(maxOps) {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            increment: function() { return false; },
-            isWithinLimit: function() { return false; },
-            reset: function() { }
+            increment: function () { return false; },
+            isWithinLimit: function () { return false; },
+            reset: function () { }
         };
     }
 }
@@ -2342,12 +2342,12 @@ function createRateLimiter(maxPerSecond) {
         return {
             operations: [],
             maxRate: maxPerSecond || 100,
-            
-            canProceed: function() {
+
+            canProceed: function () {
                 try {
                     var now = new Date().getTime();
                     var oneSecondAgo = now - 1000;
-                    
+
                     // Remove old operations
                     var recentOps = [];
                     for (var i = 0; i < this.operations.length; i++) {
@@ -2356,23 +2356,23 @@ function createRateLimiter(maxPerSecond) {
                         }
                     }
                     this.operations = recentOps;
-                    
+
                     if (this.operations.length < this.maxRate) {
                         this.operations[this.operations.length] = now;
                         return true;
                     }
-                    
+
                     return false;
-                    
+
                 } catch (exc) {
                     return false;
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            canProceed: function() { return false; }
+            canProceed: function () { return false; }
         };
     }
 }
@@ -2392,25 +2392,25 @@ function validateInDesignEnvironment() {
         error: null,
         metadata: {}
     };
-    
+
     try {
         if (typeof app === 'undefined') {
             result.error = 'InDesign application not available';
             return result;
         }
-        
+
         try {
             result.metadata.indesignVersion = app.version || 'unknown';
         } catch (versionExc) {
             result.metadata.indesignVersion = 'version_unknown';
         }
-        
+
         try {
             result.metadata.hasNativeJSON = (typeof JSON !== 'undefined');
         } catch (jsonExc) {
             result.metadata.hasNativeJSON = false;
         }
-        
+
         try {
             if (app.documents && app.documents.length > 0) {
                 result.document = app.documents[0];
@@ -2423,10 +2423,10 @@ function validateInDesignEnvironment() {
             result.error = 'Cannot access document: ' + docExc.message;
             return result;
         }
-        
+
         result.valid = true;
         return result;
-        
+
     } catch (exc) {
         result.error = 'Environment validation failed: ' + exc.message;
         return result;
@@ -2444,13 +2444,13 @@ function validateDocumentState(documentObj) {
         warnings: [],
         metadata: {}
     };
-    
+
     try {
         if (!documentObj) {
             result.warnings[result.warnings.length] = 'No document provided';
             return result;
         }
-        
+
         // Collect basic metadata
         try {
             result.metadata.name = documentObj.name || 'Unnamed Document';
@@ -2458,21 +2458,21 @@ function validateDocumentState(documentObj) {
             result.metadata.name = 'Unknown Document';
             result.warnings[result.warnings.length] = 'Could not access document name';
         }
-        
+
         try {
             result.metadata.saved = documentObj.saved || false;
         } catch (exc) {
             result.metadata.saved = false;
             result.warnings[result.warnings.length] = 'Could not check document saved status';
         }
-        
+
         try {
             result.metadata.modified = documentObj.modified || false;
         } catch (exc) {
             result.metadata.modified = false;
             result.warnings[result.warnings.length] = 'Could not check document modified status';
         }
-        
+
         // Check for collections
         try {
             result.metadata.pageCount = safeGetLength(documentObj.pages);
@@ -2481,14 +2481,14 @@ function validateDocumentState(documentObj) {
         } catch (exc) {
             result.warnings[result.warnings.length] = 'Could not access document collections';
         }
-        
+
         // Document is considered safe if we can access basic properties
         if (result.metadata.name) {
             result.safe = true;
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         result.warnings[result.warnings.length] = 'Document validation failed: ' + exc.message;
         return result;
@@ -2507,32 +2507,32 @@ function createStringBuilder() {
     try {
         return {
             parts: [],
-            
-            append: function(text) {
+
+            append: function (text) {
                 try {
                     this.parts[this.parts.length] = safeToString(text);
                 } catch (exc) {
                     this.parts[this.parts.length] = '[append error]';
                 }
             },
-            
-            appendLine: function(text) {
+
+            appendLine: function (text) {
                 try {
                     this.parts[this.parts.length] = safeToString(text) + '\n';
                 } catch (exc) {
                     this.parts[this.parts.length] = '[append line error]\n';
                 }
             },
-            
-            toString: function() {
+
+            toString: function () {
                 try {
                     return arrayJoin(this.parts, '');
                 } catch (exc) {
                     return '[string builder error]';
                 }
             },
-            
-            clear: function() {
+
+            clear: function () {
                 try {
                     this.parts = [];
                 } catch (exc) {
@@ -2540,13 +2540,13 @@ function createStringBuilder() {
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            append: function() { },
-            appendLine: function() { },
-            toString: function() { return '[string builder creation error]'; },
-            clear: function() { }
+            append: function () { },
+            appendLine: function () { },
+            toString: function () { return '[string builder creation error]'; },
+            clear: function () { }
         };
     }
 }
@@ -2558,12 +2558,12 @@ function createStringBuilder() {
 function getCurrentTimestamp() {
     try {
         var now = new Date();
-        return now.getFullYear() + '-' + 
-               (now.getMonth() + 1) + '-' + 
-               now.getDate() + ' ' + 
-               now.getHours() + ':' + 
-               now.getMinutes() + ':' + 
-               now.getSeconds();
+        return now.getFullYear() + '-' +
+            (now.getMonth() + 1) + '-' +
+            now.getDate() + ' ' +
+            now.getHours() + ':' +
+            now.getMinutes() + ':' +
+            now.getSeconds();
     } catch (exc) {
         return 'timestamp_error';
     }
@@ -2633,7 +2633,7 @@ function createSuccessResult(value) {
 function retryOperation(operation, maxAttempts, baseDelay) {
     var attempts = maxAttempts || 3;
     var delay = baseDelay || 100;
-    
+
     try {
         for (var attempt = 1; attempt <= attempts; attempt++) {
             try {
@@ -2641,7 +2641,7 @@ function retryOperation(operation, maxAttempts, baseDelay) {
                 if (result && result.success) {
                     return result;
                 }
-                
+
                 if (attempt < attempts) {
                     // Simple delay simulation (not ideal but ES3 compatible)
                     var start = new Date().getTime();
@@ -2649,16 +2649,16 @@ function retryOperation(operation, maxAttempts, baseDelay) {
                         // Wait
                     }
                 }
-                
+
             } catch (operationExc) {
                 if (attempt === attempts) {
                     return createErrorResult('Operation failed after ' + attempts + ' attempts: ' + operationExc.message);
                 }
             }
         }
-        
+
         return createErrorResult('Operation failed after ' + attempts + ' attempts');
-        
+
     } catch (exc) {
         return createErrorResult('Retry operation error: ' + exc.message);
     }
@@ -2676,6 +2676,94 @@ function updateStatus(message) {
     }
 }
 
+/**
+ * Debug output wrapper - only outputs if debug enabled
+ * @param {String} message - Debug message
+ * @param {String} category - Debug category (enumeration, sampling, etc.)
+ */
+function debugLog(message, category) {
+    try {
+        // Check global debug config
+        var debugEnabled = false;
+
+        if (typeof g_domViz_userConfiguration !== 'undefined' &&
+            g_domViz_userConfiguration &&
+            g_domViz_userConfiguration.debug &&
+            g_domViz_userConfiguration.debug.enabled) {
+
+            debugEnabled = true;
+
+            // Check category-specific flags
+            if (category) {
+                switch (category) {
+                    case 'enumeration':
+                        debugEnabled = g_domViz_userConfiguration.debug.showEnumeration;
+                        break;
+                    case 'sampling':
+                        debugEnabled = g_domViz_userConfiguration.debug.showSampling;
+                        break;
+                    case 'circular':
+                        debugEnabled = g_domViz_userConfiguration.debug.showCircularDetection;
+                        break;
+                    case 'display':
+                        debugEnabled = g_domViz_userConfiguration.debug.showDisplay;
+                        break;
+                    case 'performance':
+                        debugEnabled = g_domViz_userConfiguration.debug.showPerformance;
+                        break;
+                }
+            }
+        }
+
+        if (debugEnabled) {
+            $.writeln('[DEBUG' + (category ? ' ' + category.toUpperCase() : '') + '] ' + message);
+        }
+    } catch (exc) {
+        // Fallback - always show if debug system fails
+        $.writeln('[DEBUG FALLBACK] ' + message);
+    }
+}
+
+/**
+ * Performance timing wrapper
+ * @param {String} operation - Operation name
+ * @param {Number} startTime - Start time
+ * @param {Number} endTime - End time
+ */
+function debugPerformance(operation, startTime, endTime) {
+    var elapsed = endTime - startTime;
+    debugLog(operation + ' completed in ' + elapsed + 'ms', 'performance');
+}
+
+/**
+ * Check if specific debug category is enabled
+ * @param {String} category - Debug category
+ * @returns {Boolean} True if enabled
+ */
+function isDebugEnabled(category) {
+    try {
+        if (typeof g_domViz_userConfiguration === 'undefined' ||
+            !g_domViz_userConfiguration ||
+            !g_domViz_userConfiguration.debug ||
+            !g_domViz_userConfiguration.debug.enabled) {
+            return false;
+        }
+
+        if (!category) return true;
+
+        switch (category) {
+            case 'enumeration': return g_domViz_userConfiguration.debug.showEnumeration;
+            case 'sampling': return g_domViz_userConfiguration.debug.showSampling;
+            case 'circular': return g_domViz_userConfiguration.debug.showCircularDetection;
+            case 'display': return g_domViz_userConfiguration.debug.showDisplay;
+            case 'performance': return g_domViz_userConfiguration.debug.showPerformance;
+            default: return true;
+        }
+    } catch (exc) {
+        return false;
+    }
+}
+
 // =============================================================================
 // MODULE REGISTRATION
 // =============================================================================
@@ -2684,48 +2772,51 @@ function updateStatus(message) {
 registerModule('1.2_safety-utilities', '3.1', [
     // Array Helpers
     'arrayIndexOf', 'arraySlice', 'arrayJoin', 'arrayPush', 'arrayPop', 'arrayConcat',
-    
+
     // String Helpers
     'stringIndexOf', 'stringSubstring', 'stringCharAt', 'stringSplit',
     'stringToLowerCase', 'stringToUpperCase', 'stringReplace', 'stringMatch',
-    
+
     // Object Helpers
     'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', //'objectClone',
     'objectMerge', 'objectDeepMerge',
-    
+
     // Function Utilities
     'functionExists', 'safeCall',
-    
+
     // ES3 Compatibility
     'trimString', 'safeToString', 'safeParseInt', 'safeParseFloat',
-    
+
     // JSON Handling
     'safeJSONStringify', 'fallbackStringify', 'safeJSONParse',
-    
+
     // Property Safety Functions
     'safeTypeCheck', 'safeHasProperty', 'safeGetLength', 'safeGetObjectFromPath',
     'safeGetPropertyValue',
-    
+
     // Object Reference Tracking
     'generateObjectReferenceID', 'isSameObjectReference', 'createObjectReferenceTracker',
-    
+
     // Path Utilities
     'splitPath', 'joinPath', 'getParentPath', 'normalizePath', 'isAbsolutePath', 'makeAbsolutePath',
-    
+
     // Memory Management
     'memoryCleanup', 'createMemoryMonitor',
-    
+
     // Danger Detection
     'isDangerousProperty', 'isDangerousPath', 'isReservedWord', 'getPropertySafetyLevel',
-    
+
     // Operation Control
     'createTimeoutChecker', 'createOperationCounter', 'createRateLimiter',
-    
+
     // Environment Validation
     'validateInDesignEnvironment', 'validateDocumentState',
-    
+
+    // Debug System Functions - NEW
+    'debugLog', 'debugPerformance', 'isDebugEnabled',
+
     // Utilities
-    'createStringBuilder', 'getCurrentTimestamp', 'generateUniqueID', 
+    'createStringBuilder', 'getCurrentTimestamp', 'generateUniqueID',
     'createErrorResult', 'createSuccessResult', 'retryOperation', 'updateStatus'
 ]);
 
@@ -2788,19 +2879,19 @@ var DEFAULT_ENUMERATION_CONFIG = {
  */
 function enumerateDocumentDOM(documentObject, config) {
     var startTime = new Date().getTime();
-    
+
     $.writeln('[ENUM DEBUG] === STARTING enumerateDocumentDOM ===');
     $.writeln('[ENUM DEBUG] Start time: ' + startTime);
     $.writeln('[ENUM DEBUG] Config received: ' + (config ? 'YES' : 'NO'));
-    
+
     var enumerationConfig = config ?
-        objectMerge(DEFAULT_ENUMERATION_CONFIG, config) : 
+        objectMerge(DEFAULT_ENUMERATION_CONFIG, config) :
         objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
-    
+
     $.writeln('[ENUM DEBUG] Final config maxDepth: ' + enumerationConfig.maxDepth);
     $.writeln('[ENUM DEBUG] Final config timeoutMs: ' + enumerationConfig.timeoutMs);
     $.writeln('[ENUM DEBUG] Final config maxProperties: ' + enumerationConfig.maxProperties);
-    
+
     try {
         // Validate environment
         var envValidation = validateInDesignEnvironment();
@@ -2809,15 +2900,15 @@ function enumerateDocumentDOM(documentObject, config) {
             return createErrorDOMStructure(envValidation.error);
         }
         $.writeln('[ENUM DEBUG] Environment validation PASSED');
-        
+
         var targetDocument = documentObject || envValidation.document;
         var docValidation = validateDocumentState(targetDocument);
         $.writeln('[ENUM DEBUG] Document validation completed');
-        
+
         // Create DOM structure container
         var domStructure = createDOMStructure();
         $.writeln('[ENUM DEBUG] DOM structure container created');
-        
+
         // Set up metadata
         domStructure.metadata = {
             timestamp: getCurrentTimestamp(),
@@ -2831,18 +2922,18 @@ function enumerateDocumentDOM(documentObject, config) {
                 moduleSystem: true
             },
             environment: {
-                indesignVersion: envValidation.metadata ? 
+                indesignVersion: envValidation.metadata ?
                     envValidation.metadata.indesignVersion : 'unknown',
-                hasNativeJSON: envValidation.metadata ? 
+                hasNativeJSON: envValidation.metadata ?
                     envValidation.metadata.hasNativeJSON : false
             }
         };
-        
+
         // Add document validation warnings
         if (docValidation.warnings && docValidation.warnings.length > 0) {
             domStructure.metadata.warnings = docValidation.warnings;
         }
-        
+
         // Initialize object registry for tracking
         if (enumerationConfig.enableObjectTracking) {
             domStructure.objectRegistry = {
@@ -2853,60 +2944,60 @@ function enumerateDocumentDOM(documentObject, config) {
             };
             $.writeln('[ENUM DEBUG] Object registry initialized');
         }
-        
+
         // Create progress reporter if enabled
         var progressReporter = enumerationConfig.enableProgressReporting ?
             createProgressReporter() : null;
-            
+
         $.writeln('[ENUM DEBUG] About to call enumerateObjectStructure...');
         var enumStartTime = new Date().getTime();
-        
+
         // Enumerate document structure
         domStructure.structure = {
             document: enumerateObjectStructure(
-                targetDocument, 
-                'document', 
-                0, 
-                enumerationConfig, 
+                targetDocument,
+                'document',
+                0,
+                enumerationConfig,
                 domStructure,
                 progressReporter
             )
         };
-        
+
         var enumEndTime = new Date().getTime();
         $.writeln('[ENUM DEBUG] enumerateObjectStructure completed in: ' + (enumEndTime - enumStartTime) + 'ms');
-        $.writeln('[ENUM DEBUG] Document node created, properties: ' + 
-                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
-        
+        $.writeln('[ENUM DEBUG] Document node created, properties: ' +
+            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
+
         // Post-processing
         if (enumerationConfig.includeAlternativeAccessPaths) {
             $.writeln('[ENUM DEBUG] Running updateAlternativeAccessPaths...');
             updateAlternativeAccessPaths(domStructure);
         }
-        
+
         // Generate statistics
         if (enumerationConfig.generateStatistics) {
             $.writeln('[ENUM DEBUG] Generating statistics...');
             domStructure.statistics = getDOMStatistics(domStructure);
         }
-        
+
         // Final metadata
         domStructure.metadata.enumerationTime = new Date().getTime() - startTime;
         domStructure.metadata.completed = true;
-        
+
         $.writeln('[ENUM DEBUG] === ENUMERATION COMPLETED ===');
         $.writeln('[ENUM DEBUG] Total time: ' + domStructure.metadata.enumerationTime + 'ms');
-        $.writeln('[ENUM DEBUG] Properties found: ' + 
-                 (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
-        $.writeln('[ENUM DEBUG] Methods found: ' + 
-                 (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
-        
+        $.writeln('[ENUM DEBUG] Properties found: ' +
+            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
+        $.writeln('[ENUM DEBUG] Methods found: ' +
+            (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
+
         if (progressReporter) {
             progressReporter.complete();
         }
-        
+
         return domStructure;
-        
+
     } catch (exc) {
         $.writeln('[ENUM DEBUG] EXCEPTION: ' + exc.message);
         return createErrorDOMStructure('DOM enumeration failed: ' + exc.message);
@@ -2914,150 +3005,225 @@ function enumerateDocumentDOM(documentObject, config) {
 }
 
 /**
- * Enumerate object structure recursively
- * @param {Object} targetObject - Object to enumerate
- * @param {String} objectPath - Current object path
- * @param {Number} depth - Current recursion depth
- * @param {Object} config - Enumeration configuration
- * @param {Object} domStructure - DOM structure container
- * @param {Object} progressReporter - Progress reporter
- * @returns {Object} DOM node structure
+ * Enumerate object structure with improved filtering and global timeout
  */
-function enumerateObjectStructure(targetObject, objectPath, depth, config, domStructure, progressReporter) {
-    var startTime = new Date().getTime();
-    
-    $.writeln('[STRUCT DEBUG] Starting enumeration: ' + objectPath + ' (depth: ' + depth + ')');
-    
+function enumerateObjectStructure(targetObject, objectPath, depth, config, domStructure, progressReporter, globalStartTime) {
+    var realGlobalStartTime = globalStartTime || new Date().getTime();
+    var localStartTime = new Date().getTime();
+
+    // GLOBAL TIMEOUT CHECK FIRST
+    var globalElapsed = localStartTime - realGlobalStartTime;
+    if (config.timeoutMs && globalElapsed > config.timeoutMs) {
+        debugLog('GLOBAL TIMEOUT REACHED! Stopping at: ' + objectPath + ' (elapsed: ' + globalElapsed + 'ms)', 'enumeration');
+        var timeoutNode = createDOMNode(objectPath, 'GlobalTimeoutReached', 'timeout', depth);
+        timeoutNode.globalTimeoutReached = true;
+        timeoutNode.globalElapsedTime = globalElapsed;
+        return timeoutNode;
+    }
+
+    debugLog('Starting: ' + objectPath + ' (depth: ' + depth + ', global elapsed: ' + globalElapsed + 'ms)', 'enumeration');
+
     try {
-        // Check depth and timeout limits
+        // Check depth limits
         if (depth >= config.maxDepth) {
-            $.writeln('[STRUCT DEBUG] Max depth reached at: ' + objectPath);
+            debugLog('Max depth reached at: ' + objectPath, 'enumeration');
             return createDOMNode(objectPath, 'MaxDepthReached', 'limit', depth);
         }
-        
+
         if (!targetObject) {
-            $.writeln('[STRUCT DEBUG] Null object at: ' + objectPath);
+            debugLog('Null object at: ' + objectPath, 'enumeration');
             return createDOMNode(objectPath, 'NullObject', 'null', depth);
         }
-        
-        // Check for circular references
+
+        // IMPROVED: Skip InDesign internal objects that aren't useful
+        if (shouldSkipObject(objectPath, targetObject)) {
+            debugLog('Skipping internal object: ' + objectPath, 'enumeration');
+            var skippedNode = createDOMNode(objectPath, 'SkippedInternal', 'skipped', depth);
+            skippedNode.skipReason = 'InDesign internal object filtered';
+            return skippedNode;
+        }
+
+        // Check for circular references with improved logic
         if (config.enableCircularReferenceDetection) {
             var circularRef = detectCircularReference(targetObject, objectPath, domStructure);
             if (circularRef.isCircular) {
-                $.writeln('[STRUCT DEBUG] Circular reference detected at: ' + objectPath);
+                debugLog('Circular reference detected at: ' + objectPath + ' (' + circularRef.reason + ')', 'enumeration');
                 return createDOMNode(objectPath, 'CircularReference', 'circular', depth, circularRef.originalPath);
             }
         }
-        
+
         // Create DOM node for this object
         var domNode = createDOMNode(objectPath, objectPath, typeof targetObject, depth);
-        
+
         // Generate object identity hash for tracking
         if (config.enableObjectTracking) {
             domNode.objectId = generateObjectIdentityHash(targetObject, objectPath);
             registerObjectReference(domNode.objectId, targetObject, objectPath, domStructure);
         }
-        
+
         // Report progress
         if (progressReporter) {
             progressReporter.reportProgress('Enumerating: ' + objectPath);
         }
-        
-        // Create timeout checker for this enumeration
-        var timeoutChecker = createTimeoutChecker(config.timeoutMs);
-        var initialElapsed = new Date().getTime() - startTime;
-        
-        $.writeln('[STRUCT DEBUG] Starting property enumeration for: ' + objectPath);
-        $.writeln('[STRUCT DEBUG] Timeout limit: ' + config.timeoutMs + 'ms');
-        
-        // Enumerate properties with timeout checking
+
+        debugLog('Starting property enumeration for: ' + objectPath, 'enumeration');
+
+        // Enumerate properties with GLOBAL timeout and filtering
         var propertyCount = 0;
         var operationCount = 0;
-        var timeoutReached = false;
-        
+        var globalTimeoutReached = false;
+        var skippedCount = 0;
+
         try {
             for (var propName in targetObject) {
-                // CRITICAL: Check timeout every 10 properties
-                if (operationCount % 10 === 0) {
-                    var elapsed = new Date().getTime() - startTime;
-                    
-                    if (operationCount === 0) {
-                        $.writeln('[STRUCT DEBUG] Starting property loop for: ' + objectPath + ' (elapsed: ' + elapsed + 'ms)');
-                    } else if (operationCount % 50 === 0) {
-                        $.writeln('[STRUCT DEBUG] Progress: ' + operationCount + ' properties processed for ' + objectPath + ' (elapsed: ' + elapsed + 'ms)');
+                // CRITICAL: Check GLOBAL timeout every 5 properties
+                if (operationCount % 5 === 0) {
+                    var currentGlobalElapsed = new Date().getTime() - realGlobalStartTime;
+
+                    if (operationCount % 25 === 0 && operationCount > 0) {
+                        debugLog('Progress: ' + operationCount + ' properties at ' + objectPath + ' (global elapsed: ' + currentGlobalElapsed + 'ms)', 'enumeration');
                     }
-                    
-                    // TIMEOUT CHECK
-                    if (config.timeoutMs && elapsed > config.timeoutMs) {
-                        $.writeln('[STRUCT DEBUG] TIMEOUT REACHED! Breaking enumeration at: ' + objectPath);
-                        $.writeln('[STRUCT DEBUG] Processed ' + operationCount + ' properties in ' + elapsed + 'ms');
+
+                    // GLOBAL TIMEOUT CHECK
+                    if (config.timeoutMs && currentGlobalElapsed > config.timeoutMs) {
+                        debugLog('GLOBAL TIMEOUT during property enum! Stopping at: ' + objectPath, 'enumeration');
                         domNode.truncated = true;
-                        domNode.truncationReason = 'Timeout reached (' + elapsed + 'ms > ' + config.timeoutMs + 'ms)';
-                        timeoutReached = true;
-                        break;
-                    }
-                    
-                    // Alternative timeout check using timeoutChecker function
-                    if (timeoutChecker && timeoutChecker()) {
-                        $.writeln('[STRUCT DEBUG] TimeoutChecker triggered! Breaking enumeration at: ' + objectPath);
-                        domNode.truncated = true;
-                        domNode.truncationReason = 'TimeoutChecker triggered after ' + elapsed + 'ms';
-                        timeoutReached = true;
+                        domNode.truncationReason = 'Global timeout reached (' + currentGlobalElapsed + 'ms > ' + config.timeoutMs + 'ms)';
+                        globalTimeoutReached = true;
                         break;
                     }
                 }
-                
+
                 // Check operation limits
                 operationCount++;
                 if (operationCount > config.maxProperties) {
-                    $.writeln('[STRUCT DEBUG] Property limit reached at: ' + objectPath + ' (' + operationCount + ' properties)');
+                    debugLog('Property limit reached at: ' + objectPath + ' (' + operationCount + ' properties)', 'enumeration');
                     domNode.truncated = true;
                     domNode.truncationReason = 'Property limit exceeded (' + operationCount + ' > ' + config.maxProperties + ')';
                     break;
                 }
-                
+
+                // IMPROVED: Skip properties that are likely InDesign internals
+                if (shouldSkipProperty(propName, objectPath)) {
+                    skippedCount++;
+                    continue;
+                }
+
                 if (objectHasOwnProperty(targetObject, propName)) {
                     var processed = processProperty(
-                        targetObject, 
-                        propName, 
-                        objectPath, 
-                        depth, 
-                        config, 
-                        domStructure, 
+                        targetObject,
+                        propName,
+                        objectPath,
+                        depth,
+                        config,
+                        domStructure,
                         domNode,
-                        []  // parentPaths for circular detection
+                        [],
+                        realGlobalStartTime
                     );
-                    
+
                     if (processed) {
                         propertyCount++;
                     }
                 }
+
+                // Double-check global timeout after each property
+                var postPropertyElapsed = new Date().getTime() - realGlobalStartTime;
+                if (config.timeoutMs && postPropertyElapsed > config.timeoutMs) {
+                    debugLog('Global timeout after property: ' + propName, 'enumeration');
+                    globalTimeoutReached = true;
+                    break;
+                }
             }
         } catch (enumExc) {
-            $.writeln('[STRUCT DEBUG] Property enumeration exception at: ' + objectPath + ' - ' + enumExc.message);
+            debugLog('Property enumeration exception at: ' + objectPath + ' - ' + enumExc.message, 'enumeration');
             domNode.enumerationError = 'Property enumeration failed: ' + enumExc.message;
         }
-        
+
         var endTime = new Date().getTime();
-        var totalTime = endTime - startTime;
-        
+        var localTime = endTime - localStartTime;
+        var finalGlobalElapsed = endTime - realGlobalStartTime;
+
         domNode.propertyCount = propertyCount;
         domNode.operationCount = operationCount;
-        domNode.enumerationTime = totalTime;
-        
-        $.writeln('[STRUCT DEBUG] Completed enumeration for: ' + objectPath);
-        $.writeln('[STRUCT DEBUG] - Properties found: ' + propertyCount);
-        $.writeln('[STRUCT DEBUG] - Operations performed: ' + operationCount);
-        $.writeln('[STRUCT DEBUG] - Time taken: ' + totalTime + 'ms');
-        $.writeln('[STRUCT DEBUG] - Timeout reached: ' + (timeoutReached ? 'YES' : 'NO'));
-        $.writeln('[STRUCT DEBUG] - Truncated: ' + (domNode.truncated ? 'YES' : 'NO'));
-        
+        domNode.skippedCount = skippedCount;
+        domNode.localEnumerationTime = localTime;
+        domNode.globalElapsedTime = finalGlobalElapsed;
+        domNode.globalTimeoutReached = globalTimeoutReached;
+
+        debugLog('Completed: ' + objectPath + ' - Props: ' + propertyCount + ', Skipped: ' + skippedCount + ', Local: ' + localTime + 'ms, Global: ' + finalGlobalElapsed + 'ms', 'enumeration');
+
         return domNode;
-        
+
     } catch (exc) {
-        var exceptionTime = new Date().getTime() - startTime;
-        $.writeln('[STRUCT DEBUG] EXCEPTION in enumeration for: ' + objectPath + ' after ' + exceptionTime + 'ms - ' + exc.message);
+        var exceptionTime = new Date().getTime() - localStartTime;
+        var exceptionGlobalElapsed = new Date().getTime() - realGlobalStartTime;
+        debugLog('EXCEPTION in: ' + objectPath + ' after ' + exceptionTime + 'ms (global: ' + exceptionGlobalElapsed + 'ms) - ' + exc.message, 'enumeration');
         return createErrorDOMNode(objectPath, 'Enumeration error: ' + exc.message, depth);
+    }
+}
+
+/**
+ * Determine if an object should be skipped during enumeration
+ * @param {String} objectPath - Object path
+ * @param {Object} targetObject - Object to check
+ * @returns {Boolean} True if should skip
+ */
+function shouldSkipObject(objectPath, targetObject) {
+    try {
+        // Skip deep InDesign preference objects that aren't useful for most users
+        var skipPatterns = [
+            'metadataPreferences.properties.',
+            'indexGenerationOptions.properties.',
+            'dataGroupPreferences.',
+            'adjustLayoutPreferences.properties.',
+            'epubFixedLayoutExportPreferences.properties.'
+        ];
+
+        for (var i = 0; i < skipPatterns.length; i++) {
+            if (stringIndexOf(objectPath, skipPatterns[i]) !== -1) {
+                return true;
+            }
+        }
+
+        // Skip if object path is too deep in preferences
+        var pathParts = objectPath.split('.');
+        if (pathParts.length > 6 && stringIndexOf(objectPath, 'preferences') !== -1) {
+            return true;
+        }
+
+        return false;
+
+    } catch (exc) {
+        return false;
+    }
+}
+
+/**
+ * Determine if a property should be skipped during enumeration
+ * @param {String} propName - Property name
+ * @param {String} objectPath - Object path
+ * @returns {Boolean} True if should skip
+ */
+function shouldSkipProperty(propName, objectPath) {
+    try {
+        // Skip certain property patterns that are rarely useful
+        var skipPropertyPatterns = [
+            'eventListeners',
+            'scriptPreferences',
+            'insertionPoints'
+        ];
+
+        for (var i = 0; i < skipPropertyPatterns.length; i++) {
+            if (stringIndexOf(propName, skipPropertyPatterns[i]) !== -1) {
+                return true;
+            }
+        }
+
+        return false;
+
+    } catch (exc) {
+        return false;
     }
 }
 
@@ -3073,32 +3239,40 @@ function enumerateObjectStructure(targetObject, objectPath, depth, config, domSt
  * @param {Array} parentPaths - Parent paths for circular detection
  * @returns {Boolean} True if processed successfully
  */
-function processProperty(targetObject, propName, objectPath, depth, config, domStructure, domNode, parentPaths) {
+function processProperty(targetObject, propName, objectPath, depth, config, domStructure, domNode, parentPaths, globalStartTime) {
     try {
+        // Check global timeout first
+        if (globalStartTime && config.timeoutMs) {
+            var globalElapsed = new Date().getTime() - globalStartTime;
+            if (globalElapsed > config.timeoutMs) {
+                return true; // Skip this property due to global timeout
+            }
+        }
+
         // Skip dangerous properties if configured
         if (config.skipDangerous && isDangerousProperty(propName)) {
             return true;
         }
-        
+
         // Skip ES3 reserved words
         if (isReservedWord(propName)) {
             return true;
         }
-        
+
         // Get property type safely
         var propertyType = safeTypeCheck(targetObject, propName);
         if (propertyType === 'error') {
             return true;
         }
-        
+
         // Create property classification
         var propClassification = createPropertyClassification(propName, propertyType, objectPath, null);
-        
+
         // Add safety classification if enabled
         if (config.trackPropertySafety) {
             propClassification.safetyLevel = getPropertySafetyLevel(propName);
         }
-        
+
         // Add to appropriate collection
         if (propClassification.isMethod) {
             domNode.methods[domNode.methods.length] = propClassification;
@@ -3107,27 +3281,28 @@ function processProperty(targetObject, propName, objectPath, depth, config, domS
         } else {
             domNode.properties[domNode.properties.length] = propClassification;
         }
-        
+
         // If property is an object, recursively enumerate it
         if (propertyType === 'object' && depth < config.maxDepth - 1) {
             try {
                 var childObject = targetObject[propName];
                 if (childObject) {
                     var childPath = objectPath + '.' + propName;
-                    
+
                     // Check for circular references in parent chain
                     var newParentPaths = arraySlice(parentPaths, 0);
                     newParentPaths[newParentPaths.length] = objectPath;
-                    
+
                     var childNode = enumerateObjectStructure(
-                        childObject, 
-                        childPath, 
-                        depth + 1, 
-                        config, 
+                        childObject,
+                        childPath,
+                        depth + 1,
+                        config,
                         domStructure,
-                        null // No progress reporter for child nodes
+                        null, // No progress reporter for child nodes
+                        globalStartTime // Pass global start time to children
                     );
-                    
+
                     if (childNode) {
                         domNode.childNodes[domNode.childNodes.length] = childNode;
                     }
@@ -3137,9 +3312,9 @@ function processProperty(targetObject, propName, objectPath, depth, config, domS
                 propClassification.childEnumerationError = childExc.message;
             }
         }
-        
+
         return true;
-        
+
     } catch (exc) {
         return false;
     }
@@ -3195,13 +3370,13 @@ function createDOMNode(path, name, nodeType, depth, additionalInfo) {
             alternativeAccessPaths: [],
             created: getCurrentTimestamp()
         };
-        
+
         if (additionalInfo) {
             node.additionalInfo = additionalInfo;
         }
-        
+
         return node;
-        
+
     } catch (exc) {
         return {
             path: path || 'error',
@@ -3228,7 +3403,7 @@ function createDOMNode(path, name, nodeType, depth, additionalInfo) {
 function createPropertyClassification(propName, propType, parentPath, propValue) {
     try {
         var fullPath = parentPath ? parentPath + '.' + propName : propName;
-        
+
         return {
             name: propName,
             type: propType,
@@ -3239,7 +3414,7 @@ function createPropertyClassification(propName, propType, parentPath, propValue)
             safetyLevel: 'unknown',
             created: getCurrentTimestamp()
         };
-        
+
     } catch (exc) {
         return {
             name: propName || 'unknown',
@@ -3332,26 +3507,26 @@ function createErrorDOMStructure(errorMessage) {
 function generateObjectIdentityHash(targetObject, path) {
     try {
         var hashComponents = [];
-        
+
         hashComponents[hashComponents.length] = 'path:' + (path || 'unknown');
         hashComponents[hashComponents.length] = 'type:' + typeof targetObject;
-        
+
         if (targetObject && typeof targetObject === 'object') {
             if (targetObject.constructor && targetObject.constructor.name) {
                 hashComponents[hashComponents.length] = 'constructor:' + targetObject.constructor.name;
             }
-            
+
             if (typeof targetObject.length === 'number') {
                 hashComponents[hashComponents.length] = 'length:' + targetObject.length;
             }
-            
+
             hashComponents[hashComponents.length] = 'keys:' + countObjectKeys(targetObject);
         }
-        
+
         hashComponents[hashComponents.length] = 'time:' + (new Date().getTime());
-        
+
         return arrayJoin(hashComponents, '|');
-        
+
     } catch (exc) {
         return 'hash_error:' + (path || 'unknown') + ':' + (new Date().getTime());
     }
@@ -3369,7 +3544,7 @@ function registerObjectReference(objectId, targetObject, path, domStructure) {
         if (!domStructure.objectRegistry) {
             return;
         }
-        
+
         if (domStructure.objectRegistry.references[objectId]) {
             // Object already registered - potential duplicate
             if (!domStructure.objectRegistry.duplicateDetections[objectId]) {
@@ -3384,7 +3559,7 @@ function registerObjectReference(objectId, targetObject, path, domStructure) {
             };
             domStructure.objectRegistry.totalTracked++;
         }
-        
+
     } catch (exc) {
         // Silent failure for object registration
     }
@@ -3402,23 +3577,23 @@ function checkObjectDuplication(objectId, domStructure) {
         originalPath: null,
         duplicatePaths: []
     };
-    
+
     try {
         if (!domStructure.objectRegistry || !objectId) {
             return result;
         }
-        
+
         if (domStructure.objectRegistry.references[objectId]) {
             result.originalPath = domStructure.objectRegistry.references[objectId].firstPath;
         }
-        
+
         if (domStructure.objectRegistry.duplicateDetections[objectId]) {
             result.isDuplicate = true;
             result.duplicatePaths = domStructure.objectRegistry.duplicateDetections[objectId];
         }
-        
+
         return result;
-        
+
     } catch (exc) {
         return result;
     }
@@ -3429,54 +3604,93 @@ function checkObjectDuplication(objectId, domStructure) {
 // =============================================================================
 
 /**
- * Detect circular reference
+ * Detect circular references with improved logic - LESS AGGRESSIVE
  * @param {Object} targetObject - Object to check
- * @param {String} currentPath - Current path
+ * @param {String} objectPath - Current path
  * @param {Object} domStructure - DOM structure
- * @returns {Object} Circular reference result
+ * @returns {Object} Detection result
  */
-function detectCircularReference(targetObject, currentPath, domStructure) {
+function detectCircularReference(targetObject, objectPath, domStructure) {
+    debugLog('Checking circular reference for: ' + objectPath, 'circular');
+
     var result = {
         isCircular: false,
         originalPath: null,
-        depth: 0
+        reason: ''
     };
-    
+
     try {
-        if (!targetObject || typeof targetObject !== 'object') {
+        if (!domStructure.objectRegistry || !targetObject) {
+            debugLog('No object registry or null object: ' + objectPath, 'circular');
             return result;
         }
-        
-        if (!domStructure.objectRegistry) {
-            return result;
+
+        // Generate object identity
+        var objectId = generateObjectIdentityHash(targetObject, objectPath);
+
+        // Check if we've seen this exact object before
+        if (domStructure.objectRegistry.references[objectId]) {
+            var originalPath = domStructure.objectRegistry.references[objectId].path;
+
+            // IMPROVED: Only consider it circular if it's actually in the parent chain
+            if (isInParentChain(originalPath, objectPath)) {
+                result.isCircular = true;
+                result.originalPath = originalPath;
+                result.reason = 'Object found in parent chain';
+                debugLog('TRUE CIRCULAR REFERENCE: ' + objectPath + ' -> ' + originalPath, 'circular');
+            } else {
+                // This is just a duplicate reference, not a circular one
+                result.isCircular = false;
+                result.reason = 'Duplicate reference, but not circular';
+                debugLog('Duplicate reference (not circular): ' + objectPath + ' (original: ' + originalPath + ')', 'circular');
+            }
+        } else {
+            debugLog('New object reference: ' + objectPath, 'circular');
         }
-        
-        // Check if object is already being processed
-        for (var refId in domStructure.objectRegistry.references) {
-            if (objectHasOwnProperty(domStructure.objectRegistry.references, refId)) {
-                var refData = domStructure.objectRegistry.references[refId];
-                if (refData.object === targetObject) {
-                    result.isCircular = true;
-                    result.originalPath = refData.firstPath;
-                    
-                    // Add to circular references list
-                    var circularInfo = {
-                        originalPath: refData.firstPath,
-                        circularPath: currentPath,
-                        detectedAt: getCurrentTimestamp()
-                    };
-                    
-                    domStructure.objectRegistry.circularReferences[domStructure.objectRegistry.circularReferences.length] = circularInfo;
-                    
-                    break;
-                }
+
+        return result;
+
+    } catch (exc) {
+        debugLog('Circular detection error for ' + objectPath + ': ' + exc.message, 'circular');
+        result.reason = 'Detection error: ' + exc.message;
+        return result;
+    }
+}
+
+/**
+ * Check if originalPath is in the parent chain of currentPath
+ * @param {String} originalPath - Original object path
+ * @param {String} currentPath - Current object path
+ * @returns {Boolean} True if originalPath is parent of currentPath
+ */
+function isInParentChain(originalPath, currentPath) {
+    try {
+        if (!originalPath || !currentPath) {
+            return false;
+        }
+
+        // Split paths into components
+        var originalParts = originalPath.split('.');
+        var currentParts = currentPath.split('.');
+
+        // Original path must be shorter to be a parent
+        if (originalParts.length >= currentParts.length) {
+            return false;
+        }
+
+        // Check if original path is prefix of current path
+        for (var i = 0; i < originalParts.length; i++) {
+            if (originalParts[i] !== currentParts[i]) {
+                return false;
             }
         }
-        
-        return result;
-        
+
+        debugLog('Parent chain detected: ' + originalPath + ' is parent of ' + currentPath, 'circular');
+        return true;
+
     } catch (exc) {
-        return result;
+        debugLog('Parent chain check error: ' + exc.message, 'circular');
+        return false;
     }
 }
 
@@ -3493,9 +3707,9 @@ function updateAlternativeAccessPaths(domStructure) {
         if (!domStructure.structure || !domStructure.structure.document) {
             return;
         }
-        
+
         updateNodeAlternativePaths(domStructure.structure.document, domStructure);
-        
+
     } catch (exc) {
         // Silent failure for post-processing
     }
@@ -3511,25 +3725,25 @@ function updateNodeAlternativePaths(domNode, domStructure) {
         if (!domNode || !domStructure.objectRegistry) {
             return;
         }
-        
+
         // Check for duplicate objects that provide alternative access paths
         if (domNode.objectId) {
             var duplicationCheck = checkObjectDuplication(domNode.objectId, domStructure);
             if (duplicationCheck.isDuplicate) {
                 domNode.alternativeAccessPaths = arrayConcat(
-                    domNode.alternativeAccessPaths, 
+                    domNode.alternativeAccessPaths,
                     duplicationCheck.duplicatePaths
                 );
             }
         }
-        
+
         // Process child nodes recursively
         if (domNode.childNodes) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
                 updateNodeAlternativePaths(domNode.childNodes[i], domStructure);
             }
         }
-        
+
     } catch (exc) {
         // Continue processing
     }
@@ -3558,21 +3772,21 @@ function getDOMStatistics(domStructure) {
             enumerationSuccess: true,
             generatedAt: getCurrentTimestamp()
         };
-        
+
         if (domStructure.structure && domStructure.structure.document) {
             countNodeStatistics(domStructure.structure.document, stats);
         }
-        
+
         // Add object registry statistics
         if (domStructure.objectRegistry) {
             stats.objectsTracked = domStructure.objectRegistry.totalTracked || 0;
             stats.duplicateObjects = countObjectKeys(domStructure.objectRegistry.duplicateDetections || {});
-            stats.circularReferences = domStructure.objectRegistry.circularReferences ? 
+            stats.circularReferences = domStructure.objectRegistry.circularReferences ?
                 domStructure.objectRegistry.circularReferences.length : 0;
         }
-        
+
         return stats;
-        
+
     } catch (exc) {
         return {
             totalNodes: 0,
@@ -3594,32 +3808,32 @@ function countNodeStatistics(domNode, stats) {
         if (!domNode || !stats) {
             return;
         }
-        
+
         stats.totalNodes++;
-        
+
         if (domNode.depth > stats.maxDepth) {
             stats.maxDepth = domNode.depth;
         }
-        
+
         if (domNode.properties) {
             stats.totalProperties += domNode.properties.length;
         }
-        
+
         if (domNode.collections) {
             stats.totalCollections += domNode.collections.length;
         }
-        
+
         if (domNode.methods) {
             stats.totalMethods += domNode.methods.length;
         }
-        
+
         // Process child nodes
         if (domNode.childNodes) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
                 countNodeStatistics(domNode.childNodes[i], stats);
             }
         }
-        
+
     } catch (exc) {
         // Continue counting
     }
@@ -3633,20 +3847,20 @@ function countNodeStatistics(domNode, stats) {
 function findObjectsWithMultiplePaths(domStructure) {
     try {
         var multiPathObjects = [];
-        
+
         if (!domStructure.objectRegistry || !domStructure.objectRegistry.duplicateDetections) {
             return multiPathObjects;
         }
-        
+
         for (var objectId in domStructure.objectRegistry.duplicateDetections) {
             if (objectHasOwnProperty(domStructure.objectRegistry.duplicateDetections, objectId)) {
                 var duplicatePaths = domStructure.objectRegistry.duplicateDetections[objectId];
-                var originalPath = domStructure.objectRegistry.references[objectId] ? 
+                var originalPath = domStructure.objectRegistry.references[objectId] ?
                     domStructure.objectRegistry.references[objectId].firstPath : 'unknown';
-                
+
                 var allPaths = [originalPath];
                 allPaths = arrayConcat(allPaths, duplicatePaths);
-                
+
                 multiPathObjects[multiPathObjects.length] = {
                     objectId: objectId,
                     name: originalPath,
@@ -3655,9 +3869,9 @@ function findObjectsWithMultiplePaths(domStructure) {
                 };
             }
         }
-        
+
         return multiPathObjects;
-        
+
     } catch (exc) {
         return [];
     }
@@ -3678,26 +3892,26 @@ function classifyPropertySafety(propName, propType) {
         if (isDangerousProperty(propName)) {
             return 'dangerous';
         }
-        
+
         if (isReservedWord(propName)) {
             return 'reserved';
         }
-        
+
         if (propType === 'function') {
             return 'method';
         }
-        
+
         var cautionProperties = [
             'parent', 'document', 'application', 'activeDocument',
             'selection', 'preferences', 'menuActions'
         ];
-        
+
         if (arrayIndexOf(cautionProperties, propName) !== -1) {
             return 'caution';
         }
-        
+
         return 'safe';
-        
+
     } catch (exc) {
         return 'unknown';
     }
@@ -3713,24 +3927,24 @@ function isLikelyCollection(propName) {
         if (typeof propName !== 'string') {
             return false;
         }
-        
+
         var collectionIndicators = [
             'items', 'pages', 'layers', 'stories', 'textFrames',
             'rectangles', 'ovals', 'groups', 'spreads',
             'masterspread', 'characters', 'words', 'lines',
             'paragraphs', 'tables', 'rows', 'cells', 'columns'
         ];
-        
+
         var lowerPropName = stringToLowerCase(propName);
-        
+
         for (var i = 0; i < collectionIndicators.length; i++) {
             if (stringIndexOf(lowerPropName, collectionIndicators[i]) !== -1) {
                 return true;
             }
         }
-        
+
         return false;
-        
+
     } catch (exc) {
         return false;
     }
@@ -3749,34 +3963,34 @@ function createProgressReporter() {
         return {
             startTime: new Date().getTime(),
             itemsProcessed: 0,
-            
-            reportProgress: function(message) {
+
+            reportProgress: function (message) {
                 try {
                     this.itemsProcessed++;
                     if (this.itemsProcessed % 100 === 0) {
-                        $.writeln('[DOM Enumerator] Progress: ' + message + 
-                                 ' (Items: ' + this.itemsProcessed + ')');
+                        $.writeln('[DOM Enumerator] Progress: ' + message +
+                            ' (Items: ' + this.itemsProcessed + ')');
                     }
                 } catch (exc) {
                     // Silent failure
                 }
             },
-            
-            complete: function() {
+
+            complete: function () {
                 try {
                     var elapsed = new Date().getTime() - this.startTime;
-                    $.writeln('[DOM Enumerator] Completed enumeration of ' + 
-                             this.itemsProcessed + ' items in ' + elapsed + 'ms');
+                    $.writeln('[DOM Enumerator] Completed enumeration of ' +
+                        this.itemsProcessed + ' items in ' + elapsed + 'ms');
                 } catch (exc) {
                     // Silent failure
                 }
             }
         };
-        
+
     } catch (exc) {
         return {
-            reportProgress: function() { },
-            complete: function() { }
+            reportProgress: function () { },
+            complete: function () { }
         };
     }
 }
@@ -3786,32 +4000,36 @@ function createProgressReporter() {
 // =============================================================================
 
 // Register this module with all its functions
+// Register this module with all its functions
 registerModule('2.1_dom-enumerator', '3.1', [
     // Main Functions
     'enumerateDocumentDOM', 'enumerateObjectStructure',
-    
+
     // Data Structure Creation
     'createDOMStructure', 'createDOMNode', 'createPropertyClassification',
     'createErrorDOMNode', 'createErrorDOMStructure',
-    
+
     // Object Reference Management  
     'generateObjectIdentityHash', 'registerObjectReference', 'checkObjectDuplication',
-    
+
     // Circular Reference Detection
-    'detectCircularReference',
-    
+    'detectCircularReference', 'isInParentChain',  // ← NEW FUNCTION ADDED
+
     // Property Processing
     'processProperty',
-    
+
+    // Enumeration Filtering - NEW FUNCTIONS
+    'shouldSkipObject', 'shouldSkipProperty',  // ← NEW FUNCTIONS ADDED
+
     // Post-Processing
     'updateAlternativeAccessPaths', 'updateNodeAlternativePaths',
-    
+
     // Analysis Functions
     'getDOMStatistics', 'countNodeStatistics', 'findObjectsWithMultiplePaths',
-    
+
     // Property Classification
     'classifyPropertySafety', 'isLikelyCollection',
-    
+
     // Utilities
     'createProgressReporter'
 ]);
@@ -4800,56 +5018,56 @@ var DEFAULT_SAMPLING_CONFIG = {
  */
 function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
     var startTime = new Date().getTime();
-    
-    $.writeln('[SAMPLE DEBUG] === STARTING sampleDOMValues ===');
-    $.writeln('[SAMPLE DEBUG] domStructure type: ' + typeof domStructure);
-    $.writeln('[SAMPLE DEBUG] sourceDocument type: ' + typeof sourceDocument);
-    $.writeln('[SAMPLE DEBUG] samplingConfig type: ' + typeof samplingConfig);
-    
+
+    debugLog('=== STARTING sampleDOMValues ===', 'sampling');
+    debugLog('domStructure type: ' + typeof domStructure, 'sampling');
+    debugLog('sourceDocument type: ' + typeof sourceDocument, 'sampling');
+    debugLog('samplingConfig type: ' + typeof samplingConfig, 'sampling');
+
     var config = samplingConfig ?
-        objectMerge(DEFAULT_SAMPLING_CONFIG, samplingConfig) : 
+        objectMerge(DEFAULT_SAMPLING_CONFIG, samplingConfig) :
         objectClone(DEFAULT_SAMPLING_CONFIG, 2);
-    
-    $.writeln('[SAMPLE DEBUG] Final config maxSamples: ' + config.maxSamples);
-    $.writeln('[SAMPLE DEBUG] Final config safetyFilter: ' + config.safetyFilter);
-    $.writeln('[SAMPLE DEBUG] Final config timeoutMs: ' + config.timeoutMs);
-    
+
+    debugLog('Final config maxSamples: ' + config.maxSamples, 'sampling');
+    debugLog('Final config safetyFilter: ' + config.safetyFilter, 'sampling');
+    debugLog('Final config timeoutMs: ' + config.timeoutMs, 'sampling');
+
     try {
         // Validate inputs properly
         if (!domStructure || typeof domStructure !== 'object') {
-            $.writeln('[SAMPLE DEBUG] ERROR: Invalid domStructure');
+            debugLog('ERROR: Invalid domStructure', 'sampling');
             return {
                 error: 'Invalid DOM structure provided',
                 timestamp: getCurrentTimestamp()
             };
         }
-        
+
         if (!sourceDocument) {
-            $.writeln('[SAMPLE DEBUG] ERROR: No source document');
+            debugLog('ERROR: No source document', 'sampling');
             return {
                 error: 'No source document provided',
                 timestamp: getCurrentTimestamp()
             };
         }
-        
+
         // Handle both input formats - direct structure or wrapped structure
         var docNode = null;
         if (domStructure.structure && domStructure.structure.document) {
             // Wrapped format: {structure: {document: {...}}}
             docNode = domStructure.structure.document;
-            $.writeln('[SAMPLE DEBUG] Using wrapped format - domStructure.structure.document');
+            debugLog('Using wrapped format - domStructure.structure.document', 'sampling');
         } else if (domStructure.document) {
             // Direct format: {document: {...}}
             docNode = domStructure.document;
-            $.writeln('[SAMPLE DEBUG] Using direct format - domStructure.document');
+            debugLog('Using direct format - domStructure.document', 'sampling');
         } else {
-            $.writeln('[SAMPLE DEBUG] ERROR: No document node found in either format');
+            debugLog('ERROR: No document node found in either format', 'sampling');
             return {
                 error: 'No document node found in structure',
                 timestamp: getCurrentTimestamp()
             };
         }
-        
+
         // Create sampling session
         var samplingSession = {
             startTime: startTime,
@@ -4858,48 +5076,48 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
             errorCount: 0,
             skippedCount: 0
         };
-        
+
         // Create reference tracker if needed
         var referenceTracker = null;
         if (config.trackObjectReferences && functionExists('createObjectReferenceTracker')) {
             referenceTracker = createObjectReferenceTracker();
         }
-        
-        $.writeln('[SAMPLE DEBUG] Sampling session created');
-        
+
+        debugLog('Sampling session created', 'sampling');
+
         // Count properties to sample
         var totalProperties = 0;
         if (docNode.properties) {
             totalProperties += docNode.properties.length;
-            $.writeln('[SAMPLE DEBUG] Found ' + docNode.properties.length + ' properties to sample');
+            debugLog('Found ' + docNode.properties.length + ' properties to sample', 'sampling');
         }
         if (docNode.collections) {
             totalProperties += docNode.collections.length;
-            $.writeln('[SAMPLE DEBUG] Found ' + docNode.collections.length + ' collections to sample');
+            debugLog('Found ' + docNode.collections.length + ' collections to sample', 'sampling');
         }
-        
+
         if (totalProperties === 0) {
-            $.writeln('[SAMPLE DEBUG] WARNING: No properties found to sample');
+            debugLog('WARNING: No properties found to sample', 'sampling');
             return domStructure; // Return unchanged
         }
-        
+
         // Check if sampling function exists (use the correct name!)
         if (!functionExists('samplePropertyValue')) {
-            $.writeln('[SAMPLE DEBUG] CRITICAL: samplePropertyValue function NOT FOUND!');
+            debugLog('CRITICAL: samplePropertyValue function NOT FOUND!', 'sampling');
             return domStructure; // Return unchanged
         }
-        
-        $.writeln('[SAMPLE DEBUG] Using existing samplePropertyValue function');
-        
+
+        debugLog('Using existing samplePropertyValue function', 'sampling');
+
         // Sample properties
         if (docNode.properties) {
-            $.writeln('[SAMPLE DEBUG] Starting property sampling...');
+            debugLog('Starting property sampling...', 'sampling');
             for (var i = 0; i < docNode.properties.length; i++) {
                 if (samplingSession.timeoutChecker()) {
-                    $.writeln('[SAMPLE DEBUG] Timeout reached during property sampling');
+                    debugLog('Timeout reached during property sampling', 'sampling');
                     break;
                 }
-                
+
                 var property = docNode.properties[i];
                 try {
                     // Use the existing samplePropertyValue function with correct parameters
@@ -4910,7 +5128,7 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
                         config,                  // config
                         referenceTracker         // referenceTracker
                     );
-                    
+
                     if (sampleResult && sampleResult.success) {
                         property.sampledValue = sampleResult.formattedValue;
                         property.samplingMetadata = {
@@ -4919,9 +5137,9 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
                             valueFingerprint: sampleResult.valueFingerprint
                         };
                         samplingSession.sampledCount++;
-                        
+
                         if (i < 5) { // Debug first few
-                            $.writeln('[SAMPLE DEBUG] Sampled: ' + property.name + ' = ' + sampleResult.formattedValue);
+                            debugLog('Sampled: ' + property.name + ' = ' + sampleResult.formattedValue, 'sampling');
                         }
                     } else if (sampleResult && sampleResult.skipped) {
                         property.sampledValue = '[Skipped: ' + sampleResult.error + ']';
@@ -4929,32 +5147,32 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
                     } else {
                         property.sampledValue = '[Error: ' + (sampleResult ? sampleResult.error : 'unknown') + ']';
                         samplingSession.errorCount++;
-                        
+
                         if (i < 5) { // Debug first few errors
-                            $.writeln('[SAMPLE DEBUG] Error sampling: ' + property.name + ' - ' + (sampleResult ? sampleResult.error : 'unknown'));
+                            debugLog('Error sampling: ' + property.name + ' - ' + (sampleResult ? sampleResult.error : 'unknown'), 'sampling');
                         }
                     }
                 } catch (propException) {
                     property.sampledValue = '[Exception: ' + propException.message + ']';
                     samplingSession.errorCount++;
                 }
-                
+
                 // Report progress every 50 properties
                 if ((i + 1) % 50 === 0) {
-                    $.writeln('[SAMPLE DEBUG] Progress: ' + (i + 1) + '/' + docNode.properties.length + ' properties processed');
+                    debugLog('Progress: ' + (i + 1) + '/' + docNode.properties.length + ' properties processed', 'sampling');
                 }
             }
         }
-        
+
         // Sample collections if present
         if (docNode.collections && config.includeCollectionSamples) {
-            $.writeln('[SAMPLE DEBUG] Starting collection sampling...');
+            debugLog('Starting collection sampling...', 'sampling');
             for (var j = 0; j < docNode.collections.length; j++) {
                 if (samplingSession.timeoutChecker()) {
-                    $.writeln('[SAMPLE DEBUG] Timeout reached during collection sampling');
+                    debugLog('Timeout reached during collection sampling', 'sampling');
                     break;
                 }
-                
+
                 var collection = docNode.collections[j];
                 try {
                     var collectionSampleResult = samplePropertyValue(
@@ -4964,7 +5182,7 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
                         config,
                         referenceTracker
                     );
-                    
+
                     if (collectionSampleResult && collectionSampleResult.success) {
                         collection.sampledValue = collectionSampleResult.formattedValue;
                         samplingSession.sampledCount++;
@@ -4978,14 +5196,14 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
                 }
             }
         }
-        
+
         var endTime = new Date().getTime();
-        $.writeln('[SAMPLE DEBUG] === SAMPLING COMPLETED ===');
-        $.writeln('[SAMPLE DEBUG] Total time: ' + (endTime - startTime) + 'ms');
-        $.writeln('[SAMPLE DEBUG] Properties sampled: ' + samplingSession.sampledCount);
-        $.writeln('[SAMPLE DEBUG] Properties skipped: ' + samplingSession.skippedCount);
-        $.writeln('[SAMPLE DEBUG] Errors encountered: ' + samplingSession.errorCount);
-        
+        debugLog('=== SAMPLING COMPLETED ===', 'sampling');
+        debugLog('Total time: ' + (endTime - startTime) + 'ms', 'sampling');
+        debugLog('Properties sampled: ' + samplingSession.sampledCount, 'sampling');
+        debugLog('Properties skipped: ' + samplingSession.skippedCount, 'sampling');
+        debugLog('Errors encountered: ' + samplingSession.errorCount, 'sampling');
+
         // Add sampling metadata
         if (!domStructure.metadata) {
             domStructure.metadata = {};
@@ -4995,11 +5213,11 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
         domStructure.metadata.propertiesSampled = samplingSession.sampledCount;
         domStructure.metadata.propertiesSkipped = samplingSession.skippedCount;
         domStructure.metadata.samplingErrors = samplingSession.errorCount;
-        
+
         return domStructure;
-        
+
     } catch (exc) {
-        $.writeln('[SAMPLE DEBUG] EXCEPTION: ' + exc.message);
+        debugLog('EXCEPTION: ' + exc.message, 'sampling');
         return {
             error: 'Property sampling failed: ' + exc.message,
             timestamp: getCurrentTimestamp()
@@ -5016,27 +5234,19 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
  * @param {Object} referenceTracker - Reference tracker for objects
  * @returns {Object} Sample result with metadata and object references
  */
-/**
- * Sample property value with reference tracking and metadata
- * @param {Object} targetObject - Object containing the property
- * @param {String} propName - Property name to sample
- * @param {String} propPath - Full path to property
- * @param {Object} config - Sampling configuration
- * @param {Object} referenceTracker - Reference tracker for objects
- * @returns {Object} Sample result with metadata and object references
- */
 function samplePropertyValue(targetObject, propName, propPath, config, referenceTracker) {
-    // Static counter for debug limiting
+    // Static counter for debug limiting - PRESERVED from original
     if (typeof samplePropertyValue.debugCount === 'undefined') {
         samplePropertyValue.debugCount = 0;
     }
-    var showDebug = samplePropertyValue.debugCount < 5;
+    var showDetailedDebug = samplePropertyValue.debugCount < 5;
     samplePropertyValue.debugCount++;
-    
-    if (showDebug) {
-        $.writeln('[PROP DEBUG] #' + samplePropertyValue.debugCount + ' Sampling: ' + propName + ' (path: ' + propPath + ')');
+
+    // Use new debug system but preserve the 5-entry limit
+    if (showDetailedDebug) {
+        debugLog('#' + samplePropertyValue.debugCount + ' Sampling: ' + propName + ' (path: ' + propPath + ')', 'sampling');
     }
-    
+
     var result = {
         success: false,
         value: null,
@@ -5050,63 +5260,63 @@ function samplePropertyValue(targetObject, propName, propPath, config, reference
         accessTime: 0,
         skipped: false
     };
-    
+
     var startTime = new Date().getTime();
-    
+
     try {
         // Parameter validation
         if (!targetObject || typeof targetObject !== 'object') {
             result.error = 'Invalid target object';
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Invalid target object (type: ' + typeof targetObject + ')');
+            if (showDetailedDebug) debugLog(propName + ' FAILED: Invalid target object (type: ' + typeof targetObject + ')', 'sampling');
             return result;
         }
-        
+
         if (!propName || typeof propName !== 'string') {
             result.error = 'Invalid property name';
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Invalid property name (type: ' + typeof propName + ')');
+            if (showDetailedDebug) debugLog(propName + ' FAILED: Invalid property name (type: ' + typeof propName + ')', 'sampling');
             return result;
         }
-        
-        if (showDebug) {
-            $.writeln('[PROP DEBUG] ' + propName + ' - Parameter validation passed');
-            $.writeln('[PROP DEBUG] ' + propName + ' - Target object type: ' + typeof targetObject);
-            $.writeln('[PROP DEBUG] ' + propName + ' - Property name: "' + propName + '"');
-            $.writeln('[PROP DEBUG] ' + propName + ' - Config safetyFilter: ' + (config ? config.safetyFilter : 'undefined'));
+
+        if (showDetailedDebug) {
+            debugLog(propName + ' - Parameter validation passed', 'sampling');
+            debugLog(propName + ' - Target object type: ' + typeof targetObject, 'sampling');
+            debugLog(propName + ' - Property name: "' + propName + '"', 'sampling');
+            debugLog(propName + ' - Config safetyFilter: ' + (config ? config.safetyFilter : 'undefined'), 'sampling');
         }
-        
+
         // Safety filter check
         if (!functionExists('meetsSafetyFilter')) {
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - WARNING: meetsSafetyFilter function not found, skipping safety check');
+            if (showDetailedDebug) debugLog(propName + ' - WARNING: meetsSafetyFilter function not found, skipping safety check', 'sampling');
         } else {
-            var safetyCheck = meetsSafetyFilter({name: propName, path: propPath}, config.safetyFilter);
+            var safetyCheck = meetsSafetyFilter({ name: propName, path: propPath }, config.safetyFilter);
             if (!safetyCheck) {
                 result.skipped = true;
                 result.error = 'Property filtered by safety settings';
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' SKIPPED: Failed safety filter (' + config.safetyFilter + ')');
+                if (showDetailedDebug) debugLog(propName + ' SKIPPED: Failed safety filter (' + config.safetyFilter + ')', 'sampling');
                 return result;
             }
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Safety filter passed');
+            if (showDetailedDebug) debugLog(propName + ' - Safety filter passed', 'sampling');
         }
-        
+
         // Safe property value access
-        if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Attempting property access...');
-        
+        if (showDetailedDebug) debugLog(propName + ' - Attempting property access...', 'sampling');
+
         var valueAccess;
         if (functionExists('safeGetPropertyValue')) {
             valueAccess = safeGetPropertyValue(targetObject, propName, null);
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Used safeGetPropertyValue, result type: ' + typeof valueAccess);
+            if (showDetailedDebug) debugLog(propName + ' - Used safeGetPropertyValue, result type: ' + typeof valueAccess, 'sampling');
         } else {
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - safeGetPropertyValue not found, using direct access');
+            if (showDetailedDebug) debugLog(propName + ' - safeGetPropertyValue not found, using direct access', 'sampling');
             try {
                 valueAccess = targetObject[propName];
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Direct access result type: ' + typeof valueAccess);
+                if (showDetailedDebug) debugLog(propName + ' - Direct access result type: ' + typeof valueAccess, 'sampling');
             } catch (accessExc) {
                 result.error = 'Direct property access failed: ' + accessExc.message;
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Direct access exception - ' + accessExc.message);
+                if (showDetailedDebug) debugLog(propName + ' FAILED: Direct access exception - ' + accessExc.message, 'sampling');
                 return result;
             }
         }
-        
+
         // Check if property exists
         var propertyExists = true;
         if (functionExists('safeHasProperty')) {
@@ -5115,85 +5325,85 @@ function samplePropertyValue(targetObject, propName, propPath, config, reference
             try {
                 propertyExists = (propName in targetObject);
             } catch (hasExc) {
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Property existence check failed: ' + hasExc.message);
+                if (showDetailedDebug) debugLog(propName + ' - Property existence check failed: ' + hasExc.message, 'sampling');
                 propertyExists = false;
             }
         }
-        
+
         if (valueAccess === null && !propertyExists) {
             result.error = 'Property does not exist';
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Property does not exist');
+            if (showDetailedDebug) debugLog(propName + ' FAILED: Property does not exist', 'sampling');
             return result;
         }
-        
+
         var sampledValue = valueAccess;
         result.value = sampledValue;
         result.valueType = typeof sampledValue;
         result.accessTime = new Date().getTime() - startTime;
-        
-        if (showDebug) {
-            $.writeln('[PROP DEBUG] ' + propName + ' - Property access SUCCESS!');
-            $.writeln('[PROP DEBUG] ' + propName + ' - Value type: ' + result.valueType);
-            $.writeln('[PROP DEBUG] ' + propName + ' - Access time: ' + result.accessTime + 'ms');
+
+        if (showDetailedDebug) {
+            debugLog(propName + ' - Property access SUCCESS!', 'sampling');
+            debugLog(propName + ' - Value type: ' + result.valueType, 'sampling');
+            debugLog(propName + ' - Access time: ' + result.accessTime + 'ms', 'sampling');
         }
-        
+
         // Handle null/undefined based on configuration
         if (sampledValue === null) {
             if (config.skipNullValues) {
                 result.skipped = true;
                 result.error = 'Null value skipped per configuration';
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' SKIPPED: Null value (skipNullValues=true)');
+                if (showDetailedDebug) debugLog(propName + ' SKIPPED: Null value (skipNullValues=true)', 'sampling');
                 return result;
             }
         }
-        
+
         if (sampledValue === undefined) {
             if (config.skipUndefinedValues) {
                 result.skipped = true;
                 result.error = 'Undefined value skipped per configuration';
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' SKIPPED: Undefined value (skipUndefinedValues=true)');
+                if (showDetailedDebug) debugLog(propName + ' SKIPPED: Undefined value (skipUndefinedValues=true)', 'sampling');
                 return result;
             }
         }
-        
+
         // Generate value metadata
         if (config.includeValueMetadata && functionExists('generateValueMetadata')) {
             try {
                 result.valueMetadata = generateValueMetadata(sampledValue, config);
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value metadata generated');
+                if (showDetailedDebug) debugLog(propName + ' - Value metadata generated', 'sampling');
             } catch (metaExc) {
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value metadata failed: ' + metaExc.message);
+                if (showDetailedDebug) debugLog(propName + ' - Value metadata failed: ' + metaExc.message, 'sampling');
             }
         }
-        
+
         // Generate value fingerprint for change tracking
         if (config.generateValueFingerprints && functionExists('generateValueFingerprint')) {
             try {
                 result.valueFingerprint = generateValueFingerprint(sampledValue, propPath);
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value fingerprint generated');
+                if (showDetailedDebug) debugLog(propName + ' - Value fingerprint generated', 'sampling');
             } catch (fingerprintExc) {
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value fingerprint failed: ' + fingerprintExc.message);
+                if (showDetailedDebug) debugLog(propName + ' - Value fingerprint failed: ' + fingerprintExc.message, 'sampling');
             }
         }
-        
+
         // Track object references
         if (referenceTracker && sampledValue && typeof sampledValue === 'object') {
             try {
                 result.objectReference = referenceTracker.track(sampledValue, propPath);
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Object reference tracked');
+                if (showDetailedDebug) debugLog(propName + ' - Object reference tracked', 'sampling');
             } catch (refExc) {
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Object reference tracking failed: ' + refExc.message);
+                if (showDetailedDebug) debugLog(propName + ' - Object reference tracking failed: ' + refExc.message, 'sampling');
             }
         }
-        
+
         // Format value for display
         if (functionExists('formatSampleValue')) {
             try {
                 result.formattedValue = formatSampleValue(sampledValue, config);
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Formatted value: ' + result.formattedValue);
+                if (showDetailedDebug) debugLog(propName + ' - Formatted value: ' + result.formattedValue, 'sampling');
             } catch (formatExc) {
                 result.formattedValue = '[Format Error: ' + formatExc.message + ']';
-                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Format error: ' + formatExc.message);
+                if (showDetailedDebug) debugLog(propName + ' - Format error: ' + formatExc.message, 'sampling');
             }
         } else {
             // Fallback formatting
@@ -5204,17 +5414,17 @@ function samplePropertyValue(targetObject, propName, propPath, config, reference
             } else {
                 result.formattedValue = String(sampledValue) + ' (' + typeof sampledValue + ')';
             }
-            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Used fallback formatting: ' + result.formattedValue);
+            if (showDetailedDebug) debugLog(propName + ' - Used fallback formatting: ' + result.formattedValue, 'sampling');
         }
-        
+
         result.success = true;
-        if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - COMPLETE SUCCESS!');
+        if (showDetailedDebug) debugLog(propName + ' - COMPLETE SUCCESS!', 'sampling');
         return result;
-        
+
     } catch (exc) {
         result.error = 'Property value sampling failed: ' + exc.message;
         result.accessTime = new Date().getTime() - startTime;
-        if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED with EXCEPTION: ' + exc.message);
+        if (showDetailedDebug) debugLog(propName + ' FAILED with EXCEPTION: ' + exc.message, 'sampling');
         return result;
     }
 }
@@ -5234,30 +5444,30 @@ function safeGetPropertyValue(targetObject, propName, propPath, config) {
         error: null,
         accessMethod: 'direct'
     };
-    
+
     try {
         if (!targetObject || typeof targetObject !== 'object') {
             result.error = 'Invalid target object';
             return result;
         }
-        
+
         if (!propName || typeof propName !== 'string') {
             result.error = 'Invalid property name';
             return result;
         }
-        
+
         // Check if property exists safely
         if (!safeHasProperty(targetObject, propName)) {
             result.error = 'Property does not exist';
             return result;
         }
-        
+
         // Access the property value
         result.value = targetObject[propName];
         result.success = true;
-        
+
         return result;
-        
+
     } catch (exc) {
         result.error = 'Property access failed: ' + exc.message;
         return result;
@@ -5278,29 +5488,29 @@ function sampleNodeValues(domNode, sourceDocument, config, samplingStats, refere
         if (!domNode || timeoutChecker()) {
             return;
         }
-        
+
         // Sample properties
         if (domNode.properties) {
-            samplePropertiesFromArray(domNode.properties, sourceDocument, config, 
-                                    samplingStats, referenceTracker, timeoutChecker);
+            samplePropertiesFromArray(domNode.properties, sourceDocument, config,
+                samplingStats, referenceTracker, timeoutChecker);
         }
-        
+
         // Sample collections
         if (domNode.collections) {
-            samplePropertiesFromArray(domNode.collections, sourceDocument, config, 
-                                    samplingStats, referenceTracker, timeoutChecker);
+            samplePropertiesFromArray(domNode.collections, sourceDocument, config,
+                samplingStats, referenceTracker, timeoutChecker);
         }
-        
+
         // Recursively sample child nodes
         if (domNode.childNodes) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
                 if (timeoutChecker()) break;
-                
-                sampleNodeValues(domNode.childNodes[i], sourceDocument, config, 
-                               samplingStats, referenceTracker, timeoutChecker);
+
+                sampleNodeValues(domNode.childNodes[i], sourceDocument, config,
+                    samplingStats, referenceTracker, timeoutChecker);
             }
         }
-        
+
     } catch (exc) {
         samplingStats.errorsEncountered++;
     }
@@ -5318,30 +5528,30 @@ function sampleNodeValues(domNode, sourceDocument, config, samplingStats, refere
 function samplePropertiesFromArray(propertyArray, sourceDocument, config, samplingStats, referenceTracker, timeoutChecker) {
     try {
         if (!propertyArray || !propertyArray.length) return;
-        
+
         var sampledCount = 0;
-        
+
         for (var i = 0; i < propertyArray.length; i++) {
             if (timeoutChecker()) {
                 samplingStats.timeoutCount++;
                 break;
             }
-            
+
             if (sampledCount >= config.maxSamples) {
                 break;
             }
-            
+
             var property = propertyArray[i];
-            
+
             if (meetsSafetyFilter(property, config.safetyFilter)) {
                 samplingStats.propertiesSampled++;
-                
+
                 // Get the parent object for value sampling
                 var pathComponents = splitPath(property.path);
                 if (pathComponents.length >= 1) {
                     var parentPath = '';
                     var propName = '';
-                    
+
                     if (pathComponents.length === 1) {
                         // Root level property (e.g., "pages")
                         parentPath = '';
@@ -5351,22 +5561,22 @@ function samplePropertiesFromArray(propertyArray, sourceDocument, config, sampli
                         parentPath = getParentPath(property.path);
                         propName = pathComponents[pathComponents.length - 1];
                     }
-                    
+
                     // Get parent object
-                    var parentAccess = parentPath ? 
+                    var parentAccess = parentPath ?
                         safeGetObjectFromPath(sourceDocument, parentPath, config.timeoutMs) :
-                        {success: true, value: sourceDocument};
-                    
+                        { success: true, value: sourceDocument };
+
                     if (parentAccess.success && parentAccess.value) {
                         // Sample the property value
                         var sampleResult = samplePropertyValue(
-                            parentAccess.value, 
-                            propName, 
-                            property.path, 
-                            config, 
+                            parentAccess.value,
+                            propName,
+                            property.path,
+                            config,
                             referenceTracker
                         );
-                        
+
                         if (sampleResult.success && !sampleResult.skipped) {
                             // Store actual extracted value with comprehensive metadata
                             property.samplingMetadata = {
@@ -5380,31 +5590,31 @@ function samplePropertiesFromArray(propertyArray, sourceDocument, config, sampli
                                 accessTime: sampleResult.accessTime,
                                 samplingMethod: sampleResult.samplingMethod
                             };
-                            
+
                             samplingStats.valuesSampled++;
                             sampledCount++;
-                            
+
                             if (sampleResult.valueFingerprint) {
                                 samplingStats.fingerprintsGenerated++;
                             }
-                            
+
                             // Track collections separately
                             if (sampleResult.valueMetadata && sampleResult.valueMetadata.isCollection) {
                                 samplingStats.collectionsSampled++;
                             }
-                            
+
                         } else if (sampleResult.skipped) {
                             samplingStats.safetyFilterRejects++;
                             property.extractionSkipped = true;
                             property.skipReason = sampleResult.error;
                         } else {
-                            property.extractionError = sampleResult.error ? 
+                            property.extractionError = sampleResult.error ?
                                 sampleResult.error : 'Unknown sampling error';
                             samplingStats.errorsEncountered++;
                         }
-                        
+
                     } else {
-                        property.extractionError = 'Parent object access failed: ' + 
+                        property.extractionError = 'Parent object access failed: ' +
                             (parentAccess.error || 'Unknown error');
                         samplingStats.errorsEncountered++;
                     }
@@ -5412,14 +5622,14 @@ function samplePropertiesFromArray(propertyArray, sourceDocument, config, sampli
                     property.extractionError = 'Invalid property path';
                     samplingStats.errorsEncountered++;
                 }
-                
+
             } else {
                 samplingStats.safetyFilterRejects++;
                 property.extractionSkipped = true;
                 property.skipReason = 'Safety filter rejection';
             }
         }
-        
+
     } catch (exc) {
         samplingStats.errorsEncountered++;
     }
@@ -5439,49 +5649,49 @@ function accessPropertyByPath(rootObject, path, config) {
         error: null,
         pathResolved: ''
     };
-    
+
     try {
         if (!rootObject) {
             result.error = 'Root object is null or undefined';
             return result;
         }
-        
+
         if (!path || typeof path !== 'string') {
             result.value = rootObject;
             result.success = true;
             result.pathResolved = '';
             return result;
         }
-        
+
         var pathComponents = splitPath(path);
         var currentObject = rootObject;
         var resolvedPath = '';
-        
+
         for (var i = 0; i < pathComponents.length; i++) {
             var component = pathComponents[i];
-            
+
             if (!currentObject || typeof currentObject !== 'object') {
                 result.error = 'Cannot access ' + component + ' - not an object';
                 return result;
             }
-            
+
             if (!safeHasProperty(currentObject, component)) {
                 result.error = 'Property ' + component + ' does not exist';
                 return result;
             }
-            
+
             currentObject = currentObject[component];
             resolvedPath += (resolvedPath ? '.' : '') + component;
         }
-        
+
         result.value = currentObject;
         result.success = true;
         result.pathResolved = resolvedPath;
-        
+
     } catch (exc) {
         result.error = 'Path access failed: ' + exc.message;
     }
-    
+
     return result;
 }
 
@@ -5521,13 +5731,13 @@ function formatSampleValue(value, config) {
             return '[Function: ' + funcName + ']';
         } else if (typeof value === 'object') {
             var objectInfo = '';
-            
+
             if (value.constructor && value.constructor.name) {
                 objectInfo = value.constructor.name;
             } else {
                 objectInfo = 'Object';
             }
-            
+
             if (typeof value.length === 'number') {
                 return '[' + objectInfo + ' (length: ' + value.length + ')]';
             } else if (typeof value.count === 'number') {
@@ -5537,9 +5747,9 @@ function formatSampleValue(value, config) {
                 return '[' + objectInfo + ' (' + propCount + ' properties)]';
             }
         }
-        
+
         return '[' + typeof value + ']';
-        
+
     } catch (exc) {
         return '[Format Error]';
     }
@@ -5563,12 +5773,12 @@ function generateValueMetadata(value, config) {
             hasContent: false,
             complexity: 'simple'
         };
-        
+
         if (value === null || value === undefined) {
             metadata.isEmpty = true;
             return metadata;
         }
-        
+
         if (typeof value === 'string') {
             metadata.length = value.length;
             metadata.hasContent = value.length > 0;
@@ -5592,15 +5802,15 @@ function generateValueMetadata(value, config) {
                 metadata.complexity = metadata.length > 10 ? 'complex' : 'simple';
             }
         }
-        
+
         // Additional analysis based on config
         if (config.includeCollectionSamples && metadata.isCollection) {
             metadata.collectionType = determineCollectionType(value);
             metadata.sampleItems = extractCollectionSample(value, Math.min(3, config.maxSamples));
         }
-        
+
         return metadata;
-        
+
     } catch (exc) {
         return {
             type: 'error',
@@ -5620,10 +5830,10 @@ function generateValueMetadata(value, config) {
 function generateValueFingerprint(value, path) {
     try {
         var components = [];
-        
+
         components[components.length] = 'path:' + (path || 'unknown');
         components[components.length] = 'type:' + typeof value;
-        
+
         if (value === null) {
             components[components.length] = 'value:null';
         } else if (value === undefined) {
@@ -5650,11 +5860,11 @@ function generateValueFingerprint(value, path) {
             } else {
                 components[components.length] = 'keys:' + countObjectKeys(value);
             }
-            
+
             if (value.constructor && value.constructor.name) {
                 components[components.length] = 'constructor:' + value.constructor.name;
             }
-            
+
             // Add structural fingerprint for objects
             if (value instanceof Array) {
                 components[components.length] = 'array:true';
@@ -5667,11 +5877,11 @@ function generateValueFingerprint(value, path) {
                 components[components.length] = 'name:' + value.name;
             }
         }
-        
+
         components[components.length] = 'timestamp:' + (new Date().getTime());
-        
+
         return arrayJoin(components, '|');
-        
+
     } catch (exc) {
         return 'fingerprint_error:' + (path || 'unknown') + '|timestamp:' + (new Date().getTime());
     }
@@ -5685,16 +5895,16 @@ function generateValueFingerprint(value, path) {
 function simpleStringHash(sourceString) {
     try {
         if (typeof sourceString !== 'string') return 'invalid';
-        
+
         var hash = 0;
         for (var i = 0; i < sourceString.length; i++) {
             var charValue = sourceString.charCodeAt(i);
             hash = ((hash << 5) - hash) + charValue;
             hash = hash & hash; // Convert to 32-bit integer
         }
-        
+
         return Math.abs(hash).toString(16);
-        
+
     } catch (exc) {
         return 'hash_error';
     }
@@ -5714,9 +5924,9 @@ function isCollectionLike(value) {
         if (!value || typeof value !== 'object') {
             return false;
         }
-        
+
         return (typeof value.length === 'number') || (typeof value.count === 'number');
-        
+
     } catch (exc) {
         return false;
     }
@@ -5738,20 +5948,20 @@ function analyzeCollection(collection, config) {
         hasContent: false,
         analysisError: null
     };
-    
+
     try {
         if (!collection || typeof collection !== 'object') {
             analysis.analysisError = 'Invalid collection object';
             return analysis;
         }
-        
+
         analysis.isCollection = isCollectionLike(collection);
-        
+
         if (!analysis.isCollection) {
             analysis.analysisError = 'Object is not collection-like';
             return analysis;
         }
-        
+
         // Determine collection type and size
         if (typeof collection.length === 'number') {
             analysis.collectionType = 'array-like';
@@ -5760,19 +5970,19 @@ function analyzeCollection(collection, config) {
             analysis.collectionType = 'count-based';
             analysis.itemCount = collection.count;
         }
-        
+
         analysis.hasContent = analysis.itemCount > 0;
-        
+
         // Sample items if configuration allows
         if (config.includeCollectionSamples && analysis.hasContent) {
-            analysis.sampleItems = extractCollectionSample(collection, 
+            analysis.sampleItems = extractCollectionSample(collection,
                 Math.min(config.maxSamples || 3, analysis.itemCount));
-            
+
             // Analyze item types
             for (var i = 0; i < analysis.sampleItems.length; i++) {
                 var item = analysis.sampleItems[i];
                 var itemType = typeof item;
-                
+
                 if (analysis.itemTypes[itemType]) {
                     analysis.itemTypes[itemType]++;
                 } else {
@@ -5780,9 +5990,9 @@ function analyzeCollection(collection, config) {
                 }
             }
         }
-        
+
         return analysis;
-        
+
     } catch (exc) {
         analysis.analysisError = 'Collection analysis failed: ' + exc.message;
         return analysis;
@@ -5799,25 +6009,25 @@ function extractCollectionSample(collection, maxSamples) {
     try {
         var samples = [];
         var sampleCount = maxSamples || 3;
-        
+
         if (!collection || typeof collection !== 'object') {
             return samples;
         }
-        
+
         var itemCount = 0;
         if (typeof collection.length === 'number') {
             itemCount = collection.length;
         } else if (typeof collection.count === 'number') {
             itemCount = collection.count;
         }
-        
+
         if (itemCount === 0) {
             return samples;
         }
-        
+
         // Extract samples up to the limit
         var samplesToTake = Math.min(sampleCount, itemCount);
-        
+
         for (var i = 0; i < samplesToTake; i++) {
             try {
                 var item = collection[i];
@@ -5829,9 +6039,9 @@ function extractCollectionSample(collection, maxSamples) {
                 samples[samples.length] = '[Sample Error: ' + itemExc.message + ']';
             }
         }
-        
+
         return samples;
-        
+
     } catch (exc) {
         return ['[Sample extraction error]'];
     }
@@ -5847,19 +6057,19 @@ function getCollectionItemTypes(collection, sampleSize) {
     try {
         var types = {};
         var samples = extractCollectionSample(collection, sampleSize || 5);
-        
+
         for (var i = 0; i < samples.length; i++) {
             var itemType = typeof samples[i];
-            
+
             if (types[itemType]) {
                 types[itemType]++;
             } else {
                 types[itemType] = 1;
             }
         }
-        
+
         return types;
-        
+
     } catch (exc) {
         return { 'error': 1 };
     }
@@ -5876,22 +6086,22 @@ function getCollectionPreview(collection, previewLength) {
         if (!collection || typeof collection !== 'object') {
             return '[Not a collection]';
         }
-        
+
         var itemCount = 0;
         if (typeof collection.length === 'number') {
             itemCount = collection.length;
         } else if (typeof collection.count === 'number') {
             itemCount = collection.count;
         }
-        
+
         if (itemCount === 0) {
             return '[Empty collection]';
         }
-        
+
         var previewSize = previewLength || 2;
         var samples = extractCollectionSample(collection, previewSize);
         var previewParts = [];
-        
+
         for (var i = 0; i < samples.length; i++) {
             var sample = samples[i];
             if (typeof sample === 'string') {
@@ -5902,17 +6112,17 @@ function getCollectionPreview(collection, previewLength) {
                 previewParts[previewParts.length] = String(sample);
             }
         }
-        
+
         var preview = '[' + arrayJoin(previewParts, ', ');
-        
+
         if (itemCount > previewSize) {
             preview += ', ... +' + (itemCount - previewSize) + ' more';
         }
-        
+
         preview += ']';
-        
+
         return preview;
-        
+
     } catch (exc) {
         return '[Preview error]';
     }
@@ -5928,7 +6138,7 @@ function determineCollectionType(collection) {
         if (!collection || typeof collection !== 'object') {
             return 'not_collection';
         }
-        
+
         if (typeof collection.length === 'number') {
             if (collection.constructor && collection.constructor.name) {
                 return collection.constructor.name.toLowerCase();
@@ -5938,9 +6148,9 @@ function determineCollectionType(collection) {
         } else if (typeof collection.count === 'number') {
             return 'count_based';
         }
-        
+
         return 'object';
-        
+
     } catch (exc) {
         return 'unknown';
     }
@@ -5971,9 +6181,9 @@ function meetsSafetyFilter(property, safetyFilter) {
         if (!property || !property.name) {
             return false;
         }
-        
+
         var safetyLevel = getPropertySafetyLevel(property.name);
-        
+
         switch (safetyFilter) {
             case 'safe':
                 return safetyLevel === 'safe';
@@ -5984,7 +6194,7 @@ function meetsSafetyFilter(property, safetyFilter) {
             default:
                 return safetyLevel === 'safe';
         }
-        
+
     } catch (exc) {
         return false;
     }
@@ -6007,11 +6217,11 @@ function getSamplingStatistics(domStructure) {
             samplingErrors: 0,
             successRate: 0
         };
-        
+
         if (domStructure.metadata && domStructure.metadata.valueSampling) {
             var samplingMeta = domStructure.metadata.valueSampling;
             stats.samplingEnabled = samplingMeta.enabled || false;
-            
+
             if (samplingMeta.statistics) {
                 var samplingStats = samplingMeta.statistics;
                 stats.propertiesSampled = samplingStats.propertiesSampled || 0;
@@ -6024,11 +6234,11 @@ function getSamplingStatistics(domStructure) {
                 stats.undefinedValuesSkipped = samplingStats.undefinedValuesSkipped || 0;
                 stats.collectionsSampled = samplingStats.collectionsSampled || 0;
             }
-            
+
             if (samplingMeta.referenceTracking) {
                 stats.objectReferencesTracked = samplingMeta.referenceTracking.totalTracked || 0;
             }
-            
+
             if (samplingMeta.performance) {
                 stats.samplingTime = samplingMeta.performance.totalTime || 0;
                 stats.averageTimePerProperty = samplingMeta.performance.averageTimePerProperty || 0;
@@ -6040,9 +6250,9 @@ function getSamplingStatistics(domStructure) {
                 }
             }
         }
-        
+
         return stats;
-        
+
     } catch (exc) {
         return {
             samplingEnabled: false,
@@ -6066,7 +6276,7 @@ function getSamplingStatistics(domStructure) {
 function mergePropertySamplingConfig(defaults, userConfig) {
     try {
         var config = objectClone(defaults, 1);
-        
+
         if (userConfig && typeof userConfig === 'object') {
             // Override with user settings, preserving user preferences
             if (typeof userConfig.safetyFilter !== 'undefined') config.safetyFilter = userConfig.safetyFilter;
@@ -6085,9 +6295,9 @@ function mergePropertySamplingConfig(defaults, userConfig) {
             if (typeof userConfig.maxCollectionDepth !== 'undefined') config.maxCollectionDepth = userConfig.maxCollectionDepth;
             if (typeof userConfig.preserveOriginalTypes !== 'undefined') config.preserveOriginalTypes = userConfig.preserveOriginalTypes;
         }
-        
+
         return config;
-        
+
     } catch (exc) {
         return defaults;
     }
@@ -6154,25 +6364,25 @@ function logSamplingError(message) {
 registerModule('3.1_property-sampler', '3.1', [
     // Main Sampling Functions
     'sampleDOMValues', 'samplePropertyValue', 'safeGetPropertyValue',
-    
+
     // Node Value Sampling
     'sampleNodeValues', 'samplePropertiesFromArray',
-    
+
     // Property Access
     'accessPropertyByPath',
-    
+
     // Value Formatting
     'formatSampleValue', 'generateValueMetadata', 'generateValueFingerprint',
     'simpleStringHash',
-    
+
     // Collection Analysis
-    'isCollectionLike', 'analyzeCollection', 'extractCollectionSample', 
+    'isCollectionLike', 'analyzeCollection', 'extractCollectionSample',
     'getCollectionItemTypes', 'getCollectionPreview', 'determineCollectionType',
-    
+
     // Utility Functions
-    'shouldSampleProperty', 'meetsSafetyFilter', 'getSamplingStatistics', 
+    'shouldSampleProperty', 'meetsSafetyFilter', 'getSamplingStatistics',
     'mergePropertySamplingConfig', 'createSamplingResult',
-    
+
     // Logging
     'logSamplingProgress', 'logSamplingError'
 ]);
@@ -12017,7 +12227,7 @@ var g_domViz_mappingDisplay = null;
 
 var DEFAULT_VISUALIZER_CONFIG = {
     enumeration: {
-        maxDepth: 4,
+        maxDepth: 8,
         timeoutMs: 15000,
         skipDangerous: true,
         maxProperties: 5000,
@@ -12050,6 +12260,14 @@ var DEFAULT_VISUALIZER_CONFIG = {
         autoRefresh: false,
         enableProgressReporting: false,
         enableDetailedLogging: false
+    },
+    debug: {
+        enabled: true,  // NEW: Debug flag - set to true by default
+        showEnumeration: true,
+        showSampling: true,
+        showCircularDetection: true,
+        showDisplay: true,
+        showPerformance: true
     }
 };
 
@@ -12580,10 +12798,10 @@ function initializeVisualizerComponents() {
  * Perform full discovery (all phases)
  */
 function performFullDiscovery() {
-    $.writeln('[DEBUG] Config exists: ' + (g_domViz_userConfiguration ? 'YES' : 'NO'));
-    $.writeln('[DEBUG] objectClone available: ' + functionExists('objectClone'));
+    debugLog('Config exists: ' + (g_domViz_userConfiguration ? 'YES' : 'NO'));
+    debugLog('objectClone available: ' + functionExists('objectClone'));
     if (g_domViz_userConfiguration) {
-        $.writeln('[DEBUG] maxDepth setting: ' + g_domViz_userConfiguration.enumeration.maxDepth);
+        debugLog('maxDepth setting: ' + g_domViz_userConfiguration.enumeration.maxDepth);
     }
     try {
         updateStatus('Starting full DOM discovery...');
@@ -12591,7 +12809,7 @@ function performFullDiscovery() {
         // FIX: Initialize configuration if not available
         if (!g_domViz_userConfiguration) {
             g_domViz_userConfiguration = objectClone(DEFAULT_VISUALIZER_CONFIG, 4);
-            $.writeln('[DEBUG] Configuration initialized with defaults');
+            debugLog('Configuration initialized with defaults');
         }
 
         if (!app.documents.length) {
@@ -12600,25 +12818,25 @@ function performFullDiscovery() {
         }
 
         var doc = app.activeDocument;
-        $.writeln('[DEBUG] Document name: ' + (doc.name || 'Unknown'));
+        debugLog('Document name: ' + (doc.name || 'Unknown'));
 
         // Phase 1: Enumeration
         updateStatus('Phase 1: Enumerating DOM structure...');
-        $.writeln('[DEBUG] === STARTING PHASE 1 ===');
+        debugLog('=== STARTING PHASE 1 ===');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
 
         // DEBUG: Show what we actually got from enumeration - ES3 COMPATIBLE
-        $.writeln('[DEBUG] === PHASE 1 ENUMERATION RESULTS ===');
-        $.writeln('[DEBUG] domStructure type: ' + typeof domStructure);
-        $.writeln('[DEBUG] domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
-        $.writeln('[DEBUG] domStructure has .metadata: ' + (domStructure.metadata ? 'YES' : 'NO'));
+        debugLog('=== PHASE 1 ENUMERATION RESULTS ===');
+        debugLog('domStructure type: ' + typeof domStructure);
+        debugLog('domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
+        debugLog('domStructure has .metadata: ' + (domStructure.metadata ? 'YES' : 'NO'));
 
         if (domStructure.structure && domStructure.structure.document) {
             var docNode = domStructure.structure.document;
-            $.writeln('[DEBUG] Document node properties: ' + (docNode.properties ? docNode.properties.length : 0));
-            $.writeln('[DEBUG] Document node methods: ' + (docNode.methods ? docNode.methods.length : 0));
-            $.writeln('[DEBUG] Document node collections: ' + (docNode.collections ? docNode.collections.length : 0));
-            $.writeln('[DEBUG] Document node child nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
+            debugLog('Document node properties: ' + (docNode.properties ? docNode.properties.length : 0));
+            debugLog('Document node methods: ' + (docNode.methods ? docNode.methods.length : 0));
+            debugLog('Document node collections: ' + (docNode.collections ? docNode.collections.length : 0));
+            debugLog('Document node child nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
         }
 
         // FIX: Check for actual error conditions (not .success property)
@@ -12634,62 +12852,62 @@ function performFullDiscovery() {
         }
 
         // Phase 2: Value Sampling
-        $.writeln('[DEBUG] === STARTING PHASE 2 ===');
+        debugLog('=== STARTING PHASE 2 ===');
         updateStatus('Phase 2: Sampling property values...');
         var sampledStructure = domStructure; // Default fallback
         
         if (functionExists('sampleDOMValues')) {
-            $.writeln('[DEBUG] Calling sampleDOMValues with FULL domStructure (not .structure)');
+            debugLog('Calling sampleDOMValues with FULL domStructure (not .structure)');
             // FIX: Pass full domStructure, not domStructure.structure
             var phase2Result = sampleDOMValues(domStructure, doc, g_domViz_userConfiguration.sampling);
             
             if (phase2Result && !phase2Result.error) {
                 sampledStructure = phase2Result;
-                $.writeln('[DEBUG] Phase 2 completed successfully');
+                debugLog('Phase 2 completed successfully');
             } else {
-                $.writeln('[DEBUG] Phase 2 had errors: ' + (phase2Result ? phase2Result.error : 'unknown'));
-                $.writeln('[DEBUG] Using Phase 1 results for Phase 3');
+                debugLog('Phase 2 had errors: ' + (phase2Result ? phase2Result.error : 'unknown'));
+                debugLog('Using Phase 1 results for Phase 3');
             }
         } else {
-            $.writeln('[DEBUG] sampleDOMValues function not found! Skipping phase 2');
+            debugLog('sampleDOMValues function not found! Skipping phase 2');
         }
 
         // Phase 3: Collection Sampling
-        $.writeln('[DEBUG] === STARTING PHASE 3 ===');
+        debugLog('=== STARTING PHASE 3 ===');
         updateStatus('Phase 3: Sampling collections...');
         var finalStructure = sampledStructure; // Default fallback
         
         if (functionExists('sampleCollectionContents')) {
-            $.writeln('[DEBUG] Calling sampleCollectionContents with FULL structure (not .structure)');
+            debugLog('Calling sampleCollectionContents with FULL structure (not .structure)');
             // FIX: Pass full structure, not .structure
             var phase3Result = sampleCollectionContents(sampledStructure, doc, g_domViz_userConfiguration.sampling);
             
             if (phase3Result && !phase3Result.error) {
                 finalStructure = phase3Result;
-                $.writeln('[DEBUG] Phase 3 completed successfully');
+                debugLog('Phase 3 completed successfully');
             } else {
-                $.writeln('[DEBUG] Phase 3 had errors: ' + (phase3Result ? phase3Result.error : 'unknown'));
-                $.writeln('[DEBUG] Using Phase 2 results as final');
+                debugLog('Phase 3 had errors: ' + (phase3Result ? phase3Result.error : 'unknown'));
+                debugLog('Using Phase 2 results as final');
             }
         } else {
-            $.writeln('[DEBUG] sampleCollectionContents function not found! Skipping phase 3');
+            debugLog('sampleCollectionContents function not found! Skipping phase 3');
         }
 
-        $.writeln('[DEBUG] === SETTING FINAL RESULTS ===');
+        debugLog('=== SETTING FINAL RESULTS ===');
         g_domViz_currentDOMStructure = finalStructure;
-        $.writeln('[DEBUG] g_domViz_currentDOMStructure set, type: ' + typeof g_domViz_currentDOMStructure);
+        debugLog('g_domViz_currentDOMStructure set, type: ' + typeof g_domViz_currentDOMStructure);
         
         if (g_domViz_currentDOMStructure) {
-            $.writeln('[DEBUG] Final structure is not null - proceeding to display');
+            debugLog('Final structure is not null - proceeding to display');
         } else {
-            $.writeln('[DEBUG] ERROR: Final structure is null!');
+            debugLog('ERROR: Final structure is null!');
         }
         
         displayCurrentStructure();
         updateStatus('Full discovery completed successfully');
 
     } catch (exc) {
-        $.writeln('[DEBUG] EXCEPTION in performFullDiscovery: ' + exc.message);
+        debugLog('EXCEPTION in performFullDiscovery: ' + exc.message);
         updateStatus('Full discovery error: ' + exc.message);
     }
 }
@@ -12780,80 +12998,182 @@ function performPhase3CollectionSampling() {
 }
 
 /**
- * Display current DOM structure
+ * Display current DOM structure - FIXED VERSION
  */
 function displayCurrentStructure() {
-    $.writeln('[DISPLAY DEBUG] === STARTING displayCurrentStructure ===');
-    
+    debugLog('Starting displayCurrentStructure', 'display');
+
     try {
         if (!g_domViz_currentDOMStructure) {
-            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_currentDOMStructure is null');
+            debugLog('ERROR: g_domViz_currentDOMStructure is null', 'display');
+            if (g_domViz_discoveryDisplay) {
+                g_domViz_discoveryDisplay.text = 'No DOM structure available. Please run discovery first.';
+            }
             return;
-        }
-        
-        if (!g_domViz_discoveryDisplay) {
-            $.writeln('[DISPLAY DEBUG] ERROR: g_domViz_discoveryDisplay is null');
-            return;
-        }
-        
-        $.writeln('[DISPLAY DEBUG] g_domViz_currentDOMStructure type: ' + typeof g_domViz_currentDOMStructure);
-        
-        // Check structure contents
-        if (g_domViz_currentDOMStructure.structure) {
-            $.writeln('[DISPLAY DEBUG] Structure exists');
-            if (g_domViz_currentDOMStructure.structure.document) {
-                var doc = g_domViz_currentDOMStructure.structure.document;
-                $.writeln('[DISPLAY DEBUG] Document node exists');
-                $.writeln('[DISPLAY DEBUG] Properties: ' + (doc.properties ? doc.properties.length : 'undefined'));
-                $.writeln('[DISPLAY DEBUG] Methods: ' + (doc.methods ? doc.methods.length : 'undefined'));
-                $.writeln('[DISPLAY DEBUG] Collections: ' + (doc.collections ? doc.collections.length : 'undefined'));
-            } else {
-                $.writeln('[DISPLAY DEBUG] No document node in structure');
-            }
-        } else {
-            $.writeln('[DISPLAY DEBUG] No structure property');
-        }
-        
-        if (functionExists('generateStructureDisplayText')) {
-            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function exists - calling it');
-            var displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
-            $.writeln('[DISPLAY DEBUG] Display text generated, length: ' + displayText.length);
-            
-            g_domViz_discoveryDisplay.text = displayText;
-            $.writeln('[DISPLAY DEBUG] Display text set successfully');
-        } else {
-            $.writeln('[DISPLAY DEBUG] generateStructureDisplayText function NOT FOUND - creating fallback');
-            
-            // Fallback display
-            var fallbackText = 'DOM Structure Discovered!\n\n';
-            if (g_domViz_currentDOMStructure.metadata) {
-                fallbackText += 'Document: ' + (g_domViz_currentDOMStructure.metadata.documentName || 'Unknown') + '\n';
-                fallbackText += 'Enumeration Time: ' + (g_domViz_currentDOMStructure.metadata.enumerationTime || 'Unknown') + 'ms\n';
-            }
-            
-            if (g_domViz_currentDOMStructure.structure && g_domViz_currentDOMStructure.structure.document) {
-                var docNode = g_domViz_currentDOMStructure.structure.document;
-                fallbackText += '\nDocument Node Properties:\n';
-                fallbackText += '- Properties: ' + (docNode.properties ? docNode.properties.length : 0) + '\n';
-                fallbackText += '- Methods: ' + (docNode.methods ? docNode.methods.length : 0) + '\n';
-                fallbackText += '- Collections: ' + (docNode.collections ? docNode.collections.length : 0) + '\n';
-                
-                // Show first few property names
-                if (docNode.properties && docNode.properties.length > 0) {
-                    fallbackText += '\nFirst few properties:\n';
-                    for (var i = 0; i < Math.min(5, docNode.properties.length); i++) {
-                        fallbackText += '- ' + docNode.properties[i].name + ' (' + docNode.properties[i].type + ')\n';
-                    }
-                }
-            }
-            
-            g_domViz_discoveryDisplay.text = fallbackText;
-            $.writeln('[DISPLAY DEBUG] Fallback display text set');
         }
 
+        if (!g_domViz_discoveryDisplay) {
+            debugLog('ERROR: g_domViz_discoveryDisplay is null', 'display');
+            return;
+        }
+
+        debugLog('g_domViz_currentDOMStructure type: ' + typeof g_domViz_currentDOMStructure, 'display');
+
+        // Debug structure contents
+        if (g_domViz_currentDOMStructure.structure) {
+            debugLog('Structure exists', 'display');
+            if (g_domViz_currentDOMStructure.structure.document) {
+                var doc = g_domViz_currentDOMStructure.structure.document;
+                debugLog('Document node exists', 'display');
+                debugLog('Properties: ' + (doc.properties ? doc.properties.length : 'undefined'), 'display');
+                debugLog('Methods: ' + (doc.methods ? doc.methods.length : 'undefined'), 'display');
+                debugLog('Collections: ' + (doc.collections ? doc.collections.length : 'undefined'), 'display');
+                debugLog('Child nodes: ' + (doc.childNodes ? doc.childNodes.length : 'undefined'), 'display');
+            } else {
+                debugLog('No document node in structure', 'display');
+            }
+        } else {
+            debugLog('No structure property', 'display');
+        }
+
+        // Generate display text
+        var displayText = '';
+
+        if (functionExists('generateStructureDisplayText')) {
+            debugLog('generateStructureDisplayText function exists - calling it', 'display');
+            displayText = generateStructureDisplayText(g_domViz_currentDOMStructure);
+            debugLog('Display text generated, length: ' + displayText.length, 'display');
+        } else {
+            debugLog('generateStructureDisplayText function NOT FOUND - creating enhanced fallback', 'display');
+            displayText = generateEnhancedFallbackDisplay(g_domViz_currentDOMStructure);
+        }
+
+        g_domViz_discoveryDisplay.text = displayText;
+        debugLog('Display text set successfully', 'display');
+
     } catch (exc) {
-        $.writeln('[DISPLAY DEBUG] EXCEPTION: ' + exc.message);
+        debugLog('EXCEPTION: ' + exc.message, 'display');
         updateStatus('Display update error: ' + exc.message);
+    }
+}
+
+/**
+ * Generate enhanced fallback display when main function missing
+ * @param {Object} structure - DOM structure
+ * @returns {String} Display text
+ */
+function generateEnhancedFallbackDisplay(structure) {
+    debugLog('Generating enhanced fallback display', 'display');
+
+    try {
+        var builder = createStringBuilder();
+
+        builder.appendLine('DOM DISCOVERY RESULTS (Fallback Display)');
+        builder.appendLine('=========================================');
+        builder.appendLine('');
+
+        // Metadata section
+        if (structure.metadata) {
+            builder.appendLine('METADATA:');
+            builder.appendLine('Document: ' + (structure.metadata.documentName || 'Unknown'));
+            builder.appendLine('Version: ' + (structure.metadata.version || 'Unknown'));
+            builder.appendLine('Timestamp: ' + (structure.metadata.timestamp || 'Unknown'));
+            builder.appendLine('Enumeration Time: ' + (structure.metadata.enumerationTime || 'Unknown') + 'ms');
+
+            if (structure.metadata.config) {
+                builder.appendLine('Max Depth Used: ' + (structure.metadata.config.maxDepth || 'Unknown'));
+                builder.appendLine('Timeout Setting: ' + (structure.metadata.config.timeoutMs || 'Unknown') + 'ms');
+            }
+            builder.appendLine('');
+        }
+
+        // Document structure
+        if (structure.structure && structure.structure.document) {
+            var docNode = structure.structure.document;
+
+            builder.appendLine('DOCUMENT STRUCTURE:');
+            builder.appendLine('Properties: ' + (docNode.properties ? docNode.properties.length : 0));
+            builder.appendLine('Methods: ' + (docNode.methods ? docNode.methods.length : 0));
+            builder.appendLine('Collections: ' + (docNode.collections ? docNode.collections.length : 0));
+            builder.appendLine('Child Nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
+            builder.appendLine('');
+
+            // Show first few properties
+            if (docNode.properties && docNode.properties.length > 0) {
+                builder.appendLine('SAMPLE PROPERTIES:');
+                for (var i = 0; i < Math.min(10, docNode.properties.length); i++) {
+                    var prop = docNode.properties[i];
+                    var valueInfo = '';
+                    if (prop.sampledValue) {
+                        valueInfo = ' = ' + prop.sampledValue;
+                    }
+                    builder.appendLine('  • ' + prop.name + ' (' + prop.type + ')' + valueInfo);
+                }
+
+                if (docNode.properties.length > 10) {
+                    builder.appendLine('  ... and ' + (docNode.properties.length - 10) + ' more properties');
+                }
+                builder.appendLine('');
+            }
+
+            // Show collections
+            if (docNode.collections && docNode.collections.length > 0) {
+                builder.appendLine('COLLECTIONS:');
+                for (var j = 0; j < Math.min(5, docNode.collections.length); j++) {
+                    var coll = docNode.collections[j];
+                    builder.appendLine('  • ' + coll.name + ' (' + coll.type + ')');
+                }
+                if (docNode.collections.length > 5) {
+                    builder.appendLine('  ... and ' + (docNode.collections.length - 5) + ' more collections');
+                }
+                builder.appendLine('');
+            }
+
+            // Show child node summary
+            if (docNode.childNodes && docNode.childNodes.length > 0) {
+                builder.appendLine('CHILD OBJECTS:');
+                var childSummary = {};
+                for (var k = 0; k < docNode.childNodes.length; k++) {
+                    var child = docNode.childNodes[k];
+                    var childType = child.type || 'unknown';
+                    if (!childSummary[childType]) {
+                        childSummary[childType] = 0;
+                    }
+                    childSummary[childType]++;
+                }
+
+                for (var type in childSummary) {
+                    if (objectHasOwnProperty(childSummary, type)) {
+                        builder.appendLine('  • ' + type + ': ' + childSummary[type] + ' objects');
+                    }
+                }
+                builder.appendLine('');
+            }
+        } else {
+            builder.appendLine('ERROR: No document structure found!');
+            builder.appendLine('Structure type: ' + typeof structure.structure);
+            if (structure.structure) {
+                var structKeys = [];
+                for (var key in structure.structure) {
+                    structKeys.push(key);
+                }
+                builder.appendLine('Structure keys: ' + structKeys.join(', '));
+            }
+        }
+
+        // Statistics
+        if (structure.statistics) {
+            builder.appendLine('STATISTICS:');
+            builder.appendLine('Total Nodes: ' + (structure.statistics.totalNodes || 0));
+            builder.appendLine('Total Properties: ' + (structure.statistics.totalProperties || 0));
+            builder.appendLine('Max Depth Reached: ' + (structure.statistics.maxDepth || 0));
+            builder.appendLine('');
+        }
+
+        return builder.toString();
+
+    } catch (exc) {
+        return 'Error generating fallback display: ' + exc.message;
     }
 }
 
@@ -13728,6 +14048,7 @@ function closeVisualizer() {
 // =============================================================================
 
 // Register this module with all its functions
+// Register this module with all its functions
 registerModule('5.2_dom-visualizer', '3.1', [
     // Main Functions
     'showDOMVisualizer', 'createVisualizerWindow', 'initializeVisualizerComponents',
@@ -13739,6 +14060,7 @@ registerModule('5.2_dom-visualizer', '3.1', [
     // Discovery Operations
     'performFullDiscovery', 'performPhase1Enumeration', 'performPhase2ValueSampling',
     'performPhase3CollectionSampling', 'displayCurrentStructure', 'generateStructureDisplayText',
+    'generateEnhancedFallbackDisplay',  // ← NEW FUNCTION ADDED
     'clearDiscoveryDisplay',
 
     // Export Operations
