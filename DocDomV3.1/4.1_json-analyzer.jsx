@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Comprehensive analysis of DOM JSON exports with enhanced features
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~1800 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1368 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================

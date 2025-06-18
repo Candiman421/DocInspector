@@ -2,9 +2,9 @@
 // 1.2_safety-utilities.jsx - ES3 HELPER FUNCTIONS AND SAFETY UTILITIES
 // InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
 // =============================================================================
-// PURPOSE: ES3-compatible helper functions and safety utilities
+// PURPOSE: ES3-compatible helper functions and safety utilities with unified logging
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx"]
-// SIZE: ~1200 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~2030 lines - COMPLETE IMPLEMENTATION WITH LOGGING LEVELS
 // =============================================================================
 
 // =============================================================================
@@ -29,6 +29,52 @@ var SAFETY_CONFIG = {
     maxObjectDepth: 8,
     maxArrayLength: 1000
 };
+
+// =============================================================================
+// UNIFIED LOGGING CONFIGURATION SYSTEM
+// =============================================================================
+
+var DEFAULT_LOGGING_CONFIG = {
+    enabled: true,
+    levels: {
+        ERROR: { enabled: true, priority: 1 },
+        WARN: { enabled: true, priority: 2 },
+        INFO: { enabled: true, priority: 3 },
+        DEBUG: { enabled: false, priority: 4 }
+    },
+    categories: {
+        general: { enabled: true },
+        enumeration: { enabled: true },
+        sampling: { enabled: true },
+        display: { enabled: true },
+        export: { enabled: true },
+        performance: { enabled: true },
+        circular: { enabled: true }
+    },
+    maxLevel: 'INFO'  // Only show messages at or above this level
+};
+
+// Global logging configuration - can be overridden
+var g_loggingConfig = null;
+
+/**
+ * Initialize unified logging configuration
+ * @param {Object} customConfig - Custom logging configuration
+ */
+function initializeLoggingConfig(customConfig) {
+    try {
+        if (customConfig) {
+            g_loggingConfig = objectDeepMerge(DEFAULT_LOGGING_CONFIG, customConfig);
+        } else {
+            g_loggingConfig = objectClone(DEFAULT_LOGGING_CONFIG, 3);
+        }
+    } catch (exc) {
+        g_loggingConfig = DEFAULT_LOGGING_CONFIG;
+    }
+}
+
+// Initialize with defaults
+initializeLoggingConfig();
 
 // =============================================================================
 // ES3 ARRAY HELPER FUNCTIONS
@@ -73,7 +119,8 @@ function arraySlice(targetArray, startIndex, endIndex) {
 
         var result = [];
         var startIdx = startIndex || 0;
-        var endIdx = (typeof endIndex !== 'undefined') ? endIndex : targetArray.length;
+        var endIdx = (typeof endIndex !== 'undefined') ? 
+            endIndex : targetArray.length;
 
         if (startIdx < 0) startIdx = Math.max(0, targetArray.length + startIdx);
         if (endIdx < 0) endIdx = Math.max(0, targetArray.length + endIdx);
@@ -222,7 +269,8 @@ function stringSubstring(targetString, startIndex, endIndex) {
         if (typeof targetString !== 'string') return '';
 
         var startIdx = startIndex || 0;
-        var endIdx = (typeof endIndex !== 'undefined') ? endIndex : targetString.length;
+        var endIdx = (typeof endIndex !== 'undefined') ? 
+            endIndex : targetString.length;
 
         return targetString.substring(startIdx, endIdx);
 
@@ -239,8 +287,12 @@ function stringSubstring(targetString, startIndex, endIndex) {
  */
 function stringCharAt(targetString, index) {
     try {
-        if (typeof targetString !== 'string') return '';
-        return targetString.charAt(index || 0);
+        if (typeof targetString !== 'string' || typeof index !== 'number') {
+            return '';
+        }
+
+        return targetString.charAt(index);
+
     } catch (exc) {
         return '';
     }
@@ -249,14 +301,15 @@ function stringCharAt(targetString, index) {
 /**
  * ES3-compatible String.split
  * @param {String} targetString - String to split
- * @param {String} separator - Separator
- * @returns {Array} Split array
+ * @param {String} separator - Separator pattern
+ * @returns {Array} Split string array
  */
 function stringSplit(targetString, separator) {
     try {
         if (typeof targetString !== 'string') return [];
 
-        var sep = (typeof separator !== 'undefined') ? separator : '';
+        var sep = (typeof separator !== 'undefined') ? 
+            separator : '';
         return targetString.split(sep);
 
     } catch (exc) {
@@ -353,28 +406,34 @@ function stringMatch(targetString, pattern) {
 // =============================================================================
 
 /**
- * ES3-compatible Object.hasOwnProperty check
+ * ES3-compatible Object.hasOwnProperty
  * @param {Object} targetObject - Object to check
- * @param {String} prop - Property name
- * @returns {Boolean} True if object has own property
+ * @param {String} propertyName - Property name
+ * @returns {Boolean} True if property exists
  */
-function objectHasOwnProperty(targetObject, prop) {
+function objectHasOwnProperty(targetObject, propertyName) {
     try {
-        if (!targetObject || typeof targetObject !== 'object') return false;
-        return Object.prototype.hasOwnProperty.call(targetObject, prop);
+        if (!targetObject || typeof targetObject !== 'object') {
+            return false;
+        }
+
+        return Object.prototype.hasOwnProperty.call(targetObject, propertyName);
+
     } catch (exc) {
         return false;
     }
 }
 
 /**
- * Count object properties (own properties only)
+ * Count object keys (ES3 compatible)
  * @param {Object} targetObject - Object to count
- * @returns {Number} Property count
+ * @returns {Number} Number of properties
  */
 function countObjectKeys(targetObject) {
     try {
-        if (!targetObject || typeof targetObject !== 'object') return 0;
+        if (!targetObject || typeof targetObject !== 'object') {
+            return 0;
+        }
 
         var count = 0;
         for (var key in targetObject) {
@@ -391,13 +450,15 @@ function countObjectKeys(targetObject) {
 }
 
 /**
- * Get object keys (own properties only)
+ * Get object keys (ES3 compatible)
  * @param {Object} targetObject - Object to get keys from
  * @returns {Array} Array of property names
  */
 function getObjectKeys(targetObject) {
     try {
-        if (!targetObject || typeof targetObject !== 'object') return [];
+        if (!targetObject || typeof targetObject !== 'object') {
+            return [];
+        }
 
         var keys = [];
         for (var key in targetObject) {
@@ -414,82 +475,29 @@ function getObjectKeys(targetObject) {
 }
 
 /**
- * Deep clone object (ES3 compatible)
- * @param {*} originalObject - Object to clone
- * @param {Number} maxDepth - Maximum depth
- * @returns {*} Cloned object
- */
-// function objectClone(originalObject, maxDepth) {
-//     var depth = maxDepth || 3;
-//     var seen = [];
-
-//     function cloneRecursive(sourceObject, currentDepth) {
-//         try {
-//             if (currentDepth >= depth) return '[Max Depth Reached]';
-
-//             if (sourceObject === null || sourceObject === undefined) {
-//                 return sourceObject;
-//             }
-
-//             var objType = typeof sourceObject;
-//             if (objType !== 'object') {
-//                 return sourceObject;
-//             }
-
-//             // Check for circular references
-//             for (var i = 0; i < seen.length; i++) {
-//                 if (seen[i] === sourceObject) {
-//                     return '[Circular Reference]';
-//                 }
-//             }
-
-//             seen[seen.length] = sourceObject;
-
-//             // Handle arrays
-//             if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
-//                 var clonedArray = [];
-//                 for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
-//                     clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
-//                 }
-//                 return clonedArray;
-//             }
-
-//             // Handle objects
-//             var clonedObject = {};
-//             for (var prop in sourceObject) {
-//                 if (objectHasOwnProperty(sourceObject, prop)) {
-//                     clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
-//                 }
-//             }
-
-//             return clonedObject;
-
-//         } catch (exc) {
-//             return '[Clone Error: ' + exc.message + ']';
-//         }
-//     }
-
-//     try {
-//         return cloneRecursive(originalObject, 0);
-//     } catch (exc) {
-//         return originalObject;
-//     }
-// }
-
-/**
- * Merge two objects (shallow merge)
+ * Shallow object merge (ES3 compatible)
  * @param {Object} target - Target object
  * @param {Object} source - Source object
  * @returns {Object} Merged object
  */
 function objectMerge(target, source) {
     try {
-        var result = objectClone(target, 1);
+        var result = {};
 
+        // Copy target properties
+        if (target && typeof target === 'object') {
+            for (var targetProp in target) {
+                if (objectHasOwnProperty(target, targetProp)) {
+                    result[targetProp] = target[targetProp];
+                }
+            }
+        }
+
+        // Copy source properties (overwrite)
         if (source && typeof source === 'object') {
-            for (var prop in source) {
-                if (objectHasOwnProperty(source, prop)) {
-                    result[prop] = source[prop];
+            for (var sourceProp in source) {
+                if (objectHasOwnProperty(source, sourceProp)) {
+                    result[sourceProp] = source[sourceProp];
                 }
             }
         }
@@ -502,7 +510,7 @@ function objectMerge(target, source) {
 }
 
 /**
- * Deep merge two objects
+ * Deep object merge (ES3 compatible)
  * @param {Object} target - Target object
  * @param {Object} source - Source object
  * @returns {Object} Deep merged object
@@ -603,12 +611,12 @@ function trimString(sourceString) {
         var end = sourceString.length;
 
         // Find start of non-whitespace
-        while (start < end && stringCharAt(sourceString, start) <= ' ') {
+        while (start < end && /\s/.test(stringCharAt(sourceString, start))) {
             start++;
         }
 
         // Find end of non-whitespace
-        while (end > start && stringCharAt(sourceString, end - 1) <= ' ') {
+        while (end > start && /\s/.test(stringCharAt(sourceString, end - 1))) {
             end--;
         }
 
@@ -620,7 +628,7 @@ function trimString(sourceString) {
 }
 
 /**
- * Safe toString conversion
+ * Safe string conversion
  * @param {*} value - Value to convert
  * @returns {String} String representation
  */
@@ -628,7 +636,8 @@ function safeToString(value) {
     try {
         if (value === null) return 'null';
         if (value === undefined) return 'undefined';
-
+        if (typeof value === 'string') return value;
+        
         return String(value);
 
     } catch (exc) {
@@ -637,68 +646,65 @@ function safeToString(value) {
 }
 
 /**
- * Safe parseInt
- * @param {String} value - Value to parse
+ * Safe integer parsing
+ * @param {String} str - String to parse
  * @param {Number} radix - Number base
  * @returns {Number} Parsed integer or NaN
  */
-function safeParseInt(value, radix) {
+function safeParseInt(str, radix) {
     try {
-        var baseValue = radix || 10;
-        return parseInt(value, baseValue);
+        var base = radix || 10;
+        return parseInt(str, base);
     } catch (exc) {
         return NaN;
     }
 }
 
 /**
- * Safe parseFloat
- * @param {String} value - Value to parse
+ * Safe float parsing
+ * @param {String} str - String to parse
  * @returns {Number} Parsed float or NaN
  */
-function safeParseFloat(value) {
+function safeParseFloat(str) {
     try {
-        return parseFloat(value);
+        return parseFloat(str);
     } catch (exc) {
         return NaN;
     }
 }
 
 // =============================================================================
-// JSON HANDLING (ES3 FALLBACK)
+// JSON HANDLING UTILITIES
 // =============================================================================
 
 /**
- * Safe JSON stringify with ES3 fallback
+ * Safe JSON stringify with circular reference handling
  * @param {*} data - Data to stringify
- * @param {Number} indentLevel - Indentation level
  * @returns {String} JSON string
  */
-function safeJSONStringify(data, indentLevel) {
+function safeJSONStringify(data) {
     try {
         if (typeof JSON !== 'undefined' && JSON.stringify) {
-            return JSON.stringify(data, null, indentLevel || 0);
+            return JSON.stringify(data);
         } else {
-            return fallbackStringify(data, indentLevel || 0);
+            return fallbackStringify(data);
         }
     } catch (exc) {
-        return fallbackStringify(data, 0);
+        return fallbackStringify(data);
     }
 }
 
 /**
- * Fallback JSON stringify for ES3
+ * Fallback stringify implementation
  * @param {*} data - Data to stringify
- * @param {Number} indentLevel - Indentation level
  * @returns {String} JSON-like string
  */
-function fallbackStringify(data, indentLevel) {
-    var indent = indentLevel || 0;
+function fallbackStringify(data) {
     var seen = [];
 
     function stringify(value, depth) {
         try {
-            if (depth > 10) return '"[max depth]"';
+            if (depth > 5) return '"[max depth]"';
 
             if (value === null) return 'null';
             if (value === undefined) return 'undefined';
@@ -723,13 +729,6 @@ function fallbackStringify(data, indentLevel) {
             }
 
             seen[seen.length] = value;
-
-            var indentStr = '';
-            for (var j = 0; j < depth * 2; j++) {
-                indentStr += ' ';
-            }
-
-            var nextIndentStr = indentStr + '  ';
 
             // Handle arrays
             if (value.length !== undefined && typeof value.length === 'number') {
@@ -787,22 +786,12 @@ function safeJSONParse(jsonString) {
 
 /**
  * Safe type checking
- * @param {Object} targetObject - Object to check
- * @param {String} propName - Property name
- * @returns {String} Property type or 'error'
+ * @param {*} targetValue - Value to check
+ * @returns {String} Type string
  */
-function safeTypeCheck(targetObject, propName) {
+function safeTypeCheck(targetValue) {
     try {
-        if (!targetObject || typeof targetObject !== 'object') {
-            return 'error';
-        }
-
-        if (!objectHasOwnProperty(targetObject, propName)) {
-            return 'undefined';
-        }
-
-        return typeof targetObject[propName];
-
+        return typeof targetValue;
     } catch (exc) {
         return 'error';
     }
@@ -1002,12 +991,14 @@ function createObjectReferenceTracker() {
                     }
 
                     this.references[referenceId] = {
-                        reference: targetObject,
-                        firstSeen: new Date().getTime(),
+                        object: targetObject,
+                        firstSeen: getCurrentTimestamp(),
                         accessCount: 1
                     };
 
+                    this.visitedObjects[this.visitedObjects.length] = targetObject;
                     this.totalTracked++;
+
                     return referenceId;
 
                 } catch (exc) {
@@ -1015,10 +1006,10 @@ function createObjectReferenceTracker() {
                 }
             },
 
-            isVisited: function (targetObject) {
+            isTracked: function (targetObject) {
                 try {
                     for (var i = 0; i < this.visitedObjects.length; i++) {
-                        if (this.visitedObjects[i] === targetObject) {
+                        if (isSameObjectReference(this.visitedObjects[i], targetObject)) {
                             return true;
                         }
                     }
@@ -1028,57 +1019,24 @@ function createObjectReferenceTracker() {
                 }
             },
 
-            markVisited: function (targetObject) {
-                try {
-                    if (!this.isVisited(targetObject)) {
-                        this.visitedObjects[this.visitedObjects.length] = targetObject;
-                    }
-                } catch (exc) {
-                    // Continue operation
-                }
-            },
-
-            getStatistics: function () {
+            getStats: function () {
                 try {
                     return {
                         totalTracked: this.totalTracked,
-                        uniqueObjects: countObjectKeys(this.references),
                         duplicateCount: this.duplicateCount,
-                        visitedCount: this.visitedObjects.length
+                        uniqueObjects: this.visitedObjects.length
                     };
                 } catch (exc) {
-                    return {
-                        totalTracked: 0,
-                        uniqueObjects: 0,
-                        duplicateCount: 0,
-                        visitedCount: 0
-                    };
-                }
-            },
-
-            cleanup: function () {
-                try {
-                    this.references = {};
-                    this.visitedObjects = [];
-                    this.duplicateCount = 0;
-                    this.totalTracked = 0;
-                } catch (exc) {
-                    // Continue operation
+                    return { totalTracked: 0, duplicateCount: 0, uniqueObjects: 0 };
                 }
             }
         };
 
     } catch (exc) {
         return {
-            references: {},
-            visitedObjects: [],
-            duplicateCount: 0,
-            totalTracked: 0,
             track: function () { return null; },
-            isVisited: function () { return false; },
-            markVisited: function () { },
-            getStatistics: function () { return {}; },
-            cleanup: function () { }
+            isTracked: function () { return false; },
+            getStats: function () { return {}; }
         };
     }
 }
@@ -1088,17 +1046,17 @@ function createObjectReferenceTracker() {
 // =============================================================================
 
 /**
- * Split dot notation path into components
- * @param {String} dotPath - Dot notation path
- * @returns {Array} Array of path components
+ * Split path into components
+ * @param {String} path - Dot notation path
+ * @returns {Array} Path components
  */
-function splitPath(dotPath) {
+function splitPath(path) {
     try {
-        if (!dotPath || typeof dotPath !== 'string') {
+        if (!path || typeof path !== 'string') {
             return [];
         }
 
-        return stringSplit(dotPath, '.');
+        return stringSplit(path, '.');
 
     } catch (exc) {
         return [];
@@ -1382,17 +1340,17 @@ function isReservedWord(word) {
  */
 function getPropertySafetyLevel(propName) {
     try {
-        if (typeof propName !== 'string') return 'dangerous';
+        if (isDangerousProperty(propName)) {
+            return 'dangerous';
+        }
 
-        if (isDangerousProperty(propName)) return 'dangerous';
-        if (isReservedWord(propName)) return 'dangerous';
+        if (isReservedWord(propName)) {
+            return 'dangerous';
+        }
 
-        var cautionProps = [
-            'parent', 'document', 'application', 'activeDocument',
-            'selection', 'preferences', 'menuActions'
-        ];
-
-        if (arrayIndexOf(cautionProps, propName) !== -1) return 'caution';
+        if (stringIndexOf(propName, '_') === 0) {
+            return 'caution';
+        }
 
         return 'safe';
 
@@ -1408,16 +1366,17 @@ function getPropertySafetyLevel(propName) {
 /**
  * Create timeout checker
  * @param {Number} timeoutMs - Timeout in milliseconds
- * @returns {Function} Timeout checker function
+ * @returns {Function} Timeout check function
  */
 function createTimeoutChecker(timeoutMs) {
     try {
         var startTime = new Date().getTime();
-        var timeout = timeoutMs || 30000;
+        var timeout = timeoutMs || 10000;
 
         return function () {
             try {
-                return (new Date().getTime() - startTime) > timeout;
+                var elapsed = new Date().getTime() - startTime;
+                return elapsed > timeout;
             } catch (exc) {
                 return true;
             }
@@ -1430,29 +1389,29 @@ function createTimeoutChecker(timeoutMs) {
 
 /**
  * Create operation counter
- * @param {Number} maxOps - Maximum operations
+ * @param {Number} maxOperations - Maximum operations
  * @returns {Object} Operation counter
  */
-function createOperationCounter(maxOps) {
+function createOperationCounter(maxOperations) {
     try {
         return {
             count: 0,
-            maximum: maxOps || 10000,
+            maximum: maxOperations || 1000,
 
             increment: function () {
                 try {
                     this.count++;
-                    return this.count < this.maximum;
+                    return this.count;
                 } catch (exc) {
-                    return false;
+                    return this.maximum + 1;
                 }
             },
 
-            isWithinLimit: function () {
+            isExceeded: function () {
                 try {
-                    return this.count < this.maximum;
+                    return this.count >= this.maximum;
                 } catch (exc) {
-                    return false;
+                    return true;
                 }
             },
 
@@ -1467,8 +1426,8 @@ function createOperationCounter(maxOps) {
 
     } catch (exc) {
         return {
-            increment: function () { return false; },
-            isWithinLimit: function () { return false; },
+            increment: function () { return 1; },
+            isExceeded: function () { return true; },
             reset: function () { }
         };
     }
@@ -1477,45 +1436,41 @@ function createOperationCounter(maxOps) {
 /**
  * Create rate limiter
  * @param {Number} maxPerSecond - Maximum operations per second
- * @returns {Object} Rate limiter
+ * @returns {Function} Rate limit check function
  */
 function createRateLimiter(maxPerSecond) {
     try {
-        return {
-            operations: [],
-            maxRate: maxPerSecond || 100,
+        var operationTimes = [];
+        var maxRate = maxPerSecond || 10;
 
-            canProceed: function () {
-                try {
-                    var now = new Date().getTime();
-                    var oneSecondAgo = now - 1000;
+        return function () {
+            try {
+                var now = new Date().getTime();
+                var oneSecondAgo = now - 1000;
 
-                    // Remove old operations
-                    var recentOps = [];
-                    for (var i = 0; i < this.operations.length; i++) {
-                        if (this.operations[i] > oneSecondAgo) {
-                            recentOps[recentOps.length] = this.operations[i];
-                        }
+                // Remove old operations
+                var filtered = [];
+                for (var i = 0; i < operationTimes.length; i++) {
+                    if (operationTimes[i] > oneSecondAgo) {
+                        filtered[filtered.length] = operationTimes[i];
                     }
-                    this.operations = recentOps;
-
-                    if (this.operations.length < this.maxRate) {
-                        this.operations[this.operations.length] = now;
-                        return true;
-                    }
-
-                    return false;
-
-                } catch (exc) {
-                    return false;
                 }
+                operationTimes = filtered;
+
+                if (operationTimes.length >= maxRate) {
+                    return false; // Rate limited
+                }
+
+                operationTimes[operationTimes.length] = now;
+                return true; // Allowed
+
+            } catch (exc) {
+                return false;
             }
         };
 
     } catch (exc) {
-        return {
-            canProceed: function () { return false; }
-        };
+        return function () { return false; };
     }
 }
 
@@ -1524,41 +1479,43 @@ function createRateLimiter(maxPerSecond) {
 // =============================================================================
 
 /**
- * Validate InDesign environment
- * @returns {Object} Environment validation result
+ * Validate InDesign environment and document access
+ * @returns {Object} Validation result with environment details
  */
 function validateInDesignEnvironment() {
     var result = {
         valid: false,
         document: null,
-        error: null,
-        metadata: {}
+        metadata: {},
+        error: null
     };
 
     try {
+        // Check for InDesign application
         if (typeof app === 'undefined') {
             result.error = 'InDesign application not available';
             return result;
         }
 
+        // Collect environment metadata
         try {
-            result.metadata.indesignVersion = app.version || 'unknown';
-        } catch (versionExc) {
-            result.metadata.indesignVersion = 'version_unknown';
-        }
-
-        try {
+            result.metadata.indesignVersion = app.version || 'Unknown';
+            result.metadata.locale = app.locale || 'Unknown';
             result.metadata.hasNativeJSON = (typeof JSON !== 'undefined');
-        } catch (jsonExc) {
-            result.metadata.hasNativeJSON = false;
+        } catch (metaExc) {
+            result.metadata.indesignVersion = 'Access Error';
         }
 
+        // Check document access
         try {
-            if (app.documents && app.documents.length > 0) {
-                result.document = app.documents[0];
-                result.metadata.documentName = result.document.name || 'Unnamed Document';
-            } else {
+            if (!app.documents || app.documents.length === 0) {
                 result.error = 'No documents are open';
+                return result;
+            }
+
+            result.document = app.activeDocument;
+            if (!result.document) {
+                result.error = 'No active document available';
                 return result;
             }
         } catch (docExc) {
@@ -1634,6 +1591,137 @@ function validateDocumentState(documentObj) {
     } catch (exc) {
         result.warnings[result.warnings.length] = 'Document validation failed: ' + exc.message;
         return result;
+    }
+}
+
+// =============================================================================
+// UNIFIED LOGGING SYSTEM WITH LEVELS
+// =============================================================================
+
+/**
+ * Enhanced logging with levels and unified configuration
+ * @param {String} message - Log message
+ * @param {String} level - Log level: 'ERROR', 'WARN', 'INFO', 'DEBUG'
+ * @param {String} category - Category: 'enumeration', 'sampling', 'display', etc.
+ */
+function logMessage(message, level, category) {
+    try {
+        var logLevel = level || 'INFO';
+        var logCategory = category || 'general';
+        var shouldLog = false;
+
+        // Initialize config if needed
+        if (!g_loggingConfig) {
+            initializeLoggingConfig();
+        }
+
+        // Check if logging is enabled globally
+        if (!g_loggingConfig.enabled) {
+            return;
+        }
+
+        // Check level priority
+        var levelConfig = g_loggingConfig.levels[logLevel];
+        var maxLevelConfig = g_loggingConfig.levels[g_loggingConfig.maxLevel];
+        
+        if (levelConfig && maxLevelConfig) {
+            shouldLog = levelConfig.priority <= maxLevelConfig.priority;
+        }
+
+        // Check category enablement
+        if (shouldLog && g_loggingConfig.categories[logCategory]) {
+            shouldLog = g_loggingConfig.categories[logCategory].enabled;
+        }
+
+        // Fallback to legacy configuration if available
+        if (!shouldLog && typeof g_domViz_userConfiguration !== 'undefined' &&
+            g_domViz_userConfiguration && g_domViz_userConfiguration.debug) {
+            
+            if (logLevel === 'DEBUG' && g_domViz_userConfiguration.debug.enabled) {
+                switch (logCategory) {
+                    case 'enumeration':
+                        shouldLog = g_domViz_userConfiguration.debug.showEnumeration;
+                        break;
+                    case 'sampling':
+                        shouldLog = g_domViz_userConfiguration.debug.showSampling;
+                        break;
+                    case 'display':
+                        shouldLog = g_domViz_userConfiguration.debug.showDisplay;
+                        break;
+                    case 'performance':
+                        shouldLog = g_domViz_userConfiguration.debug.showPerformance;
+                        break;
+                    case 'circular':
+                        shouldLog = g_domViz_userConfiguration.debug.showCircularDetection;
+                        break;
+                    default:
+                        shouldLog = true;
+                }
+            } else if (logLevel !== 'DEBUG') {
+                shouldLog = true; // Always show non-debug messages
+            }
+        }
+
+        if (shouldLog) {
+            var prefix = '[' + logLevel;
+            if (logCategory !== 'general') {
+                prefix += ' ' + stringToUpperCase(logCategory);
+            }
+            prefix += '] ';
+            
+            $.writeln(prefix + message);
+        }
+
+    } catch (exc) {
+        // Fallback - always show if logging system fails
+        $.writeln('[LOG FALLBACK] ' + message);
+    }
+}
+
+// Convenience functions for different log levels
+function logInfo(message, category) { logMessage(message, 'INFO', category); }
+function logDebug(message, category) { logMessage(message, 'DEBUG', category); }
+function logWarn(message, category) { logMessage(message, 'WARN', category); }
+function logError(message, category) { logMessage(message, 'ERROR', category); }
+
+/**
+ * Legacy debug output wrapper - maintained for backward compatibility
+ * @param {String} message - Debug message
+ * @param {String} category - Debug category (enumeration, sampling, etc.)
+ */
+function debugLog(message, category) {
+    logMessage(message, 'DEBUG', category);
+}
+
+/**
+ * Performance timing wrapper
+ * @param {String} operation - Operation name
+ * @param {Number} startTime - Start time
+ * @param {Number} endTime - End time
+ */
+function debugPerformance(operation, startTime, endTime) {
+    var elapsed = endTime - startTime;
+    logMessage(operation + ' completed in ' + elapsed + 'ms', 'INFO', 'performance');
+}
+
+/**
+ * Check if specific debug category is enabled
+ * @param {String} category - Debug category
+ * @returns {Boolean} True if enabled
+ */
+function isDebugEnabled(category) {
+    try {
+        if (!g_loggingConfig || !g_loggingConfig.enabled) {
+            return false;
+        }
+
+        if (!category) return g_loggingConfig.levels.DEBUG.enabled;
+
+        var categoryConfig = g_loggingConfig.categories[category];
+        return categoryConfig ? categoryConfig.enabled : false;
+
+    } catch (exc) {
+        return false;
     }
 }
 
@@ -1812,106 +1900,81 @@ function retryOperation(operation, maxAttempts, baseDelay) {
  */
 function updateStatus(message) {
     try {
-        debugLog('[Module System] ' + message);
+        logInfo(message, 'general');
     } catch (exc) {
-        // Silent fallback for environments without writeln
-    }
-}
-
-/**
- * Debug output wrapper - only outputs if debug enabled
- * @param {String} message - Debug message
- * @param {String} category - Debug category (enumeration, sampling, etc.)
- */
-function debugLog(message, category) {
-    try {
-        // Check global debug config
-        var debugEnabled = false;
-
-        if (typeof g_domViz_userConfiguration !== 'undefined' &&
-            g_domViz_userConfiguration &&
-            g_domViz_userConfiguration.debug &&
-            g_domViz_userConfiguration.debug.enabled) {
-
-            debugEnabled = true;
-
-            // Check category-specific flags
-            if (category) {
-                switch (category) {
-                    case 'enumeration':
-                        debugEnabled = g_domViz_userConfiguration.debug.showEnumeration;
-                        break;
-                    case 'sampling':
-                        debugEnabled = g_domViz_userConfiguration.debug.showSampling;
-                        break;
-                    case 'circular':
-                        debugEnabled = g_domViz_userConfiguration.debug.showCircularDetection;
-                        break;
-                    case 'display':
-                        debugEnabled = g_domViz_userConfiguration.debug.showDisplay;
-                        break;
-                    case 'performance':
-                        debugEnabled = g_domViz_userConfiguration.debug.showPerformance;
-                        break;
-                }
-            }
-        }
-
-        if (debugEnabled) {
-            $.writeln('[DEBUG' + (category ? ' ' + category.toUpperCase() : '') + '] ' + message);
-        }
-    } catch (exc) {
-        // Fallback - always show if debug system fails
-        $.writeln('[DEBUG FALLBACK] ' + message);
-    }
-}
-
-/**
- * Performance timing wrapper
- * @param {String} operation - Operation name
- * @param {Number} startTime - Start time
- * @param {Number} endTime - End time
- */
-function debugPerformance(operation, startTime, endTime) {
-    var elapsed = endTime - startTime;
-    debugLog(operation + ' completed in ' + elapsed + 'ms', 'performance');
-}
-
-/**
- * Check if specific debug category is enabled
- * @param {String} category - Debug category
- * @returns {Boolean} True if enabled
- */
-function isDebugEnabled(category) {
-    try {
-        if (typeof g_domViz_userConfiguration === 'undefined' ||
-            !g_domViz_userConfiguration ||
-            !g_domViz_userConfiguration.debug ||
-            !g_domViz_userConfiguration.debug.enabled) {
-            return false;
-        }
-
-        if (!category) return true;
-
-        switch (category) {
-            case 'enumeration': return g_domViz_userConfiguration.debug.showEnumeration;
-            case 'sampling': return g_domViz_userConfiguration.debug.showSampling;
-            case 'circular': return g_domViz_userConfiguration.debug.showCircularDetection;
-            case 'display': return g_domViz_userConfiguration.debug.showDisplay;
-            case 'performance': return g_domViz_userConfiguration.debug.showPerformance;
-            default: return true;
-        }
-    } catch (exc) {
-        return false;
+        // Silent fallback for environments without logging
     }
 }
 
 // =============================================================================
-// MODULE REGISTRATION
+// OBJECT CLONING - CRITICAL FUNCTION IMPLEMENTATION
+// =============================================================================
+
+/**
+ * Clone object safely (ES3 compatible) - CRITICAL FUNCTION
+ * @param {*} source - Source object to clone
+ * @param {Number} maxDepth - Maximum recursion depth
+ * @returns {*} Cloned object
+ */
+function objectClone(source, maxDepth) {
+    try {
+        var depth = maxDepth || 3;
+        
+        function cloneValue(value, currentDepth) {
+            try {
+                if (currentDepth >= depth) {
+                    return '[max depth reached]';
+                }
+
+                if (value === null || value === undefined) {
+                    return value;
+                }
+
+                var valueType = typeof value;
+
+                if (valueType !== 'object') {
+                    return value;
+                }
+
+                // Handle arrays
+                if (value.length !== undefined && typeof value.length === 'number') {
+                    var clonedArray = [];
+                    for (var i = 0; i < value.length; i++) {
+                        clonedArray[i] = cloneValue(value[i], currentDepth + 1);
+                    }
+                    return clonedArray;
+                }
+
+                // Handle objects
+                var clonedObject = {};
+                for (var prop in value) {
+                    if (objectHasOwnProperty(value, prop)) {
+                        clonedObject[prop] = cloneValue(value[prop], currentDepth + 1);
+                    }
+                }
+                return clonedObject;
+
+            } catch (exc) {
+                return '[clone error]';
+            }
+        }
+
+        return cloneValue(source, 0);
+
+    } catch (exc) {
+        return source;
+    }
+}
+
+// =============================================================================
+// MODULE REGISTRATION - COMPLETE FUNCTION LIST
 // =============================================================================
 
 // Register this module with all its functions
 registerModule('1.2_safety-utilities', '3.1', [
+    // Unified Logging System - NEW
+    'initializeLoggingConfig', 'logMessage', 'logInfo', 'logDebug', 'logWarn', 'logError',
+
     // Array Helpers
     'arrayIndexOf', 'arraySlice', 'arrayJoin', 'arrayPush', 'arrayPop', 'arrayConcat',
 
@@ -1920,7 +1983,7 @@ registerModule('1.2_safety-utilities', '3.1', [
     'stringToLowerCase', 'stringToUpperCase', 'stringReplace', 'stringMatch',
 
     // Object Helpers
-    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', //'objectClone',
+    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', 'objectClone',
     'objectMerge', 'objectDeepMerge',
 
     // Function Utilities
@@ -1954,7 +2017,7 @@ registerModule('1.2_safety-utilities', '3.1', [
     // Environment Validation
     'validateInDesignEnvironment', 'validateDocumentState',
 
-    // Debug System Functions - NEW
+    // Debug System Functions - LEGACY COMPATIBILITY
     'debugLog', 'debugPerformance', 'isDebugEnabled',
 
     // Utilities
@@ -1963,5 +2026,5 @@ registerModule('1.2_safety-utilities', '3.1', [
 ]);
 
 // =============================================================================
-// END OF 1.2_safety-utilities.jsx
+// END OF 1.2_safety-utilities.jsx - COMPLETE WITH LOGGING LEVELS
 // =============================================================================

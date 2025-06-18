@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Core module system with dependency management and ES3 compatibility
 // DEPENDENCIES: NONE (This is the foundation module)
-// SIZE: ~1500 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~801 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================

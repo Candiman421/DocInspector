@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Deep collection content sampling with object reference tracking
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx", "2.1_dom-enumerator.jsx"]
-// SIZE: ~1400 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~913 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================

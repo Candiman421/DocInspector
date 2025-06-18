@@ -4,7 +4,7 @@
 // =============================================================================
 // PURPOSE: Property value sampling with reference tracking integration
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx", "2.1_dom-enumerator.jsx"]
-// SIZE: ~1500 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1426 lines - COMPLETE IMPLEMENTATION
 // =============================================================================
 
 // =============================================================================

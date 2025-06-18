@@ -4,11 +4,11 @@
 // =============================================================================
 // PURPOSE: Export DOM structures in multiple formats with comprehensive features
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~1800 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1404 lines - COMPLETE IMPLEMENTATION WITH UNIFIED LOGGING
 // =============================================================================
 
 // =============================================================================
-// DEPENDENCY VALIDATION (FIXED: Correct v3.1 dependencies)
+// DEPENDENCY VALIDATION
 // =============================================================================
 
 var DOM_EXPORTER_DEPENDENCIES = ['1.1_bootstrap-foundation', '1.2_safety-utilities'];
@@ -18,7 +18,90 @@ if (!dependencyCheck.success) {
 }
 
 // =============================================================================
-// EXPORT CONFIGURATION (FIXED: No reserved words)
+// UNIFIED LOGGING CONFIGURATION
+// =============================================================================
+
+var EXPORTER_LOGGING_CONFIG = {
+    enabled: true,
+    levels: {
+        INFO: true,      // Always show important operations
+        WARN: true,      // Always show warnings
+        ERROR: true,     // Always show errors
+        DEBUG: false     // Only when debugging (can be enabled via config)
+    },
+    categories: {
+        'export': true,      // Export operations
+        'preprocessing': true, // Data preprocessing
+        'csv': true,         // CSV generation
+        'json': true,        // JSON generation  
+        'text': true,        // Text generation
+        'file': true,        // File operations
+        'performance': true  // Performance metrics
+    }
+};
+
+/**
+ * Enhanced logging for DOM exporter with unified configuration
+ * @param {String} message - Log message
+ * @param {String} level - Log level: 'INFO', 'DEBUG', 'WARN', 'ERROR'
+ * @param {String} category - Category: 'export', 'csv', 'json', 'text', 'file', 'performance'
+ */
+function exporterLog(message, level, category) {
+    try {
+        var logLevel = level || 'INFO';
+        var logCategory = category || 'export';
+        var shouldLog = false;
+
+        // Check if logging is enabled
+        if (!EXPORTER_LOGGING_CONFIG.enabled) {
+            return;
+        }
+
+        // Check level permissions
+        if (EXPORTER_LOGGING_CONFIG.levels[logLevel]) {
+            shouldLog = true;
+        }
+
+        // Check category permissions
+        if (!EXPORTER_LOGGING_CONFIG.categories[logCategory]) {
+            shouldLog = false;
+        }
+
+        // Special case: DEBUG level respects global debug config if available
+        if (logLevel === 'DEBUG') {
+            if (typeof g_domViz_userConfiguration !== 'undefined' &&
+                g_domViz_userConfiguration &&
+                g_domViz_userConfiguration.debug &&
+                g_domViz_userConfiguration.debug.enabled) {
+                shouldLog = true;
+            } else {
+                shouldLog = EXPORTER_LOGGING_CONFIG.levels.DEBUG;
+            }
+        }
+
+        if (shouldLog) {
+            var logPrefix = '[EXPORTER ' + logLevel;
+            if (logCategory !== 'export') {
+                logPrefix += ' ' + logCategory.toUpperCase();
+            }
+            logPrefix += '] ';
+
+            $.writeln(logPrefix + message);
+        }
+    } catch (exc) {
+        // Fallback logging
+        $.writeln('[EXPORTER LOG ERROR] ' + message);
+    }
+}
+
+// Convenience functions for exporter logging
+function exporterInfo(message, category) { exporterLog(message, 'INFO', category); }
+function exporterDebug(message, category) { exporterLog(message, 'DEBUG', category); }
+function exporterWarn(message, category) { exporterLog(message, 'WARN', category); }
+function exporterError(message, category) { exporterLog(message, 'ERROR', category); }
+
+// =============================================================================
+// EXPORT CONFIGURATION
 // =============================================================================
 
 var DEFAULT_EXPORT_CONFIG = {
@@ -29,7 +112,7 @@ var DEFAULT_EXPORT_CONFIG = {
     enableTimestamps: true,
     enableCompression: false,
     maxFileSize: 50 * 1024 * 1024, // 50MB limit
-    defaultOutputFormat: 'json', // FIXED: was 'format' (reserved)
+    defaultOutputFormat: 'json',
     includeStatistics: true,
     includeAccessGuide: true,
     includeAccessPaths: true,
@@ -37,7 +120,7 @@ var DEFAULT_EXPORT_CONFIG = {
 };
 
 // =============================================================================
-// MAIN EXPORT FUNCTIONS (FIXED: All variable names ES3 compatible)
+// MAIN EXPORT FUNCTIONS
 // =============================================================================
 
 /**
@@ -49,138 +132,227 @@ var DEFAULT_EXPORT_CONFIG = {
  */
 function exportDOMStructure(domStructure, outputFormat, exportConfig) {
     var startTime = new Date().getTime();
-    var config = exportConfig ? objectMerge(DEFAULT_EXPORT_CONFIG, exportConfig) : 
-                  objectClone(DEFAULT_EXPORT_CONFIG, 3);
-    
-    var result = {
+    var mergedConfig = exportConfig ?
+        objectMerge(DEFAULT_EXPORT_CONFIG, exportConfig) :
+        objectClone(DEFAULT_EXPORT_CONFIG, 3);
+
+    exporterInfo('Starting DOM structure export in format: ' + (outputFormat || 'json'), 'export');
+
+    var exportResult = {
         success: false,
         content: '',
         metadata: {
-            exportFormat: outputFormat || 'json', // FIXED: was 'format'
+            exportFormat: outputFormat || 'json',
             exportTimestamp: getCurrentTimestamp(),
             exportVersion: '3.1',
-            configUsed: config
+            configUsed: mergedConfig
         },
-        error: null
+        errorMessage: null
     };
-    
+
     try {
         // Validate inputs
         if (!domStructure) {
-            result.error = 'No DOM structure provided for export';
-            return result;
+            exportResult.errorMessage = 'No DOM structure provided for export';
+            exporterError(exportResult.errorMessage, 'export');
+            return exportResult;
         }
-        
-        var targetFormat = stringToLowerCase(outputFormat || 'json'); // FIXED: was 'format'
-        
+
+        var targetFormat = stringToLowerCase(outputFormat || 'json');
+        exporterDebug('Target format: ' + targetFormat, 'export');
+
         // Preprocess DOM structure
-        var processedStructure = preprocessDOMForExport(domStructure, config);
-        
+        var processedStructure = preprocessDOMForExport(domStructure, mergedConfig);
+        exporterDebug('DOM structure preprocessed', 'preprocessing');
+
         // Generate export content based on format
         switch (targetFormat) {
             case 'json':
-                result.content = generateJSONExport(processedStructure, config);
-                result.metadata.mimeType = 'application/json';
-                result.metadata.fileExtension = '.json';
+                exportResult.content = generateJSONExport(processedStructure, mergedConfig);
+                exportResult.metadata.mimeType = 'application/json';
+                exportResult.metadata.fileExtension = '.json';
                 break;
-                
+
             case 'text':
             case 'txt':
-                result.content = generateTextExport(processedStructure, config);
-                result.metadata.mimeType = 'text/plain';
-                result.metadata.fileExtension = '.txt';
+                exportResult.content = generateTextExport(processedStructure, mergedConfig);
+                exportResult.metadata.mimeType = 'text/plain';
+                exportResult.metadata.fileExtension = '.txt';
                 break;
-                
+
             case 'csv':
-                result.content = generateCSVExport(processedStructure, config);
-                result.metadata.mimeType = 'text/csv';
-                result.metadata.fileExtension = '.csv';
+                exportResult.content = generateCSVExport(processedStructure, mergedConfig);
+                exportResult.metadata.mimeType = 'text/csv';
+                exportResult.metadata.fileExtension = '.csv';
                 break;
-                
+
             default:
-                result.error = 'Unsupported export format: ' + targetFormat;
-                return result;
+                exportResult.errorMessage = 'Unsupported export format: ' + targetFormat;
+                exporterError(exportResult.errorMessage, 'export');
+                return exportResult;
         }
-        
+
         // Validate content size
-        if (result.content.length > config.maxFileSize) {
-            result.error = 'Export content exceeds maximum file size limit';
-            return result;
+        if (exportResult.content.length > mergedConfig.maxFileSize) {
+            exportResult.errorMessage = 'Export content exceeds maximum file size limit';
+            exporterError(exportResult.errorMessage, 'export');
+            return exportResult;
         }
-        
+
         // Add export statistics
-        result.metadata.contentLength = result.content.length;
-        result.metadata.exportDuration = new Date().getTime() - startTime;
-        result.metadata.nodeCount = processedStructure.structure ? processedStructure.structure.length : 0;
-        
-        result.success = true;
-        return result;
-        
+        exportResult.metadata.contentLength = exportResult.content.length;
+        exportResult.metadata.exportDuration = new Date().getTime() - startTime;
+        exportResult.metadata.nodeCount = processedStructure.structure ?
+            (processedStructure.structure.document ? 1 : processedStructure.structure.length) : 0;
+
+        exportResult.success = true;
+        exporterInfo('Export completed successfully in ' + exportResult.metadata.exportDuration + 'ms', 'performance');
+        return exportResult;
+
     } catch (exc) {
-        result.error = 'Export failed: ' + exc.message;
-        return result;
+        exportResult.errorMessage = 'Export failed: ' + exc.message;
+        exporterError(exportResult.errorMessage, 'export');
+        return exportResult;
     }
 }
 
 /**
  * Preprocess DOM structure for export
  * @param {Object} domStructure - Original DOM structure
- * @param {Object} config - Export configuration
+ * @param {Object} exportConfig - Export configuration
  * @returns {Object} Processed structure
  */
-function preprocessDOMForExport(domStructure, config) {
+function preprocessDOMForExport(domStructure, exportConfig) {
     try {
-        var processed = objectClone(domStructure, 4);
-        
+        exporterDebug('Starting DOM structure preprocessing', 'preprocessing');
+        var processedStructure = objectClone(domStructure, 4);
+
         // Add export metadata if not present
-        if (!processed.metadata) {
-            processed.metadata = {};
+        if (!processedStructure.metadata) {
+            processedStructure.metadata = {};
         }
-        
-        processed.metadata.exportPreprocessed = true;
-        processed.metadata.exportTimestamp = getCurrentTimestamp();
-        processed.metadata.exportVersion = '3.1';
-        
+
+        processedStructure.metadata.exportPreprocessed = true;
+        processedStructure.metadata.exportTimestamp = getCurrentTimestamp();
+        processedStructure.metadata.exportVersion = '3.1';
+
         // Add comparison fingerprint if enabled
-        if (config.includeComparisonData) {
-            processed.metadata.comparisonFingerprint = generateComparisonFingerprint(processed);
+        if (exportConfig.includeComparisonData) {
+            exporterDebug('Generating comparison fingerprint', 'preprocessing');
+            processedStructure.metadata.comparisonFingerprint = generateComparisonFingerprint(processedStructure);
         }
-        
+
         // Filter content based on configuration
-        if (!config.includeExtractedValues) {
+        if (!exportConfig.includeExtractedValues) {
+            exporterDebug('Removing extracted values to reduce size', 'preprocessing');
             // Remove extracted values to reduce size
-            if (processed.structure) {
-                for (var i = 0; i < processed.structure.length; i++) {
-                    var node = processed.structure[i];
-                    if (node.sampledValue !== undefined) {
-                        delete node.sampledValue;
-                    }
-                    if (node.valueMetadata) {
-                        delete node.valueMetadata;
-                    }
+            if (processedStructure.structure && processedStructure.structure.document) {
+                removeExtractedValuesFromNode(processedStructure.structure.document);
+            } else if (processedStructure.structure && processedStructure.structure.length) {
+                for (var i = 0; i < processedStructure.structure.length; i++) {
+                    removeExtractedValuesFromNode(processedStructure.structure[i]);
                 }
             }
         }
-        
-        if (!config.includeObjectReferences) {
+
+        if (!exportConfig.includeObjectReferences) {
+            exporterDebug('Removing object reference data', 'preprocessing');
             // Remove object reference data
-            if (processed.objectRegistry) {
-                delete processed.objectRegistry;
+            if (processedStructure.objectRegistry) {
+                delete processedStructure.objectRegistry;
             }
-            if (processed.structure) {
-                for (var j = 0; j < processed.structure.length; j++) {
-                    var structNode = processed.structure[j];
-                    if (structNode.objectId) {
-                        delete structNode.objectId;
-                    }
+            if (processedStructure.structure && processedStructure.structure.document) {
+                removeObjectIdsFromNode(processedStructure.structure.document);
+            } else if (processedStructure.structure && processedStructure.structure.length) {
+                for (var j = 0; j < processedStructure.structure.length; j++) {
+                    removeObjectIdsFromNode(processedStructure.structure[j]);
                 }
             }
         }
-        
-        return processed;
-        
+
+        exporterDebug('DOM structure preprocessing completed', 'preprocessing');
+        return processedStructure;
+
     } catch (exc) {
+        exporterWarn('Preprocessing failed, returning original structure: ' + exc.message, 'preprocessing');
         return domStructure; // Return original on error
+    }
+}
+
+/**
+ * Remove extracted values from a node recursively
+ * @param {Object} nodeObj - DOM node
+ */
+function removeExtractedValuesFromNode(nodeObj) {
+    try {
+        if (!nodeObj) return;
+
+        if (nodeObj.sampledValue !== undefined) {
+            delete nodeObj.sampledValue;
+        }
+        if (nodeObj.valueMetadata) {
+            delete nodeObj.valueMetadata;
+        }
+
+        // Process properties
+        if (nodeObj.properties) {
+            for (var p = 0; p < nodeObj.properties.length; p++) {
+                removeExtractedValuesFromNode(nodeObj.properties[p]);
+            }
+        }
+
+        // Process collections
+        if (nodeObj.collections) {
+            for (var c = 0; c < nodeObj.collections.length; c++) {
+                removeExtractedValuesFromNode(nodeObj.collections[c]);
+            }
+        }
+
+        // Process child nodes
+        if (nodeObj.childNodes) {
+            for (var ch = 0; ch < nodeObj.childNodes.length; ch++) {
+                removeExtractedValuesFromNode(nodeObj.childNodes[ch]);
+            }
+        }
+    } catch (exc) {
+        // Continue processing
+    }
+}
+
+/**
+ * Remove object IDs from a node recursively
+ * @param {Object} nodeObj - DOM node
+ */
+function removeObjectIdsFromNode(nodeObj) {
+    try {
+        if (!nodeObj) return;
+
+        if (nodeObj.objectId) {
+            delete nodeObj.objectId;
+        }
+
+        // Process properties
+        if (nodeObj.properties) {
+            for (var p = 0; p < nodeObj.properties.length; p++) {
+                removeObjectIdsFromNode(nodeObj.properties[p]);
+            }
+        }
+
+        // Process collections
+        if (nodeObj.collections) {
+            for (var c = 0; c < nodeObj.collections.length; c++) {
+                removeObjectIdsFromNode(nodeObj.collections[c]);
+            }
+        }
+
+        // Process child nodes
+        if (nodeObj.childNodes) {
+            for (var ch = 0; ch < nodeObj.childNodes.length; ch++) {
+                removeObjectIdsFromNode(nodeObj.childNodes[ch]);
+            }
+        }
+    } catch (exc) {
+        // Continue processing
     }
 }
 
@@ -192,165 +364,466 @@ function preprocessDOMForExport(domStructure, config) {
 function generateComparisonFingerprint(domStructure) {
     try {
         var fingerprintData = {
-            nodeCount: domStructure.structure ? domStructure.structure.length : 0,
+            nodeCount: 0,
             timestamp: domStructure.metadata ? domStructure.metadata.timestamp : '',
             documentName: domStructure.metadata ? domStructure.metadata.documentName : '',
             version: '3.1'
         };
-        
+
+        // Calculate node count based on structure format
+        if (domStructure.structure) {
+            if (domStructure.structure.document) {
+                fingerprintData.nodeCount = 1; // Document node
+            } else if (domStructure.structure.length) {
+                fingerprintData.nodeCount = domStructure.structure.length;
+            }
+        }
+
         // Create simple hash
         var dataString = safeJSONStringify(fingerprintData);
-        var hash = 0;
-        
+        var hashValue = 0;
+
         for (var i = 0; i < dataString.length; i++) {
             var charCode = dataString.charCodeAt ? dataString.charCodeAt(i) : 0;
-            hash = ((hash << 5) - hash) + charCode;
-            hash = hash & hash; // Convert to 32-bit integer
+            hashValue = ((hashValue << 5) - hashValue) + charCode;
+            hashValue = hashValue & hashValue; // Convert to 32-bit integer
         }
-        
-        return 'fp_' + Math.abs(hash).toString(16);
-        
+
+        return 'fp_' + Math.abs(hashValue).toString(16);
+
     } catch (exc) {
+        exporterWarn('Fingerprint generation failed: ' + exc.message, 'preprocessing');
         return 'fp_error';
     }
 }
 
 // =============================================================================
-// JSON EXPORT (FIXED: ES3 compatible JSON handling)
+// JSON EXPORT
 // =============================================================================
 
 /**
  * Generate JSON export with enhanced formatting
  * @param {Object} domStructure - DOM structure to export
- * @param {Object} config - Export configuration
+ * @param {Object} exportConfig - Export configuration
  * @returns {String} JSON export content
  */
-function generateJSONExport(domStructure, config) {
+function generateJSONExport(domStructure, exportConfig) {
     try {
+        exporterDebug('Starting JSON export generation', 'json');
+
         var exportObject = {
-            metadata: generateMetadataSection(domStructure, config),
-            structure: domStructure.structure || [],
+            metadata: domStructure.metadata || {},
+            structure: domStructure.structure || {},
             statistics: domStructure.statistics || {},
             exportInfo: {
                 version: '3.1',
                 timestamp: getCurrentTimestamp(),
-                configurationUsed: config
+                configurationUsed: exportConfig
             }
         };
-        
+
         // Add optional sections
-        if (config.includeObjectReferences && domStructure.objectRegistry) {
+        if (exportConfig.includeObjectReferences && domStructure.objectRegistry) {
             exportObject.objectRegistry = domStructure.objectRegistry;
+            exporterDebug('Including object registry in JSON export', 'json');
         }
-        
-        if (config.includeAccessPaths && domStructure.accessPaths) {
+
+        if (exportConfig.includeAccessPaths && domStructure.accessPaths) {
             exportObject.accessPaths = domStructure.accessPaths;
+            exporterDebug('Including access paths in JSON export', 'json');
         }
-        
-        if (config.includeComparisonData && domStructure.comparisonData) {
+
+        if (exportConfig.includeComparisonData && domStructure.comparisonData) {
             exportObject.comparisonData = domStructure.comparisonData;
+            exporterDebug('Including comparison data in JSON export', 'json');
         }
-        
+
         // Use safe JSON stringify with proper indentation
-        var indentLevel = config.formatOutput ? 2 : 0;
-        return safeJSONStringify(exportObject, null, indentLevel);
-        
+        var indentLevel = exportConfig.formatOutput ? 2 : 0;
+        var jsonResult = safeJSONStringify(exportObject, null, indentLevel);
+
+        exporterInfo('JSON export generated successfully', 'json');
+        return jsonResult;
+
     } catch (exc) {
+        exporterError('JSON export failed: ' + exc.message, 'json');
         return '{"error": "JSON export failed: ' + exc.message + '"}';
     }
 }
 
 // =============================================================================
-// TEXT EXPORT (FIXED: String building with proper concatenation)
+// TEXT EXPORT
 // =============================================================================
 
 /**
  * Generate formatted text export
  * @param {Object} domStructure - DOM structure to export
- * @param {Object} config - Export configuration
+ * @param {Object} exportConfig - Export configuration
  * @returns {String} Text export content
  */
-function generateTextExport(domStructure, config) {
+function generateTextExport(domStructure, exportConfig) {
     try {
-        var builder = createStringBuilder();
-        
+        exporterDebug('Starting text export generation', 'text');
+        var textBuilder = createStringBuilder();
+
         // Header
-        builder.appendLine('InDesign DOM Discovery Builder v3.1');
-        builder.appendLine('DOM Structure Export');
-        builder.appendLine('==========================================');
-        builder.appendLine('Generated: ' + getCurrentTimestamp());
-        builder.appendLine('');
-        
+        textBuilder.appendLine('InDesign DOM Discovery Builder v3.1');
+        textBuilder.appendLine('DOM Structure Export');
+        textBuilder.appendLine('==========================================');
+        textBuilder.appendLine('Generated: ' + getCurrentTimestamp());
+        textBuilder.appendLine('');
+
         // Metadata section
-        if (config.includeMetadata) {
-            builder.append(generateMetadataSection(domStructure, config));
-            builder.appendLine('');
+        if (exportConfig.includeMetadata) {
+            exporterDebug('Adding metadata section to text export', 'text');
+            textBuilder.append(generateMetadataSection(domStructure, exportConfig));
+            textBuilder.appendLine('');
         }
-        
+
         // Statistics section
-        if (config.includeStatistics && domStructure.statistics) {
-            builder.append(generateStatisticsSection(domStructure.statistics));
-            builder.appendLine('');
+        if (exportConfig.includeStatistics && domStructure.statistics) {
+            exporterDebug('Adding statistics section to text export', 'text');
+            textBuilder.append(generateStatisticsSection(domStructure.statistics));
+            textBuilder.appendLine('');
         }
-        
+
         // Object references section
-        if (config.includeObjectReferences && domStructure.objectRegistry) {
-            builder.append(generateObjectReferenceSection(domStructure.objectRegistry));
-            builder.appendLine('');
+        if (exportConfig.includeObjectReferences && domStructure.objectRegistry) {
+            exporterDebug('Adding object references section to text export', 'text');
+            textBuilder.append(generateObjectReferenceSection(domStructure.objectRegistry));
+            textBuilder.appendLine('');
         }
-        
+
         // Main structure section
-        builder.append(generateStructureSection(domStructure, config));
-        
+        textBuilder.append(generateStructureSection(domStructure, exportConfig));
+
         // Access guide section
-        if (config.includeAccessGuide) {
-            builder.appendLine('');
-            builder.append(generateAccessGuideSection(domStructure));
+        if (exportConfig.includeAccessGuide) {
+            exporterDebug('Adding access guide section to text export', 'text');
+            textBuilder.appendLine('');
+            textBuilder.append(generateAccessGuideSection(domStructure));
         }
-        
-        return builder.toString();
-        
+
+        exporterInfo('Text export generated successfully', 'text');
+        return textBuilder.toString();
+
     } catch (exc) {
+        exporterError('Text export failed: ' + exc.message, 'text');
         return 'Text export failed: ' + exc.message;
     }
 }
 
+// =============================================================================
+// CSV EXPORT - FIXED VERSION
+// =============================================================================
+
+/**
+ * Generate CSV export - FIXED to handle structure.document format
+ * @param {Object} domStructure - DOM structure to export
+ * @param {Object} exportConfig - Export configuration
+ * @returns {String} CSV export content
+ */
+function generateCSVExport(domStructure, exportConfig) {
+    try {
+        exporterDebug('Starting CSV export generation', 'csv');
+
+        var csvBuilder = createStringBuilder();
+
+        // CSV header
+        var csvHeaders = [
+            'Path', 'Name', 'Type', 'Depth', 'Safety Level', 'Is Collection',
+            'Is Method', 'Object ID', 'Alternative Paths', 'Property Count', 'Version'
+        ];
+
+        if (exportConfig.includeExtractedValues) {
+            csvHeaders.push('Sampled Value');
+            csvHeaders.push('Value Type');
+        }
+
+        csvBuilder.appendLine(generateCSVRow(csvHeaders));
+        exporterDebug('CSV headers generated', 'csv');
+
+        // **FIX: Handle actual structure format (object with "document" property)**
+        if (domStructure.structure && domStructure.structure.document) {
+            exporterDebug('Processing document node for CSV export', 'csv');
+            generateCSVRowsForNode(domStructure.structure.document, csvBuilder, exportConfig);
+        } else if (domStructure.structure && domStructure.structure.length > 0) {
+            exporterDebug('Processing structure array for CSV export (' + domStructure.structure.length + ' nodes)', 'csv');
+            for (var i = 0; i < domStructure.structure.length; i++) {
+                var nodeItem = domStructure.structure[i];
+                generateCSVRowsForNode(nodeItem, csvBuilder, exportConfig);
+            }
+        } else {
+            exporterWarn('No document structure found for CSV export', 'csv');
+            // Add a single row indicating no data
+            var noDataRow = ['No Data', 'No document structure available', 'error', '0', 'unknown', 'false', 'false', '', '', '0', '3.1'];
+            if (exportConfig.includeExtractedValues) {
+                noDataRow.push('');
+                noDataRow.push('');
+            }
+            csvBuilder.appendLine(generateCSVRow(noDataRow));
+        }
+
+        exporterInfo('CSV export generated successfully', 'csv');
+        return csvBuilder.toString();
+
+    } catch (exc) {
+        exporterError('CSV export failed: ' + exc.message, 'csv');
+        return 'CSV export failed: ' + exc.message;
+    }
+}
+
+/**
+ * Generate CSV rows for a single node
+ * @param {Object} domNode - DOM node
+ * @param {Object} csvBuilder - String builder
+ * @param {Object} exportConfig - Configuration
+ */
+function generateCSVRowsForNode(domNode, csvBuilder, exportConfig) {
+    try {
+        if (!domNode) return;
+
+        // Main node row
+        var alternativePaths = domNode.alternativeAccessPaths ?
+            arrayJoin(domNode.alternativeAccessPaths, ';') : '';
+        var propertyCount = (domNode.properties ? domNode.properties.length : 0) +
+            (domNode.collections ? domNode.collections.length : 0) +
+            (domNode.methods ? domNode.methods.length : 0);
+
+        var mainRowData = [
+            domNode.path || '',
+            domNode.name || '',
+            domNode.type || '',
+            domNode.depth || 0,
+            domNode.safetyLevel || 'unknown',
+            domNode.isCollection ? 'true' : 'false',
+            domNode.isMethod ? 'true' : 'false',
+            domNode.objectId || '',
+            alternativePaths,
+            propertyCount,
+            '3.1'
+        ];
+
+        if (exportConfig.includeExtractedValues) {
+            mainRowData.push(formatValueForCSV(domNode.sampledValue));
+            mainRowData.push(safeTypeCheck(domNode.sampledValue));
+        }
+
+        csvBuilder.appendLine(generateCSVRow(mainRowData));
+
+        // Add rows for properties
+        if (domNode.properties) {
+            for (var p = 0; p < domNode.properties.length; p++) {
+                var propertyItem = domNode.properties[p];
+                var propRowData = [
+                    propertyItem.path || '',
+                    propertyItem.name || '',
+                    propertyItem.type || '',
+                    (domNode.depth || 0) + 1,
+                    propertyItem.safetyLevel || 'unknown',
+                    'false',
+                    'false',
+                    '',
+                    '',
+                    0,
+                    '3.1'
+                ];
+
+                if (exportConfig.includeExtractedValues) {
+                    propRowData.push(formatValueForCSV(propertyItem.sampledValue));
+                    propRowData.push(safeTypeCheck(propertyItem.sampledValue));
+                }
+
+                csvBuilder.appendLine(generateCSVRow(propRowData));
+            }
+        }
+
+        // Add rows for collections
+        if (domNode.collections) {
+            for (var c = 0; c < domNode.collections.length; c++) {
+                var collectionItem = domNode.collections[c];
+                var collRowData = [
+                    collectionItem.path || '',
+                    collectionItem.name || '',
+                    collectionItem.type || 'collection',
+                    (domNode.depth || 0) + 1,
+                    collectionItem.safetyLevel || 'unknown',
+                    'true',
+                    'false',
+                    '',
+                    '',
+                    collectionItem.itemCount || 0,
+                    '3.1'
+                ];
+
+                if (exportConfig.includeExtractedValues) {
+                    collRowData.push(formatValueForCSV(collectionItem.sampledValue));
+                    collRowData.push('collection');
+                }
+
+                csvBuilder.appendLine(generateCSVRow(collRowData));
+            }
+        }
+
+        // Add rows for methods
+        if (domNode.methods) {
+            for (var m = 0; m < domNode.methods.length; m++) {
+                var methodItem = domNode.methods[m];
+                var methodRowData = [
+                    methodItem.path || '',
+                    methodItem.name || '',
+                    methodItem.type || 'method',
+                    (domNode.depth || 0) + 1,
+                    methodItem.safetyLevel || 'dangerous',
+                    'false',
+                    'true',
+                    '',
+                    '',
+                    0,
+                    '3.1'
+                ];
+
+                if (exportConfig.includeExtractedValues) {
+                    methodRowData.push('[Method]');
+                    methodRowData.push('function');
+                }
+
+                csvBuilder.appendLine(generateCSVRow(methodRowData));
+            }
+        }
+
+        // Process child nodes recursively
+        if (domNode.childNodes) {
+            for (var ch = 0; ch < domNode.childNodes.length; ch++) {
+                generateCSVRowsForNode(domNode.childNodes[ch], csvBuilder, exportConfig);
+            }
+        }
+
+    } catch (exc) {
+        exporterWarn('Error processing node for CSV: ' + exc.message, 'csv');
+        // Continue processing other nodes
+    }
+}
+
+/**
+ * Generate a single CSV row with proper escaping
+ * @param {Array} rowData - Row data array
+ * @returns {String} CSV row
+ */
+function generateCSVRow(rowData) {
+    try {
+        var escapedData = [];
+
+        for (var i = 0; i < rowData.length; i++) {
+            escapedData[i] = csvEscape(safeToString(rowData[i]));
+        }
+
+        return arrayJoin(escapedData, ',');
+
+    } catch (exc) {
+        exporterWarn('Error generating CSV row: ' + exc.message, 'csv');
+        return '';
+    }
+}
+
+/**
+ * Escape value for CSV with proper escaping
+ * @param {String} targetValue - Value to escape
+ * @returns {String} Escaped value
+ */
+function csvEscape(targetValue) {
+    try {
+        if (typeof targetValue !== 'string') {
+            targetValue = safeToString(targetValue);
+        }
+
+        // If contains comma, quote, or newline, wrap in quotes and escape quotes
+        if (stringIndexOf(targetValue, ',') !== -1 ||
+            stringIndexOf(targetValue, '"') !== -1 ||
+            stringIndexOf(targetValue, '\n') !== -1 ||
+            stringIndexOf(targetValue, '\r') !== -1) {
+
+            // Escape quotes by doubling them
+            targetValue = stringReplace(targetValue, '"', '""');
+            return '"' + targetValue + '"';
+        }
+
+        return targetValue;
+
+    } catch (exc) {
+        return '""';
+    }
+}
+
+/**
+ * Format value for CSV with safe value conversion
+ * @param {*} targetValue - Value to format
+ * @returns {String} Formatted value
+ */
+function formatValueForCSV(targetValue) {
+    try {
+        if (targetValue === null) return '[null]';
+        if (targetValue === undefined) return '[undefined]';
+
+        var valueString = safeToString(targetValue);
+
+        // Limit length for CSV
+        if (valueString.length > 200) {
+            valueString = stringSubstring(valueString, 0, 200) + '...';
+        }
+
+        // Remove problematic characters
+        valueString = stringReplace(valueString, '\n', ' ');
+        valueString = stringReplace(valueString, '\r', ' ');
+        valueString = stringReplace(valueString, '\t', ' ');
+
+        return valueString;
+
+    } catch (exc) {
+        return '[Error]';
+    }
+}
+
+// =============================================================================
+// SECTION GENERATORS
+// =============================================================================
+
 /**
  * Generate metadata section for text export
  * @param {Object} domStructure - DOM structure
- * @param {Object} config - Configuration
+ * @param {Object} exportConfig - Configuration
  * @returns {String} Metadata section
  */
-function generateMetadataSection(domStructure, config) {
+function generateMetadataSection(domStructure, exportConfig) {
     try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('DOCUMENT METADATA');
-        builder.appendLine('=================');
-        
+        var metaBuilder = createStringBuilder();
+
+        metaBuilder.appendLine('DOCUMENT METADATA');
+        metaBuilder.appendLine('=================');
+
         if (domStructure.metadata) {
-            var metadata = domStructure.metadata;
-            
-            builder.appendLine('Document Name: ' + (metadata.documentName || 'Unknown'));
-            builder.appendLine('Analysis Version: ' + (metadata.version || 'Unknown'));
-            builder.appendLine('Timestamp: ' + (metadata.timestamp || 'Unknown'));
-            
-            if (metadata.environment) {
-                builder.appendLine('InDesign Version: ' + (metadata.environment.indesignVersion || 'Unknown'));
-                builder.appendLine('Native JSON Support: ' + (metadata.environment.hasNativeJSON ? 'Yes' : 'No'));
+            var metadataObj = domStructure.metadata;
+
+            metaBuilder.appendLine('Document Name: ' + (metadataObj.documentName || 'Unknown'));
+            metaBuilder.appendLine('Analysis Version: ' + (metadataObj.version || 'Unknown'));
+            metaBuilder.appendLine('Timestamp: ' + (metadataObj.timestamp || 'Unknown'));
+
+            if (metadataObj.environment) {
+                metaBuilder.appendLine('InDesign Version: ' + (metadataObj.environment.indesignVersion || 'Unknown'));
+                metaBuilder.appendLine('Native JSON Support: ' + (metadataObj.environment.hasNativeJSON ? 'Yes' : 'No'));
             }
-            
-            if (metadata.enhancedFeatures) {
-                builder.appendLine('');
-                builder.appendLine('Enhanced Features:');
-                builder.appendLine('  Object Tracking: ' + (metadata.enhancedFeatures.objectTracking ? 'Enabled' : 'Disabled'));
-                builder.appendLine('  Duplicate Detection: ' + (metadata.enhancedFeatures.duplicateDetection ? 'Enabled' : 'Disabled'));
-                builder.appendLine('  ES3 Compliant: ' + (metadata.enhancedFeatures.es3Compliant ? 'Yes' : 'No'));
+
+            if (metadataObj.enhancedFeatures) {
+                metaBuilder.appendLine('');
+                metaBuilder.appendLine('Enhanced Features:');
+                metaBuilder.appendLine('  Object Tracking: ' + (metadataObj.enhancedFeatures.objectTracking ? 'Enabled' : 'Disabled'));
+                metaBuilder.appendLine('  Duplicate Detection: ' + (metadataObj.enhancedFeatures.duplicateDetection ? 'Enabled' : 'Disabled'));
+                metaBuilder.appendLine('  ES3 Compliant: ' + (metadataObj.enhancedFeatures.es3Compliant ? 'Yes' : 'No'));
             }
         }
-        
-        return builder.toString();
-        
+
+        return metaBuilder.toString();
+
     } catch (exc) {
         return 'Error generating metadata section: ' + exc.message;
     }
@@ -358,37 +831,37 @@ function generateMetadataSection(domStructure, config) {
 
 /**
  * Generate statistics section
- * @param {Object} statistics - Statistics object
+ * @param {Object} statisticsObj - Statistics object
  * @returns {String} Statistics section
  */
-function generateStatisticsSection(statistics) {
+function generateStatisticsSection(statisticsObj) {
     try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('DISCOVERY STATISTICS');
-        builder.appendLine('===================');
-        
-        builder.appendLine('Total Nodes: ' + (statistics.nodeCount || 0));
-        builder.appendLine('Properties: ' + (statistics.propertyCount || 0));
-        builder.appendLine('Collections: ' + (statistics.collectionCount || 0));
-        builder.appendLine('Methods: ' + (statistics.methodCount || 0));
-        builder.appendLine('Maximum Depth: ' + (statistics.maxDepth || 0));
-        builder.appendLine('Analysis Time: ' + (statistics.totalTime || 'Unknown') + 'ms');
-        
-        if (statistics.enumerationTime) {
-            builder.appendLine('Enumeration Time: ' + statistics.enumerationTime + 'ms');
+        var statsBuilder = createStringBuilder();
+
+        statsBuilder.appendLine('DISCOVERY STATISTICS');
+        statsBuilder.appendLine('===================');
+
+        statsBuilder.appendLine('Total Nodes: ' + (statisticsObj.totalNodes || statisticsObj.nodeCount || 0));
+        statsBuilder.appendLine('Properties: ' + (statisticsObj.totalProperties || statisticsObj.propertyCount || 0));
+        statsBuilder.appendLine('Collections: ' + (statisticsObj.totalCollections || statisticsObj.collectionCount || 0));
+        statsBuilder.appendLine('Methods: ' + (statisticsObj.totalMethods || statisticsObj.methodCount || 0));
+        statsBuilder.appendLine('Maximum Depth: ' + (statisticsObj.maxDepth || 0));
+        statsBuilder.appendLine('Analysis Time: ' + (statisticsObj.totalTime || statisticsObj.enumerationTime || 'Unknown') + 'ms');
+
+        if (statisticsObj.enumerationTime) {
+            statsBuilder.appendLine('Enumeration Time: ' + statisticsObj.enumerationTime + 'ms');
         }
-        
-        if (statistics.samplingTime) {
-            builder.appendLine('Sampling Time: ' + statistics.samplingTime + 'ms');
+
+        if (statisticsObj.samplingTime) {
+            statsBuilder.appendLine('Sampling Time: ' + statisticsObj.samplingTime + 'ms');
         }
-        
-        if (statistics.errorCount) {
-            builder.appendLine('Errors Encountered: ' + statistics.errorCount);
+
+        if (statisticsObj.errorCount) {
+            statsBuilder.appendLine('Errors Encountered: ' + statisticsObj.errorCount);
         }
-        
-        return builder.toString();
-        
+
+        return statsBuilder.toString();
+
     } catch (exc) {
         return 'Error generating statistics section: ' + exc.message;
     }
@@ -401,164 +874,233 @@ function generateStatisticsSection(statistics) {
  */
 function generateObjectReferenceSection(objectRegistry) {
     try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('OBJECT REFERENCES');
-        builder.appendLine('=================');
-        
+        var refBuilder = createStringBuilder();
+
+        refBuilder.appendLine('OBJECT REFERENCES');
+        refBuilder.appendLine('=================');
+
         if (objectRegistry.references) {
-            var refCount = countObjectKeys(objectRegistry.references);
-            builder.appendLine('Total Object References: ' + refCount);
-            builder.appendLine('');
-            
+            var referenceCount = countObjectKeys(objectRegistry.references);
+            refBuilder.appendLine('Total Object References: ' + referenceCount);
+            refBuilder.appendLine('');
+
             var displayCount = 0;
             var maxDisplay = 20;
-            
+
             for (var refId in objectRegistry.references) {
                 if (objectHasOwnProperty(objectRegistry.references, refId) && displayCount < maxDisplay) {
-                    var ref = objectRegistry.references[refId];
-                    builder.appendLine('ID: ' + refId);
-                    builder.appendLine('  First Path: ' + (ref.firstPath || 'Unknown'));
-                    builder.appendLine('  Reference Count: ' + (ref.count || 1));
-                    if (ref.paths && ref.paths.length > 1) {
-                        builder.appendLine('  Alternative Paths: ' + (ref.paths.length - 1));
+                    var referenceObj = objectRegistry.references[refId];
+                    refBuilder.appendLine('ID: ' + refId);
+                    refBuilder.appendLine('  First Path: ' + (referenceObj.firstPath || 'Unknown'));
+                    refBuilder.appendLine('  Reference Count: ' + (referenceObj.count || 1));
+                    if (referenceObj.paths && referenceObj.paths.length > 1) {
+                        refBuilder.appendLine('  Alternative Paths: ' + (referenceObj.paths.length - 1));
                     }
-                    builder.appendLine('');
+                    refBuilder.appendLine('');
                     displayCount++;
                 }
             }
-            
-            if (refCount > maxDisplay) {
-                builder.appendLine('... (' + (refCount - maxDisplay) + ' more references)');
+
+            if (referenceCount > maxDisplay) {
+                refBuilder.appendLine('... (' + (referenceCount - maxDisplay) + ' more references)');
             }
         } else {
-            builder.appendLine('No object reference data available.');
+            refBuilder.appendLine('No object reference data available.');
         }
-        
-        return builder.toString();
-        
+
+        return refBuilder.toString();
+
     } catch (exc) {
         return 'Error generating object reference section: ' + exc.message;
     }
 }
 
 /**
- * Generate main structure section
+ * Generate main structure section - FIXED to handle structure.document format
  * @param {Object} domStructure - DOM structure
- * @param {Object} config - Configuration
+ * @param {Object} exportConfig - Configuration
  * @returns {String} Structure section
  */
-function generateStructureSection(domStructure, config) {
+function generateStructureSection(domStructure, exportConfig) {
     try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('DOM STRUCTURE');
-        builder.appendLine('=============');
-        
-        if (!domStructure.structure || domStructure.structure.length === 0) {
-            builder.appendLine('No structure data available.');
-            return builder.toString();
+        var structBuilder = createStringBuilder();
+
+        structBuilder.appendLine('DOM STRUCTURE');
+        structBuilder.appendLine('=============');
+
+        // **FIX: Handle actual structure format**
+        if (domStructure.structure && domStructure.structure.document) {
+            structBuilder.appendLine('Document structure found - displaying tree format:');
+            structBuilder.appendLine('');
+
+            var documentNode = domStructure.structure.document;
+            structBuilder.append(generateNodeStructureText(documentNode, 0, exportConfig));
+
+        } else if (domStructure.structure && domStructure.structure.length > 0) {
+            structBuilder.appendLine('Structure array found (' + domStructure.structure.length + ' nodes):');
+            structBuilder.appendLine('');
+
+            var displayCount = Math.min(domStructure.structure.length, 50);
+
+            for (var i = 0; i < displayCount; i++) {
+                var nodeItem = domStructure.structure[i];
+                var indentStr = '';
+                for (var d = 0; d < (nodeItem.depth || 0); d++) {
+                    indentStr += '  ';
+                }
+
+                structBuilder.appendLine(indentStr + '• ' + (nodeItem.name || nodeItem.path || 'Unknown') +
+                    ' [' + (nodeItem.type || 'unknown') + ']');
+
+                // Add properties if available
+                if (nodeItem.properties && nodeItem.properties.length > 0) {
+                    var propCount = Math.min(3, nodeItem.properties.length);
+                    for (var p = 0; p < propCount; p++) {
+                        var propertyItem = nodeItem.properties[p];
+                        structBuilder.appendLine(indentStr + '  • ' + propertyItem.name + ' [' + (propertyItem.type || 'unknown') + ']');
+                    }
+                    if (nodeItem.properties.length > propCount) {
+                        structBuilder.appendLine(indentStr + '  • ... (' + (nodeItem.properties.length - propCount) + ' more properties)');
+                    }
+                }
+
+                // Add collections if available
+                if (nodeItem.collections && nodeItem.collections.length > 0) {
+                    var collCount = Math.min(3, nodeItem.collections.length);
+                    for (var c = 0; c < collCount; c++) {
+                        var collectionItem = nodeItem.collections[c];
+                        structBuilder.appendLine(indentStr + '  ► ' + collectionItem.name + ' [collection]');
+                    }
+                    if (nodeItem.collections.length > collCount) {
+                        structBuilder.appendLine(indentStr + '  ► ... (' + (nodeItem.collections.length - collCount) + ' more collections)');
+                    }
+                }
+            }
+
+            if (domStructure.structure.length > displayCount) {
+                structBuilder.appendLine('');
+                structBuilder.appendLine('... (' + (domStructure.structure.length - displayCount) + ' more nodes)');
+            }
+
+        } else {
+            structBuilder.appendLine('No structure data available.');
         }
-        
-        var maxDisplay = config.maxDisplayItems || 100;
-        var displayCount = Math.min(maxDisplay, domStructure.structure.length);
-        
-        for (var i = 0; i < displayCount; i++) {
-            var node = domStructure.structure[i];
-            
-            // Generate indentation based on depth
-            var indent = '';
-            var depth = node.depth || 0;
-            for (var d = 0; d < depth; d++) {
-                indent += '  ';
-            }
-            
-            // Build node display text
-            var nodeText = indent + (node.path || node.name || 'Unknown');
-            
-            // Add type information if available
-            if (node.type) {
-                nodeText += ' [' + node.type + ']';
-            }
-            
-            // Add safety level if available
-            if (node.safetyLevel) {
-                nodeText += ' {' + node.safetyLevel + '}';
-            }
-            
-            // Add value preview if enabled and available
-            if (config.includeExtractedValues && node.sampledValue !== undefined) {
-                var valuePreview = formatValueForDisplay(node.sampledValue);
-                if (valuePreview) {
-                    nodeText += ' = ' + valuePreview;
-                }
-            }
-            
-            builder.appendLine(nodeText);
-            
-            // Add properties if available
-            if (node.properties && node.properties.length > 0) {
-                var propCount = Math.min(5, node.properties.length);
-                for (var p = 0; p < propCount; p++) {
-                    var prop = node.properties[p];
-                    builder.appendLine(indent + '  • ' + prop.name + ' [' + (prop.type || 'unknown') + ']');
-                }
-                if (node.properties.length > propCount) {
-                    builder.appendLine(indent + '  • ... (' + (node.properties.length - propCount) + ' more properties)');
-                }
-            }
-            
-            // Add collections if available
-            if (node.collections && node.collections.length > 0) {
-                var collCount = Math.min(3, node.collections.length);
-                for (var c = 0; c < collCount; c++) {
-                    var coll = node.collections[c];
-                    builder.appendLine(indent + '  ► ' + coll.name + ' [collection]');
-                }
-                if (node.collections.length > collCount) {
-                    builder.appendLine(indent + '  ► ... (' + (node.collections.length - collCount) + ' more collections)');
-                }
-            }
-        }
-        
-        if (domStructure.structure.length > displayCount) {
-            builder.appendLine('');
-            builder.appendLine('... (' + (domStructure.structure.length - displayCount) + ' more nodes)');
-        }
-        
-        return builder.toString();
-        
+
+        return structBuilder.toString();
+
     } catch (exc) {
         return 'Error generating structure section: ' + exc.message;
     }
 }
 
 /**
- * Format value for display (FIXED: Safe value formatting)
- * @param {*} value - Value to format
- * @returns {String} Formatted value
+ * Generate structure text for a single node
+ * @param {Object} nodeItem - DOM node
+ * @param {Number} indentLevel - Indentation level
+ * @param {Object} exportConfig - Export configuration
+ * @returns {String} Node structure text
  */
-function formatValueForDisplay(value) {
+function generateNodeStructureText(nodeItem, indentLevel, exportConfig) {
     try {
-        if (value === null) return '[null]';
-        if (value === undefined) return '[undefined]';
-        
-        var valueStr = safeToString(value);
-        var maxLength = 50;
-        
-        if (valueStr.length > maxLength) {
-            valueStr = stringSubstring(valueStr, 0, maxLength) + '...';
+        if (!nodeItem) return '';
+
+        var nodeBuilder = createStringBuilder();
+        var indentStr = '';
+
+        // Create indentation
+        for (var i = 0; i < indentLevel; i++) {
+            indentStr += '  ';
         }
-        
-        // Escape special charactersValue in strings
-        if (typeof value === 'string') {
-            valueStr = '"' + stringReplace(stringReplace(valueStr, '\\', '\\\\'), '"', '\\"') + '"';
+
+        // Node header
+        var nodeHeader = indentStr + '+ ' + (nodeItem.name || nodeItem.path || 'Unknown') +
+            ' (' + (nodeItem.type || 'object') + ')';
+
+        nodeBuilder.appendLine(nodeHeader);
+
+        // Properties
+        if (nodeItem.properties && nodeItem.properties.length > 0) {
+            var propLimit = Math.min(10, nodeItem.properties.length);
+            nodeBuilder.appendLine(indentStr + '  |-- Properties (' + nodeItem.properties.length + '):');
+
+            for (var p = 0; p < propLimit; p++) {
+                var propertyItem = nodeItem.properties[p];
+                var propText = indentStr + '      - ' + propertyItem.name + ' (' + (propertyItem.type || 'unknown') + ')';
+
+                if (exportConfig.includeExtractedValues && propertyItem.sampledValue &&
+                    propertyItem.sampledValue !== '[Skipped]' && propertyItem.sampledValue !== '[Error]') {
+                    var sampleVal = propertyItem.sampledValue;
+                    if (typeof sampleVal === 'string' && sampleVal.length > 30) {
+                        sampleVal = stringSubstring(sampleVal, 0, 27) + '...';
+                    }
+                    propText += ' = ' + sampleVal;
+                }
+
+                nodeBuilder.appendLine(propText);
+            }
+
+            if (nodeItem.properties.length > propLimit) {
+                nodeBuilder.appendLine(indentStr + '      ... and ' + (nodeItem.properties.length - propLimit) + ' more properties');
+            }
         }
-        
-        return valueStr;
-        
+
+        // Collections
+        if (nodeItem.collections && nodeItem.collections.length > 0) {
+            var collLimit = Math.min(5, nodeItem.collections.length);
+            nodeBuilder.appendLine(indentStr + '  |-- Collections (' + nodeItem.collections.length + '):');
+
+            for (var c = 0; c < collLimit; c++) {
+                var collectionItem = nodeItem.collections[c];
+                var collText = indentStr + '      - ' + collectionItem.name + ' (' + (collectionItem.type || 'collection') + ')';
+
+                if (collectionItem.itemCount !== undefined) {
+                    collText += ' [' + collectionItem.itemCount + ' items]';
+                }
+
+                nodeBuilder.appendLine(collText);
+            }
+
+            if (nodeItem.collections.length > collLimit) {
+                nodeBuilder.appendLine(indentStr + '      ... and ' + (nodeItem.collections.length - collLimit) + ' more collections');
+            }
+        }
+
+        // Methods
+        if (nodeItem.methods && nodeItem.methods.length > 0) {
+            var methodLimit = Math.min(5, nodeItem.methods.length);
+            nodeBuilder.appendLine(indentStr + '  |-- Methods (' + nodeItem.methods.length + '):');
+
+            for (var m = 0; m < methodLimit; m++) {
+                var methodItem = nodeItem.methods[m];
+                nodeBuilder.appendLine(indentStr + '      - ' + methodItem.name + '()');
+            }
+
+            if (nodeItem.methods.length > methodLimit) {
+                nodeBuilder.appendLine(indentStr + '      ... and ' + (nodeItem.methods.length - methodLimit) + ' more methods');
+            }
+        }
+
+        // Child nodes (limit depth)
+        if (nodeItem.childNodes && nodeItem.childNodes.length > 0 && indentLevel < 2) {
+            var childLimit = Math.min(3, nodeItem.childNodes.length);
+            nodeBuilder.appendLine(indentStr + '  |-- Child Objects (' + nodeItem.childNodes.length + '):');
+
+            for (var ch = 0; ch < childLimit; ch++) {
+                var childText = generateNodeStructureText(nodeItem.childNodes[ch], indentLevel + 3, exportConfig);
+                nodeBuilder.append(childText);
+            }
+
+            if (nodeItem.childNodes.length > childLimit) {
+                nodeBuilder.appendLine(indentStr + '      ... and ' + (nodeItem.childNodes.length - childLimit) + ' more child objects');
+            }
+        } else if (nodeItem.childNodes && nodeItem.childNodes.length > 0) {
+            nodeBuilder.appendLine(indentStr + '  |-- Child Objects: ' + nodeItem.childNodes.length + ' (max depth reached)');
+        }
+
+        return nodeBuilder.toString();
+
     } catch (exc) {
-        return '[Error formatting value]';
+        return indentStr + 'Error displaying node: ' + exc.message + '\n';
     }
 }
 
@@ -569,266 +1111,102 @@ function formatValueForDisplay(value) {
  */
 function generateAccessGuideSection(domStructure) {
     try {
-        var builder = createStringBuilder();
-        
-        builder.appendLine('ACCESS GUIDE');
-        builder.appendLine('============');
-        builder.appendLine('This section provides guidance on accessing discovered objects:');
-        builder.appendLine('');
-        
+        var guideBuilder = createStringBuilder();
+
+        guideBuilder.appendLine('ACCESS GUIDE');
+        guideBuilder.appendLine('============');
+        guideBuilder.appendLine('This section provides guidance on accessing discovered objects:');
+        guideBuilder.appendLine('');
+
         // Find some example paths for guidance
-        if (domStructure.structure && domStructure.structure.length > 0) {
-            builder.appendLine('Example Access Patterns:');
-            
-            var exampleCount = 0;
-            var maxExamples = 10;
-            
-            for (var i = 0; i < domStructure.structure.length && exampleCount < maxExamples; i++) {
-                var node = domStructure.structure[i];
-                if (node.path && node.type !== 'method' && node.safetyLevel === 'safe') {
-                    builder.appendLine('  ' + node.path + '  // ' + (node.type || 'unknown') + ' - ' + (node.name || 'unnamed'));
-                    exampleCount++;
+        var examplePaths = [];
+
+        if (domStructure.structure && domStructure.structure.document) {
+            collectExamplePaths(domStructure.structure.document, examplePaths, 10);
+        } else if (domStructure.structure && domStructure.structure.length > 0) {
+            for (var i = 0; i < domStructure.structure.length && examplePaths.length < 10; i++) {
+                var nodeItem = domStructure.structure[i];
+                if (nodeItem.path && nodeItem.type !== 'method' && nodeItem.safetyLevel === 'safe') {
+                    examplePaths.push({
+                        path: nodeItem.path,
+                        type: nodeItem.type || 'unknown',
+                        name: nodeItem.name || 'unnamed'
+                    });
                 }
             }
-            
-            if (exampleCount === 0) {
-                builder.appendLine('  No safe access examples found.');
+        }
+
+        if (examplePaths.length > 0) {
+            guideBuilder.appendLine('Example Access Patterns:');
+            for (var j = 0; j < examplePaths.length; j++) {
+                var pathExample = examplePaths[j];
+                guideBuilder.appendLine('  ' + pathExample.path + '  // ' + pathExample.type + ' - ' + pathExample.name);
             }
         } else {
-            builder.appendLine('No structure data available for access guide.');
+            guideBuilder.appendLine('No safe access examples found.');
         }
-        
-        builder.appendLine('');
-        builder.appendLine('Safety Notes:');
-        builder.appendLine('• Only access properties marked as "safe"');
-        builder.appendLine('• Avoid properties marked as "dangerous" or "reserved"');
-        builder.appendLine('• Use try/catch blocks when accessing unknown properties');
-        builder.appendLine('• Check for null/undefined values before accessing sub-properties');
-        
-        return builder.toString();
-        
+
+        guideBuilder.appendLine('');
+        guideBuilder.appendLine('Safety Notes:');
+        guideBuilder.appendLine('• Only access properties marked as "safe"');
+        guideBuilder.appendLine('• Avoid properties marked as "dangerous" or "reserved"');
+        guideBuilder.appendLine('• Use try/catch blocks when accessing unknown properties');
+        guideBuilder.appendLine('• Check for null/undefined values before accessing sub-properties');
+
+        return guideBuilder.toString();
+
     } catch (exc) {
         return 'Error generating access guide: ' + exc.message;
     }
 }
 
-// =============================================================================
-// CSV EXPORT (FIXED: Proper CSV escaping)
-// =============================================================================
-
 /**
- * Generate CSV export
- * @param {Object} domStructure - DOM structure to export
- * @param {Object} config - Export configuration
- * @returns {String} CSV export content
+ * Collect example paths from a node recursively
+ * @param {Object} nodeItem - DOM node
+ * @param {Array} pathArray - Array to collect paths
+ * @param {Number} maxPaths - Maximum paths to collect
  */
-function generateCSVExport(domStructure, config) {
+function collectExamplePaths(nodeItem, pathArray, maxPaths) {
     try {
-        var builder = createStringBuilder();
-        
-        // CSV header
-        var headers = [
-            'Path', 'Name', 'Type', 'Depth', 'Safety Level', 'Is Collection', 
-            'Is Method', 'Object ID', 'Alternative Paths', 'Property Count', 'Version'
-        ];
-        
-        if (config.includeExtractedValues) {
-            headers.push('Sampled Value');
-            headers.push('Value Type');
-        }
-        
-        builder.appendLine(generateCSVRow(headers));
-        
-        // CSV data rows
-        if (domStructure.structure && domStructure.structure.length > 0) {
-            for (var i = 0; i < domStructure.structure.length; i++) {
-                var node = domStructure.structure[i];
-                generateCSVRowsForNode(node, builder, config);
-            }
-        }
-        
-        return builder.toString();
-        
-    } catch (exc) {
-        return 'CSV export failed: ' + exc.message;
-    }
-}
+        if (!nodeItem || pathArray.length >= maxPaths) return;
 
-/**
- * Generate CSV rows for a single node
- * @param {Object} domNode - DOM node
- * @param {Object} builder - String builder
- * @param {Object} config - Configuration
- */
-function generateCSVRowsForNode(domNode, builder, config) {
-    try {
-        // Main node row
-        var altPaths = domNode.alternativeAccessPaths ? 
-                      arrayJoin(domNode.alternativeAccessPaths, ';') : '';
-        var propCount = (domNode.properties ? domNode.properties.length : 0) + 
-                       (domNode.collections ? domNode.collections.length : 0) + 
-                       (domNode.methods ? domNode.methods.length : 0);
-        
-        var rowData = [
-            domNode.path || '',
-            domNode.name || '',
-            domNode.type || '',
-            domNode.depth || 0,
-            domNode.safetyLevel || 'unknown',
-            domNode.isCollection ? 'true' : 'false',
-            domNode.isMethod ? 'true' : 'false',
-            domNode.objectId || '',
-            altPaths,
-            propCount,
-            '3.1'
-        ];
-        
-        if (config.includeExtractedValues) {
-            rowData.push(formatValueForCSV(domNode.sampledValue));
-            rowData.push(safeTypeCheck(domNode.sampledValue));
+        // Add current node if it's safe
+        if (nodeItem.path && nodeItem.type !== 'method' && nodeItem.safetyLevel === 'safe') {
+            pathArray.push({
+                path: nodeItem.path,
+                type: nodeItem.type || 'unknown',
+                name: nodeItem.name || 'unnamed'
+            });
         }
-        
-        builder.appendLine(generateCSVRow(rowData));
-        
-        // Add rows for properties
-        if (domNode.properties) {
-            for (var p = 0; p < domNode.properties.length; p++) {
-                var prop = domNode.properties[p];
-                var propRowData = [
-                    prop.path || '',
-                    prop.name || '',
-                    prop.type || '',
-                    (domNode.depth || 0) + 1,
-                    prop.safetyLevel || 'unknown',
-                    'false',
-                    'false',
-                    '',
-                    '',
-                    0,
-                    '3.1'
-                ];
-                
-                if (config.includeExtractedValues) {
-                    propRowData.push('');
-                    propRowData.push('');
+
+        // Check properties
+        if (nodeItem.properties && pathArray.length < maxPaths) {
+            for (var p = 0; p < nodeItem.properties.length && pathArray.length < maxPaths; p++) {
+                var propertyItem = nodeItem.properties[p];
+                if (propertyItem.path && propertyItem.safetyLevel === 'safe') {
+                    pathArray.push({
+                        path: propertyItem.path,
+                        type: propertyItem.type || 'property',
+                        name: propertyItem.name || 'unnamed'
+                    });
                 }
-                
-                builder.appendLine(generateCSVRow(propRowData));
             }
         }
-        
-        // Add rows for collections
-        if (domNode.collections) {
-            for (var c = 0; c < domNode.collections.length; c++) {
-                var coll = domNode.collections[c];
-                var collRowData = [
-                    coll.path || '',
-                    coll.name || '',
-                    coll.type || 'collection',
-                    (domNode.depth || 0) + 1,
-                    coll.safetyLevel || 'unknown',
-                    'true',
-                    'false',
-                    '',
-                    '',
-                    coll.itemCount || 0,
-                    '3.1'
-                ];
-                
-                if (config.includeExtractedValues) {
-                    collRowData.push('');
-                    collRowData.push('collection');
-                }
-                
-                builder.appendLine(generateCSVRow(collRowData));
+
+        // Check child nodes (limited depth)
+        if (nodeItem.childNodes && pathArray.length < maxPaths && nodeItem.depth < 2) {
+            for (var ch = 0; ch < nodeItem.childNodes.length && pathArray.length < maxPaths; ch++) {
+                collectExamplePaths(nodeItem.childNodes[ch], pathArray, maxPaths);
             }
         }
-        
-    } catch (exc) {
-        // Continue processing other nodes
-    }
-}
 
-/**
- * Generate a single CSV row (FIXED: Proper CSV escaping)
- * @param {Array} rowData - Row data array
- * @returns {String} CSV row
- */
-function generateCSVRow(rowData) {
-    try {
-        var escapedData = [];
-        
-        for (var i = 0; i < rowData.length; i++) {
-            escapedData[i] = csvEscape(safeToString(rowData[i]));
-        }
-        
-        return arrayJoin(escapedData, ',');
-        
     } catch (exc) {
-        return '';
-    }
-}
-
-/**
- * Escape value for CSV (FIXED: Proper CSV escaping)
- * @param {String} value - Value to escape
- * @returns {String} Escaped value
- */
-function csvEscape(value) {
-    try {
-        if (typeof value !== 'string') {
-            value = safeToString(value);
-        }
-        
-        // If contains comma, quote, or newline, wrap in quotes and escape quotes
-        if (stringIndexOf(value, ',') !== -1 || 
-            stringIndexOf(value, '"') !== -1 || 
-            stringIndexOf(value, '\n') !== -1 ||
-            stringIndexOf(value, '\r') !== -1) {
-            
-            // Escape quotes by doubling them
-            value = stringReplace(value, '"', '""');
-            return '"' + value + '"';
-        }
-        
-        return value;
-        
-    } catch (exc) {
-        return '""';
-    }
-}
-
-/**
- * Format value for CSV (FIXED: Safe value conversion)
- * @param {*} value - Value to format
- * @returns {String} Formatted value
- */
-function formatValueForCSV(value) {
-    try {
-        if (value === null) return '[null]';
-        if (value === undefined) return '[undefined]';
-        
-        var valueStr = safeToString(value);
-        
-        // Limit length for CSV
-        if (valueStr.length > 200) {
-            valueStr = stringSubstring(valueStr, 0, 200) + '...';
-        }
-        
-        // Remove problematic characters
-        valueStr = stringReplace(valueStr, '\n', ' ');
-        valueStr = stringReplace(valueStr, '\r', ' ');
-        valueStr = stringReplace(valueStr, '\t', ' ');
-        
-        return valueStr;
-        
-    } catch (exc) {
-        return '[Error]';
+        // Continue processing
     }
 }
 
 // =============================================================================
-// FILE OPERATIONS (FIXED: ExtendScript file handling)
+// FILE OPERATIONS
 // =============================================================================
 
 /**
@@ -838,74 +1216,63 @@ function formatValueForCSV(value) {
  * @returns {Object} Write result
  */
 function writeToFile(content, filePath) {
-    var result = {
+    var writeResult = {
         success: false,
         filePath: filePath,
-        error: null
+        errorMessage: null
     };
-    
+
     try {
+        exporterInfo('Writing content to file: ' + filePath, 'file');
+
         if (!content || typeof content !== 'string') {
-            result.error = 'No content provided for writing';
-            return result;
+            writeResult.errorMessage = 'No content provided for writing';
+            exporterError(writeResult.errorMessage, 'file');
+            return writeResult;
         }
-        
+
         if (!filePath || typeof filePath !== 'string') {
-            result.error = 'No file path provided';
-            return result;
+            writeResult.errorMessage = 'No valid file path provided';
+            exporterError(writeResult.errorMessage, 'file');
+            return writeResult;
         }
-        
-        var file = new File(filePath);
-        
-        if (file.open('w')) {
-            file.encoding = 'UTF-8';
-            file.write(content);
-            file.close();
-            
-            result.success = true;
-            result.filePath = file.fsName;
+
+        var targetFile = new File(filePath);
+        if (targetFile.open('w')) {
+            targetFile.write(content);
+            targetFile.close();
+
+            writeResult.success = true;
+            exporterInfo('File written successfully: ' + content.length + ' characters', 'file');
         } else {
-            result.error = 'Could not open file for writing: ' + filePath;
+            writeResult.errorMessage = 'Failed to open file for writing: ' + filePath;
+            exporterError(writeResult.errorMessage, 'file');
         }
-        
-        return result;
-        
+
+        return writeResult;
+
     } catch (exc) {
-        result.error = 'File write error: ' + exc.message;
-        return result;
+        writeResult.errorMessage = 'File write error: ' + exc.message;
+        exporterError(writeResult.errorMessage, 'file');
+        return writeResult;
     }
 }
 
 /**
- * Generate default file path (FIXED: ExtendScript path handling)
+ * Generate default file path for export
  * @param {String} exportFormat - Export format
  * @returns {String} Default file path
  */
 function generateDefaultFilePath(exportFormat) {
     try {
-        var extension = getFileExtension(exportFormat);
-        var timestamp = getCurrentTimestamp();
-        var cleanTimestamp = stringReplace(stringReplace(timestamp, ':', '-'), ' ', '_');
-        var fileName = 'DOM_Export_' + cleanTimestamp + extension;
-        
-        // Try to use desktop as default location
-        var defaultPath = '';
-        try {
-            if (Folder.desktop) {
-                defaultPath = Folder.desktop.fsName + '/' + fileName;
-            }
-        } catch (exc) {
-            // Desktop not available - use current directory
-        }
-        
-        if (!defaultPath) {
-            defaultPath = fileName; // Relative to current directory
-        }
-        
-        return defaultPath;
-        
+        var defaultName = 'dom_export_' + getCurrentTimestamp();
+        defaultName = stringReplace(defaultName, ':', '-');
+        defaultName = stringReplace(defaultName, ' ', '_');
+
+        return defaultName + (getFileExtension(exportFormat) || '.txt');
+
     } catch (exc) {
-        return 'DOM_Export.' + (getFileExtension(exportFormat) || '.txt');
+        return 'dom_export' + (getFileExtension(exportFormat) || '.txt');
     }
 }
 
@@ -917,7 +1284,7 @@ function generateDefaultFilePath(exportFormat) {
 function getFileExtension(exportFormat) {
     try {
         var lowerFormat = stringToLowerCase(exportFormat || '');
-        
+
         switch (lowerFormat) {
             case 'json':
                 return '.json';
@@ -929,73 +1296,109 @@ function getFileExtension(exportFormat) {
             default:
                 return '.txt';
         }
-        
+
     } catch (exc) {
         return '.txt';
     }
 }
 
 // =============================================================================
-// UTILITY FUNCTIONS (FIXED: ES3 compatibility)
+// UTILITY FUNCTIONS
 // =============================================================================
 
 /**
  * Merge export configuration with defaults
- * @param {Object} defaults - Default configuration
- * @param {Object} options - User options
+ * @param {Object} defaultConfig - Default configuration
+ * @param {Object} userOptions - User options
  * @returns {Object} Merged configuration
  */
-function mergeExportConfig(defaults, options) {
+function mergeExportConfig(defaultConfig, userOptions) {
     try {
-        var config = objectClone(defaults, 2);
-        
-        if (options && typeof options === 'object') {
+        var mergedConfig = objectClone(defaultConfig, 2);
+
+        if (userOptions && typeof userOptions === 'object') {
             // Use objectHasOwnProperty for ES3 compatibility
-            if (objectHasOwnProperty(options, 'includeExtractedValues')) config.includeExtractedValues = options.includeExtractedValues;
-            if (objectHasOwnProperty(options, 'formatOutput')) config.formatOutput = options.formatOutput;
-            if (objectHasOwnProperty(options, 'includeMetadata')) config.includeMetadata = options.includeMetadata;
-            if (objectHasOwnProperty(options, 'includeObjectReferences')) config.includeObjectReferences = options.includeObjectReferences;
-            if (objectHasOwnProperty(options, 'enableTimestamps')) config.enableTimestamps = options.enableTimestamps;
-            if (objectHasOwnProperty(options, 'maxFileSize')) config.maxFileSize = options.maxFileSize;
-            if (objectHasOwnProperty(options, 'includeStatistics')) config.includeStatistics = options.includeStatistics;
-            if (objectHasOwnProperty(options, 'includeAccessGuide')) config.includeAccessGuide = options.includeAccessGuide;
-            if (objectHasOwnProperty(options, 'includeAccessPaths')) config.includeAccessPaths = options.includeAccessPaths;
-            if (objectHasOwnProperty(options, 'includeComparisonData')) config.includeComparisonData = options.includeComparisonData;
+            if (objectHasOwnProperty(userOptions, 'includeExtractedValues')) mergedConfig.includeExtractedValues = userOptions.includeExtractedValues;
+            if (objectHasOwnProperty(userOptions, 'formatOutput')) mergedConfig.formatOutput = userOptions.formatOutput;
+            if (objectHasOwnProperty(userOptions, 'includeMetadata')) mergedConfig.includeMetadata = userOptions.includeMetadata;
+            if (objectHasOwnProperty(userOptions, 'includeObjectReferences')) mergedConfig.includeObjectReferences = userOptions.includeObjectReferences;
+            if (objectHasOwnProperty(userOptions, 'enableTimestamps')) mergedConfig.enableTimestamps = userOptions.enableTimestamps;
+            if (objectHasOwnProperty(userOptions, 'maxFileSize')) mergedConfig.maxFileSize = userOptions.maxFileSize;
+            if (objectHasOwnProperty(userOptions, 'includeStatistics')) mergedConfig.includeStatistics = userOptions.includeStatistics;
+            if (objectHasOwnProperty(userOptions, 'includeAccessGuide')) mergedConfig.includeAccessGuide = userOptions.includeAccessGuide;
+            if (objectHasOwnProperty(userOptions, 'includeAccessPaths')) mergedConfig.includeAccessPaths = userOptions.includeAccessPaths;
+            if (objectHasOwnProperty(userOptions, 'includeComparisonData')) mergedConfig.includeComparisonData = userOptions.includeComparisonData;
         }
-        
-        return config;
-        
+
+        return mergedConfig;
+
     } catch (exc) {
-        return defaults;
+        exporterWarn('Config merge failed, using defaults: ' + exc.message, 'export');
+        return defaultConfig;
+    }
+}
+
+/**
+ * Format value for display with safe value formatting
+ * @param {*} targetValue - Value to format
+ * @returns {String} Formatted value
+ */
+function formatValueForDisplay(targetValue) {
+    try {
+        if (targetValue === null) return '[null]';
+        if (targetValue === undefined) return '[undefined]';
+
+        var valueString = safeToString(targetValue);
+        var maxLength = 50;
+
+        if (valueString.length > maxLength) {
+            valueString = stringSubstring(valueString, 0, maxLength) + '...';
+        }
+
+        // Escape special characters in strings
+        if (typeof targetValue === 'string') {
+            valueString = '"' + stringReplace(stringReplace(valueString, '\\', '\\\\'), '"', '\\"') + '"';
+        }
+
+        return valueString;
+
+    } catch (exc) {
+        return '[Error formatting value]';
     }
 }
 
 // =============================================================================
-// MODULE REGISTRATION (FIXED: Correct v3.1 registration)
+// MODULE REGISTRATION - COMPLETE AND UPDATED
 // =============================================================================
 
 // Register this module with all its functions
 registerModule('3.2_dom-exporter', '3.1', [
     // Main Export Functions
     'exportDOMStructure', 'preprocessDOMForExport', 'generateComparisonFingerprint',
-    
+
     // Format-Specific Generators
     'generateJSONExport', 'generateTextExport', 'generateCSVExport',
-    
+
     // Section Generators
     'generateMetadataSection', 'generateStatisticsSection', 'generateObjectReferenceSection',
     'generateStructureSection', 'generateAccessGuideSection',
-    
+
     // CSV Functions
     'generateCSVRowsForNode', 'generateCSVRow', 'csvEscape', 'formatValueForCSV',
-    
+
     // File Operations
     'writeToFile', 'generateDefaultFilePath', 'getFileExtension',
-    
+
     // Utilities
-    'mergeExportConfig', 'formatValueForDisplay'
+    'mergeExportConfig', 'formatValueForDisplay',
+
+    // Node Processing Utilities
+    'removeExtractedValuesFromNode', 'removeObjectIdsFromNode', 'generateNodeStructureText', 'collectExamplePaths',
+
+    // Unified Logging System Functions
+    'exporterLog', 'exporterInfo', 'exporterDebug', 'exporterWarn', 'exporterError'
 ]);
 
 // =============================================================================
-// END OF 3.2_dom-exporter.jsx
+// END OF 3.2_dom-exporter.jsx - COMPLETE WITH UNIFIED LOGGING
 // =============================================================================
