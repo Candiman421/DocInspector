@@ -1225,12 +1225,12 @@ function generateAnalysisDisplay(analysisResult) {
         builder.appendLine('');
 
         if (analysisResult.statistics) {
-            var stats = analysisResult.statistics;
+            var statisticsObj = analysisResult.statistics;
             builder.appendLine('STATISTICS:');
-            builder.appendLine('Total Nodes: ' + (stats.totalNodes || 0));
-            builder.appendLine('Max Depth: ' + (stats.maxDepth || 0));
-            builder.appendLine('Property Count: ' + (stats.propertyCount || 0));
-            builder.appendLine('Collection Count: ' + (stats.collectionCount || 0));
+            builder.appendLine('Total Nodes: ' + (statisticsObj.totalNodes || 0));
+            builder.appendLine('Max Depth: ' + (statisticsObj.maxDepth || 0));
+            builder.appendLine('Property Count: ' + (statisticsObj.propertyCount || 0));
+            builder.appendLine('Collection Count: ' + (statisticsObj.collectionCount || 0));
             builder.appendLine('');
         }
 
@@ -1701,11 +1701,11 @@ function showConfigurationDialog() {
                         g_domViz_userConfiguration.enumeration.timeoutMs = newTimeout;
                         g_domViz_userConfiguration.sampling.maxSamples = newMaxSamples;
 
-                        $.writeln('[CONFIG] Saved maxDepth: ' + newMaxDepth + ', timeout: ' + newTimeout);
+                        debugLog('[CONFIG] Saved maxDepth: ' + newMaxDepth + ', timeout: ' + newTimeout);
                         updateStatus('Configuration saved successfully');
 
                     } catch (exc) {
-                        $.writeln('[CONFIG] Save error: ' + exc.message);
+                        debugLog('[CONFIG] Save error: ' + exc.message);
                     }
 
                     configDialog.close();
@@ -1749,7 +1749,7 @@ function updateDocumentInfo() {
         g_domViz_documentInfo.text = docInfo;
 
     } catch (exc) {
-        $.writeln('[DOM Visualizer] Document info update error: ' + exc.message);
+        debugLog('[DOM Visualizer] Document info update error: ' + exc.message);
     }
 }
 
@@ -1762,10 +1762,10 @@ function updateStatus(message) {
         if (g_domViz_statusText) {
             g_domViz_statusText.text = message;
         }
-        $.writeln('[DOM Visualizer] ' + message);
+        debugLog('[DOM Visualizer] ' + message);
 
     } catch (exc) {
-        $.writeln('[DOM Visualizer] Status update error: ' + exc.message);
+        debugLog('[DOM Visualizer] Status update error: ' + exc.message);
     }
 }
 
@@ -1861,7 +1861,7 @@ function closeVisualizer() {
         g_domViz_afterData = null;
 
     } catch (exc) {
-        $.writeln('[DOM Visualizer] Close error: ' + exc.message);
+        debugLog('[DOM Visualizer] Close error: ' + exc.message);
     }
 }
 

@@ -702,11 +702,11 @@ function buildPerformanceMap(mappingSession, config) {
             optimizationSuggestions: []
         };
         
-        var stats = mappingSession.getStatistics();
+        var statisticsObj = mappingSession.getStatistics();
         
-        if (stats.elapsedTime > 0) {
+        if (statisticsObj.elapsedTime > 0) {
             performanceMap.overallMetrics.objectsPerSecond = 
-                Math.round(stats.totalObjects / (stats.elapsedTime / 1000));
+                Math.round(statisticsObj.totalObjects / (statisticsObj.elapsedTime / 1000));
         }
         
         if (mappingSession.memoryTracker) {
@@ -715,12 +715,12 @@ function buildPerformanceMap(mappingSession, config) {
         }
         
         // Identify bottlenecks
-        if (stats.elapsedTime > config.timeoutMs * 0.8) {
+        if (statisticsObj.elapsedTime > config.timeoutMs * 0.8) {
             performanceMap.bottlenecks[performanceMap.bottlenecks.length] = 
                 'Mapping time approaching timeout limit';
         }
         
-        if (stats.circularReferences > 10) {
+        if (statisticsObj.circularReferences > 10) {
             performanceMap.bottlenecks[performanceMap.bottlenecks.length] = 
                 'High number of circular references detected';
         }

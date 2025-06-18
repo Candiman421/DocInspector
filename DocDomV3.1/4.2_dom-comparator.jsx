@@ -1603,13 +1603,13 @@ function generateStructuralChangeReport(result, config) {
         builder.appendLine('STRUCTURAL CHANGES REPORT');
         builder.appendLine('=========================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Added elements: ' + stats.added);
-        builder.appendLine('- Removed elements: ' + stats.removed);
-        builder.appendLine('- Modified elements: ' + stats.modified);
-        builder.appendLine('- Moved elements: ' + stats.moved);
-        builder.appendLine('- Renamed elements: ' + stats.renamed);
+        builder.appendLine('- Added elements: ' + statisticsObj.added);
+        builder.appendLine('- Removed elements: ' + statisticsObj.removed);
+        builder.appendLine('- Modified elements: ' + statisticsObj.modified);
+        builder.appendLine('- Moved elements: ' + statisticsObj.moved);
+        builder.appendLine('- Renamed elements: ' + statisticsObj.renamed);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -1647,11 +1647,11 @@ function generatePropertyChangeReport(result, config) {
         builder.appendLine('PROPERTY CHANGES REPORT');
         builder.appendLine('=======================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Added properties: ' + stats.propertiesAdded);
-        builder.appendLine('- Removed properties: ' + stats.propertiesRemoved);
-        builder.appendLine('- Modified properties: ' + stats.propertiesModified);
+        builder.appendLine('- Added properties: ' + statisticsObj.propertiesAdded);
+        builder.appendLine('- Removed properties: ' + statisticsObj.propertiesRemoved);
+        builder.appendLine('- Modified properties: ' + statisticsObj.propertiesModified);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -1689,11 +1689,11 @@ function generateCollectionChangeReport(result, config) {
         builder.appendLine('COLLECTION CHANGES REPORT');
         builder.appendLine('=========================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Added collections: ' + stats.collectionsAdded);
-        builder.appendLine('- Removed collections: ' + stats.collectionsRemoved);
-        builder.appendLine('- Modified collections: ' + stats.collectionsModified);
+        builder.appendLine('- Added collections: ' + statisticsObj.collectionsAdded);
+        builder.appendLine('- Removed collections: ' + statisticsObj.collectionsRemoved);
+        builder.appendLine('- Modified collections: ' + statisticsObj.collectionsModified);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -1726,11 +1726,11 @@ function generateValueChangeReport(result, config) {
         builder.appendLine('VALUE CHANGES REPORT');
         builder.appendLine('====================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Values changed: ' + stats.valuesChanged);
-        builder.appendLine('- Values added: ' + stats.valuesAdded);
-        builder.appendLine('- Values removed: ' + stats.valuesRemoved);
+        builder.appendLine('- Values changed: ' + statisticsObj.valuesChanged);
+        builder.appendLine('- Values added: ' + statisticsObj.valuesAdded);
+        builder.appendLine('- Values removed: ' + statisticsObj.valuesRemoved);
         builder.appendLine('');
         
         if (result.changes.length === 0) {

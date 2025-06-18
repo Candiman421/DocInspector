@@ -1241,7 +1241,7 @@ function meetsSafetyFilter(property, safetyFilter) {
  */
 function getSamplingStatistics(domStructure) {
     try {
-        var stats = {
+        var statisticsObj = {
             samplingEnabled: false,
             propertiesSampled: 0,
             valuesSampled: 0,
@@ -1254,38 +1254,38 @@ function getSamplingStatistics(domStructure) {
 
         if (domStructure.metadata && domStructure.metadata.valueSampling) {
             var samplingMeta = domStructure.metadata.valueSampling;
-            stats.samplingEnabled = samplingMeta.enabled || false;
+            statisticsObj.samplingEnabled = samplingMeta.enabled || false;
 
             if (samplingMeta.statistics) {
                 var samplingStats = samplingMeta.statistics;
-                stats.propertiesSampled = samplingStats.propertiesSampled || 0;
-                stats.valuesSampled = samplingStats.valuesSampled || 0;
-                stats.fingerprintsGenerated = samplingStats.fingerprintsGenerated || 0;
-                stats.samplingErrors = samplingStats.samplingErrors || 0;
-                stats.timeoutCount = samplingStats.timeoutCount || 0;
-                stats.safetyFilterRejects = samplingStats.safetyFilterRejects || 0;
-                stats.nullValuesSkipped = samplingStats.nullValuesSkipped || 0;
-                stats.undefinedValuesSkipped = samplingStats.undefinedValuesSkipped || 0;
-                stats.collectionsSampled = samplingStats.collectionsSampled || 0;
+                statisticsObj.propertiesSampled = samplingStats.propertiesSampled || 0;
+                statisticsObj.valuesSampled = samplingStats.valuesSampled || 0;
+                statisticsObj.fingerprintsGenerated = samplingStats.fingerprintsGenerated || 0;
+                statisticsObj.samplingErrors = samplingStats.samplingErrors || 0;
+                statisticsObj.timeoutCount = samplingStats.timeoutCount || 0;
+                statisticsObj.safetyFilterRejects = samplingStats.safetyFilterRejects || 0;
+                statisticsObj.nullValuesSkipped = samplingStats.nullValuesSkipped || 0;
+                statisticsObj.undefinedValuesSkipped = samplingStats.undefinedValuesSkipped || 0;
+                statisticsObj.collectionsSampled = samplingStats.collectionsSampled || 0;
             }
 
             if (samplingMeta.referenceTracking) {
-                stats.objectReferencesTracked = samplingMeta.referenceTracking.totalTracked || 0;
+                statisticsObj.objectReferencesTracked = samplingMeta.referenceTracking.totalTracked || 0;
             }
 
             if (samplingMeta.performance) {
-                stats.samplingTime = samplingMeta.performance.totalTime || 0;
-                stats.averageTimePerProperty = samplingMeta.performance.averageTimePerProperty || 0;
-                stats.successRate = samplingMeta.performance.successRate || 0;
+                statisticsObj.samplingTime = samplingMeta.performance.totalTime || 0;
+                statisticsObj.averageTimePerProperty = samplingMeta.performance.averageTimePerProperty || 0;
+                statisticsObj.successRate = samplingMeta.performance.successRate || 0;
             } else {
-                stats.samplingTime = samplingMeta.samplingTime || 0;
-                if (stats.propertiesSampled > 0) {
-                    stats.successRate = (stats.valuesSampled / stats.propertiesSampled) * 100;
+                statisticsObj.samplingTime = samplingMeta.samplingTime || 0;
+                if (statisticsObj.propertiesSampled > 0) {
+                    statisticsObj.successRate = (statisticsObj.valuesSampled / statisticsObj.propertiesSampled) * 100;
                 }
             }
         }
 
-        return stats;
+        return statisticsObj;
 
     } catch (exc) {
         return {
@@ -1372,7 +1372,7 @@ function createSamplingResult(success, value, error) {
  */
 function logSamplingProgress(message) {
     try {
-        $.writeln('[Property Sampler] ' + getCurrentTimestamp() + ': ' + message);
+        debugLog('[Property Sampler] ' + getCurrentTimestamp() + ': ' + message);
     } catch (exc) {
         // Silent failure
     }
@@ -1384,7 +1384,7 @@ function logSamplingProgress(message) {
  */
 function logSamplingError(message) {
     try {
-        $.writeln('[Property Sampler ERROR] ' + getCurrentTimestamp() + ': ' + message);
+        debugLog('[Property Sampler ERROR] ' + getCurrentTimestamp() + ': ' + message);
     } catch (exc) {
         // Silent failure
     }

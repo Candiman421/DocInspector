@@ -1812,7 +1812,7 @@ function retryOperation(operation, maxAttempts, baseDelay) {
  */
 function updateStatus(message) {
     try {
-        $.writeln('[Module System] ' + message);
+        debugLog('[Module System] ' + message);
     } catch (exc) {
         // Silent fallback for environments without writeln
     }

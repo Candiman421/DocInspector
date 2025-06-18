@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-18T03:39:48.189Z
+// Generated: 2025-06-18T05:14:13.546Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v1.1): 1.1_bootstrap-foundation.jsx
@@ -2670,7 +2670,7 @@ function retryOperation(operation, maxAttempts, baseDelay) {
  */
 function updateStatus(message) {
     try {
-        $.writeln('[Module System] ' + message);
+        debugLog('[Module System] ' + message);
     } catch (exc) {
         // Silent fallback for environments without writeln
     }
@@ -2877,47 +2877,53 @@ var DEFAULT_ENUMERATION_CONFIG = {
  * @param {Object} config - Enumeration configuration
  * @returns {Object} Complete DOMStructure object
  */
-function enumerateDocumentDOM(documentObject, config) {
+/**
+ * Complete DOM enumeration with object tracking - FIXED VERSION
+ * @param {Object} documentObject - InDesign document to enumerate
+ * @param {Object} enumerationConfig - Enumeration configuration
+ * @returns {Object} Complete DOMStructure object
+ */
+function enumerateDocumentDOM(documentObject, enumerationConfig) {
     var startTime = new Date().getTime();
 
-    $.writeln('[ENUM DEBUG] === STARTING enumerateDocumentDOM ===');
-    $.writeln('[ENUM DEBUG] Start time: ' + startTime);
-    $.writeln('[ENUM DEBUG] Config received: ' + (config ? 'YES' : 'NO'));
+    debugLog('=== STARTING enumerateDocumentDOM ===', 'enumeration');
+    debugLog('Start time: ' + startTime, 'enumeration');
+    debugLog('Config received: ' + (enumerationConfig ? 'YES' : 'NO'), 'enumeration');
 
-    var enumerationConfig = config ?
-        objectMerge(DEFAULT_ENUMERATION_CONFIG, config) :
+    var mergedConfig = enumerationConfig ?
+        objectMerge(DEFAULT_ENUMERATION_CONFIG, enumerationConfig) :
         objectClone(DEFAULT_ENUMERATION_CONFIG, 2);
 
-    $.writeln('[ENUM DEBUG] Final config maxDepth: ' + enumerationConfig.maxDepth);
-    $.writeln('[ENUM DEBUG] Final config timeoutMs: ' + enumerationConfig.timeoutMs);
-    $.writeln('[ENUM DEBUG] Final config maxProperties: ' + enumerationConfig.maxProperties);
+    debugLog('Final config maxDepth: ' + mergedConfig.maxDepth, 'enumeration');
+    debugLog('Final config timeoutMs: ' + mergedConfig.timeoutMs, 'enumeration');
+    debugLog('Final config maxProperties: ' + mergedConfig.maxProperties, 'enumeration');
 
     try {
         // Validate environment
         var envValidation = validateInDesignEnvironment();
         if (!envValidation.valid) {
-            $.writeln('[ENUM DEBUG] Environment validation FAILED: ' + envValidation.error);
+            debugLog('Environment validation FAILED: ' + envValidation.error, 'enumeration');
             return createErrorDOMStructure(envValidation.error);
         }
-        $.writeln('[ENUM DEBUG] Environment validation PASSED');
+        debugLog('Environment validation PASSED', 'enumeration');
 
         var targetDocument = documentObject || envValidation.document;
         var docValidation = validateDocumentState(targetDocument);
-        $.writeln('[ENUM DEBUG] Document validation completed');
+        debugLog('Document validation completed', 'enumeration');
 
         // Create DOM structure container
         var domStructure = createDOMStructure();
-        $.writeln('[ENUM DEBUG] DOM structure container created');
+        debugLog('DOM structure container created', 'enumeration');
 
         // Set up metadata
         domStructure.metadata = {
             timestamp: getCurrentTimestamp(),
             documentName: docValidation.metadata.name || 'Unknown Document',
             version: '3.1',
-            config: enumerationConfig,
+            configuration: mergedConfig,
             enhancedFeatures: {
-                objectTracking: enumerationConfig.enableObjectTracking,
-                duplicateDetection: enumerationConfig.enableDuplicateDetection,
+                objectTracking: mergedConfig.enableObjectTracking,
+                duplicateDetection: mergedConfig.enableDuplicateDetection,
                 es3Compliant: true,
                 moduleSystem: true
             },
@@ -2935,21 +2941,21 @@ function enumerateDocumentDOM(documentObject, config) {
         }
 
         // Initialize object registry for tracking
-        if (enumerationConfig.enableObjectTracking) {
+        if (mergedConfig.enableObjectTracking) {
             domStructure.objectRegistry = {
                 references: {},
                 duplicateDetections: {},
                 circularReferences: [],
                 totalTracked: 0
             };
-            $.writeln('[ENUM DEBUG] Object registry initialized');
+            debugLog('Object registry initialized', 'enumeration');
         }
 
         // Create progress reporter if enabled
-        var progressReporter = enumerationConfig.enableProgressReporting ?
+        var progressReporter = mergedConfig.enableProgressReporting ?
             createProgressReporter() : null;
 
-        $.writeln('[ENUM DEBUG] About to call enumerateObjectStructure...');
+        debugLog('About to call enumerateObjectStructure...', 'enumeration');
         var enumStartTime = new Date().getTime();
 
         // Enumerate document structure
@@ -2958,39 +2964,52 @@ function enumerateDocumentDOM(documentObject, config) {
                 targetDocument,
                 'document',
                 0,
-                enumerationConfig,
+                mergedConfig,
                 domStructure,
                 progressReporter
             )
         };
 
         var enumEndTime = new Date().getTime();
-        $.writeln('[ENUM DEBUG] enumerateObjectStructure completed in: ' + (enumEndTime - enumStartTime) + 'ms');
-        $.writeln('[ENUM DEBUG] Document node created, properties: ' +
-            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'));
+        debugPerformance('enumerateObjectStructure', enumStartTime, enumEndTime);
+        debugLog('Document node created, properties: ' +
+            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 'undefined'), 'enumeration');
 
         // Post-processing
-        if (enumerationConfig.includeAlternativeAccessPaths) {
-            $.writeln('[ENUM DEBUG] Running updateAlternativeAccessPaths...');
+        if (mergedConfig.includeAlternativeAccessPaths) {
+            debugLog('Running updateAlternativeAccessPaths...', 'enumeration');
             updateAlternativeAccessPaths(domStructure);
         }
 
         // Generate statistics
-        if (enumerationConfig.generateStatistics) {
-            $.writeln('[ENUM DEBUG] Generating statistics...');
-            domStructure.statistics = getDOMStatistics(domStructure);
+        if (mergedConfig.generateStatistics) {
+            debugLog('Generating statistics...', 'enumeration');
+            domStructure.statistics = generateDOMStatistics(domStructure);
+
+            // **FIX: Transfer statistics to metadata for UI display**
+            if (domStructure.statistics) {
+                debugLog('Transferring statistics to metadata...', 'enumeration');
+                domStructure.metadata.totalObjects = domStructure.statistics.totalNodes || 0;
+                domStructure.metadata.totalProperties = domStructure.statistics.totalProperties || 0;
+                domStructure.metadata.totalCollections = domStructure.statistics.totalCollections || 0;
+                domStructure.metadata.totalMethods = domStructure.statistics.totalMethods || 0;
+                domStructure.metadata.maxDepth = domStructure.statistics.maxDepth || 0;
+
+                debugLog('Statistics transferred - totalObjects: ' + domStructure.metadata.totalObjects, 'enumeration');
+                debugLog('Statistics transferred - totalProperties: ' + domStructure.metadata.totalProperties, 'enumeration');
+            }
         }
 
         // Final metadata
         domStructure.metadata.enumerationTime = new Date().getTime() - startTime;
         domStructure.metadata.completed = true;
 
-        $.writeln('[ENUM DEBUG] === ENUMERATION COMPLETED ===');
-        $.writeln('[ENUM DEBUG] Total time: ' + domStructure.metadata.enumerationTime + 'ms');
-        $.writeln('[ENUM DEBUG] Properties found: ' +
-            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0));
-        $.writeln('[ENUM DEBUG] Methods found: ' +
-            (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0));
+        debugLog('=== ENUMERATION COMPLETED ===', 'enumeration');
+        debugPerformance('Total enumeration', startTime, new Date().getTime());
+        debugLog('Properties found: ' +
+            (domStructure.structure.document.properties ? domStructure.structure.document.properties.length : 0), 'enumeration');
+        debugLog('Methods found: ' +
+            (domStructure.structure.document.methods ? domStructure.structure.document.methods.length : 0), 'enumeration');
 
         if (progressReporter) {
             progressReporter.complete();
@@ -2999,7 +3018,7 @@ function enumerateDocumentDOM(documentObject, config) {
         return domStructure;
 
     } catch (exc) {
-        $.writeln('[ENUM DEBUG] EXCEPTION: ' + exc.message);
+        debugLog('EXCEPTION: ' + exc.message, 'enumeration');
         return createErrorDOMStructure('DOM enumeration failed: ' + exc.message);
     }
 }
@@ -3758,9 +3777,16 @@ function updateNodeAlternativePaths(domNode, domStructure) {
  * @param {Object} domStructure - DOM structure to analyze
  * @returns {Object} Statistics object
  */
-function getDOMStatistics(domStructure) {
+/**
+ * Generate DOM statistics - FIXED VERSION (renamed from getDOMStatistics)
+ * @param {Object} domStructure - DOM structure to analyze
+ * @returns {Object} Statistics object
+ */
+function generateDOMStatistics(domStructure) {
     try {
-        var stats = {
+        debugLog('=== STARTING generateDOMStatistics ===', 'enumeration');
+
+        var statistics = {
             totalNodes: 0,
             totalProperties: 0,
             totalCollections: 0,
@@ -3774,68 +3800,81 @@ function getDOMStatistics(domStructure) {
         };
 
         if (domStructure.structure && domStructure.structure.document) {
-            countNodeStatistics(domStructure.structure.document, stats);
+            debugLog('Counting statistics from document node...', 'enumeration');
+            calculateNodeStatistics(domStructure.structure.document, statistics);
+            debugLog('After counting - totalNodes: ' + statistics.totalNodes + ', totalProperties: ' + statistics.totalProperties, 'enumeration');
+        } else {
+            debugLog('WARNING: No document structure found for statistics!', 'enumeration');
         }
 
         // Add object registry statistics
         if (domStructure.objectRegistry) {
-            stats.objectsTracked = domStructure.objectRegistry.totalTracked || 0;
-            stats.duplicateObjects = countObjectKeys(domStructure.objectRegistry.duplicateDetections || {});
-            stats.circularReferences = domStructure.objectRegistry.circularReferences ?
+            statistics.objectsTracked = domStructure.objectRegistry.totalTracked || 0;
+            statistics.duplicateObjects = countObjectKeys(domStructure.objectRegistry.duplicateDetections || {});
+            statistics.circularReferences = domStructure.objectRegistry.circularReferences ?
                 domStructure.objectRegistry.circularReferences.length : 0;
         }
 
-        return stats;
+        debugLog('Final statistics: totalNodes=' + statistics.totalNodes + ', totalProperties=' + statistics.totalProperties, 'enumeration');
+        return statistics;
 
     } catch (exc) {
+        debugLog('Statistics generation error: ' + exc.message, 'enumeration');
         return {
             totalNodes: 0,
             totalProperties: 0,
             enumerationSuccess: false,
-            error: 'Statistics generation failed: ' + exc.message,
+            errorMessage: 'Statistics generation failed: ' + exc.message,
             generatedAt: getCurrentTimestamp()
         };
     }
 }
 
 /**
- * Count statistics for a DOM node recursively
+ * Count statistics for a DOM node recursively - FIXED VERSION
  * @param {Object} domNode - DOM node to count
- * @param {Object} stats - Statistics object to update
+ * @param {Object} statistics - Statistics object to update
  */
-function countNodeStatistics(domNode, stats) {
+function calculateNodeStatistics(domNode, statistics) {
     try {
-        if (!domNode || !stats) {
+        if (!domNode || !statistics) {
+            debugLog('calculateNodeStatistics: Invalid parameters', 'enumeration');
             return;
         }
 
-        stats.totalNodes++;
+        debugLog('Counting node: ' + (domNode.path || 'unknown') + ', depth: ' + (domNode.depth || 0), 'enumeration');
 
-        if (domNode.depth > stats.maxDepth) {
-            stats.maxDepth = domNode.depth;
+        statistics.totalNodes++;
+
+        if (domNode.depth > statistics.maxDepth) {
+            statistics.maxDepth = domNode.depth;
         }
 
         if (domNode.properties) {
-            stats.totalProperties += domNode.properties.length;
+            var propCount = domNode.properties.length;
+            statistics.totalProperties += propCount;
+            debugLog('Added ' + propCount + ' properties (total now: ' + statistics.totalProperties + ')', 'enumeration');
         }
 
         if (domNode.collections) {
-            stats.totalCollections += domNode.collections.length;
+            statistics.totalCollections += domNode.collections.length;
         }
 
         if (domNode.methods) {
-            stats.totalMethods += domNode.methods.length;
+            statistics.totalMethods += domNode.methods.length;
         }
 
         // Process child nodes
         if (domNode.childNodes) {
+            debugLog('Processing ' + domNode.childNodes.length + ' child nodes...', 'enumeration');
             for (var i = 0; i < domNode.childNodes.length; i++) {
-                countNodeStatistics(domNode.childNodes[i], stats);
+                calculateNodeStatistics(domNode.childNodes[i], statistics);
             }
         }
 
     } catch (exc) {
-        // Continue counting
+        debugLog('Error in calculateNodeStatistics: ' + exc.message, 'enumeration');
+        // Continue counting other nodes
     }
 }
 
@@ -3968,7 +4007,7 @@ function createProgressReporter() {
                 try {
                     this.itemsProcessed++;
                     if (this.itemsProcessed % 100 === 0) {
-                        $.writeln('[DOM Enumerator] Progress: ' + message +
+                        debugLog('[DOM Enumerator] Progress: ' + message +
                             ' (Items: ' + this.itemsProcessed + ')');
                     }
                 } catch (exc) {
@@ -3979,7 +4018,7 @@ function createProgressReporter() {
             complete: function () {
                 try {
                     var elapsed = new Date().getTime() - this.startTime;
-                    $.writeln('[DOM Enumerator] Completed enumeration of ' +
+                    debugLog('[DOM Enumerator] Completed enumeration of ' +
                         this.itemsProcessed + ' items in ' + elapsed + 'ms');
                 } catch (exc) {
                     // Silent failure
@@ -4013,19 +4052,19 @@ registerModule('2.1_dom-enumerator', '3.1', [
     'generateObjectIdentityHash', 'registerObjectReference', 'checkObjectDuplication',
 
     // Circular Reference Detection
-    'detectCircularReference', 'isInParentChain',  // ← NEW FUNCTION ADDED
+    'detectCircularReference', 'isInParentChain',
 
     // Property Processing
     'processProperty',
 
-    // Enumeration Filtering - NEW FUNCTIONS
-    'shouldSkipObject', 'shouldSkipProperty',  // ← NEW FUNCTIONS ADDED
+    // Enumeration Filtering
+    'shouldSkipObject', 'shouldSkipProperty',
 
     // Post-Processing
     'updateAlternativeAccessPaths', 'updateNodeAlternativePaths',
 
     // Analysis Functions
-    'getDOMStatistics', 'countNodeStatistics', 'findObjectsWithMultiplePaths',
+    'generateDOMStatistics', 'calculateNodeStatistics', 'findObjectsWithMultiplePaths',
 
     // Property Classification
     'classifyPropertySafety', 'isLikelyCollection',
@@ -6207,7 +6246,7 @@ function meetsSafetyFilter(property, safetyFilter) {
  */
 function getSamplingStatistics(domStructure) {
     try {
-        var stats = {
+        var statisticsObj = {
             samplingEnabled: false,
             propertiesSampled: 0,
             valuesSampled: 0,
@@ -6220,38 +6259,38 @@ function getSamplingStatistics(domStructure) {
 
         if (domStructure.metadata && domStructure.metadata.valueSampling) {
             var samplingMeta = domStructure.metadata.valueSampling;
-            stats.samplingEnabled = samplingMeta.enabled || false;
+            statisticsObj.samplingEnabled = samplingMeta.enabled || false;
 
             if (samplingMeta.statistics) {
                 var samplingStats = samplingMeta.statistics;
-                stats.propertiesSampled = samplingStats.propertiesSampled || 0;
-                stats.valuesSampled = samplingStats.valuesSampled || 0;
-                stats.fingerprintsGenerated = samplingStats.fingerprintsGenerated || 0;
-                stats.samplingErrors = samplingStats.samplingErrors || 0;
-                stats.timeoutCount = samplingStats.timeoutCount || 0;
-                stats.safetyFilterRejects = samplingStats.safetyFilterRejects || 0;
-                stats.nullValuesSkipped = samplingStats.nullValuesSkipped || 0;
-                stats.undefinedValuesSkipped = samplingStats.undefinedValuesSkipped || 0;
-                stats.collectionsSampled = samplingStats.collectionsSampled || 0;
+                statisticsObj.propertiesSampled = samplingStats.propertiesSampled || 0;
+                statisticsObj.valuesSampled = samplingStats.valuesSampled || 0;
+                statisticsObj.fingerprintsGenerated = samplingStats.fingerprintsGenerated || 0;
+                statisticsObj.samplingErrors = samplingStats.samplingErrors || 0;
+                statisticsObj.timeoutCount = samplingStats.timeoutCount || 0;
+                statisticsObj.safetyFilterRejects = samplingStats.safetyFilterRejects || 0;
+                statisticsObj.nullValuesSkipped = samplingStats.nullValuesSkipped || 0;
+                statisticsObj.undefinedValuesSkipped = samplingStats.undefinedValuesSkipped || 0;
+                statisticsObj.collectionsSampled = samplingStats.collectionsSampled || 0;
             }
 
             if (samplingMeta.referenceTracking) {
-                stats.objectReferencesTracked = samplingMeta.referenceTracking.totalTracked || 0;
+                statisticsObj.objectReferencesTracked = samplingMeta.referenceTracking.totalTracked || 0;
             }
 
             if (samplingMeta.performance) {
-                stats.samplingTime = samplingMeta.performance.totalTime || 0;
-                stats.averageTimePerProperty = samplingMeta.performance.averageTimePerProperty || 0;
-                stats.successRate = samplingMeta.performance.successRate || 0;
+                statisticsObj.samplingTime = samplingMeta.performance.totalTime || 0;
+                statisticsObj.averageTimePerProperty = samplingMeta.performance.averageTimePerProperty || 0;
+                statisticsObj.successRate = samplingMeta.performance.successRate || 0;
             } else {
-                stats.samplingTime = samplingMeta.samplingTime || 0;
-                if (stats.propertiesSampled > 0) {
-                    stats.successRate = (stats.valuesSampled / stats.propertiesSampled) * 100;
+                statisticsObj.samplingTime = samplingMeta.samplingTime || 0;
+                if (statisticsObj.propertiesSampled > 0) {
+                    statisticsObj.successRate = (statisticsObj.valuesSampled / statisticsObj.propertiesSampled) * 100;
                 }
             }
         }
 
-        return stats;
+        return statisticsObj;
 
     } catch (exc) {
         return {
@@ -6338,7 +6377,7 @@ function createSamplingResult(success, value, error) {
  */
 function logSamplingProgress(message) {
     try {
-        $.writeln('[Property Sampler] ' + getCurrentTimestamp() + ': ' + message);
+        debugLog('[Property Sampler] ' + getCurrentTimestamp() + ': ' + message);
     } catch (exc) {
         // Silent failure
     }
@@ -6350,7 +6389,7 @@ function logSamplingProgress(message) {
  */
 function logSamplingError(message) {
     try {
-        $.writeln('[Property Sampler ERROR] ' + getCurrentTimestamp() + ': ' + message);
+        debugLog('[Property Sampler ERROR] ' + getCurrentTimestamp() + ': ' + message);
     } catch (exc) {
         // Silent failure
     }
@@ -10385,13 +10424,13 @@ function generateStructuralChangeReport(result, config) {
         builder.appendLine('STRUCTURAL CHANGES REPORT');
         builder.appendLine('=========================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Added elements: ' + stats.added);
-        builder.appendLine('- Removed elements: ' + stats.removed);
-        builder.appendLine('- Modified elements: ' + stats.modified);
-        builder.appendLine('- Moved elements: ' + stats.moved);
-        builder.appendLine('- Renamed elements: ' + stats.renamed);
+        builder.appendLine('- Added elements: ' + statisticsObj.added);
+        builder.appendLine('- Removed elements: ' + statisticsObj.removed);
+        builder.appendLine('- Modified elements: ' + statisticsObj.modified);
+        builder.appendLine('- Moved elements: ' + statisticsObj.moved);
+        builder.appendLine('- Renamed elements: ' + statisticsObj.renamed);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -10429,11 +10468,11 @@ function generatePropertyChangeReport(result, config) {
         builder.appendLine('PROPERTY CHANGES REPORT');
         builder.appendLine('=======================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Added properties: ' + stats.propertiesAdded);
-        builder.appendLine('- Removed properties: ' + stats.propertiesRemoved);
-        builder.appendLine('- Modified properties: ' + stats.propertiesModified);
+        builder.appendLine('- Added properties: ' + statisticsObj.propertiesAdded);
+        builder.appendLine('- Removed properties: ' + statisticsObj.propertiesRemoved);
+        builder.appendLine('- Modified properties: ' + statisticsObj.propertiesModified);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -10471,11 +10510,11 @@ function generateCollectionChangeReport(result, config) {
         builder.appendLine('COLLECTION CHANGES REPORT');
         builder.appendLine('=========================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Added collections: ' + stats.collectionsAdded);
-        builder.appendLine('- Removed collections: ' + stats.collectionsRemoved);
-        builder.appendLine('- Modified collections: ' + stats.collectionsModified);
+        builder.appendLine('- Added collections: ' + statisticsObj.collectionsAdded);
+        builder.appendLine('- Removed collections: ' + statisticsObj.collectionsRemoved);
+        builder.appendLine('- Modified collections: ' + statisticsObj.collectionsModified);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -10508,11 +10547,11 @@ function generateValueChangeReport(result, config) {
         builder.appendLine('VALUE CHANGES REPORT');
         builder.appendLine('====================');
         
-        var stats = result.statistics;
+        var statisticsObj = result.statistics;
         builder.appendLine('Summary:');
-        builder.appendLine('- Values changed: ' + stats.valuesChanged);
-        builder.appendLine('- Values added: ' + stats.valuesAdded);
-        builder.appendLine('- Values removed: ' + stats.valuesRemoved);
+        builder.appendLine('- Values changed: ' + statisticsObj.valuesChanged);
+        builder.appendLine('- Values added: ' + statisticsObj.valuesAdded);
+        builder.appendLine('- Values removed: ' + statisticsObj.valuesRemoved);
         builder.appendLine('');
         
         if (result.changes.length === 0) {
@@ -11345,11 +11384,11 @@ function buildPerformanceMap(mappingSession, config) {
             optimizationSuggestions: []
         };
         
-        var stats = mappingSession.getStatistics();
+        var statisticsObj = mappingSession.getStatistics();
         
-        if (stats.elapsedTime > 0) {
+        if (statisticsObj.elapsedTime > 0) {
             performanceMap.overallMetrics.objectsPerSecond = 
-                Math.round(stats.totalObjects / (stats.elapsedTime / 1000));
+                Math.round(statisticsObj.totalObjects / (statisticsObj.elapsedTime / 1000));
         }
         
         if (mappingSession.memoryTracker) {
@@ -11358,12 +11397,12 @@ function buildPerformanceMap(mappingSession, config) {
         }
         
         // Identify bottlenecks
-        if (stats.elapsedTime > config.timeoutMs * 0.8) {
+        if (statisticsObj.elapsedTime > config.timeoutMs * 0.8) {
             performanceMap.bottlenecks[performanceMap.bottlenecks.length] = 
                 'Mapping time approaching timeout limit';
         }
         
-        if (stats.circularReferences > 10) {
+        if (statisticsObj.circularReferences > 10) {
             performanceMap.bottlenecks[performanceMap.bottlenecks.length] = 
                 'High number of circular references detected';
         }
@@ -13403,12 +13442,12 @@ function generateAnalysisDisplay(analysisResult) {
         builder.appendLine('');
 
         if (analysisResult.statistics) {
-            var stats = analysisResult.statistics;
+            var statisticsObj = analysisResult.statistics;
             builder.appendLine('STATISTICS:');
-            builder.appendLine('Total Nodes: ' + (stats.totalNodes || 0));
-            builder.appendLine('Max Depth: ' + (stats.maxDepth || 0));
-            builder.appendLine('Property Count: ' + (stats.propertyCount || 0));
-            builder.appendLine('Collection Count: ' + (stats.collectionCount || 0));
+            builder.appendLine('Total Nodes: ' + (statisticsObj.totalNodes || 0));
+            builder.appendLine('Max Depth: ' + (statisticsObj.maxDepth || 0));
+            builder.appendLine('Property Count: ' + (statisticsObj.propertyCount || 0));
+            builder.appendLine('Collection Count: ' + (statisticsObj.collectionCount || 0));
             builder.appendLine('');
         }
 
@@ -13879,11 +13918,11 @@ function showConfigurationDialog() {
                         g_domViz_userConfiguration.enumeration.timeoutMs = newTimeout;
                         g_domViz_userConfiguration.sampling.maxSamples = newMaxSamples;
 
-                        $.writeln('[CONFIG] Saved maxDepth: ' + newMaxDepth + ', timeout: ' + newTimeout);
+                        debugLog('[CONFIG] Saved maxDepth: ' + newMaxDepth + ', timeout: ' + newTimeout);
                         updateStatus('Configuration saved successfully');
 
                     } catch (exc) {
-                        $.writeln('[CONFIG] Save error: ' + exc.message);
+                        debugLog('[CONFIG] Save error: ' + exc.message);
                     }
 
                     configDialog.close();
@@ -13927,7 +13966,7 @@ function updateDocumentInfo() {
         g_domViz_documentInfo.text = docInfo;
 
     } catch (exc) {
-        $.writeln('[DOM Visualizer] Document info update error: ' + exc.message);
+        debugLog('[DOM Visualizer] Document info update error: ' + exc.message);
     }
 }
 
@@ -13940,10 +13979,10 @@ function updateStatus(message) {
         if (g_domViz_statusText) {
             g_domViz_statusText.text = message;
         }
-        $.writeln('[DOM Visualizer] ' + message);
+        debugLog('[DOM Visualizer] ' + message);
 
     } catch (exc) {
-        $.writeln('[DOM Visualizer] Status update error: ' + exc.message);
+        debugLog('[DOM Visualizer] Status update error: ' + exc.message);
     }
 }
 
@@ -14039,7 +14078,7 @@ function closeVisualizer() {
         g_domViz_afterData = null;
 
     } catch (exc) {
-        $.writeln('[DOM Visualizer] Close error: ' + exc.message);
+        debugLog('[DOM Visualizer] Close error: ' + exc.message);
     }
 }
 
@@ -16169,15 +16208,15 @@ function generateComprehensiveJSONAnalysisDisplay(analysisResult) {
 
         // File statistics
         if (analysisResult.statistics) {
-            var stats = analysisResult.statistics;
+            var statisticsObj = analysisResult.statistics;
             builder.appendLine('FILE STATISTICS');
             builder.appendLine('---------------');
-            builder.appendLine('File Size: ' + stats.fileSize + ' characters (' + Math.round(stats.fileSize / 1024) + ' KB)');
-            builder.appendLine('Total Nodes: ' + stats.totalNodes);
-            builder.appendLine('Maximum Depth: ' + stats.maxDepth);
-            builder.appendLine('Property Count: ' + stats.propertyCount);
-            builder.appendLine('Collection Count: ' + stats.collectionCount);
-            builder.appendLine('Value Count: ' + stats.valueCount);
+            builder.appendLine('File Size: ' + statisticsObj.fileSize + ' characters (' + Math.round(statisticsObj.fileSize / 1024) + ' KB)');
+            builder.appendLine('Total Nodes: ' + statisticsObj.totalNodes);
+            builder.appendLine('Maximum Depth: ' + statisticsObj.maxDepth);
+            builder.appendLine('Property Count: ' + statisticsObj.propertyCount);
+            builder.appendLine('Collection Count: ' + statisticsObj.collectionCount);
+            builder.appendLine('Value Count: ' + statisticsObj.valueCount);
             builder.appendLine('');
         }
 
@@ -16593,12 +16632,12 @@ function generateAdvancedMappingDisplay(mappingResult) {
         builder.appendLine('');
 
         if (mappingResult.statistics) {
-            var stats = mappingResult.statistics;
+            var statisticsObj = mappingResult.statistics;
             builder.appendLine('MAPPING STATISTICS:');
-            builder.appendLine('Total Relationships: ' + (stats.totalRelationships || 0));
-            builder.appendLine('Circular References: ' + (stats.circularReferences || 0));
-            builder.appendLine('Object Categories: ' + (stats.objectCategories || 0));
-            builder.appendLine('Max Relationship Depth: ' + (stats.maxRelationshipDepth || 0));
+            builder.appendLine('Total Relationships: ' + (statisticsObj.totalRelationships || 0));
+            builder.appendLine('Circular References: ' + (statisticsObj.circularReferences || 0));
+            builder.appendLine('Object Categories: ' + (statisticsObj.objectCategories || 0));
+            builder.appendLine('Max Relationship Depth: ' + (statisticsObj.maxRelationshipDepth || 0));
             builder.appendLine('');
         }
 
@@ -16766,7 +16805,7 @@ function updateAdvancedDocumentInfo() {
         g_advUI_documentInfo.text = docInfo;
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Document info update error: ' + exc.message);
+        debugLog('[Advanced UI] Document info update error: ' + exc.message);
     }
 }
 
@@ -16779,10 +16818,10 @@ function updateAdvancedStatus(message) {
         if (g_advUI_statusText) {
             g_advUI_statusText.text = message;
         }
-        $.writeln('[Advanced UI] ' + message);
+        debugLog('[Advanced UI] ' + message);
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Status update error: ' + exc.message);
+        debugLog('[Advanced UI] Status update error: ' + exc.message);
     }
 }
 
@@ -16881,7 +16920,7 @@ function closeAdvancedUI() {
         g_advUI_baselineDocumentState = null;
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Close error: ' + exc.message);
+        debugLog('[Advanced UI] Close error: ' + exc.message);
     }
 }
 

@@ -2077,15 +2077,15 @@ function generateComprehensiveJSONAnalysisDisplay(analysisResult) {
 
         // File statistics
         if (analysisResult.statistics) {
-            var stats = analysisResult.statistics;
+            var statisticsObj = analysisResult.statistics;
             builder.appendLine('FILE STATISTICS');
             builder.appendLine('---------------');
-            builder.appendLine('File Size: ' + stats.fileSize + ' characters (' + Math.round(stats.fileSize / 1024) + ' KB)');
-            builder.appendLine('Total Nodes: ' + stats.totalNodes);
-            builder.appendLine('Maximum Depth: ' + stats.maxDepth);
-            builder.appendLine('Property Count: ' + stats.propertyCount);
-            builder.appendLine('Collection Count: ' + stats.collectionCount);
-            builder.appendLine('Value Count: ' + stats.valueCount);
+            builder.appendLine('File Size: ' + statisticsObj.fileSize + ' characters (' + Math.round(statisticsObj.fileSize / 1024) + ' KB)');
+            builder.appendLine('Total Nodes: ' + statisticsObj.totalNodes);
+            builder.appendLine('Maximum Depth: ' + statisticsObj.maxDepth);
+            builder.appendLine('Property Count: ' + statisticsObj.propertyCount);
+            builder.appendLine('Collection Count: ' + statisticsObj.collectionCount);
+            builder.appendLine('Value Count: ' + statisticsObj.valueCount);
             builder.appendLine('');
         }
 
@@ -2501,12 +2501,12 @@ function generateAdvancedMappingDisplay(mappingResult) {
         builder.appendLine('');
 
         if (mappingResult.statistics) {
-            var stats = mappingResult.statistics;
+            var statisticsObj = mappingResult.statistics;
             builder.appendLine('MAPPING STATISTICS:');
-            builder.appendLine('Total Relationships: ' + (stats.totalRelationships || 0));
-            builder.appendLine('Circular References: ' + (stats.circularReferences || 0));
-            builder.appendLine('Object Categories: ' + (stats.objectCategories || 0));
-            builder.appendLine('Max Relationship Depth: ' + (stats.maxRelationshipDepth || 0));
+            builder.appendLine('Total Relationships: ' + (statisticsObj.totalRelationships || 0));
+            builder.appendLine('Circular References: ' + (statisticsObj.circularReferences || 0));
+            builder.appendLine('Object Categories: ' + (statisticsObj.objectCategories || 0));
+            builder.appendLine('Max Relationship Depth: ' + (statisticsObj.maxRelationshipDepth || 0));
             builder.appendLine('');
         }
 
@@ -2674,7 +2674,7 @@ function updateAdvancedDocumentInfo() {
         g_advUI_documentInfo.text = docInfo;
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Document info update error: ' + exc.message);
+        debugLog('[Advanced UI] Document info update error: ' + exc.message);
     }
 }
 
@@ -2687,10 +2687,10 @@ function updateAdvancedStatus(message) {
         if (g_advUI_statusText) {
             g_advUI_statusText.text = message;
         }
-        $.writeln('[Advanced UI] ' + message);
+        debugLog('[Advanced UI] ' + message);
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Status update error: ' + exc.message);
+        debugLog('[Advanced UI] Status update error: ' + exc.message);
     }
 }
 
@@ -2789,7 +2789,7 @@ function closeAdvancedUI() {
         g_advUI_baselineDocumentState = null;
 
     } catch (exc) {
-        $.writeln('[Advanced UI] Close error: ' + exc.message);
+        debugLog('[Advanced UI] Close error: ' + exc.message);
     }
 }
 
