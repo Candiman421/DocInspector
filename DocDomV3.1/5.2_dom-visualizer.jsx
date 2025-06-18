@@ -620,6 +620,12 @@ function performFullDiscovery() {
     try {
         updateStatus('Starting full DOM discovery...');
 
+        // FIX: Initialize configuration if not available
+        if (!g_domViz_userConfiguration) {
+            g_domViz_userConfiguration = objectClone(DEFAULT_VISUALIZER_CONFIG, 4);
+            $.writeln('[DEBUG] Configuration initialized with defaults');
+        }
+
         if (!app.documents.length) {
             alert('Please open a document first');
             return;
@@ -630,6 +636,7 @@ function performFullDiscovery() {
 
         // Phase 1: Enumeration
         updateStatus('Phase 1: Enumerating DOM structure...');
+        $.writeln('[DEBUG] === STARTING PHASE 1 ===');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
 
         // DEBUG: Show what we actually got from enumeration - ES3 COMPATIBLE
@@ -638,42 +645,15 @@ function performFullDiscovery() {
         $.writeln('[DEBUG] domStructure has .structure: ' + (domStructure.structure ? 'YES' : 'NO'));
         $.writeln('[DEBUG] domStructure has .metadata: ' + (domStructure.metadata ? 'YES' : 'NO'));
 
-        if (domStructure.structure) {
-            $.writeln('[DEBUG] domStructure.structure type: ' + typeof domStructure.structure);
-            
-            if (domStructure.structure.document) {
-                $.writeln('[DEBUG] domStructure.structure.document type: ' + typeof domStructure.structure.document);
-                var docNode = domStructure.structure.document;
-                
-                if (docNode.properties) {
-                    $.writeln('[DEBUG] Found ' + docNode.properties.length + ' properties in document node');
-                    // ES3 COMPATIBLE - Show first 3 properties without map/slice
-                    if (docNode.properties.length > 0) {
-                        var propNames = '';
-                        for (var i = 0; i < Math.min(3, docNode.properties.length); i++) {
-                            if (i > 0) propNames += ', ';
-                            propNames += docNode.properties[i].name;
-                        }
-                        $.writeln('[DEBUG] First few properties: ' + propNames);
-                    }
-                }
-                if (docNode.methods) {
-                    $.writeln('[DEBUG] Found ' + docNode.methods.length + ' methods in document node');
-                }
-                if (docNode.collections) {
-                    $.writeln('[DEBUG] Found ' + docNode.collections.length + ' collections in document node');
-                }
-                if (docNode.childNodes) {
-                    $.writeln('[DEBUG] Found ' + docNode.childNodes.length + ' child nodes');
-                }
-                
-                $.writeln('[DEBUG] Document node depth: ' + (docNode.depth || 'undefined'));
-            } else {
-                $.writeln('[DEBUG] ERROR: No domStructure.structure.document found!');
-            }
+        if (domStructure.structure && domStructure.structure.document) {
+            var docNode = domStructure.structure.document;
+            $.writeln('[DEBUG] Document node properties: ' + (docNode.properties ? docNode.properties.length : 0));
+            $.writeln('[DEBUG] Document node methods: ' + (docNode.methods ? docNode.methods.length : 0));
+            $.writeln('[DEBUG] Document node collections: ' + (docNode.collections ? docNode.collections.length : 0));
+            $.writeln('[DEBUG] Document node child nodes: ' + (docNode.childNodes ? docNode.childNodes.length : 0));
         }
 
-        // Fix: Check for actual error conditions
+        // FIX: Check for actual error conditions (not .success property)
         if (!domStructure || (domStructure.metadata && domStructure.metadata.error) || !domStructure.structure) {
             var errorMsg = 'Unknown enumeration error';
             if (domStructure && domStructure.metadata && domStructure.metadata.error) {
@@ -686,33 +666,56 @@ function performFullDiscovery() {
         }
 
         // Phase 2: Value Sampling
-        $.writeln('[DEBUG] === PHASE 2 VALUE SAMPLING ===');
+        $.writeln('[DEBUG] === STARTING PHASE 2 ===');
         updateStatus('Phase 2: Sampling property values...');
+        var sampledStructure = domStructure; // Default fallback
         
         if (functionExists('sampleDOMValues')) {
-            $.writeln('[DEBUG] Calling sampleDOMValues...');
-            var sampledStructure = sampleDOMValues(domStructure.structure, doc, g_domViz_userConfiguration.sampling);
-            $.writeln('[DEBUG] sampleDOMValues completed');
+            $.writeln('[DEBUG] Calling sampleDOMValues with FULL domStructure (not .structure)');
+            // FIX: Pass full domStructure, not domStructure.structure
+            var phase2Result = sampleDOMValues(domStructure, doc, g_domViz_userConfiguration.sampling);
+            
+            if (phase2Result && !phase2Result.error) {
+                sampledStructure = phase2Result;
+                $.writeln('[DEBUG] Phase 2 completed successfully');
+            } else {
+                $.writeln('[DEBUG] Phase 2 had errors: ' + (phase2Result ? phase2Result.error : 'unknown'));
+                $.writeln('[DEBUG] Using Phase 1 results for Phase 3');
+            }
         } else {
             $.writeln('[DEBUG] sampleDOMValues function not found! Skipping phase 2');
-            var sampledStructure = domStructure;
         }
 
         // Phase 3: Collection Sampling
-        $.writeln('[DEBUG] === PHASE 3 COLLECTION SAMPLING ===');
+        $.writeln('[DEBUG] === STARTING PHASE 3 ===');
         updateStatus('Phase 3: Sampling collections...');
+        var finalStructure = sampledStructure; // Default fallback
         
         if (functionExists('sampleCollectionContents')) {
-            $.writeln('[DEBUG] Calling sampleCollectionContents...');
-            var finalStructure = sampleCollectionContents(sampledStructure.structure, doc, g_domViz_userConfiguration.sampling);
-            $.writeln('[DEBUG] sampleCollectionContents completed');
+            $.writeln('[DEBUG] Calling sampleCollectionContents with FULL structure (not .structure)');
+            // FIX: Pass full structure, not .structure
+            var phase3Result = sampleCollectionContents(sampledStructure, doc, g_domViz_userConfiguration.sampling);
+            
+            if (phase3Result && !phase3Result.error) {
+                finalStructure = phase3Result;
+                $.writeln('[DEBUG] Phase 3 completed successfully');
+            } else {
+                $.writeln('[DEBUG] Phase 3 had errors: ' + (phase3Result ? phase3Result.error : 'unknown'));
+                $.writeln('[DEBUG] Using Phase 2 results as final');
+            }
         } else {
             $.writeln('[DEBUG] sampleCollectionContents function not found! Skipping phase 3');
-            var finalStructure = sampledStructure;
         }
 
-        $.writeln('[DEBUG] === FINAL RESULTS ===');
+        $.writeln('[DEBUG] === SETTING FINAL RESULTS ===');
         g_domViz_currentDOMStructure = finalStructure;
+        $.writeln('[DEBUG] g_domViz_currentDOMStructure set, type: ' + typeof g_domViz_currentDOMStructure);
+        
+        if (g_domViz_currentDOMStructure) {
+            $.writeln('[DEBUG] Final structure is not null - proceeding to display');
+        } else {
+            $.writeln('[DEBUG] ERROR: Final structure is null!');
+        }
         
         displayCurrentStructure();
         updateStatus('Full discovery completed successfully');

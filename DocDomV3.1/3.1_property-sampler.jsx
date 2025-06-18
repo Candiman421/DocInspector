@@ -67,7 +67,7 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
     $.writeln('[SAMPLE DEBUG] Final config timeoutMs: ' + config.timeoutMs);
     
     try {
-        // Validate inputs
+        // Validate inputs properly
         if (!domStructure || typeof domStructure !== 'object') {
             $.writeln('[SAMPLE DEBUG] ERROR: Invalid domStructure');
             return {
@@ -84,14 +84,20 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
             };
         }
         
-        // Check if domStructure has document node
-        if (domStructure.document) {
-            $.writeln('[SAMPLE DEBUG] Found domStructure.document');
-            var docNode = domStructure.document;
+        // Handle both input formats - direct structure or wrapped structure
+        var docNode = null;
+        if (domStructure.structure && domStructure.structure.document) {
+            // Wrapped format: {structure: {document: {...}}}
+            docNode = domStructure.structure.document;
+            $.writeln('[SAMPLE DEBUG] Using wrapped format - domStructure.structure.document');
+        } else if (domStructure.document) {
+            // Direct format: {document: {...}}
+            docNode = domStructure.document;
+            $.writeln('[SAMPLE DEBUG] Using direct format - domStructure.document');
         } else {
-            $.writeln('[SAMPLE DEBUG] No domStructure.document found');
+            $.writeln('[SAMPLE DEBUG] ERROR: No document node found in either format');
             return {
-                error: 'No document node in structure',
+                error: 'No document node found in structure',
                 timestamp: getCurrentTimestamp()
             };
         }
@@ -104,6 +110,12 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
             errorCount: 0,
             skippedCount: 0
         };
+        
+        // Create reference tracker if needed
+        var referenceTracker = null;
+        if (config.trackObjectReferences && functionExists('createObjectReferenceTracker')) {
+            referenceTracker = createObjectReferenceTracker();
+        }
         
         $.writeln('[SAMPLE DEBUG] Sampling session created');
         
@@ -123,25 +135,97 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
             return domStructure; // Return unchanged
         }
         
+        // Check if sampling function exists (use the correct name!)
+        if (!functionExists('samplePropertyValue')) {
+            $.writeln('[SAMPLE DEBUG] CRITICAL: samplePropertyValue function NOT FOUND!');
+            return domStructure; // Return unchanged
+        }
+        
+        $.writeln('[SAMPLE DEBUG] Using existing samplePropertyValue function');
+        
         // Sample properties
         if (docNode.properties) {
+            $.writeln('[SAMPLE DEBUG] Starting property sampling...');
             for (var i = 0; i < docNode.properties.length; i++) {
                 if (samplingSession.timeoutChecker()) {
                     $.writeln('[SAMPLE DEBUG] Timeout reached during property sampling');
                     break;
                 }
                 
-                var prop = docNode.properties[i];
+                var property = docNode.properties[i];
                 try {
-                    // Attempt to sample this property
-                    var sampleResult = sampleSingleProperty(sourceDocument, prop, config);
-                    if (sampleResult.success) {
-                        prop.sampledValue = sampleResult.value;
+                    // Use the existing samplePropertyValue function with correct parameters
+                    var sampleResult = samplePropertyValue(
+                        sourceDocument,           // targetObject
+                        property.name,           // propName  
+                        property.path,           // propPath
+                        config,                  // config
+                        referenceTracker         // referenceTracker
+                    );
+                    
+                    if (sampleResult && sampleResult.success) {
+                        property.sampledValue = sampleResult.formattedValue;
+                        property.samplingMetadata = {
+                            valueType: sampleResult.valueType,
+                            accessTime: sampleResult.accessTime,
+                            valueFingerprint: sampleResult.valueFingerprint
+                        };
+                        samplingSession.sampledCount++;
+                        
+                        if (i < 5) { // Debug first few
+                            $.writeln('[SAMPLE DEBUG] Sampled: ' + property.name + ' = ' + sampleResult.formattedValue);
+                        }
+                    } else if (sampleResult && sampleResult.skipped) {
+                        property.sampledValue = '[Skipped: ' + sampleResult.error + ']';
+                        samplingSession.skippedCount++;
+                    } else {
+                        property.sampledValue = '[Error: ' + (sampleResult ? sampleResult.error : 'unknown') + ']';
+                        samplingSession.errorCount++;
+                        
+                        if (i < 5) { // Debug first few errors
+                            $.writeln('[SAMPLE DEBUG] Error sampling: ' + property.name + ' - ' + (sampleResult ? sampleResult.error : 'unknown'));
+                        }
+                    }
+                } catch (propException) {
+                    property.sampledValue = '[Exception: ' + propException.message + ']';
+                    samplingSession.errorCount++;
+                }
+                
+                // Report progress every 50 properties
+                if ((i + 1) % 50 === 0) {
+                    $.writeln('[SAMPLE DEBUG] Progress: ' + (i + 1) + '/' + docNode.properties.length + ' properties processed');
+                }
+            }
+        }
+        
+        // Sample collections if present
+        if (docNode.collections && config.includeCollectionSamples) {
+            $.writeln('[SAMPLE DEBUG] Starting collection sampling...');
+            for (var j = 0; j < docNode.collections.length; j++) {
+                if (samplingSession.timeoutChecker()) {
+                    $.writeln('[SAMPLE DEBUG] Timeout reached during collection sampling');
+                    break;
+                }
+                
+                var collection = docNode.collections[j];
+                try {
+                    var collectionSampleResult = samplePropertyValue(
+                        sourceDocument,
+                        collection.name,
+                        collection.path,
+                        config,
+                        referenceTracker
+                    );
+                    
+                    if (collectionSampleResult && collectionSampleResult.success) {
+                        collection.sampledValue = collectionSampleResult.formattedValue;
                         samplingSession.sampledCount++;
                     } else {
+                        collection.sampledValue = '[Collection Error: ' + (collectionSampleResult ? collectionSampleResult.error : 'unknown') + ']';
                         samplingSession.errorCount++;
                     }
-                } catch (propExc) {
+                } catch (collExc) {
+                    collection.sampledValue = '[Collection Exception: ' + collExc.message + ']';
                     samplingSession.errorCount++;
                 }
             }
@@ -151,6 +235,7 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
         $.writeln('[SAMPLE DEBUG] === SAMPLING COMPLETED ===');
         $.writeln('[SAMPLE DEBUG] Total time: ' + (endTime - startTime) + 'ms');
         $.writeln('[SAMPLE DEBUG] Properties sampled: ' + samplingSession.sampledCount);
+        $.writeln('[SAMPLE DEBUG] Properties skipped: ' + samplingSession.skippedCount);
         $.writeln('[SAMPLE DEBUG] Errors encountered: ' + samplingSession.errorCount);
         
         // Add sampling metadata
@@ -160,6 +245,8 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
         domStructure.metadata.samplingCompleted = true;
         domStructure.metadata.samplingTime = endTime - startTime;
         domStructure.metadata.propertiesSampled = samplingSession.sampledCount;
+        domStructure.metadata.propertiesSkipped = samplingSession.skippedCount;
+        domStructure.metadata.samplingErrors = samplingSession.errorCount;
         
         return domStructure;
         
@@ -181,7 +268,27 @@ function sampleDOMValues(domStructure, sourceDocument, samplingConfig) {
  * @param {Object} referenceTracker - Reference tracker for objects
  * @returns {Object} Sample result with metadata and object references
  */
+/**
+ * Sample property value with reference tracking and metadata
+ * @param {Object} targetObject - Object containing the property
+ * @param {String} propName - Property name to sample
+ * @param {String} propPath - Full path to property
+ * @param {Object} config - Sampling configuration
+ * @param {Object} referenceTracker - Reference tracker for objects
+ * @returns {Object} Sample result with metadata and object references
+ */
 function samplePropertyValue(targetObject, propName, propPath, config, referenceTracker) {
+    // Static counter for debug limiting
+    if (typeof samplePropertyValue.debugCount === 'undefined') {
+        samplePropertyValue.debugCount = 0;
+    }
+    var showDebug = samplePropertyValue.debugCount < 5;
+    samplePropertyValue.debugCount++;
+    
+    if (showDebug) {
+        $.writeln('[PROP DEBUG] #' + samplePropertyValue.debugCount + ' Sampling: ' + propName + ' (path: ' + propPath + ')');
+    }
+    
     var result = {
         success: false,
         value: null,
@@ -202,25 +309,72 @@ function samplePropertyValue(targetObject, propName, propPath, config, reference
         // Parameter validation
         if (!targetObject || typeof targetObject !== 'object') {
             result.error = 'Invalid target object';
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Invalid target object (type: ' + typeof targetObject + ')');
             return result;
         }
         
         if (!propName || typeof propName !== 'string') {
             result.error = 'Invalid property name';
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Invalid property name (type: ' + typeof propName + ')');
             return result;
+        }
+        
+        if (showDebug) {
+            $.writeln('[PROP DEBUG] ' + propName + ' - Parameter validation passed');
+            $.writeln('[PROP DEBUG] ' + propName + ' - Target object type: ' + typeof targetObject);
+            $.writeln('[PROP DEBUG] ' + propName + ' - Property name: "' + propName + '"');
+            $.writeln('[PROP DEBUG] ' + propName + ' - Config safetyFilter: ' + (config ? config.safetyFilter : 'undefined'));
         }
         
         // Safety filter check
-        if (!meetsSafetyFilter({name: propName, path: propPath}, config.safetyFilter)) {
-            result.skipped = true;
-            result.error = 'Property filtered by safety settings';
-            return result;
+        if (!functionExists('meetsSafetyFilter')) {
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - WARNING: meetsSafetyFilter function not found, skipping safety check');
+        } else {
+            var safetyCheck = meetsSafetyFilter({name: propName, path: propPath}, config.safetyFilter);
+            if (!safetyCheck) {
+                result.skipped = true;
+                result.error = 'Property filtered by safety settings';
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' SKIPPED: Failed safety filter (' + config.safetyFilter + ')');
+                return result;
+            }
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Safety filter passed');
         }
         
         // Safe property value access
-        var valueAccess = safeGetPropertyValue(targetObject, propName, null);
-        if (valueAccess === null && !safeHasProperty(targetObject, propName)) {
+        if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Attempting property access...');
+        
+        var valueAccess;
+        if (functionExists('safeGetPropertyValue')) {
+            valueAccess = safeGetPropertyValue(targetObject, propName, null);
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Used safeGetPropertyValue, result type: ' + typeof valueAccess);
+        } else {
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - safeGetPropertyValue not found, using direct access');
+            try {
+                valueAccess = targetObject[propName];
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Direct access result type: ' + typeof valueAccess);
+            } catch (accessExc) {
+                result.error = 'Direct property access failed: ' + accessExc.message;
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Direct access exception - ' + accessExc.message);
+                return result;
+            }
+        }
+        
+        // Check if property exists
+        var propertyExists = true;
+        if (functionExists('safeHasProperty')) {
+            propertyExists = safeHasProperty(targetObject, propName);
+        } else {
+            try {
+                propertyExists = (propName in targetObject);
+            } catch (hasExc) {
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Property existence check failed: ' + hasExc.message);
+                propertyExists = false;
+            }
+        }
+        
+        if (valueAccess === null && !propertyExists) {
             result.error = 'Property does not exist';
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED: Property does not exist');
             return result;
         }
         
@@ -229,11 +383,18 @@ function samplePropertyValue(targetObject, propName, propPath, config, reference
         result.valueType = typeof sampledValue;
         result.accessTime = new Date().getTime() - startTime;
         
+        if (showDebug) {
+            $.writeln('[PROP DEBUG] ' + propName + ' - Property access SUCCESS!');
+            $.writeln('[PROP DEBUG] ' + propName + ' - Value type: ' + result.valueType);
+            $.writeln('[PROP DEBUG] ' + propName + ' - Access time: ' + result.accessTime + 'ms');
+        }
+        
         // Handle null/undefined based on configuration
         if (sampledValue === null) {
             if (config.skipNullValues) {
                 result.skipped = true;
                 result.error = 'Null value skipped per configuration';
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' SKIPPED: Null value (skipNullValues=true)');
                 return result;
             }
         }
@@ -242,34 +403,70 @@ function samplePropertyValue(targetObject, propName, propPath, config, reference
             if (config.skipUndefinedValues) {
                 result.skipped = true;
                 result.error = 'Undefined value skipped per configuration';
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' SKIPPED: Undefined value (skipUndefinedValues=true)');
                 return result;
             }
         }
         
         // Generate value metadata
-        if (config.includeValueMetadata) {
-            result.valueMetadata = generateValueMetadata(sampledValue, config);
+        if (config.includeValueMetadata && functionExists('generateValueMetadata')) {
+            try {
+                result.valueMetadata = generateValueMetadata(sampledValue, config);
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value metadata generated');
+            } catch (metaExc) {
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value metadata failed: ' + metaExc.message);
+            }
         }
         
         // Generate value fingerprint for change tracking
-        if (config.generateValueFingerprints) {
-            result.valueFingerprint = generateValueFingerprint(sampledValue, propPath);
+        if (config.generateValueFingerprints && functionExists('generateValueFingerprint')) {
+            try {
+                result.valueFingerprint = generateValueFingerprint(sampledValue, propPath);
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value fingerprint generated');
+            } catch (fingerprintExc) {
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Value fingerprint failed: ' + fingerprintExc.message);
+            }
         }
         
         // Track object references
         if (referenceTracker && sampledValue && typeof sampledValue === 'object') {
-            result.objectReference = referenceTracker.track(sampledValue, propPath);
+            try {
+                result.objectReference = referenceTracker.track(sampledValue, propPath);
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Object reference tracked');
+            } catch (refExc) {
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Object reference tracking failed: ' + refExc.message);
+            }
         }
         
         // Format value for display
-        result.formattedValue = formatSampleValue(sampledValue, config);
+        if (functionExists('formatSampleValue')) {
+            try {
+                result.formattedValue = formatSampleValue(sampledValue, config);
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Formatted value: ' + result.formattedValue);
+            } catch (formatExc) {
+                result.formattedValue = '[Format Error: ' + formatExc.message + ']';
+                if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Format error: ' + formatExc.message);
+            }
+        } else {
+            // Fallback formatting
+            if (sampledValue === null) {
+                result.formattedValue = 'null';
+            } else if (sampledValue === undefined) {
+                result.formattedValue = 'undefined';
+            } else {
+                result.formattedValue = String(sampledValue) + ' (' + typeof sampledValue + ')';
+            }
+            if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - Used fallback formatting: ' + result.formattedValue);
+        }
         
         result.success = true;
+        if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' - COMPLETE SUCCESS!');
         return result;
         
     } catch (exc) {
         result.error = 'Property value sampling failed: ' + exc.message;
         result.accessTime = new Date().getTime() - startTime;
+        if (showDebug) $.writeln('[PROP DEBUG] ' + propName + ' FAILED with EXCEPTION: ' + exc.message);
         return result;
     }
 }
