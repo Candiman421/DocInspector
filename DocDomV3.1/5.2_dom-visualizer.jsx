@@ -631,8 +631,15 @@ function performFullDiscovery() {
         updateStatus('Phase 1: Enumerating DOM structure...');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
 
-        if (!domStructure.success) {
-            alert('Enumeration failed: ' + domStructure.error);
+        // Fix: Check for actual error conditions
+        if (!domStructure || domStructure.metadata.error || !domStructure.structure) {
+            var errorMsg = 'Unknown enumeration error';
+            if (domStructure && domStructure.metadata && domStructure.metadata.error) {
+                errorMsg = domStructure.metadata.error;
+            } else if (!domStructure) {
+                errorMsg = 'Enumeration returned null';
+            }
+            alert('Enumeration failed: ' + errorMsg);
             return;
         }
 
@@ -1445,7 +1452,25 @@ function showConfigurationDialog() {
             var okBtn = buttonGroup.add('button', undefined, 'OK');
             if (okBtn) {
                 okBtn.onClick = function () {
-                    // Save configuration values
+                    // ACTUALLY save configuration values
+                    try {
+                        // Read the maxDepth value from the edit field
+                        var newMaxDepth = parseInt(maxDepthEdit.text) || 4;
+                        var newTimeout = parseInt(timeoutEdit.text) || 15000;
+                        var newMaxSamples = parseInt(maxSamplesEdit.text) || 20;
+
+                        // Update the global configuration
+                        g_domViz_userConfiguration.enumeration.maxDepth = newMaxDepth;
+                        g_domViz_userConfiguration.enumeration.timeoutMs = newTimeout;
+                        g_domViz_userConfiguration.sampling.maxSamples = newMaxSamples;
+
+                        $.writeln('[CONFIG] Saved maxDepth: ' + newMaxDepth + ', timeout: ' + newTimeout);
+                        updateStatus('Configuration saved successfully');
+
+                    } catch (exc) {
+                        $.writeln('[CONFIG] Save error: ' + exc.message);
+                    }
+
                     configDialog.close();
                 };
             }
