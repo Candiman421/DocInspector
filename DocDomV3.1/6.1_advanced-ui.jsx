@@ -27,20 +27,23 @@ if (!dependencyCheck.success) {
 // GLOBAL VARIABLES
 // =============================================================================
 
-var g_advUI_window = null;
-var g_advUI_statusText = null;
-var g_advUI_documentInfo = null;
 var g_advUI_advancedDOMStructure = null;
-var g_advUI_loadedJSONData = null;
-var g_advUI_beforeData = null;
 var g_advUI_afterData = null;
-var g_advUI_currentAnalysis = null;
-var g_advUI_jsonAnalysisText = null;
-var g_advUI_comparisonText = null;
-var g_advUI_deepMappingText = null;
-var g_advUI_liveAnalysisText = null;
-var g_advUI_tabPanel = null;
 var g_advUI_baselineDocumentState = null;
+var g_advUI_beforeData = null;
+var g_advUI_comparisonText = null;
+var g_advUI_currentAnalysis = null;
+var g_advUI_deepMappingText = null;
+var g_advUI_discoveryTab = null;
+var g_advUI_discoveryText = null;
+var g_advUI_documentInfo = null;
+var g_advUI_jsonAnalysisText = null;
+var g_advUI_liveAnalysisText = null;
+var g_advUI_loadedJSONData = null;
+var g_advUI_performanceText = null;
+var g_advUI_statusText = null;
+var g_advUI_tabPanel = null;
+var g_advUI_window = null;
 
 // =============================================================================
 // CONFIGURATION OBJECTS - FIXED: export -> exportSettings
@@ -78,7 +81,7 @@ var ADVANCED_UI_CONFIG = {
         highlightCriticalChanges: true,
         analyzePerformanceImpact: true
     },
-    exportSettings: {  // FIXED: was 'export'
+    exportSettings: {  // CRITICAL: Ensure this property exists
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
@@ -283,7 +286,7 @@ function createAdvancedTabs(parentWindow) {
 }
 
 /**
- * Create Live Analysis Tab
+ * Create Live Analysis Tab - FIXED EVENT HANDLERS
  */
 function createLiveAnalysisTab() {
     try {
@@ -306,19 +309,22 @@ function createLiveAnalysisTab() {
             var liveAnalysisBtn = liveControls.add('button', undefined, 'Live Analysis');
             if (liveAnalysisBtn) {
                 liveAnalysisBtn.preferredSize.width = 120;
-                liveAnalysisBtn.onClick = performLiveAnalysis;
+                // FIXED: Use correct function name
+                liveAnalysisBtn.onClick = runLiveDocumentAnalysis;
             }
 
             var liveCompareBtn = liveControls.add('button', undefined, 'Live Compare');
             if (liveCompareBtn) {
                 liveCompareBtn.preferredSize.width = 120;
-                liveCompareBtn.onClick = performLiveComparison;
+                // FIXED: Use correct function name
+                liveCompareBtn.onClick = runLiveComparison;
             }
 
             var takeSnapshotBtn = liveControls.add('button', undefined, 'Take Snapshot');
             if (takeSnapshotBtn) {
                 takeSnapshotBtn.preferredSize.width = 120;
-                takeSnapshotBtn.onClick = takeAdvancedSnapshot;
+                // FIXED: Use correct function name
+                takeSnapshotBtn.onClick = takeDocumentSnapshot;
             }
 
             var clearLiveBtn = liveControls.add('button', undefined, 'Clear');
@@ -350,7 +356,7 @@ function createLiveAnalysisTab() {
 }
 
 /**
- * Create Advanced Discovery Tab
+ * Create Advanced Discovery Tab - FIXED REFERENCES
  */
 function createAdvancedDiscoveryTab() {
     try {
@@ -362,6 +368,9 @@ function createAdvancedDiscoveryTab() {
         discoveryTab.orientation = 'column';
         discoveryTab.alignChildren = 'fill';
         discoveryTab.spacing = 5;
+
+        // Store reference for later use
+        g_advUI_discoveryTab = discoveryTab;
 
         // Controls
         var discoveryControls = discoveryTab.add('group');
@@ -379,7 +388,7 @@ function createAdvancedDiscoveryTab() {
             var deepMappingBtn = discoveryControls.add('button', undefined, 'Deep Mapping');
             if (deepMappingBtn) {
                 deepMappingBtn.preferredSize.width = 120;
-                deepMappingBtn.onClick = performAdvancedDeepMapping;
+                deepMappingBtn.onClick = runDeepMapping;
             }
 
             var performanceBtn = discoveryControls.add('button', undefined, 'Performance');
@@ -401,18 +410,18 @@ function createAdvancedDiscoveryTab() {
             discoveryDisplay.orientation = 'column';
             discoveryDisplay.alignChildren = 'fill';
 
-            var discoveryText = discoveryDisplay.add('edittext', undefined, 'Enhanced DOM discovery with deep analysis capabilities...', {
+            g_advUI_discoveryText = discoveryDisplay.add('edittext', undefined, 'Run advanced discovery to analyze DOM structure comprehensively...', {
                 multiline: true,
                 scrolling: true
             });
-            if (discoveryText) {
-                discoveryText.preferredSize.height = 500;
-                discoveryText.readonly = true;
+            if (g_advUI_discoveryText) {
+                g_advUI_discoveryText.preferredSize.height = 500;
+                g_advUI_discoveryText.readonly = true;
             }
         }
 
     } catch (exc) {
-        updateAdvancedStatus('Discovery tab creation error: ' + exc.message);
+        updateAdvancedStatus('Advanced discovery tab creation error: ' + exc.message);
     }
 }
 
@@ -807,7 +816,7 @@ function showModuleStatus() {
 // =============================================================================
 
 /**
- * Run live document analysis (3-phase process) - FULL IMPLEMENTATION
+ * Run live document analysis (3-phase process) - FIXED FUNCTION CALLS
  */
 function runLiveDocumentAnalysis() {
     try {
@@ -839,11 +848,12 @@ function runLiveDocumentAnalysis() {
 
         updateAdvancedStatus('Phase 1 completed: ' + (domStructure.metadata ? domStructure.metadata.totalObjects || 0 : 0) + ' objects discovered');
 
-        // Phase 2: Value sampling
+        // Phase 2: Value sampling - FUNCTION NAMES ARE CORRECT
         updateAdvancedStatus('Phase 2: Sampling property values...');
         
-        if (functionExists('sampleDOMValues')) {
+        if (enhancedFunctionExists('sampleDOMValues')) {
             var samplingConfig = ADVANCED_UI_CONFIG.sampling;
+            // Use correct function name from module 3.1
             var sampledStructure = sampleDOMValues(domStructure.structure, envValidation.document, samplingConfig);
             
             if (sampledStructure && !sampledStructure.error) {
@@ -856,11 +866,12 @@ function runLiveDocumentAnalysis() {
             updateAdvancedStatus('Phase 2 skipped: Value sampling module not available');
         }
 
-        // Phase 3: Collection sampling
+        // Phase 3: Collection sampling - FUNCTION NAMES ARE CORRECT
         updateAdvancedStatus('Phase 3: Sampling collection contents...');
         
-        if (functionExists('sampleCollectionContents')) {
+        if (enhancedFunctionExists('sampleCollectionContents')) {
             var collectionConfig = ADVANCED_UI_CONFIG.sampling;
+            // Use correct function name from module 2.2
             var finalStructure = sampleCollectionContents(domStructure.structure, envValidation.document, collectionConfig);
             
             if (finalStructure && !finalStructure.error) {
@@ -936,7 +947,7 @@ function runLiveComparison() {
 }
 
 /**
- * Take document snapshot for baseline comparison
+ * Take document snapshot for baseline comparison - FIXED
  */
 function takeDocumentSnapshot() {
     try {
@@ -954,19 +965,22 @@ function takeDocumentSnapshot() {
         var saveToFile = confirm('Take snapshot as baseline?\n\nYes: Set as baseline for live comparison\nNo: Cancel');
         
         if (saveToFile) {
-            g_advUI_baselineDocumentState = objectClone(g_advUI_advancedDOMStructure, 5);
-            
-            updateAdvancedStatus('Snapshot taken - baseline established for live comparison');
-            
-            if (g_advUI_liveAnalysisText) {
-                var currentText = g_advUI_liveAnalysisText.text || '';
-                g_advUI_liveAnalysisText.text = currentText + '\n\n[SNAPSHOT TAKEN - Baseline established at ' + getCurrentTimestamp() + ']';
-            }
+            // Add null check before cloning
+            if (g_advUI_advancedDOMStructure) {
+                g_advUI_baselineDocumentState = objectClone(g_advUI_advancedDOMStructure, 5);
+                
+                updateAdvancedStatus('Snapshot taken - baseline established for live comparison');
+                
+                if (g_advUI_liveAnalysisText) {
+                    var currentText = g_advUI_liveAnalysisText.text || '';
+                    g_advUI_liveAnalysisText.text = currentText + '\n\n[SNAPSHOT TAKEN - Baseline established at ' + getCurrentTimestamp() + ']';
+                }
             } else {
-                updateAdvancedStatus('Snapshot cancelled');
+                updateAdvancedStatus('Snapshot failed - no data to clone');
+                return;
             }
         } else {
-            updateAdvancedStatus('No data to snapshot - run Live Analysis first');
+            updateAdvancedStatus('Snapshot cancelled');
         }
         
     } catch (exc) {

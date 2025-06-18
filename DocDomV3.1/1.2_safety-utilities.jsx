@@ -419,62 +419,62 @@ function getObjectKeys(targetObject) {
  * @param {Number} maxDepth - Maximum depth
  * @returns {*} Cloned object
  */
-function objectClone(originalObject, maxDepth) {
-    var depth = maxDepth || 3;
-    var seen = [];
+// function objectClone(originalObject, maxDepth) {
+//     var depth = maxDepth || 3;
+//     var seen = [];
     
-    function cloneRecursive(sourceObject, currentDepth) {
-        try {
-            if (currentDepth >= depth) return '[Max Depth Reached]';
+//     function cloneRecursive(sourceObject, currentDepth) {
+//         try {
+//             if (currentDepth >= depth) return '[Max Depth Reached]';
             
-            if (sourceObject === null || sourceObject === undefined) {
-                return sourceObject;
-            }
+//             if (sourceObject === null || sourceObject === undefined) {
+//                 return sourceObject;
+//             }
             
-            var objType = typeof sourceObject;
-            if (objType !== 'object') {
-                return sourceObject;
-            }
+//             var objType = typeof sourceObject;
+//             if (objType !== 'object') {
+//                 return sourceObject;
+//             }
             
-            // Check for circular references
-            for (var i = 0; i < seen.length; i++) {
-                if (seen[i] === sourceObject) {
-                    return '[Circular Reference]';
-                }
-            }
+//             // Check for circular references
+//             for (var i = 0; i < seen.length; i++) {
+//                 if (seen[i] === sourceObject) {
+//                     return '[Circular Reference]';
+//                 }
+//             }
             
-            seen[seen.length] = sourceObject;
+//             seen[seen.length] = sourceObject;
             
-            // Handle arrays
-            if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
-                var clonedArray = [];
-                for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
-                    clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
-                }
-                return clonedArray;
-            }
+//             // Handle arrays
+//             if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
+//                 var clonedArray = [];
+//                 for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
+//                     clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
+//                 }
+//                 return clonedArray;
+//             }
             
-            // Handle objects
-            var clonedObject = {};
-            for (var prop in sourceObject) {
-                if (objectHasOwnProperty(sourceObject, prop)) {
-                    clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
-                }
-            }
+//             // Handle objects
+//             var clonedObject = {};
+//             for (var prop in sourceObject) {
+//                 if (objectHasOwnProperty(sourceObject, prop)) {
+//                     clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
+//                 }
+//             }
             
-            return clonedObject;
+//             return clonedObject;
             
-        } catch (exc) {
-            return '[Clone Error: ' + exc.message + ']';
-        }
-    }
+//         } catch (exc) {
+//             return '[Clone Error: ' + exc.message + ']';
+//         }
+//     }
     
-    try {
-        return cloneRecursive(originalObject, 0);
-    } catch (exc) {
-        return originalObject;
-    }
-}
+//     try {
+//         return cloneRecursive(originalObject, 0);
+//     } catch (exc) {
+//         return originalObject;
+//     }
+// }
 
 /**
  * Merge two objects (shallow merge)
@@ -1832,7 +1832,7 @@ registerModule('1.2_safety-utilities', '3.1', [
     'stringToLowerCase', 'stringToUpperCase', 'stringReplace', 'stringMatch',
     
     // Object Helpers
-    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', 'objectClone',
+    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', //'objectClone',
     'objectMerge', 'objectDeepMerge',
     
     // Function Utilities

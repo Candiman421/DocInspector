@@ -3,7 +3,7 @@
 // All Modules Combined (Enhanced Auto-Discovery Build)
 // TARGET ARCHITECTURE: Sequential dependencies, perfect module isolation
 // CORE PURPOSE: Discover and visualize InDesign document DOM structure safely
-// Generated: 2025-06-18T00:14:49.967Z
+// Generated: 2025-06-18T00:42:29.828Z
 //
 // This file contains all 11 modules assembled in dependency order:
 // Module 1 (v1.1): 1.1_bootstrap-foundation.jsx
@@ -730,40 +730,60 @@ function objectHasOwnProperty(targetObject, prop) {
  * @param {Number} maxDepth - Maximum recursion depth
  * @returns {*} Cloned object
  */
-function objectClone(source, maxDepth) {
-    var depth = maxDepth || 2;
+function objectClone(originalObject, maxDepth) {
+    var depth = maxDepth || 3;
+    var seen = [];
+    
+    function cloneRecursive(sourceObject, currentDepth) {
+        try {
+            if (currentDepth >= depth) return '[Max Depth Reached]';
+            
+            if (sourceObject === null || sourceObject === undefined) {
+                return sourceObject;
+            }
+            
+            var objType = typeof sourceObject;
+            if (objType !== 'object') {
+                return sourceObject;
+            }
+            
+            // Check for circular references
+            for (var i = 0; i < seen.length; i++) {
+                if (seen[i] === sourceObject) {
+                    return '[Circular Reference]';
+                }
+            }
+            
+            seen[seen.length] = sourceObject;
+            
+            // Handle arrays
+            if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
+                var clonedArray = [];
+                for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
+                    clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
+                }
+                return clonedArray;
+            }
+            
+            // Handle objects
+            var clonedObject = {};
+            for (var prop in sourceObject) {
+                if (objectHasOwnProperty(sourceObject, prop)) {
+                    clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
+                }
+            }
+            
+            return clonedObject;
+            
+        } catch (exc) {
+            return '[Clone Error: ' + exc.message + ']';
+        }
+    }
     
     try {
-        if (depth <= 0) return '[Max Depth]';
-        
-        if (source === null || source === undefined) {
-            return source;
-        }
-        
-        var sourceType = typeof source;
-        if (sourceType !== 'object') {
-            return source;
-        }
-        
-        if (source.constructor === Array) {
-            var newArray = [];
-            for (var i = 0; i < source.length; i++) {
-                newArray[i] = objectClone(source[i], depth - 1);
-            }
-            return newArray;
-        }
-        
-        var newObject = {};
-        for (var prop in source) {
-            if (objectHasOwnProperty(source, prop)) {
-                newObject[prop] = objectClone(source[prop], depth - 1);
-            }
-        }
-        
-        return newObject;
-        
+        return cloneRecursive(originalObject, 0);
     } catch (exc) {
-        return source;
+        return originalObject;
     }
 }
 
@@ -1257,62 +1277,62 @@ function getObjectKeys(targetObject) {
  * @param {Number} maxDepth - Maximum depth
  * @returns {*} Cloned object
  */
-function objectClone(originalObject, maxDepth) {
-    var depth = maxDepth || 3;
-    var seen = [];
+// function objectClone(originalObject, maxDepth) {
+//     var depth = maxDepth || 3;
+//     var seen = [];
     
-    function cloneRecursive(sourceObject, currentDepth) {
-        try {
-            if (currentDepth >= depth) return '[Max Depth Reached]';
+//     function cloneRecursive(sourceObject, currentDepth) {
+//         try {
+//             if (currentDepth >= depth) return '[Max Depth Reached]';
             
-            if (sourceObject === null || sourceObject === undefined) {
-                return sourceObject;
-            }
+//             if (sourceObject === null || sourceObject === undefined) {
+//                 return sourceObject;
+//             }
             
-            var objType = typeof sourceObject;
-            if (objType !== 'object') {
-                return sourceObject;
-            }
+//             var objType = typeof sourceObject;
+//             if (objType !== 'object') {
+//                 return sourceObject;
+//             }
             
-            // Check for circular references
-            for (var i = 0; i < seen.length; i++) {
-                if (seen[i] === sourceObject) {
-                    return '[Circular Reference]';
-                }
-            }
+//             // Check for circular references
+//             for (var i = 0; i < seen.length; i++) {
+//                 if (seen[i] === sourceObject) {
+//                     return '[Circular Reference]';
+//                 }
+//             }
             
-            seen[seen.length] = sourceObject;
+//             seen[seen.length] = sourceObject;
             
-            // Handle arrays
-            if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
-                var clonedArray = [];
-                for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
-                    clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
-                }
-                return clonedArray;
-            }
+//             // Handle arrays
+//             if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
+//                 var clonedArray = [];
+//                 for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
+//                     clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
+//                 }
+//                 return clonedArray;
+//             }
             
-            // Handle objects
-            var clonedObject = {};
-            for (var prop in sourceObject) {
-                if (objectHasOwnProperty(sourceObject, prop)) {
-                    clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
-                }
-            }
+//             // Handle objects
+//             var clonedObject = {};
+//             for (var prop in sourceObject) {
+//                 if (objectHasOwnProperty(sourceObject, prop)) {
+//                     clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
+//                 }
+//             }
             
-            return clonedObject;
+//             return clonedObject;
             
-        } catch (exc) {
-            return '[Clone Error: ' + exc.message + ']';
-        }
-    }
+//         } catch (exc) {
+//             return '[Clone Error: ' + exc.message + ']';
+//         }
+//     }
     
-    try {
-        return cloneRecursive(originalObject, 0);
-    } catch (exc) {
-        return originalObject;
-    }
-}
+//     try {
+//         return cloneRecursive(originalObject, 0);
+//     } catch (exc) {
+//         return originalObject;
+//     }
+// }
 
 /**
  * Merge two objects (shallow merge)
@@ -2670,7 +2690,7 @@ registerModule('1.2_safety-utilities', '3.1', [
     'stringToLowerCase', 'stringToUpperCase', 'stringReplace', 'stringMatch',
     
     // Object Helpers
-    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', 'objectClone',
+    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', //'objectClone',
     'objectMerge', 'objectDeepMerge',
     
     // Function Utilities
@@ -13298,20 +13318,23 @@ if (!dependencyCheck.success) {
 // GLOBAL VARIABLES
 // =============================================================================
 
-var g_advUI_window = null;
-var g_advUI_statusText = null;
-var g_advUI_documentInfo = null;
 var g_advUI_advancedDOMStructure = null;
-var g_advUI_loadedJSONData = null;
-var g_advUI_beforeData = null;
 var g_advUI_afterData = null;
-var g_advUI_currentAnalysis = null;
-var g_advUI_jsonAnalysisText = null;
-var g_advUI_comparisonText = null;
-var g_advUI_deepMappingText = null;
-var g_advUI_liveAnalysisText = null;
-var g_advUI_tabPanel = null;
 var g_advUI_baselineDocumentState = null;
+var g_advUI_beforeData = null;
+var g_advUI_comparisonText = null;
+var g_advUI_currentAnalysis = null;
+var g_advUI_deepMappingText = null;
+var g_advUI_discoveryTab = null;
+var g_advUI_discoveryText = null;
+var g_advUI_documentInfo = null;
+var g_advUI_jsonAnalysisText = null;
+var g_advUI_liveAnalysisText = null;
+var g_advUI_loadedJSONData = null;
+var g_advUI_performanceText = null;
+var g_advUI_statusText = null;
+var g_advUI_tabPanel = null;
+var g_advUI_window = null;
 
 // =============================================================================
 // CONFIGURATION OBJECTS - FIXED: export -> exportSettings
@@ -13349,7 +13372,7 @@ var ADVANCED_UI_CONFIG = {
         highlightCriticalChanges: true,
         analyzePerformanceImpact: true
     },
-    exportSettings: {  // FIXED: was 'export'
+    exportSettings: {  // CRITICAL: Ensure this property exists
         includeExtractedValues: true,
         formatOutput: true,
         includeMetadata: true,
@@ -13554,7 +13577,7 @@ function createAdvancedTabs(parentWindow) {
 }
 
 /**
- * Create Live Analysis Tab
+ * Create Live Analysis Tab - FIXED EVENT HANDLERS
  */
 function createLiveAnalysisTab() {
     try {
@@ -13577,19 +13600,22 @@ function createLiveAnalysisTab() {
             var liveAnalysisBtn = liveControls.add('button', undefined, 'Live Analysis');
             if (liveAnalysisBtn) {
                 liveAnalysisBtn.preferredSize.width = 120;
-                liveAnalysisBtn.onClick = performLiveAnalysis;
+                // FIXED: Use correct function name
+                liveAnalysisBtn.onClick = runLiveDocumentAnalysis;
             }
 
             var liveCompareBtn = liveControls.add('button', undefined, 'Live Compare');
             if (liveCompareBtn) {
                 liveCompareBtn.preferredSize.width = 120;
-                liveCompareBtn.onClick = performLiveComparison;
+                // FIXED: Use correct function name
+                liveCompareBtn.onClick = runLiveComparison;
             }
 
             var takeSnapshotBtn = liveControls.add('button', undefined, 'Take Snapshot');
             if (takeSnapshotBtn) {
                 takeSnapshotBtn.preferredSize.width = 120;
-                takeSnapshotBtn.onClick = takeAdvancedSnapshot;
+                // FIXED: Use correct function name
+                takeSnapshotBtn.onClick = takeDocumentSnapshot;
             }
 
             var clearLiveBtn = liveControls.add('button', undefined, 'Clear');
@@ -13621,7 +13647,7 @@ function createLiveAnalysisTab() {
 }
 
 /**
- * Create Advanced Discovery Tab
+ * Create Advanced Discovery Tab - FIXED REFERENCES
  */
 function createAdvancedDiscoveryTab() {
     try {
@@ -13633,6 +13659,9 @@ function createAdvancedDiscoveryTab() {
         discoveryTab.orientation = 'column';
         discoveryTab.alignChildren = 'fill';
         discoveryTab.spacing = 5;
+
+        // Store reference for later use
+        g_advUI_discoveryTab = discoveryTab;
 
         // Controls
         var discoveryControls = discoveryTab.add('group');
@@ -13650,7 +13679,7 @@ function createAdvancedDiscoveryTab() {
             var deepMappingBtn = discoveryControls.add('button', undefined, 'Deep Mapping');
             if (deepMappingBtn) {
                 deepMappingBtn.preferredSize.width = 120;
-                deepMappingBtn.onClick = performAdvancedDeepMapping;
+                deepMappingBtn.onClick = runDeepMapping;
             }
 
             var performanceBtn = discoveryControls.add('button', undefined, 'Performance');
@@ -13672,18 +13701,18 @@ function createAdvancedDiscoveryTab() {
             discoveryDisplay.orientation = 'column';
             discoveryDisplay.alignChildren = 'fill';
 
-            var discoveryText = discoveryDisplay.add('edittext', undefined, 'Enhanced DOM discovery with deep analysis capabilities...', {
+            g_advUI_discoveryText = discoveryDisplay.add('edittext', undefined, 'Run advanced discovery to analyze DOM structure comprehensively...', {
                 multiline: true,
                 scrolling: true
             });
-            if (discoveryText) {
-                discoveryText.preferredSize.height = 500;
-                discoveryText.readonly = true;
+            if (g_advUI_discoveryText) {
+                g_advUI_discoveryText.preferredSize.height = 500;
+                g_advUI_discoveryText.readonly = true;
             }
         }
 
     } catch (exc) {
-        updateAdvancedStatus('Discovery tab creation error: ' + exc.message);
+        updateAdvancedStatus('Advanced discovery tab creation error: ' + exc.message);
     }
 }
 
@@ -14078,7 +14107,7 @@ function showModuleStatus() {
 // =============================================================================
 
 /**
- * Run live document analysis (3-phase process) - FULL IMPLEMENTATION
+ * Run live document analysis (3-phase process) - FIXED FUNCTION CALLS
  */
 function runLiveDocumentAnalysis() {
     try {
@@ -14110,11 +14139,12 @@ function runLiveDocumentAnalysis() {
 
         updateAdvancedStatus('Phase 1 completed: ' + (domStructure.metadata ? domStructure.metadata.totalObjects || 0 : 0) + ' objects discovered');
 
-        // Phase 2: Value sampling
+        // Phase 2: Value sampling - FUNCTION NAMES ARE CORRECT
         updateAdvancedStatus('Phase 2: Sampling property values...');
         
-        if (functionExists('sampleDOMValues')) {
+        if (enhancedFunctionExists('sampleDOMValues')) {
             var samplingConfig = ADVANCED_UI_CONFIG.sampling;
+            // Use correct function name from module 3.1
             var sampledStructure = sampleDOMValues(domStructure.structure, envValidation.document, samplingConfig);
             
             if (sampledStructure && !sampledStructure.error) {
@@ -14127,11 +14157,12 @@ function runLiveDocumentAnalysis() {
             updateAdvancedStatus('Phase 2 skipped: Value sampling module not available');
         }
 
-        // Phase 3: Collection sampling
+        // Phase 3: Collection sampling - FUNCTION NAMES ARE CORRECT
         updateAdvancedStatus('Phase 3: Sampling collection contents...');
         
-        if (functionExists('sampleCollectionContents')) {
+        if (enhancedFunctionExists('sampleCollectionContents')) {
             var collectionConfig = ADVANCED_UI_CONFIG.sampling;
+            // Use correct function name from module 2.2
             var finalStructure = sampleCollectionContents(domStructure.structure, envValidation.document, collectionConfig);
             
             if (finalStructure && !finalStructure.error) {
@@ -14207,7 +14238,7 @@ function runLiveComparison() {
 }
 
 /**
- * Take document snapshot for baseline comparison
+ * Take document snapshot for baseline comparison - FIXED
  */
 function takeDocumentSnapshot() {
     try {
@@ -14225,19 +14256,22 @@ function takeDocumentSnapshot() {
         var saveToFile = confirm('Take snapshot as baseline?\n\nYes: Set as baseline for live comparison\nNo: Cancel');
         
         if (saveToFile) {
-            g_advUI_baselineDocumentState = objectClone(g_advUI_advancedDOMStructure, 5);
-            
-            updateAdvancedStatus('Snapshot taken - baseline established for live comparison');
-            
-            if (g_advUI_liveAnalysisText) {
-                var currentText = g_advUI_liveAnalysisText.text || '';
-                g_advUI_liveAnalysisText.text = currentText + '\n\n[SNAPSHOT TAKEN - Baseline established at ' + getCurrentTimestamp() + ']';
-            }
+            // Add null check before cloning
+            if (g_advUI_advancedDOMStructure) {
+                g_advUI_baselineDocumentState = objectClone(g_advUI_advancedDOMStructure, 5);
+                
+                updateAdvancedStatus('Snapshot taken - baseline established for live comparison');
+                
+                if (g_advUI_liveAnalysisText) {
+                    var currentText = g_advUI_liveAnalysisText.text || '';
+                    g_advUI_liveAnalysisText.text = currentText + '\n\n[SNAPSHOT TAKEN - Baseline established at ' + getCurrentTimestamp() + ']';
+                }
             } else {
-                updateAdvancedStatus('Snapshot cancelled');
+                updateAdvancedStatus('Snapshot failed - no data to clone');
+                return;
             }
         } else {
-            updateAdvancedStatus('No data to snapshot - run Live Analysis first');
+            updateAdvancedStatus('Snapshot cancelled');
         }
         
     } catch (exc) {

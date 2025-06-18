@@ -680,40 +680,60 @@ function objectHasOwnProperty(targetObject, prop) {
  * @param {Number} maxDepth - Maximum recursion depth
  * @returns {*} Cloned object
  */
-function objectClone(source, maxDepth) {
-    var depth = maxDepth || 2;
+function objectClone(originalObject, maxDepth) {
+    var depth = maxDepth || 3;
+    var seen = [];
+    
+    function cloneRecursive(sourceObject, currentDepth) {
+        try {
+            if (currentDepth >= depth) return '[Max Depth Reached]';
+            
+            if (sourceObject === null || sourceObject === undefined) {
+                return sourceObject;
+            }
+            
+            var objType = typeof sourceObject;
+            if (objType !== 'object') {
+                return sourceObject;
+            }
+            
+            // Check for circular references
+            for (var i = 0; i < seen.length; i++) {
+                if (seen[i] === sourceObject) {
+                    return '[Circular Reference]';
+                }
+            }
+            
+            seen[seen.length] = sourceObject;
+            
+            // Handle arrays
+            if (sourceObject.length !== undefined && typeof sourceObject.length === 'number') {
+                var clonedArray = [];
+                for (var arrIndex = 0; arrIndex < sourceObject.length; arrIndex++) {
+                    clonedArray[arrIndex] = cloneRecursive(sourceObject[arrIndex], currentDepth + 1);
+                }
+                return clonedArray;
+            }
+            
+            // Handle objects
+            var clonedObject = {};
+            for (var prop in sourceObject) {
+                if (objectHasOwnProperty(sourceObject, prop)) {
+                    clonedObject[prop] = cloneRecursive(sourceObject[prop], currentDepth + 1);
+                }
+            }
+            
+            return clonedObject;
+            
+        } catch (exc) {
+            return '[Clone Error: ' + exc.message + ']';
+        }
+    }
     
     try {
-        if (depth <= 0) return '[Max Depth]';
-        
-        if (source === null || source === undefined) {
-            return source;
-        }
-        
-        var sourceType = typeof source;
-        if (sourceType !== 'object') {
-            return source;
-        }
-        
-        if (source.constructor === Array) {
-            var newArray = [];
-            for (var i = 0; i < source.length; i++) {
-                newArray[i] = objectClone(source[i], depth - 1);
-            }
-            return newArray;
-        }
-        
-        var newObject = {};
-        for (var prop in source) {
-            if (objectHasOwnProperty(source, prop)) {
-                newObject[prop] = objectClone(source[prop], depth - 1);
-            }
-        }
-        
-        return newObject;
-        
+        return cloneRecursive(originalObject, 0);
     } catch (exc) {
-        return source;
+        return originalObject;
     }
 }
 
