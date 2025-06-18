@@ -612,20 +612,25 @@ function initializeVisualizerComponents() {
  * Perform full discovery (all phases)
  */
 function performFullDiscovery() {
+    $.writeln('[DEBUG] Config exists: ' + (g_domViz_userConfiguration ? 'YES' : 'NO'));
+    $.writeln('[DEBUG] objectClone available: ' + functionExists('objectClone'));
+    if (g_domViz_userConfiguration) {
+        $.writeln('[DEBUG] maxDepth setting: ' + g_domViz_userConfiguration.enumeration.maxDepth);
+    }
     try {
         updateStatus('Starting full DOM discovery...');
-        
+
         if (!app.documents.length) {
             alert('Please open a document first');
             return;
         }
 
         var doc = app.activeDocument;
-        
+
         // Phase 1: Enumeration
         updateStatus('Phase 1: Enumerating DOM structure...');
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
-        
+
         if (!domStructure.success) {
             alert('Enumeration failed: ' + domStructure.error);
             return;
@@ -634,7 +639,7 @@ function performFullDiscovery() {
         // Phase 2: Value Sampling
         updateStatus('Phase 2: Sampling property values...');
         var sampledStructure = sampleDOMValues(domStructure.structure, doc, g_domViz_userConfiguration.sampling);
-        
+
         // Phase 3: Collection Sampling
         updateStatus('Phase 3: Sampling collections...');
         var finalStructure = sampleCollectionContents(sampledStructure.structure, doc, g_domViz_userConfiguration.sampling);
@@ -654,7 +659,7 @@ function performFullDiscovery() {
 function performPhase1Enumeration() {
     try {
         updateStatus('Phase 1: DOM enumeration...');
-        
+
         if (!app.documents.length) {
             alert('Please open a document first');
             return;
@@ -662,7 +667,7 @@ function performPhase1Enumeration() {
 
         var doc = app.activeDocument;
         var domStructure = enumerateDocumentDOM(doc, g_domViz_userConfiguration.enumeration);
-        
+
         if (!domStructure.success) {
             alert('Enumeration failed: ' + domStructure.error);
             return;
@@ -695,7 +700,7 @@ function performPhase2ValueSampling() {
         var doc = app.activeDocument;
         updateStatus('Phase 2: Value sampling...');
         var sampledStructure = sampleDOMValues(g_domViz_currentDOMStructure.structure, doc, g_domViz_userConfiguration.sampling);
-        
+
         g_domViz_currentDOMStructure = sampledStructure;
         displayCurrentStructure();
         updateStatus('Phase 2 completed');
@@ -723,7 +728,7 @@ function performPhase3CollectionSampling() {
         var doc = app.activeDocument;
         updateStatus('Phase 3: Collection sampling...');
         var finalStructure = sampleCollectionContents(g_domViz_currentDOMStructure.structure, doc, g_domViz_userConfiguration.sampling);
-        
+
         g_domViz_currentDOMStructure = finalStructure;
         displayCurrentStructure();
         updateStatus('Phase 3 completed');
@@ -760,11 +765,11 @@ function generateStructureDisplayText(structure) {
         if (!structure) return 'No structure available';
 
         var builder = createStringBuilder();
-        
+
         builder.appendLine('DOM DISCOVERY RESULTS');
         builder.appendLine('====================');
         builder.appendLine('');
-        
+
         if (structure.metadata) {
             builder.appendLine('METADATA:');
             builder.appendLine('Discovery Date: ' + (structure.metadata.discoveryDate || 'Unknown'));
@@ -783,7 +788,7 @@ function generateStructureDisplayText(structure) {
                 }
                 builder.appendLine(indent + (node.path || 'unknown') + ' (' + (node.type || 'object') + ')');
             }
-            
+
             if (structure.structure.length > 50) {
                 builder.appendLine('... (' + (structure.structure.length - 50) + ' more items)');
             }
@@ -828,7 +833,7 @@ function exportAsJSON() {
 
         updateStatus('Exporting as JSON...');
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'json', g_domViz_userConfiguration.exportSettings);
-        
+
         if (!exportResult.success) {
             alert('JSON export failed: ' + exportResult.error);
             return;
@@ -839,11 +844,11 @@ function exportAsJSON() {
             file.open('w');
             file.write(exportResult.content);
             file.close();
-            
+
             if (g_domViz_exportDisplay) {
                 g_domViz_exportDisplay.text = 'JSON exported successfully to:\n' + file.fsName + '\n\nFile size: ' + exportResult.metadata.fileSize + ' bytes';
             }
-            
+
             updateStatus('JSON export completed');
         }
 
@@ -864,7 +869,7 @@ function exportAsText() {
 
         updateStatus('Exporting as text...');
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'text', g_domViz_userConfiguration.exportSettings);
-        
+
         if (!exportResult.success) {
             alert('Text export failed: ' + exportResult.error);
             return;
@@ -875,11 +880,11 @@ function exportAsText() {
             file.open('w');
             file.write(exportResult.content);
             file.close();
-            
+
             if (g_domViz_exportDisplay) {
                 g_domViz_exportDisplay.text = 'Text exported successfully to:\n' + file.fsName + '\n\nFile size: ' + exportResult.metadata.fileSize + ' bytes';
             }
-            
+
             updateStatus('Text export completed');
         }
 
@@ -900,7 +905,7 @@ function exportAsCSV() {
 
         updateStatus('Exporting as CSV...');
         var exportResult = exportDOMStructure(g_domViz_currentDOMStructure, 'csv', g_domViz_userConfiguration.exportSettings);
-        
+
         if (!exportResult.success) {
             alert('CSV export failed: ' + exportResult.error);
             return;
@@ -911,11 +916,11 @@ function exportAsCSV() {
             file.open('w');
             file.write(exportResult.content);
             file.close();
-            
+
             if (g_domViz_exportDisplay) {
                 g_domViz_exportDisplay.text = 'CSV exported successfully to:\n' + file.fsName + '\n\nFile size: ' + exportResult.metadata.fileSize + ' bytes';
             }
-            
+
             updateStatus('CSV export completed');
         }
 
@@ -935,7 +940,7 @@ function analyzeCurrentJSON() {
         }
 
         updateStatus('Analyzing DOM structure...');
-        
+
         // Create analysis result directly from structure
         var analysisResult = {
             statistics: {
@@ -970,11 +975,11 @@ function analyzeCurrentJSON() {
 function generateAnalysisDisplay(analysisResult) {
     try {
         var builder = createStringBuilder();
-        
+
         builder.appendLine('DOM STRUCTURE ANALYSIS');
         builder.appendLine('=====================');
         builder.appendLine('');
-        
+
         if (analysisResult.statistics) {
             var stats = analysisResult.statistics;
             builder.appendLine('STATISTICS:');
@@ -1017,10 +1022,10 @@ function loadBeforeJSON() {
         file.close();
 
         g_domViz_beforeData = safeJSONParse(content);
-        
+
         if (g_domViz_comparisonDisplay) {
-            g_domViz_comparisonDisplay.text = 'Before data loaded from: ' + file.name + '\n\n' + 
-                                           (g_domViz_afterData ? 'Ready to compare!' : 'Load After data to compare.');
+            g_domViz_comparisonDisplay.text = 'Before data loaded from: ' + file.name + '\n\n' +
+                (g_domViz_afterData ? 'Ready to compare!' : 'Load After data to compare.');
         }
 
         updateStatus('Before data loaded');
@@ -1043,10 +1048,10 @@ function loadAfterJSON() {
         file.close();
 
         g_domViz_afterData = safeJSONParse(content);
-        
+
         if (g_domViz_comparisonDisplay) {
-            g_domViz_comparisonDisplay.text = 'After data loaded from: ' + file.name + '\n\n' + 
-                                           (g_domViz_beforeData ? 'Ready to compare!' : 'Load Before data to compare.');
+            g_domViz_comparisonDisplay.text = 'After data loaded from: ' + file.name + '\n\n' +
+                (g_domViz_beforeData ? 'Ready to compare!' : 'Load Before data to compare.');
         }
 
         updateStatus('After data loaded');
@@ -1067,7 +1072,7 @@ function performComparison() {
         }
 
         updateStatus('Performing comparison...');
-        
+
         var comparisonResult = compareDOMExports(g_domViz_beforeData, g_domViz_afterData, {
             enableStructuralComparison: true,
             enablePropertyComparison: true,
@@ -1093,11 +1098,11 @@ function performComparison() {
 function generateComparisonDisplay(comparisonResult) {
     try {
         var builder = createStringBuilder();
-        
+
         builder.appendLine('DOCUMENT COMPARISON RESULTS');
         builder.appendLine('===========================');
         builder.appendLine('');
-        
+
         if (comparisonResult.summary) {
             var summary = comparisonResult.summary;
             builder.appendLine('SUMMARY:');
@@ -1114,7 +1119,7 @@ function generateComparisonDisplay(comparisonResult) {
                 var change = comparisonResult.changes[i];
                 builder.appendLine('• ' + change.type + ': ' + change.path);
             }
-            
+
             if (comparisonResult.changes.length > 20) {
                 builder.appendLine('... (' + (comparisonResult.changes.length - 20) + ' more changes)');
             }
@@ -1142,11 +1147,11 @@ function takeSnapshot() {
             file.open('w');
             file.write(safeJSONStringify(g_domViz_currentDOMStructure));
             file.close();
-            
+
             if (g_domViz_comparisonDisplay) {
                 g_domViz_comparisonDisplay.text = 'Snapshot saved to: ' + file.name + '\n\nThis can be used as Before or After data for comparisons.';
             }
-            
+
             updateStatus('Snapshot saved');
         }
 
@@ -1170,7 +1175,7 @@ function performDeepMapping() {
         }
 
         updateStatus('Creating deep mapping...');
-        
+
         // Placeholder implementation - would integrate with 5.1_deep-mapper.jsx when available
         var mappingResult = {
             relationships: [
@@ -1208,7 +1213,7 @@ function generateObjectAtlas() {
         }
 
         updateStatus('Generating object atlas...');
-        
+
         // Placeholder implementation
         var atlasResult = {
             categories: {
@@ -1250,7 +1255,7 @@ function optimizePerformance() {
         }
 
         updateStatus('Analyzing performance optimizations...');
-        
+
         var optimizations = [
             'Reduce enumeration depth for faster discovery',
             'Enable object tracking caching',
@@ -1289,7 +1294,7 @@ function generateDeepMappingDisplay(mappingResult) {
                 var rel = mappingResult.relationships[i];
                 builder.appendLine('• ' + rel.source + ' → ' + rel.target + ' (' + rel.type + ')');
             }
-            
+
             if (mappingResult.relationships.length > 15) {
                 builder.appendLine('... (' + (mappingResult.relationships.length - 15) + ' more relationships)');
             }
@@ -1396,7 +1401,7 @@ function showConfigurationDialog() {
                 enumTab.spacing = 5;
 
                 enumTab.add('statictext', undefined, 'Enumeration Settings:');
-                
+
                 var maxDepthGroup = enumTab.add('group');
                 if (maxDepthGroup) {
                     maxDepthGroup.add('statictext', undefined, 'Max Depth:');
@@ -1420,7 +1425,7 @@ function showConfigurationDialog() {
                 samplingTab.spacing = 5;
 
                 samplingTab.add('statictext', undefined, 'Sampling Settings:');
-                
+
                 var maxSamplesGroup = samplingTab.add('group');
                 if (maxSamplesGroup) {
                     maxSamplesGroup.add('statictext', undefined, 'Max Samples:');
@@ -1439,7 +1444,7 @@ function showConfigurationDialog() {
 
             var okBtn = buttonGroup.add('button', undefined, 'OK');
             if (okBtn) {
-                okBtn.onClick = function() {
+                okBtn.onClick = function () {
                     // Save configuration values
                     configDialog.close();
                 };
@@ -1447,7 +1452,7 @@ function showConfigurationDialog() {
 
             var cancelBtn = buttonGroup.add('button', undefined, 'Cancel');
             if (cancelBtn) {
-                cancelBtn.onClick = function() {
+                cancelBtn.onClick = function () {
                     configDialog.close();
                 };
             }
@@ -1543,24 +1548,24 @@ function resetVisualizer() {
 function showHelp() {
     try {
         var helpText = 'InDesign DOM Visualizer v3.1\n\n' +
-                      'DISCOVERY:\n' +
-                      '• Phase 1: Enumerate - Discover DOM structure\n' +
-                      '• Phase 2: Values - Sample property values\n' +
-                      '• Phase 3: Collections - Sample collection contents\n' +
-                      '• Discover DOM - Run all phases automatically\n\n' +
-                      'EXPORT:\n' +
-                      '• Export JSON - Save structure as JSON file\n' +
-                      '• Export Text - Save as readable text format\n' +
-                      '• Export CSV - Save as spreadsheet format\n' +
-                      '• Analyze - Analyze current structure\n\n' +
-                      'COMPARISON:\n' +
-                      '• Load Before/After - Load JSON files for comparison\n' +
-                      '• Compare - Analyze differences between states\n' +
-                      '• Take Snapshot - Save current state for comparison\n\n' +
-                      'MAPPING:\n' +
-                      '• Create Map - Generate object relationship maps\n' +
-                      '• Object Atlas - Categorize and analyze objects\n' +
-                      '• Optimize - Get performance recommendations';
+            'DISCOVERY:\n' +
+            '• Phase 1: Enumerate - Discover DOM structure\n' +
+            '• Phase 2: Values - Sample property values\n' +
+            '• Phase 3: Collections - Sample collection contents\n' +
+            '• Discover DOM - Run all phases automatically\n\n' +
+            'EXPORT:\n' +
+            '• Export JSON - Save structure as JSON file\n' +
+            '• Export Text - Save as readable text format\n' +
+            '• Export CSV - Save as spreadsheet format\n' +
+            '• Analyze - Analyze current structure\n\n' +
+            'COMPARISON:\n' +
+            '• Load Before/After - Load JSON files for comparison\n' +
+            '• Compare - Analyze differences between states\n' +
+            '• Take Snapshot - Save current state for comparison\n\n' +
+            'MAPPING:\n' +
+            '• Create Map - Generate object relationship maps\n' +
+            '• Object Atlas - Categorize and analyze objects\n' +
+            '• Optimize - Get performance recommendations';
 
         alert(helpText);
 
@@ -1606,29 +1611,29 @@ function closeVisualizer() {
 registerModule('5.2_dom-visualizer', '3.1', [
     // Main Functions
     'showDOMVisualizer', 'createVisualizerWindow', 'initializeVisualizerComponents',
-    
+
     // UI Creation Functions
     'createVisualizerHeader', 'createVisualizerTabs', 'createVisualizerFooter',
     'createDiscoveryTab', 'createExportTab', 'createComparisonTab', 'createDeepMappingTab',
-    
+
     // Discovery Operations
-    'performFullDiscovery', 'performPhase1Enumeration', 'performPhase2ValueSampling', 
+    'performFullDiscovery', 'performPhase1Enumeration', 'performPhase2ValueSampling',
     'performPhase3CollectionSampling', 'displayCurrentStructure', 'generateStructureDisplayText',
     'clearDiscoveryDisplay',
-    
+
     // Export Operations
     'exportAsJSON', 'exportAsText', 'exportAsCSV', 'analyzeCurrentJSON', 'generateAnalysisDisplay',
-    
+
     // Comparison Operations
     'loadBeforeJSON', 'loadAfterJSON', 'performComparison', 'generateComparisonDisplay', 'takeSnapshot',
-    
+
     // Deep Mapping Operations
     'performDeepMapping', 'generateObjectAtlas', 'optimizePerformance', 'generateDeepMappingDisplay',
     'generateAtlasDisplay', 'generateOptimizationDisplay',
-    
+
     // Configuration
     'showConfigurationDialog',
-    
+
     // Utility Functions
     'updateDocumentInfo', 'updateStatus', 'resetVisualizer', 'showHelp', 'closeVisualizer'
 ]);
