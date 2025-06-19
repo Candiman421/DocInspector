@@ -1,5 +1,36 @@
 #!/usr/bin/env node
 
+// ============================================================================
+// DOCDOM MODULE ASSEMBLER - EXECUTION COMMANDS
+// ============================================================================
+//
+// USAGE (run from project root):
+//
+// Full project auto-discovery and assembly:
+//   node Utils/module-assembler.js
+//
+// Process specific folder:
+//   node Utils/module-assembler.js --folder ./DocDomV3.1
+//   node Utils/module-assembler.js -f ./SomeFolder
+//   node Utils/module-assembler.js -f ../OtherProject/ModuleFolder
+//
+// Show help and options:
+//   node Utils/module-assembler.js --help
+//   node Utils/module-assembler.js -h
+//
+// EXAMPLES:
+//   node Utils/module-assembler.js -f ./CoreModules      # Assemble CoreModules folder
+//   node Utils/module-assembler.js -f ./Extensions       # Assemble Extensions folder  
+//   node Utils/module-assembler.js -f ./TestSuite        # Assemble TestSuite folder
+//
+// OUTPUT: Creates in each target folder:
+//   • {FolderName}_ASSEMBLED_{timestamp}.jsx    (concatenated - recommended)
+//   • {FolderName}_INCLUDES_{timestamp}.jsx     (include-based - for debugging)
+//
+// PATTERN MATCHES: 1.1_*.jsx, 1.2.1_*.jsx, 1.4.2.1_*.jsx (up to 4 levels)
+//
+// ============================================================================
+
 const fs = require('fs');
 const path = require('path');
 

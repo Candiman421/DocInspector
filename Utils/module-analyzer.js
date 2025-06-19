@@ -1,4 +1,40 @@
 #!/usr/bin/env node
+// ============================================================================
+// DOCDOM MODULE ANALYZER - EXECUTION COMMANDS  
+// ============================================================================
+//
+// USAGE (run from project root):
+//
+// Full project analysis with comprehensive reports:
+//   node Utils/module-analyzer.js
+//
+// Analyze specific folder:
+//   node Utils/module-analyzer.js --folder ./DocDomV3.1
+//   node Utils/module-analyzer.js -f ./SomeFolder
+//   node Utils/module-analyzer.js -f ../OtherProject/ModuleFolder
+//
+// Comparison mode (focus on before/after analysis):
+//   node Utils/module-analyzer.js --compare-mode
+//   node Utils/module-analyzer.js -c
+//
+// Show help and analysis features:
+//   node Utils/module-analyzer.js --help
+//   node Utils/module-analyzer.js -h
+//
+// EXAMPLES:
+//   node Utils/module-analyzer.js -f ./CoreModules      # Analyze CoreModules folder
+//   node Utils/module-analyzer.js -f ./Extensions       # Analyze Extensions folder
+//   node Utils/module-analyzer.js -c -f ./DocDomV3.1    # Compare mode for specific folder
+//
+// OUTPUT: Creates in each target folder:
+//   • ~analysis-{timestamp}-folder.yaml         (comprehensive folder analysis)
+//   • ~analysis-{timestamp}-compare-{ver}.yaml  (comparison when applicable)
+//   • ~analysis-{timestamp}-duplicates.yaml     (function duplication analysis)
+//
+// FEATURES: ES3 compliance, dependency validation, health scoring (A+ to F),
+//           function similarity detection, cross-module analysis, security patterns
+//
+// ============================================================================
 
 const fs = require('fs');
 const path = require('path');
