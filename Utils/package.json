@@ -1,0 +1,31 @@
+{
+    "name": "docdom-utility-scripts",
+    "version": "1.0.0",
+    "description": "Analysis and assembly utilities for DocDom module system",
+    "type": "module",
+    "scripts": {
+        "analyze-system": "node main-system-analyzer.js",
+        "analyze-versions": "node main-version-comparator.js",
+        "assemble": "node main-assembler.js",
+        "analyze": "node main-system-analyzer.js",
+        "compare": "node main-version-comparator.js"
+    },
+    "dependencies": {
+        "js-yaml": "^4.1.0",
+        "chalk": "^5.3.0",
+        "commander": "^11.1.0",
+        "lodash": "^4.17.21",
+        "diff": "^5.1.0"
+    },
+    "keywords": [
+        "docdom",
+        "module-analysis",
+        "extendscript",
+        "static-analysis"
+    ],
+    "author": "DocDom Project",
+    "license": "MIT",
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

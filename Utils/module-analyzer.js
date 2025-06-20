@@ -9,6 +9,7 @@
 //   node Utils/module-analyzer.js
 //
 // Analyze specific folder:
+//   node Utils/module-analyzer.js --folder ./CompareUs
 //   node Utils/module-analyzer.js --folder ./DocDomV3.1
 //   node Utils/module-analyzer.js -f ./SomeFolder
 //   node Utils/module-analyzer.js -f ../OtherProject/ModuleFolder
