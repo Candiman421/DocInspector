@@ -3,6 +3,7 @@
 // Deep analysis of single DocDom module files
 // ============================================================================
 
+import fs from 'fs';
 import chalk from 'chalk';
 import { parseModuleFile } from '../core/module-parser.js';
 import {
@@ -22,7 +23,7 @@ import { calculateHealthScore } from '../config/analysis-rules.js';
  * @param {Object} options - Analysis options
  * @returns {Object} Complete module analysis
  */
-export const analyzeIndividualModule = async (filePath, options = {}) => {
+export const analyzeIndividualModule =  (filePath, options = {}) => {
     const startTime = Date.now();
     console.log(chalk.blue(`🔍 Analyzing individual module: ${filePath}`));
 
@@ -35,7 +36,6 @@ export const analyzeIndividualModule = async (filePath, options = {}) => {
         }
 
         // Read content for additional analysis
-        const fs = await import('fs');
         const content = fs.readFileSync(filePath, 'utf8');
 
         // Perform all analysis types

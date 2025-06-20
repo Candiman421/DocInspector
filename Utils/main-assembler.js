@@ -7,8 +7,9 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { discoverFolders } from './core/file-discovery.js';
+import { discoverProjectFolders, findTargetFolder } from './core/file-discovery.js';
 import { assembleModules } from './core/module-assembler.js';
+import { pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,12 +34,12 @@ const options = program.opts();
 /**
  * Main execution function
  */
-async function main() {
+ function main() {
     try {
         showHeader();
 
         // Determine folders to process
-        const foldersToProcess = await determineFoldersToProcess();
+        const foldersToProcess =  determineFoldersToProcess();
 
         if (foldersToProcess.length === 0) {
             console.log(chalk.yellow('⚠️  No folders with module files found.'));
@@ -49,7 +50,7 @@ async function main() {
         // Process each folder
         const results = [];
         for (const folderInfo of foldersToProcess) {
-            const result = await processFolder(folderInfo);
+            const result =  processFolder(folderInfo);
             results.push(result);
         }
 
@@ -77,18 +78,18 @@ function showHeader() {
 /**
  * Determine which folders to process based on options
  */
-async function determineFoldersToProcess() {
+ function determineFoldersToProcess() {
     if (options.folder) {
-        return await processSingleFolder(options.folder);
+        return  processSingleFolder(options.folder);
     } else {
-        return await discoverAllProjectFolders();
+        return  discoverAllProjectFolders();
     }
 }
 
 /**
  * Process single folder specified by user
  */
-async function processSingleFolder(folderPath) {
+ function processSingleFolder(folderPath) {
     const targetPath = path.resolve(folderPath);
 
     if (!options.quiet) {
@@ -96,7 +97,7 @@ async function processSingleFolder(folderPath) {
     }
 
     try {
-        const folderInfo = await discoverFolders([targetPath]);
+        const folderInfo = [findTargetFolder(targetPath)];
         return folderInfo;
     } catch (error) {
         throw new Error(`Folder processing failed: ${error.message}`);
@@ -106,7 +107,7 @@ async function processSingleFolder(folderPath) {
 /**
  * Discover all project folders with modules
  */
-async function discoverAllProjectFolders() {
+ function discoverAllProjectFolders() {
     if (!options.quiet) {
         console.log(chalk.blue('🔍 Scanning project for module folders...'));
         console.log(chalk.gray('='.repeat(50)));
@@ -114,7 +115,7 @@ async function discoverAllProjectFolders() {
 
     try {
         const projectRoot = path.resolve(__dirname, '..');
-        const foldersWithModules = await discoverFolders([projectRoot]);
+        const foldersWithModules = discoverProjectFolders(projectRoot);
 
         if (!options.quiet && foldersWithModules.length > 0) {
             console.log(chalk.green(`\n🎯 Discovery complete: ${foldersWithModules.length} folders with modules found`));
@@ -129,7 +130,7 @@ async function discoverAllProjectFolders() {
 /**
  * Process modules in a specific folder
  */
-async function processFolder(folderInfo) {
+ function processFolder(folderInfo) {
     if (!options.quiet) {
         console.log(chalk.yellow(`\n🔨 Processing modules in: ${folderInfo.name}`));
         console.log(chalk.gray('='.repeat(40)));
@@ -146,7 +147,7 @@ async function processFolder(folderInfo) {
             verbose: options.verbose
         };
 
-        const result = await assembleModules(folderInfo, assemblyOptions);
+        const result =  assembleModules(folderInfo, assemblyOptions);
 
         if (!options.quiet) {
             if (result.success) {
@@ -294,6 +295,12 @@ if (process.argv.length === 2) {
 }
 
 // Execute main function
-if (import.meta.url === `file://${process.argv[1]}`) {
-    main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+    try {
+        console.log("=== ABOUT TO CALL MAIN ===");
+        main();
+    } catch (error) {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    }
 }

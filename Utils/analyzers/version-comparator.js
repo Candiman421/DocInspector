@@ -16,7 +16,7 @@ import { extractVersion, parseVersion, compareVersions } from '../config/pattern
  * @param {Object} options - Comparison options
  * @returns {Object} Complete version comparison analysis
  */
-export const compareModuleVersions = async (folderInfo, versionGroups, options = {}) => {
+export const compareModuleVersions =  (folderInfo, versionGroups, options = {}) => {
     const startTime = Date.now();
     console.log(chalk.blue(`🔄 Comparing module versions: ${folderInfo.name}`));
 
@@ -29,7 +29,7 @@ export const compareModuleVersions = async (folderInfo, versionGroups, options =
 
             console.log(chalk.cyan(`📊 Comparing versions for ${prefix}: ${files.length} files`));
 
-            const comparison = await compareVersionGroup(folderInfo, prefix, files, options);
+            const comparison =  compareVersionGroup(folderInfo, prefix, files, options);
             if (comparison.success) {
                 comparisons.push(comparison);
             }
@@ -96,7 +96,7 @@ export const compareModuleVersions = async (folderInfo, versionGroups, options =
  * @param {Object} options - Comparison options
  * @returns {Object} Version group comparison
  */
-const compareVersionGroup = async (folderInfo, prefix, files, options) => {
+const compareVersionGroup =  (folderInfo, prefix, files, options) => {
     try {
         // Sort files by likely version order
         const sortedFiles = sortVersionFiles(files);
@@ -106,7 +106,7 @@ const compareVersionGroup = async (folderInfo, prefix, files, options) => {
 
         for (const filename of sortedFiles) {
             const filePath = path.join(folderInfo.path, filename);
-            const analysis = await analyzeIndividualModule(filePath, options);
+            const analysis =  analyzeIndividualModule(filePath, options);
 
             if (analysis.success) {
                 versionAnalyses.push({

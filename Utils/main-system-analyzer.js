@@ -2,16 +2,18 @@
 
 // main-system-analyzer.js
 // Entry point for system-wide module analysis
+console.log("=== SCRIPT STARTING ===");
 
 import { Command } from 'commander';
 import chalk from 'chalk';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { discoverFolders } from './core/file-discovery.js';
+import { discoverProjectFolders, findTargetFolder } from './core/file-discovery.js';
 import { analyzeIndividualModule } from './analyzers/individual-module-analyzer.js';
 import { analyzeModuleSystem } from './analyzers/system-analyzer.js';
-import { generateIndividualReport } from './reporters/individual-report.js';
+import { generateIndividualModuleReport } from './reporters/individual-report.js';
 import { generateSystemReport } from './reporters/system-report.js';
+import { pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,12 +39,13 @@ const options = program.opts();
 /**
  * Main execution function
  */
-async function main() {
+function main() {
+    console.log("=== INSIDE MAIN FUNCTION ===");
     try {
         showHeader();
 
         // Determine folders to process
-        const foldersToProcess = await determineFoldersToProcess();
+        const foldersToProcess = determineFoldersToProcess();
 
         if (foldersToProcess.length === 0) {
             console.log(chalk.yellow('⚠️  No folders with module files found.'));
@@ -53,7 +56,7 @@ async function main() {
         // Process each folder
         const allResults = [];
         for (const folderInfo of foldersToProcess) {
-            const result = await processSystemAnalysis(folderInfo);
+            const result = processSystemAnalysis(folderInfo);
             allResults.push(result);
         }
 
@@ -81,18 +84,18 @@ function showHeader() {
 /**
  * Determine which folders to process based on options
  */
-async function determineFoldersToProcess() {
+function determineFoldersToProcess() {
     if (options.folder) {
-        return await processSingleFolder(options.folder);
+        return processSingleFolder(options.folder);
     } else {
-        return await discoverAllProjectFolders();
+        return discoverAllProjectFolders();
     }
 }
 
 /**
  * Process single folder specified by user
  */
-async function processSingleFolder(folderPath) {
+function processSingleFolder(folderPath) {
     const targetPath = path.resolve(folderPath);
 
     if (!options.quiet) {
@@ -100,8 +103,8 @@ async function processSingleFolder(folderPath) {
     }
 
     try {
-        const folderInfo = await discoverFolders([targetPath]);
-        return folderInfo;
+        const folderInfo = findTargetFolder(targetPath);
+        return [folderInfo];
     } catch (error) {
         throw new Error(`Folder processing failed: ${error.message}`);
     }
@@ -110,7 +113,7 @@ async function processSingleFolder(folderPath) {
 /**
  * Discover all project folders with modules
  */
-async function discoverAllProjectFolders() {
+function discoverAllProjectFolders() {
     if (!options.quiet) {
         console.log(chalk.blue('🔍 Scanning project for module folders...'));
         console.log(chalk.gray('='.repeat(50)));
@@ -118,7 +121,7 @@ async function discoverAllProjectFolders() {
 
     try {
         const projectRoot = path.resolve(__dirname, '..');
-        const foldersWithModules = await discoverFolders([projectRoot]);
+        const foldersWithModules = discoverProjectFolders(projectRoot);
 
         if (!options.quiet && foldersWithModules.length > 0) {
             console.log(chalk.green(`\n🎯 Discovery complete: ${foldersWithModules.length} folders with modules found`));
@@ -133,7 +136,7 @@ async function discoverAllProjectFolders() {
 /**
  * Process system analysis for a folder
  */
-async function processSystemAnalysis(folderInfo) {
+function processSystemAnalysis(folderInfo) {
     if (!options.quiet) {
         console.log(chalk.yellow(`\n🔬 Analyzing system in: ${folderInfo.name}`));
         console.log(chalk.gray('='.repeat(40)));
@@ -157,20 +160,20 @@ async function processSystemAnalysis(folderInfo) {
                 }
 
                 try {
-                    const moduleAnalysis = await analyzeIndividualModule(
+                    const moduleAnalysis = analyzeIndividualModule(
                         path.join(folderInfo.path, moduleFile),
                         analysisOptions
                     );
                     moduleAnalyses.push(moduleAnalysis);
 
                     // Generate individual report
-                    const reportFile = await generateIndividualReport(
+                    const reportFile = generateIndividualModuleReport(
                         moduleAnalysis,
                         folderInfo.path
                     );
 
                     if (options.verbose) {
-                        console.log(chalk.green(`      📄 Report: ${reportFile}`));
+                        console.log(chalk.green(`      📄 Report: ${reportFile.reportPath || reportFile}`));
                     }
 
                 } catch (error) {
@@ -194,10 +197,10 @@ async function processSystemAnalysis(folderInfo) {
             }
 
             try {
-                systemAnalysis = await analyzeModuleSystem(moduleAnalyses, analysisOptions);
+                systemAnalysis = analyzeModuleSystem(folderInfo, analysisOptions);
 
                 // Generate system report
-                systemReportFile = await generateSystemReport(
+                systemReportFile = generateSystemReport(
                     moduleAnalyses,
                     systemAnalysis,
                     folderInfo.path
@@ -444,6 +447,12 @@ if (process.argv.length === 2) {
 }
 
 // Execute main function
-if (import.meta.url === `file://${process.argv[1]}`) {
-    main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+    try {
+        console.log("=== ABOUT TO CALL MAIN ===");
+        main();
+    } catch (error) {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    }
 }

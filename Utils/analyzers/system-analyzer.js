@@ -15,7 +15,7 @@ import { parseVersion, compareVersions } from '../config/patterns.js';
  * @param {Object} options - Analysis options
  * @returns {Object} Complete system analysis
  */
-export const analyzeModuleSystem = async (folderInfo, options = {}) => {
+export const analyzeModuleSystem =  (folderInfo, options = {}) => {
     const startTime = Date.now();
     console.log(chalk.blue(`🔗 Analyzing module system: ${folderInfo.name}`));
     console.log(chalk.gray(`   Modules: ${folderInfo.moduleFiles.length}`));
@@ -30,7 +30,7 @@ export const analyzeModuleSystem = async (folderInfo, options = {}) => {
 
         for (const moduleFile of sortedModules) {
             const filePath = path.join(folderInfo.path, moduleFile.filename);
-            const analysis = await analyzeIndividualModule(filePath, options);
+            const analysis =  analyzeIndividualModule(filePath, options);
 
             if (analysis.success) {
                 moduleAnalyses.push({
@@ -77,7 +77,7 @@ export const analyzeModuleSystem = async (folderInfo, options = {}) => {
             dependency_analysis: analyzeDependencyCompliance(moduleAnalyses),
 
             // Cross-module function analysis
-            cross_module_analysis: await analyzeCrossModuleFunctions(moduleAnalyses, options),
+            cross_module_analysis:  analyzeCrossModuleFunctions(moduleAnalyses, options),
 
             // System health metrics
             system_health: calculateSystemHealth(moduleAnalyses),
@@ -277,7 +277,7 @@ const extractDeclaredDependencies = (moduleAnalysis) => {
  * @param {Object} options - Analysis options
  * @returns {Object} Cross-module function analysis
  */
-const analyzeCrossModuleFunctions = async (moduleAnalyses, options) => {
+const analyzeCrossModuleFunctions =  (moduleAnalyses, options) => {
     console.log(chalk.cyan('🔍 Analyzing cross-module functions...'));
 
     const analysis = {
@@ -344,7 +344,7 @@ const analyzeCrossModuleFunctions = async (moduleAnalyses, options) => {
     // Use similarity detector for detailed analysis if enabled
     if (options.enableSimilarityDetection !== false) {
         try {
-            const similarityResults = await analyzeFunctionSimilarity(moduleAnalyses, {
+            const similarityResults =  analyzeFunctionSimilarity(moduleAnalyses, {
                 context: 'system',
                 threshold: options.similarityThreshold || 75
             });

@@ -5,7 +5,7 @@ import yaml from 'js-yaml';
 import path from 'path';
 import { writeFileSync } from 'fs';
 import { generateTimestamp } from '../core/yaml-generator.js';
-import { extractCodeSnippet } from './code-snippet-extractor.js';
+import { formatCodeSnippet } from './code-snippet-extractor.js';
 
 /**
  * Generate version comparison analysis report

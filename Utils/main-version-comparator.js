@@ -7,10 +7,11 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { discoverFolders } from './core/file-discovery.js';
+import { discoverProjectFolders, findTargetFolder } from './core/file-discovery.js';
 import { analyzeIndividualModule } from './analyzers/individual-module-analyzer.js';
-import { analyzeVersionComparison } from './analyzers/version-comparator.js';
+import { compareModuleVersions } from './analyzers/version-comparator.js';
 import { generateVersionReport } from './reporters/version-report.js';
+import { pathToFileURL } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,12 +36,12 @@ const options = program.opts();
 /**
  * Main execution function
  */
-async function main() {
+function main() {
     try {
         showHeader();
 
         // Determine folders to process
-        const foldersToProcess = await determineFoldersToProcess();
+        const foldersToProcess = determineFoldersToProcess();
 
         if (foldersToProcess.length === 0) {
             console.log(chalk.yellow('⚠️  No folders with version files found.'));
@@ -51,7 +52,7 @@ async function main() {
         // Process each folder for version comparison
         const allResults = [];
         for (const folderInfo of foldersToProcess) {
-            const result = await processVersionComparison(folderInfo);
+            const result = processVersionComparison(folderInfo);
             allResults.push(result);
         }
 
@@ -79,18 +80,18 @@ function showHeader() {
 /**
  * Determine which folders to process based on options
  */
-async function determineFoldersToProcess() {
+function determineFoldersToProcess() {
     if (options.folder) {
-        return await processSingleFolder(options.folder);
+        return processSingleFolder(options.folder);
     } else {
-        return await discoverAllProjectFolders();
+        return discoverAllProjectFolders();
     }
 }
 
 /**
  * Process single folder specified by user
  */
-async function processSingleFolder(folderPath) {
+function processSingleFolder(folderPath) {
     const targetPath = path.resolve(folderPath);
 
     if (!options.quiet) {
@@ -98,7 +99,7 @@ async function processSingleFolder(folderPath) {
     }
 
     try {
-        const folderInfo = await discoverFolders([targetPath]);
+        const folderInfo = [findTargetFolder(targetPath)];
         return folderInfo.filter(folder => hasVersionFiles(folder));
     } catch (error) {
         throw new Error(`Folder processing failed: ${error.message}`);
@@ -108,7 +109,7 @@ async function processSingleFolder(folderPath) {
 /**
  * Discover all project folders with version files
  */
-async function discoverAllProjectFolders() {
+function discoverAllProjectFolders() {
     if (!options.quiet) {
         console.log(chalk.blue('🔍 Scanning project for folders with version files...'));
         console.log(chalk.gray('='.repeat(50)));
@@ -116,7 +117,7 @@ async function discoverAllProjectFolders() {
 
     try {
         const projectRoot = path.resolve(__dirname, '..');
-        const allFolders = await discoverFolders([projectRoot]);
+        const allFolders = discoverProjectFolders(projectRoot);
         const foldersWithVersions = allFolders.filter(folder => hasVersionFiles(folder));
 
         if (!options.quiet && foldersWithVersions.length > 0) {
@@ -170,7 +171,7 @@ function extractModuleBaseName(filename) {
 /**
  * Process version comparison for a folder
  */
-async function processVersionComparison(folderInfo) {
+function processVersionComparison(folderInfo) {
     if (!options.quiet) {
         console.log(chalk.yellow(`\n🔍 Comparing versions in: ${folderInfo.name}`));
         console.log(chalk.gray('='.repeat(40)));
@@ -217,7 +218,7 @@ async function processVersionComparison(folderInfo) {
                         console.log(chalk.gray(`      📄 Analyzing: ${versionFile}`));
                     }
 
-                    const versionAnalysis = await analyzeIndividualModule(
+                    const versionAnalysis = analyzeIndividualModule(
                         path.join(folderInfo.path, versionFile),
                         analysisOptions
                     );
@@ -229,10 +230,12 @@ async function processVersionComparison(folderInfo) {
                     console.log(chalk.gray(`      🔍 Comparing ${moduleVersions.length} versions...`));
                 }
 
-                const comparisonAnalysis = await analyzeVersionComparison(moduleVersions, analysisOptions);
+                const versionGroups = { [moduleName]: versionFiles };
+                const comparisonResult = compareModuleVersions(folderInfo, versionGroups, analysisOptions);
+                const comparisonAnalysis = comparisonResult.analysis;
 
                 // Generate comparison report
-                const reportFile = await generateVersionReport(
+                const reportFile = generateVersionReport(
                     moduleVersions,
                     comparisonAnalysis,
                     folderInfo.path
@@ -471,6 +474,12 @@ if (process.argv.length === 2) {
 }
 
 // Execute main function
-if (import.meta.url === `file://${process.argv[1]}`) {
-    main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+    try {
+        console.log("=== ABOUT TO CALL MAIN ===");
+        main();
+    } catch (error) {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    }
 }

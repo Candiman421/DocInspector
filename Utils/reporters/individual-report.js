@@ -3,6 +3,7 @@
 // Generate detailed YAML reports for individual module analysis
 // ============================================================================
 
+import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import {
@@ -20,7 +21,7 @@ import { formatCodeSnippet } from './code-snippet-extractor.js';
  * @param {Object} options - Report generation options
  * @returns {Object} Report generation result
  */
-export const generateIndividualModuleReport = async (moduleAnalysis, outputPath, options = {}) => {
+export const generateIndividualModuleReport =  (moduleAnalysis, outputPath, options = {}) => {
     const startTime = Date.now();
 
     try {
@@ -56,7 +57,7 @@ export const generateIndividualModuleReport = async (moduleAnalysis, outputPath,
             throw new Error('Failed to write YAML report file');
         }
 
-        const reportSize = require('fs').statSync(reportFilename).size;
+        const reportSize = fs.statSync(reportFilename).size;
 
         console.log(chalk.green(`✅ Individual module report generated: ${path.basename(reportFilename)}`));
         console.log(chalk.gray(`   Report size: ${Math.round(reportSize / 1024)}KB`));

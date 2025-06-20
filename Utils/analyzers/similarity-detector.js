@@ -13,7 +13,7 @@ import { SIMILARITY_RULES } from '../config/analysis-rules.js';
  * @param {Object} options - Analysis options
  * @returns {Object} Similarity analysis results
  */
-export const analyzeFunctionSimilarity = async (moduleAnalyses, options = {}) => {
+export const analyzeFunctionSimilarity =  (moduleAnalyses, options = {}) => {
     const startTime = Date.now();
     const context = options.context || 'system'; // 'system' or 'version'
     const threshold = options.threshold || 75;
@@ -53,10 +53,10 @@ export const analyzeFunctionSimilarity = async (moduleAnalyses, options = {}) =>
         // Perform similarity analysis
         if (context === 'version') {
             // Version comparison - different approach
-            analysis.similarities = await analyzeVersionSimilarity(allFunctions, moduleAnalyses, threshold, analysis);
+            analysis.similarities =  analyzeVersionSimilarity(allFunctions, moduleAnalyses, threshold, analysis);
         } else {
             // System analysis - cross-module comparison
-            analysis.similarities = await analyzeSystemSimilarity(allFunctions, threshold, analysis);
+            analysis.similarities =  analyzeSystemSimilarity(allFunctions, threshold, analysis);
         }
 
         // Categorize results
@@ -157,7 +157,7 @@ const collectAllFunctions = (moduleAnalyses) => {
  * @param {Object} analysis - Analysis object to update
  * @returns {Array} Array of similarities
  */
-const analyzeSystemSimilarity = async (allFunctions, threshold, analysis) => {
+const analyzeSystemSimilarity =  (allFunctions, threshold, analysis) => {
     const similarities = [];
     let comparisons = 0;
 
@@ -239,7 +239,7 @@ const analyzeSystemSimilarity = async (allFunctions, threshold, analysis) => {
  * @param {Object} analysis - Analysis object to update
  * @returns {Array} Array of similarities (different format for version context)
  */
-const analyzeVersionSimilarity = async (allFunctions, moduleAnalyses, threshold, analysis) => {
+const analyzeVersionSimilarity =  (allFunctions, moduleAnalyses, threshold, analysis) => {
     const similarities = [];
 
     console.log(chalk.gray(`   Performing version evolution similarity analysis...`));
