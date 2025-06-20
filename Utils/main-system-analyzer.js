@@ -201,7 +201,7 @@ function processSystemAnalysis(folderInfo) {
 
                 // Generate system report
                 systemReportFile = generateSystemReport(
-                    moduleAnalyses,
+                    systemAnalysis,
                     systemAnalysis,
                     folderInfo.path
                 );

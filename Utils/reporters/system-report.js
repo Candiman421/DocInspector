@@ -32,18 +32,19 @@ export function generateSystemReport(moduleAnalyses, systemAnalysis, folderPath)
  * @returns {Object} Report data structure
  */
 function buildSystemReportData(moduleAnalyses, systemAnalysis) {
-    const successfulModules = moduleAnalyses.filter(m => m.success);
+    // Use systemAnalysis.individual_modules instead of processing moduleAnalyses again
+    const individualModules = systemAnalysis.individual_modules || [];
     const failedModules = moduleAnalyses.filter(m => !m.success);
 
     return {
-        system_overview: buildSystemOverview(successfulModules, failedModules),
-        dependency_analysis: buildDependencyAnalysis(systemAnalysis.dependencies),
-        health_summary: buildHealthSummary(successfulModules),
-        compliance_summary: buildComplianceSummary(successfulModules),
+        system_overview: buildSystemOverview(individualModules, failedModules),
+        dependency_analysis: buildDependencyAnalysis(systemAnalysis.dependency_analysis),
+        health_summary: buildHealthSummary(individualModules),
+        compliance_summary: buildComplianceSummary(individualModules),
         cross_module_issues: buildCrossModuleIssues(systemAnalysis),
-        individual_modules: buildIndividualModuleSummaries(successfulModules),
+        individual_modules: individualModules, // Use pre-processed data
         failed_analyses: buildFailedAnalysesSummary(failedModules),
-        recommendations: buildSystemRecommendations(successfulModules, systemAnalysis)
+        recommendations: buildSystemRecommendations(individualModules, systemAnalysis)
     };
 }
 
@@ -51,10 +52,13 @@ function buildSystemReportData(moduleAnalyses, systemAnalysis) {
  * Build system overview section
  */
 function buildSystemOverview(successfulModules, failedModules) {
-    const totalFunctions = successfulModules.reduce((sum, m) => sum + m.function_count, 0);
-    const totalLines = successfulModules.reduce((sum, m) => sum + m.line_count, 0);
+    const totalFunctions = successfulModules.reduce((sum, m) =>
+        sum + (m.analysis?.function_inventory?.total_count || 0), 0);
+    const totalLines = successfulModules.reduce((sum, m) =>
+        sum + (m.analysis?.module_info?.line_count || 0), 0);
     const avgHealthScore = successfulModules.length > 0 ?
-        Math.round(successfulModules.reduce((sum, m) => sum + m.health_score, 0) / successfulModules.length) : 0;
+        Math.round(successfulModules.reduce((sum, m) =>
+            sum + (m.analysis?.health_score?.total_score || 0), 0) / successfulModules.length) : 0;
 
     return {
         total_modules: successfulModules.length + failedModules.length,
@@ -98,15 +102,16 @@ function buildDependencyAnalysis(dependencyAnalysis) {
 function buildHealthSummary(modules) {
     const gradeDistribution = calculateGradeDistribution(modules);
     const criticalIssueModules = modules.filter(m =>
-        m.es3_violations?.length > 0 ||
-        m.registration_accuracy < 90
+        (m.analysis?.es3_compliance?.violations?.length || 0) > 0 ||
+        (m.analysis?.registration_compliance?.accuracyPercentage || 100) < 90
     );
 
     return {
         grade_distribution: gradeDistribution,
         modules_with_critical_issues: criticalIssueModules.length,
-        es3_compliant_modules: modules.filter(m => m.es3_compliant).length,
-        perfect_registration_modules: modules.filter(m => m.registration_accuracy === 100).length,
+        es3_compliant_modules: modules.filter(m => m.analysis?.es3_compliance?.compliant).length,
+        perfect_registration_modules: modules.filter(m => 
+            (m.analysis?.registration_compliance?.accuracyPercentage || 0) === 100).length,
         average_registration_accuracy: calculateAverageRegistration(modules),
         logging_coverage_average: calculateAverageLoggingCoverage(modules),
         health_trend: calculateHealthTrend(modules)
@@ -180,21 +185,21 @@ function buildCrossModuleIssues(systemAnalysis) {
  */
 function buildIndividualModuleSummaries(modules) {
     return modules.map(module => ({
-        filename: module.filename,
-        version: module.version || 'unknown',
-        line_count: module.line_count,
-        function_count: module.function_count,
-        health_score: module.health_score,
-        grade: module.grade,
-        es3_compliant: module.es3_compliant,
-        registration_accuracy: module.registration_accuracy,
-        logging_coverage: module.logging_coverage || 0,
+        filename: module.analysis?.module_info?.filename || 'unknown',
+        version: module.analysis?.module_info?.version || 'unknown',
+        line_count: module.analysis?.module_info?.line_count || 0,
+        function_count: module.analysis?.function_inventory?.total_count || 0,
+        health_score: module.analysis?.health_score?.total_score || 0,
+        grade: module.analysis?.health_score?.grade || 'F',
+        es3_compliant: module.analysis?.es3_compliance?.compliant || false,
+        registration_accuracy: module.analysis?.registration_compliance?.accuracyPercentage || 0,
+        logging_coverage: module.analysis?.function_architecture?.loggingCoverage || 0,
         critical_issues: [
-            ...(module.es3_violations || []).map(v => `ES3: ${v.issue}`),
-            ...(module.registration_mismatches?.functions_not_registered || []).map(f => `Unregistered: ${f}`),
-            ...(module.registration_mismatches?.functions_registered_not_exist || []).map(f => `Missing: ${f}`)
+            ...(module.analysis?.es3_compliance?.violations || []).map(v => `ES3: ${v.type || v.keyword || 'violation'}`),
+            ...(module.analysis?.registration_compliance?.functionsNotRegistered || []).map(f => `Unregistered: ${f}`),
+            ...(module.analysis?.registration_compliance?.registeredButNotFound || []).map(f => `Missing: ${f}`)
         ].slice(0, 5), // Limit to top 5 issues
-        dependencies: module.dependencies || []
+        dependencies: module.analysis?.dependencies?.declared || []
     }));
 }
 
@@ -322,7 +327,7 @@ function calculateSystemGrade(avgScore) {
 function calculateModuleSizeRange(modules) {
     if (modules.length === 0) return { min: 0, max: 0, avg: 0 };
 
-    const sizes = modules.map(m => m.line_count);
+    const sizes = modules.map(m => m.analysis?.module_info?.line_count || 0);
     return {
         min: Math.min(...sizes),
         max: Math.max(...sizes),
@@ -333,7 +338,7 @@ function calculateModuleSizeRange(modules) {
 function calculateGradeDistribution(modules) {
     const distribution = { 'A+': 0, 'A': 0, 'B+': 0, 'B': 0, 'C+': 0, 'C': 0, 'D': 0, 'F': 0 };
     modules.forEach(module => {
-        const grade = module.grade || 'F';
+        const grade = module.analysis?.health_score?.grade || 'F';
         distribution[grade] = (distribution[grade] || 0) + 1;
     });
     return distribution;
@@ -341,13 +346,15 @@ function calculateGradeDistribution(modules) {
 
 function calculateAverageRegistration(modules) {
     if (modules.length === 0) return 0;
-    const total = modules.reduce((sum, m) => sum + (m.registration_accuracy || 0), 0);
+    const total = modules.reduce((sum, m) => 
+        sum + (m.analysis?.registration_compliance?.accuracyPercentage || 0), 0);
     return Math.round(total / modules.length);
 }
 
 function calculateAverageLoggingCoverage(modules) {
     if (modules.length === 0) return 0;
-    const total = modules.reduce((sum, m) => sum + (m.logging_coverage || 0), 0);
+    const total = modules.reduce((sum, m) => 
+        sum + (m.analysis?.function_architecture?.loggingCoverage || 0), 0);
     return Math.round(total / modules.length);
 }
 
@@ -359,9 +366,8 @@ function calculateModernLoggingAdoption(modules) {
 }
 
 function calculateHealthTrend(modules) {
-    // For now, return static analysis since we don't have historical data
     const avgScore = modules.length > 0 ?
-        modules.reduce((sum, m) => sum + m.health_score, 0) / modules.length : 0;
+        modules.reduce((sum, m) => sum + (m.analysis?.health_score?.total_score || 0), 0) / modules.length : 0;
 
     if (avgScore >= 800) return 'stable';
     if (avgScore >= 600) return 'needs_attention';
