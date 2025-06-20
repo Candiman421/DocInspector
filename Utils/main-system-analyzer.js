@@ -199,11 +199,10 @@ function processSystemAnalysis(folderInfo) {
             try {
                 systemAnalysis = analyzeModuleSystem(folderInfo, analysisOptions);
 
-                // Generate system report
+                // Generate system report - FIXED: Pass correct parameters
                 systemReportFile = generateSystemReport(
-                    systemAnalysis,
-                    systemAnalysis,
-                    folderInfo.path
+                    systemAnalysis.analysis,  // Pass the analysis data
+                    folderInfo.path           // Path parameter
                 );
 
                 if (!options.quiet) {
@@ -254,17 +253,17 @@ function calculateFolderHealthSummary(moduleAnalyses) {
     const successful = moduleAnalyses.filter(m => m.success);
     if (successful.length === 0) return null;
 
-    const totalScore = successful.reduce((sum, m) => sum + (m.health_score || 0), 0);
+    const totalScore = successful.reduce((sum, m) => sum + (m.analysis?.health_score?.total_score || 0), 0);
     const avgScore = Math.round(totalScore / successful.length);
-    const criticalIssues = successful.reduce((sum, m) => sum + (m.critical_violations?.length || 0), 0);
-    const es3Compliant = successful.filter(m => m.es3_compliant).length;
+    const criticalIssues = successful.reduce((sum, m) => sum + ((m.analysis?.es3_compliance?.criticalViolations?.length || 0) + (m.analysis?.reserved_word_safety?.criticalViolations?.length || 0)), 0);
+    const es3Compliant = successful.filter(m => m.analysis?.es3_compliance?.compliant).length;
 
     return {
         average_health_score: avgScore,
         overall_grade: calculateGrade(avgScore),
         modules_es3_compliant: es3Compliant,
         total_critical_issues: criticalIssues,
-        perfect_registration: successful.filter(m => m.registration_accuracy === 100).length
+        perfect_registration: successful.filter(m => (m.analysis?.registration_compliance?.accuracyPercentage || 0) === 100).length
     };
 }
 
@@ -272,13 +271,14 @@ function calculateFolderHealthSummary(moduleAnalyses) {
  * Extract system-level issues
  */
 function extractSystemIssues(systemAnalysis) {
-    if (!systemAnalysis) return null;
+    if (!systemAnalysis || !systemAnalysis.analysis) return null;
 
+    const analysis = systemAnalysis.analysis;
     return {
-        dependency_violations: (systemAnalysis.dependencies?.violations || []).length,
-        cross_module_collisions: (systemAnalysis.cross_module_analysis?.name_collisions || []).length,
-        circular_dependencies: (systemAnalysis.dependencies?.circular_deps || []).length,
-        missing_dependencies: (systemAnalysis.dependencies?.missing_deps || []).length
+        dependency_violations: (analysis.dependency_analysis?.dependency_violations || []).length,
+        cross_module_collisions: (analysis.cross_module_analysis?.function_name_collisions || []).length,
+        circular_dependencies: (analysis.dependency_analysis?.circular_dependencies || []).length,
+        missing_dependencies: (analysis.dependency_analysis?.missing_dependencies || []).length
     };
 }
 

@@ -59,7 +59,7 @@ export const analyzeModuleSystem = (folderInfo, options = {}) => {
                 analysis_type: 'system_analysis'
             },
 
-            // Individual module results
+            // Individual module results - FIXED: proper data mapping
             individual_modules: moduleAnalyses.map(ma => ({
                 filename: ma?.analysis?.module_info?.filename || 'unknown',
                 version: ma?.analysis?.module_info?.version || 'unknown',
@@ -69,8 +69,13 @@ export const analyzeModuleSystem = (folderInfo, options = {}) => {
                 line_count: ma?.analysis?.module_info?.line_count || 0,
                 es3_compliant: ma?.analysis?.es3_compliance?.compliant || false,
                 registration_accuracy: ma?.analysis?.registration_compliance?.accuracyPercentage || 0,
-                critical_issues: (ma?.analysis?.es3_compliance?.criticalViolations?.length || 0) +
-                    (ma?.analysis?.reserved_word_safety?.criticalViolations?.length || 0)
+                logging_coverage: ma?.analysis?.function_architecture?.loggingCoverage || 0,
+                critical_issues: [
+                    ...(ma?.analysis?.es3_compliance?.criticalViolations || []).map(v => `ES3: ${v.type || v.keyword || 'violation'}`),
+                    ...(ma?.analysis?.reserved_word_safety?.criticalViolations || []).map(v => `Reserved: ${v.word || 'word'}`),
+                    ...(ma?.analysis?.registration_compliance?.functionsNotRegistered || []).map(f => `Unregistered: ${f}`)
+                ].slice(0, 5),
+                dependencies: ma?.analysis?.dependencies?.declared || []
             })),
 
             // System-wide dependency analysis
@@ -96,7 +101,7 @@ export const analyzeModuleSystem = (folderInfo, options = {}) => {
 
         console.log(chalk.green(`✅ System analysis complete (${systemAnalysis.analysis_time_ms}ms)`));
         console.log(chalk.cyan(`   System Health: ${systemAnalysis.system_health.overall_grade}`));
-        console.log(chalk.gray(`   Modules: ${systemAnalysis.analyzed_modules}, Issues: ${systemAnalysis.system_health.total_critical_issues}`));
+        console.log(chalk.gray(`   Modules: ${systemAnalysis.system_info.analyzed_modules}, Issues: ${systemAnalysis.system_health.total_critical_issues}`));
 
         return {
             success: true,
@@ -577,7 +582,7 @@ const generateSystemRecommendations = (moduleAnalyses) => {
             issues.logging_issues = (issues.logging_issues || 0) + 1;
         }
 
-        if (analysis.security_patterns.risk_level === 'high' || analysis.security_patterns.risk_level === 'critical') {
+        if (analysis.security_patterns?.risk_level === 'high' || analysis.security_patterns?.risk_level === 'critical') {
             issues.security_issues = (issues.security_issues || 0) + 1;
         }
     });
