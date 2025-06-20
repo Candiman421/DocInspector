@@ -129,7 +129,7 @@ export const SYSTEM_ANALYSIS_PATTERNS = {
 // Content patterns for static analysis
 export const CONTENT_PATTERNS = {
     // Function definitions
-    function_definition: /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)/g,
+    function_definition: /^[\s]*function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)/gm,
 
     // Function calls  
     function_call: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
