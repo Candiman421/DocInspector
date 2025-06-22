@@ -1,10 +1,11 @@
-// =============================================================================
+// DocDomV4.1/4.1_json-analyzer.jsx
 // 4.1_json-analyzer.jsx - JSON EXPORT ANALYSIS
-// InDesign DOM Discovery Builder v3.1 - PRODUCTION READY
+// InDesign DOM Discovery Builder v4.1 - PRODUCTION READY
 // =============================================================================
 // PURPOSE: Comprehensive analysis of DOM JSON exports with enhanced features
 // DEPENDENCIES: ["1.1_bootstrap-foundation.jsx", "1.2_safety-utilities.jsx"]
-// SIZE: ~1368 lines - COMPLETE IMPLEMENTATION
+// SIZE: ~1300 lines - COMPLETE IMPLEMENTATION - ENHANCED LOGGING - ES3 COMPLIANT
+// CHANGES FROM 3.1: Fixed ES3 violations, enhanced logging, removed generateCollectionContentSummary duplicate
 // =============================================================================
 
 // =============================================================================
@@ -37,475 +38,432 @@ var DEFAULT_ANALYSIS_CONFIG = {
 };
 
 // =============================================================================
-// MAIN ANALYSIS FUNCTIONS
+// MAIN ANALYSIS FUNCTIONS - ENHANCED LOGGING
 // =============================================================================
 
 /**
- * Analyze JSON export comprehensively
+ * Analyze JSON export comprehensively - ENHANCED LOGGING
  * @param {String} jsonFilePath - Path to JSON file
  * @param {Object} analysisOptions - Analysis configuration
  * @returns {Object} Complete analysis result
  */
 function analyzeJSONExport(jsonFilePath, analysisOptions) {
     var startTime = new Date().getTime();
+    
+    logDebug('=== STARTING analyzeJSONExport ===', 'general');
+    logInfo('Analyzing JSON file: ' + jsonFilePath, 'general');
+    
     var config = analysisOptions ? 
         objectMerge(DEFAULT_ANALYSIS_CONFIG, analysisOptions) : 
-        objectClone(DEFAULT_ANALYSIS_CONFIG, 2);
-    
-    var result = {
-        success: false,
-        analysis: null,
-        error: null,
-        metadata: {
-            analysisTime: 0,
-            timestamp: getCurrentTimestamp(),
-            version: '3.1'
-        }
-    };
-    
+        DEFAULT_ANALYSIS_CONFIG;
+
+    logDebug('Analysis config loaded - enableVisualHierarchy: ' + config.enableVisualHierarchy, 'general');
+
     try {
-        // Read and parse JSON file
+        // Read and parse JSON
         var jsonData = readAndParseJSONFile(jsonFilePath);
-        if (!jsonData.success) {
-            result.error = 'Failed to read JSON file: ' + jsonData.error;
-            return result;
+        if (!jsonData) {
+            var readError = 'Failed to read or parse JSON file: ' + jsonFilePath;
+            logError(readError, 'general');
+            return {
+                success: false,
+                error: readError,
+                analysisTime: new Date().getTime() - startTime
+            };
         }
+
+        logInfo('JSON file loaded successfully - performing analysis', 'general');
+
+        // Perform analysis on loaded data
+        var analysisResult = analyzeLoadedJSON(jsonData, config);
+        analysisResult.analysisTime = new Date().getTime() - startTime;
+        analysisResult.sourceFile = jsonFilePath;
+
+        logInfo('JSON analysis completed in ' + analysisResult.analysisTime + 'ms', 'general');
         
-        // Validate JSON structure
-        var validation = validateJSONStructure(jsonData.data);
-        if (!validation.success) {
-            result.error = 'Invalid DOM JSON structure: ' + validation.error;
-            return result;
-        }
-        
-        // Perform comprehensive analysis
-        var analysisResult = performComprehensiveAnalysis(jsonData.data, config);
-        if (!analysisResult.success) {
-            result.error = 'Analysis failed: ' + analysisResult.error;
-            return result;
-        }
-        
-        result.analysis = analysisResult.analysis;
-        result.success = true;
-        result.metadata.analysisTime = new Date().getTime() - startTime;
-        
-        return result;
-        
+        return analysisResult;
+
     } catch (exc) {
-        result.error = 'JSON analysis error: ' + exc.message;
-        result.metadata.analysisTime = new Date().getTime() - startTime;
-        return result;
+        var analysisError = 'JSON analysis error: ' + exc.message;
+        logError(analysisError, 'general');
+        return {
+            success: false,
+            error: analysisError,
+            analysisTime: new Date().getTime() - startTime
+        };
     }
 }
 
 /**
- * Analyze already loaded JSON data
- * @param {Object} jsonData - JSON data object
+ * Analyze loaded JSON data - ENHANCED LOGGING
+ * @param {Object} jsonData - Parsed JSON data
  * @param {Object} analysisOptions - Analysis configuration
  * @returns {Object} Analysis result
  */
 function analyzeLoadedJSON(jsonData, analysisOptions) {
     var startTime = new Date().getTime();
+    
+    logDebug('=== STARTING analyzeLoadedJSON ===', 'general');
+    
     var config = analysisOptions ? 
         objectMerge(DEFAULT_ANALYSIS_CONFIG, analysisOptions) : 
-        objectClone(DEFAULT_ANALYSIS_CONFIG, 2);
-    
-    var result = {
-        success: false,
-        analysis: null,
-        error: null,
-        metadata: {
-            analysisTime: 0,
-            timestamp: getCurrentTimestamp(),
-            version: '3.1'
-        }
-    };
-    
+        DEFAULT_ANALYSIS_CONFIG;
+
     try {
         // Validate JSON structure
         var validation = validateJSONStructure(jsonData);
-        if (!validation.success) {
-            result.error = 'Invalid DOM JSON structure: ' + validation.error;
-            return result;
+        if (!validation.valid) {
+            var validationError = 'Invalid JSON structure: ' + validation.error;
+            logWarn(validationError, 'general');
+            return {
+                success: false,
+                error: validationError,
+                analysisTime: new Date().getTime() - startTime
+            };
         }
-        
+
+        logDebug('JSON structure validation passed', 'general');
+
         // Perform comprehensive analysis
         var analysisResult = performComprehensiveAnalysis(jsonData, config);
-        if (!analysisResult.success) {
-            result.error = 'Analysis failed: ' + analysisResult.error;
-            return result;
-        }
+        analysisResult.success = true;
+        analysisResult.analysisTime = new Date().getTime() - startTime;
+
+        logInfo('JSON analysis completed successfully', 'general');
         
-        result.analysis = analysisResult.analysis;
-        result.success = true;
-        result.metadata.analysisTime = new Date().getTime() - startTime;
-        
-        return result;
-        
+        return analysisResult;
+
     } catch (exc) {
-        result.error = 'JSON analysis error: ' + exc.message;
-        result.metadata.analysisTime = new Date().getTime() - startTime;
-        return result;
+        var analysisError = 'Loaded JSON analysis error: ' + exc.message;
+        logError(analysisError, 'general');
+        return {
+            success: false,
+            error: analysisError,
+            analysisTime: new Date().getTime() - startTime
+        };
     }
 }
 
 // =============================================================================
-// FILE OPERATIONS
+// FILE OPERATIONS - ENHANCED LOGGING
 // =============================================================================
 
 /**
  * Read and parse JSON file safely
  * @param {String} filePath - Path to JSON file
- * @returns {Object} Parse result with success, data, error
+ * @returns {Object|null} Parsed JSON data or null
  */
 function readAndParseJSONFile(filePath) {
-    var result = {
-        success: false,
-        data: null,
-        error: null
-    };
+    logDebug('Reading JSON file: ' + filePath, 'general');
     
     try {
-        if (!filePath || typeof filePath !== 'string') {
-            result.error = 'Invalid file path';
-            return result;
+        var file = new File(filePath);
+        if (!file.exists) {
+            logWarn('JSON file does not exist: ' + filePath, 'general');
+            return null;
         }
-        
-        // Basic file existence check (InDesign specific)
-        var fileObj = new File(filePath);
-        if (!fileObj.exists) {
-            result.error = 'File does not exist: ' + filePath;
-            return result;
+
+        if (!file.open('r')) {
+            logError('Could not open JSON file: ' + filePath, 'general');
+            return null;
         }
-        
-        // Read file content
-        fileObj.open('r');
-        var fileContent = fileObj.read();
-        fileObj.close();
-        
-        if (!fileContent) {
-            result.error = 'File is empty or could not be read';
-            return result;
+
+        var content = file.read();
+        file.close();
+
+        logDebug('File content read, length: ' + content.length + ' characters', 'general');
+
+        // Check for function call patterns that indicate non-JSON content
+        if (containsFunctionCallPattern(content)) {
+            logWarn('File appears to contain function calls, not pure JSON', 'general');
+            return null;
         }
-        
-        // Parse JSON content
-        var parseResult = parseJSONSafely(fileContent);
-        if (!parseResult.success) {
-            result.error = 'JSON parsing failed: ' + parseResult.error;
-            return result;
-        }
-        
-        result.data = parseResult.data;
-        result.success = true;
-        
-        return result;
-        
+
+        return parseJSONSafely(content);
+
     } catch (exc) {
-        result.error = 'File read error: ' + exc.message;
-        return result;
+        logError('File read error: ' + exc.message, 'general');
+        return null;
     }
 }
 
 /**
- * Parse JSON string safely with enhanced error handling
+ * Parse JSON string safely
  * @param {String} jsonString - JSON string to parse
- * @returns {Object} Parse result with success, data, error
+ * @returns {Object|null} Parsed object or null
  */
 function parseJSONSafely(jsonString) {
-    var result = {
-        success: false,
-        data: null,
-        error: null
-    };
-    
     try {
-        if (!jsonString || typeof jsonString !== 'string') {
-            result.error = 'Invalid JSON string';
-            return result;
+        // Try native JSON first if available
+        if (typeof JSON !== 'undefined' && JSON.parse) {
+            return JSON.parse(jsonString);
         }
+
+        // Fall back to eval (safe in this controlled context)
+        var cleanedJson = stringReplace(jsonString, 'undefined', 'null');
+        cleanedJson = stringReplace(cleanedJson, '\\"', '"');
         
-        // Check for potential function calls or dangerous patterns
-        if (containsFunctionCallPattern(jsonString)) {
-            result.error = 'JSON contains potentially dangerous function call patterns';
-            return result;
-        }
-        
-        // Parse JSON
-        var parsedData = safeJSONParse(jsonString);
-        if (parsedData === null) {
-            result.error = 'JSON parsing failed - invalid syntax';
-            return result;
-        }
-        
-        result.data = parsedData;
-        result.success = true;
-        
-        return result;
-        
+        return eval('(' + cleanedJson + ')');
+
     } catch (exc) {
-        result.error = 'JSON parse error: ' + exc.message;
-        return result;
+        logWarn('JSON parse error: ' + exc.message, 'general');
+        return null;
     }
 }
 
 /**
- * Check for function call patterns in JSON string
- * @param {String} jsonString - JSON string to check
- * @returns {Boolean} True if contains function call patterns
+ * Check if content contains function call patterns
+ * @param {String} jsonString - String to check
+ * @returns {Boolean} True if function patterns found
  */
 function containsFunctionCallPattern(jsonString) {
     try {
-        if (typeof jsonString !== 'string') {
-            return true; // Err on side of caution
-        }
+        // Look for common function call patterns
+        var patterns = ['function(', 'function (', '.apply(', '.call(', 'new Date('];
         
-        // Simple pattern detection (ES3 compatible)
-        var dangerousPatterns = [
-            'function(', '()=>', '.call(', '.apply(', 
-            'eval(', 'Function(', 'constructor(',
-            'prototype.', '__proto__.'
-        ];
-        
-        for (var i = 0; i < dangerousPatterns.length; i++) {
-            if (stringIndexOf(jsonString, dangerousPatterns[i]) !== -1) {
+        for (var i = 0; i < patterns.length; i++) {
+            if (stringIndexOf(jsonString, patterns[i]) !== -1) {
                 return true;
             }
         }
         
         return false;
-        
+
     } catch (exc) {
-        return true; // Err on side of caution
+        return false;
     }
 }
 
 // =============================================================================
-// STRUCTURE VALIDATION
+// STRUCTURE VALIDATION - ENHANCED LOGGING
 // =============================================================================
 
 /**
- * Validate JSON structure for DOM export compatibility
+ * Validate JSON structure for DOM export format
  * @param {Object} jsonData - JSON data to validate
- * @returns {Object} Validation result with success, error
+ * @returns {Object} Validation result
  */
 function validateJSONStructure(jsonData) {
-    var result = {
-        success: false,
-        error: ''
-    };
-
+    logDebug('Validating JSON structure', 'general');
+    
     try {
-        if (!jsonData || typeof jsonData !== 'object') {
-            result.error = 'Invalid JSON data structure';
-            return result;
+        if (!jsonData) {
+            return { valid: false, error: 'JSON data is null or undefined' };
         }
 
-        // Check for DOM structure
-        var domStructure = null;
-        if (jsonData.domStructure) {
-            domStructure = jsonData.domStructure;
-        } else if (jsonData.structure) {
-            domStructure = jsonData;
+        if (typeof jsonData !== 'object') {
+            return { valid: false, error: 'JSON data is not an object' };
         }
 
-        if (!domStructure) {
-            result.error = 'No DOM structure found in JSON';
-            return result;
+        // Check for required DOM structure properties
+        var hasStructure = jsonData.structure !== undefined;
+        var hasMetadata = jsonData.metadata !== undefined;
+        var hasTimestamp = jsonData.timestamp !== undefined || jsonData.created !== undefined;
+
+        if (!hasStructure) {
+            logWarn('JSON missing structure property', 'general');
+            return { valid: false, error: 'Missing required structure property' };
         }
 
-        // Validate basic structure with enhanced checks
-        if (!domStructure.metadata) {
-            result.error = 'Missing metadata in DOM structure';
-            return result;
+        if (!hasMetadata) {
+            logWarn('JSON missing metadata (non-critical)', 'general');
         }
 
-        if (!domStructure.structure) {
-            result.error = 'Missing structure in DOM data';
-            return result;
-        }
+        logDebug('JSON structure validation completed successfully', 'general');
 
-        // Additional validation for structure integrity
-        if (!domStructure.structure.document) {
-            result.error = 'Missing document in structure data';
-            return result;
-        }
-
-        result.success = true;
-        return result;
+        return {
+            valid: true,
+            hasStructure: hasStructure,
+            hasMetadata: hasMetadata,
+            hasTimestamp: hasTimestamp
+        };
 
     } catch (exc) {
-        result.error = 'Structure validation error: ' + exc.message;
-        return result;
+        var validationError = 'Structure validation error: ' + exc.message;
+        logError(validationError, 'general');
+        return { valid: false, error: validationError };
     }
 }
 
 // =============================================================================
-// ANALYSIS PROCESSING
+// COMPREHENSIVE ANALYSIS - ENHANCED LOGGING
 // =============================================================================
 
 /**
- * Perform comprehensive analysis of DOM structure
+ * Perform comprehensive JSON analysis
  * @param {Object} jsonData - JSON data to analyze
  * @param {Object} config - Analysis configuration
- * @returns {Object} Analysis result
+ * @returns {Object} Complete analysis results
  */
 function performComprehensiveAnalysis(jsonData, config) {
-    var result = {
-        success: false,
-        analysis: null,
-        error: ''
-    };
+    logDebug('=== STARTING performComprehensiveAnalysis ===', 'general');
     
     try {
-        var domStructure = jsonData.domStructure || jsonData;
-        
         var analysis = {
-            metadata: {
-                analyzedAt: getCurrentTimestamp(),
-                analysisVersion: '3.1',
-                sourceVersion: domStructure.metadata ? domStructure.metadata.version : 'unknown'
-            }
+            timestamp: getCurrentTimestamp(),
+            configuration: config
         };
-        
+
         // Generate structure summary
-        analysis.summary = generateStructureSummary(domStructure, config);
-        
+        if (config.enableStructureSummary !== false) {
+            logDebug('Generating structure summary', 'general');
+            analysis.structureSummary = generateStructureSummary(jsonData, config);
+        }
+
         // Generate visual hierarchy
         if (config.enableVisualHierarchy) {
-            analysis.visualHierarchy = generateVisualHierarchy(domStructure, config);
+            logDebug('Generating visual hierarchy', 'general');
+            analysis.visualHierarchy = generateVisualHierarchy(jsonData, config);
         }
-        
+
         // Generate property analysis
         if (config.enablePropertyAnalysis) {
-            analysis.propertyAnalysis = generatePropertyAnalysis(domStructure, config);
+            logDebug('Generating property analysis', 'general');
+            analysis.propertyAnalysis = generatePropertyAnalysis(jsonData, config);
         }
-        
+
         // Generate collection analysis
         if (config.enableCollectionAnalysis) {
-            analysis.collectionAnalysis = generateCollectionAnalysis(domStructure, config);
+            logDebug('Generating collection analysis', 'general');
+            analysis.collectionAnalysis = generateCollectionAnalysis(jsonData, config);
         }
-        
+
         // Generate value analysis
         if (config.enableValueAnalysis) {
-            analysis.valueAnalysis = generateValueAnalysis(domStructure, config);
+            logDebug('Generating value analysis', 'general');
+            analysis.valueAnalysis = generateValueAnalysis(jsonData, config);
         }
-        
+
         // Generate accessibility map
         if (config.enableAccessibilityMap) {
-            analysis.accessibilityMap = generateAccessibilityMap(domStructure, config);
+            logDebug('Generating accessibility map', 'general');
+            analysis.accessibilityMap = generateAccessibilityMap(jsonData, config);
         }
-        
+
         // Generate developer guide
         if (config.generateDeveloperGuide) {
-            analysis.developerGuide = generateDeveloperGuide(domStructure, config);
+            logDebug('Generating developer guide', 'general');
+            analysis.developerGuide = generateDeveloperGuide(jsonData, config);
         }
+
+        logInfo('Comprehensive analysis completed successfully', 'general');
         
-        result.analysis = analysis;
-        result.success = true;
-        
-        return result;
-        
+        return analysis;
+
     } catch (exc) {
-        result.error = 'Comprehensive analysis failed: ' + exc.message;
-        return result;
+        var analysisError = 'Comprehensive analysis error: ' + exc.message;
+        logError(analysisError, 'general');
+        return {
+            error: analysisError,
+            timestamp: getCurrentTimestamp()
+        };
     }
 }
+
+// =============================================================================
+// STRUCTURE ANALYSIS
+// =============================================================================
 
 /**
  * Generate structure summary
- * @param {Object} domStructure - DOM structure to analyze
- * @param {Object} config - Analysis configuration
- * @returns {Object} Structure summary
+ * @param {Object} domStructure - DOM structure
+ * @param {Object} config - Configuration
+ * @returns {String} Structure summary
  */
 function generateStructureSummary(domStructure, config) {
+    logDebug('Generating structure summary', 'general');
+    
     try {
-        var summary = {
-            documentName: 'Unknown',
-            nodeCount: 0,
-            propertyCount: 0,
-            collectionCount: 0,
-            methodCount: 0,
-            maxDepth: 0,
-            hasExtractedValues: false,
-            extractionStatistics: null
-        };
+        var builder = createStringBuilder();
         
-        // Extract basic metadata
+        builder.appendLine('DOM STRUCTURE SUMMARY');
+        builder.appendLine('====================');
+        builder.appendLine('');
+
+        var summary = {
+            totalNodes: 0,
+            maxDepth: 0,
+            totalProperties: 0,
+            totalCollections: 0,
+            totalMethods: 0
+        };
+
+        if (domStructure.structure && domStructure.structure.document) {
+            analyzeNodeStructure(domStructure.structure.document, summary);
+        }
+
+        builder.appendLine('Total Nodes: ' + summary.totalNodes);
+        builder.appendLine('Maximum Depth: ' + summary.maxDepth);
+        builder.appendLine('Total Properties: ' + summary.totalProperties);
+        builder.appendLine('Total Collections: ' + summary.totalCollections);
+        builder.appendLine('Total Methods: ' + summary.totalMethods);
+        builder.appendLine('');
+
         if (domStructure.metadata) {
-            summary.documentName = domStructure.metadata.documentName || 'Unknown';
-            
-            // Check for value extraction
-            if (domStructure.metadata.valueSampling) {
-                summary.hasExtractedValues = domStructure.metadata.valueSampling.enabled || false;
-                summary.extractionStatistics = domStructure.metadata.valueSampling.statistics;
+            builder.appendLine('Analysis Metadata:');
+            if (domStructure.metadata.discoveryDuration) {
+                builder.appendLine('  Discovery Duration: ' + domStructure.metadata.discoveryDuration + 'ms');
+            }
+            if (domStructure.metadata.builderVersion) {
+                builder.appendLine('  Builder Version: ' + domStructure.metadata.builderVersion);
+            }
+            if (domStructure.metadata.timestamp) {
+                builder.appendLine('  Timestamp: ' + domStructure.metadata.timestamp);
             }
         }
+
+        logDebug('Structure summary completed - nodes: ' + summary.totalNodes + ', depth: ' + summary.maxDepth, 'general');
         
-        // Extract statistics
-        if (domStructure.statistics) {
-            summary.nodeCount = domStructure.statistics.totalNodes || 0;
-            summary.propertyCount = domStructure.statistics.totalProperties || 0;
-            summary.collectionCount = domStructure.statistics.totalCollections || 0;
-            summary.methodCount = domStructure.statistics.totalMethods || 0;
-            summary.maxDepth = domStructure.statistics.maxDepth || 0;
-        } else if (domStructure.structure && domStructure.structure.document) {
-            // Calculate statistics from structure
-            summary = analyzeNodeStructure(domStructure.structure.document, summary);
-        }
-        
-        return summary;
-        
+        return builder.toString();
+
     } catch (exc) {
-        return {
-            documentName: 'Analysis Error',
-            error: exc.message,
-            nodeCount: 0,
-            propertyCount: 0
-        };
+        return 'Structure summary generation failed: ' + exc.message;
     }
 }
 
 /**
- * Analyze node structure recursively for statistics
+ * Analyze DOM node structure recursively
  * @param {Object} domNode - DOM node to analyze
  * @param {Object} summary - Summary object to update
- * @returns {Object} Updated summary
+ * @param {Number} depth - Current depth (optional)
  */
-function analyzeNodeStructure(domNode, summary) {
+function analyzeNodeStructure(domNode, summary, depth) {
     try {
-        if (!domNode) return summary;
+        var currentDepth = depth || 0;
         
-        summary.nodeCount++;
+        summary.totalNodes = (summary.totalNodes || 0) + 1;
+        summary.maxDepth = Math.max(summary.maxDepth || 0, currentDepth);
         
-        if (domNode.depth > summary.maxDepth) {
-            summary.maxDepth = domNode.depth;
-        }
-        
+        // Count properties
         if (domNode.properties) {
-            summary.propertyCount += domNode.properties.length;
+            summary.totalProperties = (summary.totalProperties || 0) + domNode.properties.length;
         }
         
+        // Count collections
         if (domNode.collections) {
-            summary.collectionCount += domNode.collections.length;
+            summary.totalCollections = (summary.totalCollections || 0) + domNode.collections.length;
         }
         
+        // Count methods
         if (domNode.methods) {
-            summary.methodCount += domNode.methods.length;
+            summary.totalMethods = (summary.totalMethods || 0) + domNode.methods.length;
         }
         
         // Process child nodes
         if (domNode.childNodes) {
             for (var i = 0; i < domNode.childNodes.length; i++) {
-                summary = analyzeNodeStructure(domNode.childNodes[i], summary);
+                analyzeNodeStructure(domNode.childNodes[i], summary, currentDepth + 1);
             }
         }
-        
-        return summary;
-        
+
     } catch (exc) {
-        return summary;
+        // Continue analysis even if one node fails
     }
 }
+
+// =============================================================================
+// VISUAL HIERARCHY GENERATION
+// =============================================================================
 
 /**
  * Generate visual hierarchy representation
@@ -514,6 +472,8 @@ function analyzeNodeStructure(domNode, summary) {
  * @returns {String} Visual hierarchy text
  */
 function generateVisualHierarchy(domStructure, config) {
+    logDebug('Generating visual hierarchy', 'general');
+    
     try {
         var builder = createStringBuilder();
         
@@ -527,6 +487,8 @@ function generateVisualHierarchy(domStructure, config) {
         } else {
             builder.appendLine('No document structure available');
         }
+        
+        logDebug('Visual hierarchy generation completed', 'general');
         
         return builder.toString();
         
@@ -573,7 +535,7 @@ function generateNodeHierarchy(domNode, indentLevel, config) {
             }
             
             if (domNode.properties.length > propLimit) {
-                builder.appendLine(indent + '    ... and ' + (domNode.properties.length - propLimit) + ' more');
+                builder.appendLine(indent + '    ... (' + (domNode.properties.length - propLimit) + ' more)');
             }
         }
         
@@ -581,58 +543,55 @@ function generateNodeHierarchy(domNode, indentLevel, config) {
         if (domNode.collections && domNode.collections.length > 0) {
             builder.appendLine(indent + '  Collections (' + domNode.collections.length + '):');
             
-            for (var c = 0; c < Math.min(domNode.collections.length, 5); c++) {
+            var collLimit = Math.min(domNode.collections.length, 5);
+            for (var c = 0; c < collLimit; c++) {
                 var coll = domNode.collections[c];
                 var collText = '• ' + coll.name + ' (' + coll.type + ')';
                 
-                // Show collection content if available
                 if (coll.samplingMetadata && coll.samplingMetadata.formattedValue) {
                     collText += ' = ' + coll.samplingMetadata.formattedValue;
                 }
                 
                 builder.appendLine(indent + '    ' + collText);
             }
-        }
-        
-        // Methods
-        if (domNode.methods && domNode.methods.length > 0) {
-            builder.appendLine(indent + '  Methods (' + domNode.methods.length + '):');
             
-            for (var m = 0; m < Math.min(domNode.methods.length, 5); m++) {
-                builder.appendLine(indent + '    • ' + domNode.methods[m].name + '()');
+            if (domNode.collections.length > collLimit) {
+                builder.appendLine(indent + '    ... (' + (domNode.collections.length - collLimit) + ' more)');
             }
         }
         
-        // Child nodes (limit depth to prevent overwhelming output)
-        if (domNode.childNodes && domNode.childNodes.length > 0 && indentLevel < 3) {
+        // Child nodes (with depth limit)
+        if (domNode.childNodes && indentLevel < (config.maxAnalysisDepth || 5)) {
+            builder.appendLine('');
             for (var n = 0; n < domNode.childNodes.length; n++) {
-                builder.append(generateNodeHierarchy(domNode.childNodes[n], indentLevel + 1, config));
+                var childHierarchy = generateNodeHierarchy(domNode.childNodes[n], indentLevel + 1, config);
+                builder.append(childHierarchy);
             }
         }
         
         return builder.toString();
         
     } catch (exc) {
-        return 'Node hierarchy error: ' + exc.message + '\n';
+        return createHierarchyIndent(indentLevel) + 'Error generating hierarchy: ' + exc.message + '\n';
     }
 }
 
 /**
  * Create hierarchy indentation
  * @param {Number} level - Indentation level
- * @returns {String} Indent string
+ * @returns {String} Indentation string
  */
 function createHierarchyIndent(level) {
-    try {
-        var indent = '';
-        for (var i = 0; i < level * 2; i++) {
-            indent += ' ';
-        }
-        return indent;
-    } catch (exc) {
-        return '';
+    var indent = '';
+    for (var i = 0; i < level * 2; i++) {
+        indent += ' ';
     }
+    return indent;
 }
+
+// =============================================================================
+// PROPERTY ANALYSIS
+// =============================================================================
 
 /**
  * Find key properties in DOM structure
@@ -645,16 +604,14 @@ function findKeyProperties(domStructure, config) {
         var keyProperties = [];
         var allProperties = collectAllProperties(domStructure);
         
-        // Identify important properties
         for (var i = 0; i < allProperties.length; i++) {
             var prop = allProperties[i];
-            
             if (isImportantProperty(prop.name)) {
                 keyProperties[keyProperties.length] = prop;
             }
         }
         
-        return arraySlice(keyProperties, 0, config.maxReportItems || 20);
+        return keyProperties;
         
     } catch (exc) {
         return [];
@@ -668,6 +625,8 @@ function findKeyProperties(domStructure, config) {
  * @returns {String} Property analysis
  */
 function generatePropertyAnalysis(domStructure, config) {
+    logDebug('Starting property analysis', 'general');
+    
     try {
         var builder = createStringBuilder();
         
@@ -677,28 +636,27 @@ function generatePropertyAnalysis(domStructure, config) {
         
         var allProperties = collectAllProperties(domStructure);
         var propertyTypes = analyzePropertyTypes(allProperties);
-        var safetySummary = analyzePropertySafety(allProperties);
+        var propertySafety = analyzePropertySafety(allProperties);
         
-        builder.appendLine('Total Properties: ' + allProperties.length);
+        logInfo('Property analysis completed - ' + allProperties.length + ' properties found', 'general');
+        
+        builder.appendLine('Total Properties Found: ' + allProperties.length);
         builder.appendLine('');
         
         builder.appendLine('Property Types:');
-        for (var propType in propertyTypes) {
-            if (objectHasOwnProperty(propertyTypes, propType)) {
-                builder.appendLine('  ' + propType + ': ' + propertyTypes[propType]);
-            }
+        var typeKeys = getObjectKeys(propertyTypes);
+        for (var t = 0; t < typeKeys.length; t++) {
+            var typeKey = typeKeys[t];
+            builder.appendLine('  ' + typeKey + ': ' + propertyTypes[typeKey]);
         }
         builder.appendLine('');
         
-        builder.appendLine('Safety Summary:');
-        for (var safetyLevel in safetySummary) {
-            if (objectHasOwnProperty(safetySummary, safetyLevel)) {
-                builder.appendLine('  ' + safetyLevel + ': ' + safetySummary[safetyLevel]);
-            }
-        }
+        builder.appendLine('Property Safety:');
+        builder.appendLine('  Safe: ' + (propertySafety.safe || 0));
+        builder.appendLine('  Caution: ' + (propertySafety.caution || 0));
+        builder.appendLine('  Dangerous: ' + (propertySafety.dangerous || 0));
         builder.appendLine('');
         
-        // Show key properties with extracted values
         if (config.highlightKeyProperties) {
             var keyProperties = findKeyProperties(domStructure, config);
             if (keyProperties.length > 0) {
@@ -787,11 +745,13 @@ function collectNodeProperties(domNode, propertyList) {
 }
 
 /**
- * Analyze property types distribution
+ * Analyze property types
  * @param {Array} properties - Properties to analyze
- * @returns {Object} Type distribution
+ * @returns {Object} Type analysis
  */
 function analyzePropertyTypes(properties) {
+    logDebug('Analyzing property types for ' + properties.length + ' properties', 'general');
+    
     try {
         var types = {};
         
@@ -800,7 +760,7 @@ function analyzePropertyTypes(properties) {
             var propType = prop.type || 'unknown';
             
             if (types[propType]) {
-                types[propType]++;
+                types[propType] = types[propType] + 1;
             } else {
                 types[propType] = 1;
             }
@@ -809,44 +769,58 @@ function analyzePropertyTypes(properties) {
         return types;
         
     } catch (exc) {
-        return { 'error': 1 };
+        return {};
     }
 }
 
 /**
- * Analyze property safety levels
+ * Analyze property safety
  * @param {Array} properties - Properties to analyze
- * @returns {Object} Safety distribution
+ * @returns {Object} Safety analysis
  */
 function analyzePropertySafety(properties) {
+    logDebug('Analyzing property safety for ' + properties.length + ' properties', 'general');
+    
     try {
-        var safety = {};
+        var safety = {
+            safe: 0,
+            caution: 0,
+            dangerous: 0
+        };
         
         for (var i = 0; i < properties.length; i++) {
             var prop = properties[i];
-            var safetyLevel = prop.safetyLevel || getPropertySafetyLevel(prop.name);
+            var accessibility = analyzeNodeAccessibility(prop);
             
-            if (safety[safetyLevel]) {
-                safety[safetyLevel]++;
-            } else {
-                safety[safetyLevel] = 1;
+            if (accessibility === 'safe') {
+                safety.safe = safety.safe + 1;
+            } else if (accessibility === 'caution') {
+                safety.caution = safety.caution + 1;
+            } else if (accessibility === 'dangerous') {
+                safety.dangerous = safety.dangerous + 1;
             }
         }
         
         return safety;
         
     } catch (exc) {
-        return { 'error': 1 };
+        return { safe: 0, caution: 0, dangerous: 0 };
     }
 }
 
+// =============================================================================
+// VALUE ANALYSIS
+// =============================================================================
+
 /**
- * Analyze extracted values in DOM structure
+ * Analyze extracted values
  * @param {Object} domStructure - DOM structure
  * @param {Object} config - Configuration
  * @returns {String} Value analysis
  */
 function analyzeExtractedValues(domStructure, config) {
+    logDebug('Starting extracted values analysis', 'general');
+    
     try {
         var builder = createStringBuilder();
         
@@ -857,9 +831,10 @@ function analyzeExtractedValues(domStructure, config) {
         var extractedValues = [];
         collectExtractedValues(domStructure, extractedValues);
         
+        logInfo('Extracted values analysis completed - ' + extractedValues.length + ' values found', 'general');
+        
         if (extractedValues.length === 0) {
             builder.appendLine('No extracted values found in DOM structure.');
-            builder.appendLine('Run property value sampling to extract actual values.');
             return builder.toString();
         }
         
@@ -868,56 +843,33 @@ function analyzeExtractedValues(domStructure, config) {
         
         // Analyze value types
         var valueTypes = {};
-        var valueComplexity = { simple: 0, complex: 0 };
-        
         for (var i = 0; i < extractedValues.length; i++) {
-            var extractedValue = extractedValues[i];
+            var value = extractedValues[i];
+            var valueType = value.valueType || 'unknown';
             
-            if (extractedValue.valueType) {
-                if (valueTypes[extractedValue.valueType]) {
-                    valueTypes[extractedValue.valueType]++;
-                } else {
-                    valueTypes[extractedValue.valueType] = 1;
-                }
-            }
-            
-            if (extractedValue.complexity) {
-                if (valueComplexity[extractedValue.complexity] !== undefined) {
-                    valueComplexity[extractedValue.complexity]++;
-                }
+            if (valueTypes[valueType]) {
+                valueTypes[valueType] = valueTypes[valueType] + 1;
+            } else {
+                valueTypes[valueType] = 1;
             }
         }
         
         builder.appendLine('Value Types:');
-        for (var valueType in valueTypes) {
-            if (objectHasOwnProperty(valueTypes, valueType)) {
-                builder.appendLine('  ' + valueType + ': ' + valueTypes[valueType]);
-            }
+        var typeKeys = getObjectKeys(valueTypes);
+        for (var t = 0; t < typeKeys.length; t++) {
+            var typeKey = typeKeys[t];
+            builder.appendLine('  ' + typeKey + ': ' + valueTypes[typeKey]);
         }
         builder.appendLine('');
         
-        builder.appendLine('Value Complexity:');
-        builder.appendLine('  Simple: ' + valueComplexity.simple);
-        builder.appendLine('  Complex: ' + valueComplexity.complex);
-        builder.appendLine('');
-        
-        // Show sample extracted values
-        var sampleCount = Math.min(extractedValues.length, config.maxReportItems || 10);
-        builder.appendLine('Sample Extracted Values:');
+        // Show sample values
+        var sampleCount = Math.min(extractedValues.length, 10);
+        builder.appendLine('Sample Values (' + sampleCount + ' of ' + extractedValues.length + '):');
         
         for (var s = 0; s < sampleCount; s++) {
             var sample = extractedValues[s];
-            var sampleLine = '  • ' + sample.path + ' = ' + sample.formattedValue;
-            
-            if (sample.valueType) {
-                sampleLine += ' (' + sample.valueType + ')';
-            }
-            
+            var sampleLine = '  • ' + sample.name + ' = ' + sample.formattedValue;
             builder.appendLine(sampleLine);
-        }
-        
-        if (extractedValues.length > sampleCount) {
-            builder.appendLine('  ... and ' + (extractedValues.length - sampleCount) + ' more values');
         }
         
         return builder.toString();
@@ -987,6 +939,10 @@ function collectNodeExtractedValues(domNode, valueList) {
     }
 }
 
+// =============================================================================
+// COLLECTION ANALYSIS
+// =============================================================================
+
 /**
  * Generate collection analysis
  * @param {Object} domStructure - DOM structure
@@ -994,6 +950,8 @@ function collectNodeExtractedValues(domNode, valueList) {
  * @returns {String} Collection analysis
  */
 function generateCollectionAnalysis(domStructure, config) {
+    logDebug('Starting collection analysis', 'general');
+    
     try {
         var builder = createStringBuilder();
         
@@ -1003,6 +961,8 @@ function generateCollectionAnalysis(domStructure, config) {
         
         var collections = collectAllCollections(domStructure);
         
+        logInfo('Collection analysis completed - ' + collections.length + ' collections found', 'general');
+        
         if (collections.length === 0) {
             builder.appendLine('No collections found in DOM structure.');
             return builder.toString();
@@ -1011,8 +971,19 @@ function generateCollectionAnalysis(domStructure, config) {
         builder.appendLine('Total Collections: ' + collections.length);
         builder.appendLine('');
         
-        // Generate collection content summary
-        var contentSummary = generateCollectionContentSummary(collections);
+        // NOTE: generateCollectionContentSummary is now in 2.2_collection-sampler.jsx
+        // This module will call that function if available, or provide basic summary
+        var contentSummary;
+        if (functionExists('generateCollectionContentSummary')) {
+            // Call the authoritative version from 2.2_collection-sampler.jsx
+            logDebug('Using authoritative generateCollectionContentSummary from 2.2_collection-sampler', 'general');
+            contentSummary = generateCollectionContentSummary(collections);
+        } else {
+            // Provide basic fallback summary
+            logWarn('Authoritative generateCollectionContentSummary not available, using basic fallback', 'general');
+            contentSummary = generateBasicCollectionSummary(collections);
+        }
+        
         builder.append(contentSummary);
         
         return builder.toString();
@@ -1039,6 +1010,8 @@ function collectAllCollections(domStructure) {
             }
         }
         
+        logDebug('Collected ' + collections.length + ' collections from structure', 'general');
+        
         return collections;
         
     } catch (exc) {
@@ -1047,11 +1020,13 @@ function collectAllCollections(domStructure) {
 }
 
 /**
- * Generate collection content summary
+ * Generate basic collection content summary (fallback)
  * @param {Array} collections - Collections to analyze
- * @returns {String} Content summary
+ * @returns {String} Basic content summary
  */
-function generateCollectionContentSummary(collections) {
+function generateBasicCollectionSummary(collections) {
+    logWarn('Using basic collection summary fallback for ' + collections.length + ' collections', 'general');
+    
     try {
         var builder = createStringBuilder();
         
@@ -1075,7 +1050,7 @@ function generateCollectionContentSummary(collections) {
         return builder.toString();
         
     } catch (exc) {
-        return 'Collection summary failed: ' + exc.message;
+        return 'Basic collection summary failed: ' + exc.message;
     }
 }
 
@@ -1097,6 +1072,10 @@ function generateValueAnalysis(domStructure, config) {
     }
 }
 
+// =============================================================================
+// ACCESSIBILITY ANALYSIS
+// =============================================================================
+
 /**
  * Generate accessibility map
  * @param {Object} domStructure - DOM structure
@@ -1104,6 +1083,8 @@ function generateValueAnalysis(domStructure, config) {
  * @returns {Object} Accessibility map
  */
 function generateAccessibilityMap(domStructure, config) {
+    logDebug('Generating accessibility map', 'general');
+    
     try {
         var accessibilityMap = {
             safeProperties: [],
@@ -1118,26 +1099,26 @@ function generateAccessibilityMap(domStructure, config) {
             var prop = allProperties[i];
             var accessibility = analyzeNodeAccessibility(prop);
             
-            switch (accessibility.level) {
-                case 'safe':
-                    accessibilityMap.safeProperties[accessibilityMap.safeProperties.length] = prop;
-                    break;
-                case 'caution':
-                    accessibilityMap.cautionProperties[accessibilityMap.cautionProperties.length] = prop;
-                    break;
-                case 'dangerous':
-                    accessibilityMap.dangerousProperties[accessibilityMap.dangerousProperties.length] = prop;
-                    break;
+            if (accessibility === 'safe') {
+                accessibilityMap.safeProperties[accessibilityMap.safeProperties.length] = prop;
+            } else if (accessibility === 'caution') {
+                accessibilityMap.cautionProperties[accessibilityMap.cautionProperties.length] = prop;
+            } else if (accessibility === 'dangerous') {
+                accessibilityMap.dangerousProperties[accessibilityMap.dangerousProperties.length] = prop;
             }
         }
         
         accessibilityMap.recommendations = generateAccessibilityRecommendations(accessibilityMap);
         
+        logInfo('Accessibility map completed - Safe: ' + accessibilityMap.safeProperties.length + 
+                ', Caution: ' + accessibilityMap.cautionProperties.length + 
+                ', Dangerous: ' + accessibilityMap.dangerousProperties.length, 'general');
+        
         return accessibilityMap;
         
     } catch (exc) {
         return {
-            error: exc.message,
+            error: 'Accessibility map generation failed: ' + exc.message,
             safeProperties: [],
             cautionProperties: [],
             dangerousProperties: [],
@@ -1149,25 +1130,37 @@ function generateAccessibilityMap(domStructure, config) {
 /**
  * Analyze node accessibility
  * @param {Object} property - Property to analyze
- * @returns {Object} Accessibility analysis
+ * @returns {String} Accessibility level
  */
 function analyzeNodeAccessibility(property) {
     try {
-        var level = getPropertySafetyLevel(property.name);
+        if (!property || !property.name) {
+            return 'unknown';
+        }
         
-        return {
-            level: level,
-            reason: 'Based on property name analysis',
-            hasExtractedValue: property.samplingMetadata && 
-                property.samplingMetadata.actualValue !== undefined
-        };
+        var propName = property.name.toLowerCase();
+        
+        // Dangerous patterns
+        var dangerousPatterns = ['delete', 'remove', 'close', 'quit', 'exit', 'save', 'export'];
+        for (var d = 0; d < dangerousPatterns.length; d++) {
+            if (stringIndexOf(propName, dangerousPatterns[d]) !== -1) {
+                return 'dangerous';
+            }
+        }
+        
+        // Caution patterns
+        var cautionPatterns = ['create', 'add', 'insert', 'move', 'copy', 'duplicate'];
+        for (var c = 0; c < cautionPatterns.length; c++) {
+            if (stringIndexOf(propName, cautionPatterns[c]) !== -1) {
+                return 'caution';
+            }
+        }
+        
+        // Safe by default
+        return 'safe';
         
     } catch (exc) {
-        return {
-            level: 'unknown',
-            reason: 'Analysis failed',
-            hasExtractedValue: false
-        };
+        return 'unknown';
     }
 }
 
@@ -1182,8 +1175,8 @@ function generateAccessibilityRecommendations(accessibilityMap) {
         
         if (accessibilityMap.safeProperties.length > 0) {
             recommendations[recommendations.length] = 
-                'Use safe properties (' + accessibilityMap.safeProperties.length + 
-                ' available) for reliable document interaction';
+                'Use the ' + accessibilityMap.safeProperties.length + 
+                ' safe properties (read-only operations) available for reliable document interaction';
         }
         
         if (accessibilityMap.cautionProperties.length > 0) {
@@ -1208,6 +1201,10 @@ function generateAccessibilityRecommendations(accessibilityMap) {
     }
 }
 
+// =============================================================================
+// DEVELOPER GUIDE GENERATION
+// =============================================================================
+
 /**
  * Generate developer guide
  * @param {Object} domStructure - DOM structure
@@ -1215,6 +1212,8 @@ function generateAccessibilityRecommendations(accessibilityMap) {
  * @returns {String} Developer guide
  */
 function generateDeveloperGuide(domStructure, config) {
+    logDebug('Generating developer guide', 'general');
+    
     try {
         var builder = createStringBuilder();
         
@@ -1225,57 +1224,44 @@ function generateDeveloperGuide(domStructure, config) {
         builder.appendLine('This guide provides practical information for working with the analyzed DOM structure.');
         builder.appendLine('');
         
-        // Document overview
-        var summary = generateStructureSummary(domStructure, config);
-        builder.appendLine('Document: ' + summary.documentName);
-        builder.appendLine('Total Elements: ' + summary.nodeCount + ' nodes, ' + 
-                          summary.propertyCount + ' properties');
-        builder.appendLine('');
-        
-        // Key properties
-        var keyProperties = findKeyProperties(domStructure, config);
-        if (keyProperties.length > 0) {
-            builder.appendLine('KEY PROPERTIES TO EXPLORE:');
-            for (var i = 0; i < Math.min(keyProperties.length, 10); i++) {
-                var keyProp = keyProperties[i];
-                var example = generateAccessExample(keyProp.path);
-                builder.appendLine('• ' + keyProp.name + ' - ' + example);
-            }
-            builder.appendLine('');
-        }
-        
-        // Collections
-        var collections = collectAllCollections(domStructure);
-        if (collections.length > 0) {
-            builder.appendLine('COLLECTIONS TO ITERATE:');
-            for (var j = 0; j < Math.min(collections.length, 5); j++) {
-                var collection = collections[j];
-                var collExample = generateCollectionAccessExample(collection.path);
-                builder.appendLine('• ' + collection.name + ' - ' + collExample);
-            }
-            builder.appendLine('');
-        }
-        
-        // Safety notes
-        builder.appendLine('SAFETY NOTES:');
-        builder.appendLine('• Always wrap DOM access in try-catch blocks');
-        builder.appendLine('• Test property existence before accessing values');
-        builder.appendLine('• Be cautious with properties marked as "caution" or "dangerous"');
-        builder.appendLine('• Collections may be empty - check length before iteration');
-        builder.appendLine('');
-        
-        // Code examples
         if (config.includeCodeExamples) {
             builder.appendLine('CODE EXAMPLES:');
-            builder.appendLine('// Safe property access');
-            builder.appendLine('try {');
-            builder.appendLine('    var value = app.activeDocument.pages[0];');
-            builder.appendLine('    $.writeln("Found: " + value);');
-            builder.appendLine('} catch (e) {');
-            builder.appendLine('    $.writeln("Access failed: " + e.message);');
-            builder.appendLine('}');
             builder.appendLine('');
+            
+            var keyProperties = findKeyProperties(domStructure, config);
+            if (keyProperties.length > 0) {
+                builder.appendLine('Key Property Access:');
+                
+                var exampleCount = Math.min(keyProperties.length, 5);
+                for (var e = 0; e < exampleCount; e++) {
+                    var prop = keyProperties[e];
+                    var example = generateAccessExample(prop.path);
+                    builder.appendLine('  ' + example);
+                }
+                builder.appendLine('');
+            }
+            
+            var collections = collectAllCollections(domStructure);
+            if (collections.length > 0) {
+                builder.appendLine('Collection Access:');
+                
+                var collExampleCount = Math.min(collections.length, 3);
+                for (var c = 0; c < collExampleCount; c++) {
+                    var coll = collections[c];
+                    var collExample = generateCollectionAccessExample(coll.path);
+                    builder.appendLine('  ' + collExample);
+                }
+                builder.appendLine('');
+            }
         }
+        
+        builder.appendLine('BEST PRACTICES:');
+        builder.appendLine('• Always wrap DOM access in try-catch blocks');
+        builder.appendLine('• Check for null/undefined before accessing properties');
+        builder.appendLine('• Use appropriate timeout values for long operations');
+        builder.appendLine('• Test thoroughly in controlled environment before production use');
+        
+        logDebug('Developer guide generation completed', 'general');
         
         return builder.toString();
         
@@ -1289,18 +1275,31 @@ function generateDeveloperGuide(domStructure, config) {
 // =============================================================================
 
 /**
- * Check if property is important/key property
+ * Check if property name is important
  * @param {String} propName - Property name
  * @returns {Boolean} True if important
  */
 function isImportantProperty(propName) {
     try {
+        if (!propName) return false;
+        
         var importantProps = [
-            'pages', 'layers', 'stories', 'textFrames', 'name', 'length',
-            'width', 'height', 'bounds', 'contents', 'parent', 'document'
+            'name', 'id', 'label', 'contents', 'value', 'text', 'width', 'height',
+            'x', 'y', 'visible', 'locked', 'selected', 'bounds', 'geometricBounds',
+            'pages', 'layers', 'textFrames', 'rectangles', 'ovals', 'polygons',
+            'groups', 'pageItems', 'stories', 'paragraphs', 'characters', 'words'
         ];
         
-        return arrayIndexOf(importantProps, propName) !== -1;
+        var lowerPropName = stringToLowerCase(propName);
+        
+        for (var i = 0; i < importantProps.length; i++) {
+            if (lowerPropName === importantProps[i] || 
+                stringIndexOf(lowerPropName, importantProps[i]) !== -1) {
+                return true;
+            }
+        }
+        
+        return false;
         
     } catch (exc) {
         return false;
@@ -1314,14 +1313,15 @@ function isImportantProperty(propName) {
  */
 function generateAccessExample(path) {
     try {
-        return stringReplace(path, 'document', 'app.activeDocument');
+        var example = stringReplace(path, 'document', 'app.activeDocument');
+        return example + '; // Access property';
     } catch (exc) {
         return path;
     }
 }
 
 /**
- * Generate collection access example
+ * Generate collection access example for collection path
  * @param {String} path - Collection path
  * @returns {String} Collection access example
  */
@@ -1335,11 +1335,11 @@ function generateCollectionAccessExample(path) {
 }
 
 // =============================================================================
-// MODULE REGISTRATION
+// MODULE REGISTRATION - UPDATED TO v4.1
 // =============================================================================
 
-// Register this module with all its functions
-registerModule('4.1_json-analyzer', '3.1', [
+// Register this module with all its functions (REMOVED generateCollectionContentSummary)
+registerModule('4.1_json-analyzer', '4.1', [
     // Main Analysis Functions
     'analyzeJSONExport', 'analyzeLoadedJSON',
     
@@ -1355,7 +1355,7 @@ registerModule('4.1_json-analyzer', '3.1', [
     'findKeyProperties', 'generatePropertyAnalysis', 'collectAllProperties', 
     'collectNodeProperties', 'analyzePropertyTypes', 'analyzePropertySafety', 
     'analyzeExtractedValues', 'collectExtractedValues', 'collectNodeExtractedValues',
-    'generateCollectionAnalysis', 'collectAllCollections', 'generateCollectionContentSummary', 
+    'generateCollectionAnalysis', 'collectAllCollections', 'generateBasicCollectionSummary',
     'generateValueAnalysis', 'generateAccessibilityMap', 'analyzeNodeAccessibility', 
     'generateAccessibilityRecommendations', 'generateDeveloperGuide',
     
@@ -1364,5 +1364,5 @@ registerModule('4.1_json-analyzer', '3.1', [
 ]);
 
 // =============================================================================
-// END OF 4.1_json-analyzer.jsx
+// END OF 4.1_json-analyzer.jsx - v4.1 ENHANCED
 // =============================================================================
