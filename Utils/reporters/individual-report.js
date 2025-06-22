@@ -1,6 +1,6 @@
 // reporters/individual-report.js
-// INDIVIDUAL MODULE REPORT GENERATOR
-// Generate detailed YAML reports for individual module analysis
+// INDIVIDUAL MODULE REPORT GENERATOR - FIXED VERSION
+// ZERO FALSE POSITIVE TOLERANCE - ONLY REPORT REAL, ACTIONABLE ISSUES
 // ============================================================================
 
 import fs from 'fs';
@@ -12,10 +12,12 @@ import {
     createStructuredReport,
     generateFilePath
 } from '../core/yaml-generator.js';
-import { formatCodeSnippet } from './code-snippet-extractor.js';
+import { extractFunctionCode, extractViolationExamples } from './code-snippet-extractor.js';
+import { CONFIDENCE_LEVELS, SEVERITY_CLASSIFICATION } from '../config/analysis-rules.js';
 
 /**
- * Generate individual module analysis report
+ * FIXED - Generate individual module analysis report with zero false positives
+ * ONLY REPORTS REAL, ACTIONABLE ISSUES
  * @param {Object} moduleAnalysis - Complete module analysis result
  * @param {string} outputPath - Directory to write report
  * @param {Object} options - Report generation options
@@ -34,8 +36,11 @@ export const generateIndividualModuleReport = (moduleAnalysis, outputPath, optio
         const analysis = moduleAnalysis.analysis;
         const filename = analysis.module_info.filename;
 
-        // Create structured report data
-        const reportData = createModuleReportData(analysis, options);
+        // CRITICAL - Filter out false positives before reporting
+        const filteredAnalysis = filterFalsePositives(analysis);
+
+        // Create structured report data with confidence-based filtering
+        const reportData = createModuleReportData(filteredAnalysis, options);
 
         // Generate output filename
         const reportFilename = generateFilePath(
@@ -82,225 +87,216 @@ export const generateIndividualModuleReport = (moduleAnalysis, outputPath, optio
 };
 
 /**
- * Create comprehensive module report data structure
+ * CRITICAL - Filter out false positives before reporting
+ * ZERO TOLERANCE for false positive reports
  * @param {Object} analysis - Module analysis results
+ * @returns {Object} Filtered analysis with only real issues
+ */
+const filterFalsePositives = (analysis) => {
+    const filtered = JSON.parse(JSON.stringify(analysis)); // Deep clone
+
+    // CRITICAL - Filter ES3 compliance violations by confidence
+    if (filtered.es3_compliance.violations) {
+        const originalCount = filtered.es3_compliance.violations.length;
+        
+        filtered.es3_compliance.violations = filtered.es3_compliance.violations.filter(violation => {
+            // Only include high confidence violations
+            if ((violation.confidence || 0) < CONFIDENCE_LEVELS.MEDIUM) {
+                console.warn(chalk.yellow(`Filtering low confidence ES3 violation: ${violation.type} (confidence: ${violation.confidence})`));
+                return false;
+            }
+
+            // Additional validation for common false positive patterns
+            if (violation.type === 'destructuring' && violation.match_text) {
+                // Check if this is actually object property assignment
+                if (violation.match_text.includes('=') && !violation.match_text.includes('{')) {
+                    console.warn(chalk.yellow(`Filtering likely false positive destructuring: ${violation.match_text}`));
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        if (filtered.es3_compliance.violations.length < originalCount) {
+            console.log(chalk.yellow(`⚠️  Filtered ${originalCount - filtered.es3_compliance.violations.length} potential false positive ES3 violations`));
+            
+            // Update compliance status if all violations were filtered
+            if (filtered.es3_compliance.violations.length === 0) {
+                filtered.es3_compliance.compliant = true;
+                filtered.es3_compliance.totalPenalty = 0;
+                filtered.es3_compliance.criticalViolations = [];
+            }
+        }
+    }
+
+    // CRITICAL - Filter reserved word safety violations by confidence
+    if (filtered.reserved_word_safety.violations) {
+        const originalCount = filtered.reserved_word_safety.violations.length;
+        
+        filtered.reserved_word_safety.violations = filtered.reserved_word_safety.violations.filter(violation => {
+            // Only include high confidence violations
+            if ((violation.confidence || 0) < CONFIDENCE_LEVELS.MEDIUM) {
+                console.warn(chalk.yellow(`Filtering low confidence reserved word violation: ${violation.word} (confidence: ${violation.confidence})`));
+                return false;
+            }
+
+            // Additional validation - must be actual property usage
+            if (!violation.match_text || (!violation.match_text.includes('.') && !violation.match_text.includes('[') && !violation.match_text.includes(':'))) {
+                console.warn(chalk.yellow(`Filtering non-property reserved word usage: ${violation.word}`));
+                return false;
+            }
+
+            return true;
+        });
+
+        if (filtered.reserved_word_safety.violations.length < originalCount) {
+            console.log(chalk.yellow(`⚠️  Filtered ${originalCount - filtered.reserved_word_safety.violations.length} potential false positive reserved word violations`));
+            
+            // Update safety status if all violations were filtered
+            if (filtered.reserved_word_safety.violations.length === 0) {
+                filtered.reserved_word_safety.safe = true;
+                filtered.reserved_word_safety.totalPenalty = 0;
+                filtered.reserved_word_safety.criticalViolations = [];
+            }
+        }
+    }
+
+    // Filter logging compliance violations by confidence
+    if (filtered.logging_compliance.violations) {
+        filtered.logging_compliance.violations = filtered.logging_compliance.violations.filter(violation => {
+            return (violation.confidence || 0) >= CONFIDENCE_LEVELS.MEDIUM;
+        });
+    }
+
+    return filtered;
+};
+
+/**
+ * ENHANCED - Create comprehensive module report data structure
+ * ONLY INCLUDES REAL, ACTIONABLE ISSUES
+ * @param {Object} analysis - Module analysis results (filtered)
  * @param {Object} options - Report generation options
  * @returns {Object} Report data structure
  */
 const createModuleReportData = (analysis, options = {}) => {
     return {
-        // NEW: Executive summary for quick decision making
+        // NEW - Executive summary for immediate action
         executive_summary: createExecutiveSummary(analysis),
 
-        // Existing sections with enhancements
+        // Enhanced sections with confidence-based reporting
         module_summary: createModuleSummary(analysis),
         function_analysis: createFunctionAnalysis(analysis),
         code_quality: createCodeQualityAssessment(analysis),
-        issues_and_violations: createIssuesSection(analysis, { includeCodeExamples: true, ...options }),
+        
+        // CRITICAL - Only real issues with confidence scores
+        issues_and_violations: createConfidenceBasedIssuesSection(analysis, options),
+        
         health_score_breakdown: createHealthScoreBreakdown(analysis),
-        recommendations: createRecommendations(analysis)
+        recommendations: createActionableRecommendations(analysis)
     };
 };
 
 /**
- * Create executive summary section - TOP PRIORITY ISSUES
+ * ENHANCED - Create executive summary with only critical, actionable items
  * @param {Object} analysis - Module analysis
- * @returns {Object} Executive summary
+ * @returns {Object} Executive summary focused on production blockers
  */
 const createExecutiveSummary = (analysis) => {
     const summary = {
-        critical_blockers: [],
-        quick_stats: {
+        production_readiness: 'unknown',
+        blocking_issues: [],
+        immediate_actions: [],
+        quality_metrics: {
             health_grade: analysis.health_score.grade,
-            compliance_percentage: Math.round((
-                (analysis.es3_compliance.compliant ? 1 : 0) +
-                (analysis.reserved_word_safety.safe ? 1 : 0) +
-                (analysis.registration_compliance.isCompliant ? 1 : 0)
-            ) / 3 * 100),
-            functions_needing_attention: 0,
-            estimated_fix_time: 'unknown'
+            es3_compliant: analysis.es3_compliance.compliant,
+            registration_accurate: analysis.registration_compliance.isCompliant,
+            high_confidence_violations: 0
         },
-        top_3_actions: []
+        deployment_recommendation: 'unknown'
     };
 
-    let functionsNeedingAttention = 0;
-    let estimatedHours = 0;
+    let blockingIssueCount = 0;
+    let highConfidenceViolations = 0;
 
-    // Critical blockers (will crash or break runtime)
-    if (!analysis.es3_compliance.compliant) {
-        const violationCount = analysis.es3_compliance.violations?.length || 0;
-        summary.critical_blockers.push(`${violationCount} ES3 violations that crash ExtendScript`);
-        functionsNeedingAttention += violationCount;
-        estimatedHours += Math.ceil(violationCount * 0.1); // 6 minutes per violation
-    }
+    // Count only high-confidence, real violations
+    const allViolations = [
+        ...(analysis.es3_compliance.violations || []),
+        ...(analysis.reserved_word_safety.violations || []),
+        ...(analysis.logging_compliance.violations || [])
+    ];
 
+    allViolations.forEach(violation => {
+        if ((violation.confidence || 0) >= CONFIDENCE_LEVELS.HIGH) {
+            highConfidenceViolations++;
+            
+            if (violation.severity === 'CRITICAL') {
+                blockingIssueCount++;
+                summary.blocking_issues.push({
+                    type: violation.type,
+                    description: violation.description,
+                    confidence: violation.confidence_level || 'HIGH',
+                    fix: violation.fix_suggestion || `Fix ${violation.type}`
+                });
+            }
+        }
+    });
+
+    summary.quality_metrics.high_confidence_violations = highConfidenceViolations;
+
+    // Registration issues that are certain
     if (!analysis.registration_compliance.isCompliant) {
-        const missingCount = analysis.registration_compliance.functionsNotRegistered?.length || 0;
-        const extraCount = analysis.registration_compliance.registeredButNotFound?.length || 0;
-        if (missingCount + extraCount > 0) {
-            summary.critical_blockers.push(`Function registration mismatches (${missingCount + extraCount} issues)`);
-            functionsNeedingAttention += missingCount + extraCount;
-            estimatedHours += 0.5; // 30 minutes to fix registration
+        const missingFunctions = analysis.registration_compliance.functionsNotRegistered || [];
+        const extraFunctions = analysis.registration_compliance.registeredButNotFound || [];
+        
+        if (missingFunctions.length > 0) {
+            blockingIssueCount++;
+            summary.blocking_issues.push({
+                type: 'missing_function_registration',
+                description: `${missingFunctions.length} functions not registered`,
+                confidence: 'CERTAIN',
+                fix: `Add to registerModule(): ${missingFunctions.slice(0, 3).join(', ')}`
+            });
+        }
+        
+        if (extraFunctions.length > 0) {
+            summary.blocking_issues.push({
+                type: 'invalid_function_registration',
+                description: `${extraFunctions.length} non-existent functions registered`,
+                confidence: 'CERTAIN',
+                fix: `Remove from registerModule(): ${extraFunctions.slice(0, 3).join(', ')}`
+            });
         }
     }
 
-    if (!analysis.reserved_word_safety.safe) {
-        const violationCount = analysis.reserved_word_safety.violations?.length || 0;
-        summary.critical_blockers.push(`${violationCount} reserved word violations`);
-        functionsNeedingAttention += violationCount;
-        estimatedHours += Math.ceil(violationCount * 0.1); // 6 minutes per violation
+    // Immediate actions (top 3 most critical)
+    if (blockingIssueCount > 0) {
+        summary.immediate_actions = summary.blocking_issues
+            .slice(0, 3)
+            .map(issue => ({
+                priority: 'CRITICAL',
+                action: issue.fix,
+                reason: issue.description
+            }));
     }
 
-    // Update quick stats
-    summary.quick_stats.functions_needing_attention = functionsNeedingAttention;
-    summary.quick_stats.estimated_fix_time = estimatedHours >= 1 ? 
-        `${Math.ceil(estimatedHours)} hours` : 
-        `${Math.ceil(estimatedHours * 60)} minutes`;
-
-    // Top 3 immediate actions
-    const actions = [];
-
-    // ES3 violations with specific fixes
-    if (analysis.es3_compliance.violations && analysis.es3_compliance.violations.length > 0) {
-        const destructuringViolations = analysis.es3_compliance.violations.filter(v => v.type === 'destructuring');
-        const spreadViolations = analysis.es3_compliance.violations.filter(v => v.type === 'spread_operator');
-        const keywordViolations = analysis.es3_compliance.violations.filter(v => v.type === 'forbidden_keyword');
-
-        if (destructuringViolations.length > 0) {
-            const locations = destructuringViolations.flatMap(v => v.locations || []).slice(0, 3);
-            actions.push(`Fix destructuring in lines ${locations.join(', ')} (use explicit assignment)`);
-        }
-
-        if (keywordViolations.length > 0) {
-            const locations = keywordViolations.flatMap(v => v.locations || []).slice(0, 3);
-            actions.push(`Replace forbidden keywords in lines ${locations.join(', ')} (rename 'export' to 'exportSettings')`);
-        }
-
-        if (spreadViolations.length > 0) {
-            const locations = spreadViolations.flatMap(v => v.locations || []).slice(0, 3);
-            actions.push(`Fix spread operators in lines ${locations.join(', ')} (use arrayConcat())`);
-        }
+    // Production readiness assessment
+    if (blockingIssueCount === 0 && analysis.health_score.total_score >= 800) {
+        summary.production_readiness = 'READY';
+        summary.deployment_recommendation = 'Safe to deploy - no blocking issues detected';
+    } else if (blockingIssueCount > 0) {
+        summary.production_readiness = 'BLOCKED';
+        summary.deployment_recommendation = `BLOCKED: ${blockingIssueCount} critical issues must be fixed before deployment`;
+    } else {
+        summary.production_readiness = 'CAUTION';
+        summary.deployment_recommendation = 'Deployment possible but quality improvements recommended';
     }
-
-    // Registration issues
-    if (analysis.registration_compliance.functionsNotRegistered?.length > 0) {
-        const missing = analysis.registration_compliance.functionsNotRegistered.slice(0, 3);
-        actions.push(`Register missing functions: ${missing.join(', ')}`);
-    }
-
-    if (analysis.registration_compliance.registeredButNotFound?.length > 0) {
-        const extra = analysis.registration_compliance.registeredButNotFound.slice(0, 3);
-        actions.push(`Remove non-existent functions from registration: ${extra.join(', ')}`);
-    }
-
-    // Performance issues
-    if (analysis.function_architecture.oversizedFunctions?.length > 0) {
-        const oversized = analysis.function_architecture.oversizedFunctions
-            .filter(f => f.severity === 'critical')
-            .slice(0, 2);
-        if (oversized.length > 0) {
-            actions.push(`Refactor oversized functions: ${oversized.map(f => f.name).join(', ')}`);
-        }
-    }
-
-    summary.top_3_actions = actions.slice(0, 3);
 
     return summary;
 };
 
 /**
- * Classify violation severity based on actual impact
- * @param {string} category - Violation category
- * @param {string} type - Violation type
- * @param {Object} violation - Violation details
- * @returns {string} Severity level: 'critical', 'high', 'medium', 'low'
- */
-const classifyViolationSeverity = (category, type, violation = {}) => {
-    // CRITICAL: Blocks production - will crash or prevent execution
-    const criticalPatterns = {
-        es3_compliance: ['destructuring', 'spread_operator', 'forbidden_keyword', 'arrow_function', 'template_literal'],
-        reserved_word_safety: ['export', 'import', 'class', 'const', 'let'],
-        registration_compliance: ['functions_not_registered', 'registered_but_not_found'],
-        security: ['eval_usage', 'script_injection']
-    };
-
-    // HIGH: Causes bugs or runtime errors
-    const highPatterns = {
-        function_architecture: ['missing_error_handling_critical'],
-        internal_dependencies: ['circular_reference', 'undefined_function_call'],
-        cross_module: ['function_name_collision', 'duplicate_registration']
-    };
-
-    // MEDIUM: Technical debt, impacts maintenance
-    const mediumPatterns = {
-        function_architecture: ['oversized_function', 'poor_error_handling'],
-        logging_compliance: ['poor_logging_modernization', 'no_logging'],
-        code_organization: ['no_section_headers', 'inconsistent_style'],
-        performance: ['nested_loops', 'string_concat_in_loop']
-    };
-
-    // LOW: Nice to have, doesn't affect functionality
-    const lowPatterns = {
-        code_organization: ['missing_comments', 'inconsistent_indentation'],
-        module_metadata: ['missing_purpose', 'missing_size_comment'],
-        internal_dependencies: ['forward_reference']
-    };
-
-    // Check critical patterns
-    if (criticalPatterns[category] && criticalPatterns[category].includes(type)) {
-        return 'critical';
-    }
-
-    // Special cases for severity escalation
-    if (category === 'function_architecture' && type === 'oversized_function') {
-        if (violation.severity === 'critical' || (violation.lines && violation.lines > 200)) {
-            return 'high';
-        }
-        return 'medium';
-    }
-
-    if (category === 'registration_compliance' && violation.accuracy_percentage !== undefined) {
-        if (violation.accuracy_percentage < 80) {
-            return 'critical';
-        } else if (violation.accuracy_percentage < 95) {
-            return 'high';
-        }
-        return 'medium';
-    }
-
-    // Check high patterns
-    if (highPatterns[category] && highPatterns[category].includes(type)) {
-        return 'high';
-    }
-
-    // Check medium patterns
-    if (mediumPatterns[category] && mediumPatterns[category].includes(type)) {
-        return 'medium';
-    }
-
-    // Check low patterns or default
-    if (lowPatterns[category] && lowPatterns[category].includes(type)) {
-        return 'low';
-    }
-
-    // Default based on category importance
-    const categoryImportance = {
-        es3_compliance: 'critical',
-        reserved_word_safety: 'critical', 
-        registration_compliance: 'high',
-        function_architecture: 'medium',
-        logging_compliance: 'medium',
-        security_patterns: 'high',
-        performance_indicators: 'medium',
-        code_organization: 'low',
-        module_metadata: 'low'
-    };
-
-    return categoryImportance[category] || 'medium';
-};
-
-/**
- * Create module summary section
+ * ENHANCED - Create module summary section
  * @param {Object} analysis - Module analysis
  * @returns {Object} Module summary
  */
@@ -329,9 +325,14 @@ const createModuleSummary = (analysis) => {
             health_percentage: health.percentage
         },
 
+        // ENHANCED - Compliance status with confidence indicators
         compliance_status: {
             es3_compliant: analysis.es3_compliance.compliant,
+            es3_violations_high_confidence: (analysis.es3_compliance.violations || [])
+                .filter(v => (v.confidence || 0) >= CONFIDENCE_LEVELS.HIGH).length,
             reserved_word_safe: analysis.reserved_word_safety.safe,
+            reserved_word_violations_high_confidence: (analysis.reserved_word_safety.violations || [])
+                .filter(v => (v.confidence || 0) >= CONFIDENCE_LEVELS.HIGH).length,
             registration_accurate: analysis.registration_compliance.isCompliant,
             registration_accuracy_percentage: analysis.registration_compliance.accuracyPercentage
         },
@@ -412,6 +413,8 @@ const createCodeQualityAssessment = (analysis) => {
         es3_compliance: {
             compliant: analysis.es3_compliance.compliant,
             violations_count: analysis.es3_compliance.violations?.length || 0,
+            high_confidence_violations: (analysis.es3_compliance.violations || [])
+                .filter(v => (v.confidence || 0) >= CONFIDENCE_LEVELS.HIGH).length,
             total_penalty: analysis.es3_compliance.totalPenalty,
             critical_violations_count: analysis.es3_compliance.criticalViolations?.length || 0
         },
@@ -419,6 +422,8 @@ const createCodeQualityAssessment = (analysis) => {
         reserved_word_safety: {
             safe: analysis.reserved_word_safety.safe,
             violations_count: analysis.reserved_word_safety.violations?.length || 0,
+            high_confidence_violations: (analysis.reserved_word_safety.violations || [])
+                .filter(v => (v.confidence || 0) >= CONFIDENCE_LEVELS.HIGH).length,
             total_penalty: analysis.reserved_word_safety.totalPenalty,
             critical_violations_count: analysis.reserved_word_safety.criticalViolations?.length || 0
         },
@@ -454,294 +459,211 @@ const createCodeQualityAssessment = (analysis) => {
 };
 
 /**
- * Create issues and violations section with always-on code samples and impact-based severity
- * @param {Object} analysis - Module analysis
- * @param {Object} options - Report options (ignored - code samples now always included)
- * @returns {Object} Issues and violations
+ * CRITICAL - Create issues section with confidence-based filtering
+ * ONLY REPORTS HIGH-CONFIDENCE, REAL ISSUES
+ * @param {Object} analysis - Module analysis (already filtered)
+ * @param {Object} options - Report options
+ * @returns {Object} Issues and violations with confidence scores
  */
-const createIssuesSection = (analysis, options = {}) => {
+const createConfidenceBasedIssuesSection = (analysis, options = {}) => {
     const issues = {
         critical_issues: [],
         high_priority_issues: [],
         medium_priority_issues: [],
-        warnings: []
+        warnings: [],
+        
+        // NEW - Confidence summary
+        confidence_summary: {
+            total_high_confidence_issues: 0,
+            total_medium_confidence_issues: 0,
+            issues_requiring_manual_review: 0
+        }
     };
 
-    // ES3 compliance violations - ALWAYS INCLUDE CODE SAMPLES
-    if (analysis.es3_compliance.violations && analysis.es3_compliance.violations.length > 0) {
+    let highConfidenceCount = 0;
+    let mediumConfidenceCount = 0;
+
+    // CRITICAL - ES3 compliance violations (only high confidence)
+    if (analysis.es3_compliance.violations) {
         analysis.es3_compliance.violations.forEach(violation => {
-            const severity = classifyViolationSeverity('es3_compliance', violation.type, violation);
+            const confidence = violation.confidence || 0;
+            const confidenceLevel = violation.confidence_level || getConfidenceLevel(confidence);
             
-            const issue = {
-                category: 'es3_compliance',
-                type: violation.type,
-                description: violation.description || `ES3 violation: ${violation.type}`,
-                locations: violation.locations || [],
-                penalty: violation.penalty,
-                severity: severity,
-                impact: getImpactDescription('es3_compliance', violation.type),
-                fix_suggestion: getFixSuggestion('es3_compliance', violation.type),
-                // ALWAYS include code samples now
-                code_examples: generateCodeExamples(violation)
-            };
+            if (confidence >= CONFIDENCE_LEVELS.HIGH) {
+                highConfidenceCount++;
+                
+                const issue = {
+                    category: 'es3_compliance',
+                    type: violation.type,
+                    description: violation.description,
+                    line: violation.line,
+                    column: violation.column,
+                    confidence: confidence,
+                    confidence_level: confidenceLevel,
+                    severity: 'CRITICAL',
+                    code_sample: violation.code_sample || violation.match_text,
+                    fix_suggestion: violation.fix_suggestion,
+                    impact: 'Will crash in ExtendScript environment',
+                    estimated_fix_time: estimateFixTime(violation.type, 'CRITICAL')
+                };
 
-            // Classify by severity
-            switch (severity) {
-                case 'critical':
-                    issues.critical_issues.push(issue);
-                    break;
-                case 'high':
-                    issues.high_priority_issues.push(issue);
-                    break;
-                case 'medium':
-                    issues.medium_priority_issues.push(issue);
-                    break;
-                default:
-                    issues.warnings.push(issue);
+                issues.critical_issues.push(issue);
+            } else if (confidence >= CONFIDENCE_LEVELS.MEDIUM) {
+                mediumConfidenceCount++;
+                issues.warnings.push({
+                    category: 'es3_compliance',
+                    type: violation.type,
+                    description: `Possible ${violation.type} (requires manual review)`,
+                    confidence_level: confidenceLevel,
+                    severity: 'REVIEW_REQUIRED',
+                    manual_review_needed: true
+                });
             }
         });
     }
 
-    // Reserved word safety violations
-    if (analysis.reserved_word_safety.violations && analysis.reserved_word_safety.violations.length > 0) {
+    // CRITICAL - Reserved word safety violations (only high confidence)
+    if (analysis.reserved_word_safety.violations) {
         analysis.reserved_word_safety.violations.forEach(violation => {
-            const severity = classifyViolationSeverity('reserved_word_safety', violation.type, violation);
+            const confidence = violation.confidence || 0;
+            const confidenceLevel = violation.confidence_level || getConfidenceLevel(confidence);
             
-            const issue = {
-                category: 'reserved_word_safety',
-                type: violation.type,
-                word: violation.word,
-                description: `Dangerous property usage: '${violation.word}'`,
-                locations: violation.locations || [],
-                penalty: violation.penalty,
-                severity: severity,
-                impact: `Property '${violation.word}' may crash in ExtendScript environment`,
-                fix_suggestion: `Rename property '${violation.word}' to avoid conflicts (e.g., '${violation.word}Settings')`,
-                code_examples: generateCodeExamples(violation)
-            };
+            if (confidence >= CONFIDENCE_LEVELS.HIGH) {
+                highConfidenceCount++;
+                
+                const issue = {
+                    category: 'reserved_word_safety',
+                    type: violation.type,
+                    word: violation.word,
+                    description: violation.description,
+                    line: violation.line,
+                    confidence: confidence,
+                    confidence_level: confidenceLevel,
+                    severity: violation.critical ? 'CRITICAL' : 'HIGH',
+                    code_sample: violation.code_sample || violation.match_text,
+                    fix_suggestion: violation.fix_suggestion,
+                    impact: violation.critical ? 'Will crash in ExtendScript' : 'May cause conflicts',
+                    estimated_fix_time: estimateFixTime(violation.type, violation.critical ? 'CRITICAL' : 'HIGH')
+                };
 
-            switch (severity) {
-                case 'critical':
+                if (violation.critical) {
                     issues.critical_issues.push(issue);
-                    break;
-                case 'high':
+                } else {
                     issues.high_priority_issues.push(issue);
-                    break;
-                default:
-                    issues.medium_priority_issues.push(issue);
+                }
             }
         });
     }
 
-    // Registration compliance issues
+    // Registration compliance issues (always high confidence)
     const registration = analysis.registration_compliance;
-    if (registration.functionsNotRegistered && registration.functionsNotRegistered.length > 0) {
-        const severity = classifyViolationSeverity('registration_compliance', 'functions_not_registered', {
-            accuracy_percentage: registration.accuracyPercentage
-        });
-
-        const targetArray = severity === 'critical' ? issues.critical_issues : 
-                           severity === 'high' ? issues.high_priority_issues : 
-                           issues.medium_priority_issues;
-
-        targetArray.push({
-            category: 'registration_compliance',
-            type: 'functions_not_registered',
-            description: 'Functions exist in code but not registered',
-            affected_functions: registration.functionsNotRegistered,
-            severity: severity,
-            impact: 'Functions will not be available at runtime - module initialization will fail',
-            fix_suggestion: 'Add missing functions to registerModule() call',
-            accuracy_percentage: registration.accuracyPercentage
-        });
-    }
-
-    if (registration.registeredButNotFound && registration.registeredButNotFound.length > 0) {
-        const severity = classifyViolationSeverity('registration_compliance', 'registered_but_not_found', {
-            accuracy_percentage: registration.accuracyPercentage
-        });
-
-        const targetArray = severity === 'critical' ? issues.critical_issues : 
-                           severity === 'high' ? issues.high_priority_issues : 
-                           issues.medium_priority_issues;
-
-        targetArray.push({
-            category: 'registration_compliance',
-            type: 'registered_but_not_found',
-            description: 'Functions registered but not found in code',
-            affected_functions: registration.registeredButNotFound,
-            severity: severity,
-            impact: 'Runtime errors when trying to call non-existent functions',
-            fix_suggestion: 'Remove non-existent functions from registerModule() call',
-            accuracy_percentage: registration.accuracyPercentage
-        });
-    }
-
-    // Logging compliance issues
-    if (analysis.logging_compliance.compliance === 'poor') {
-        const severity = classifyViolationSeverity('logging_compliance', 'poor_logging_modernization');
-        
-        const targetArray = severity === 'medium' ? issues.medium_priority_issues : issues.warnings;
-        targetArray.push({
-            category: 'logging_compliance',
-            type: 'poor_logging_modernization',
-            description: `Low modern logging adoption: ${analysis.logging_compliance.modernPercentage}%`,
-            severity: severity,
-            impact: 'Difficult debugging and maintenance',
-            fix_suggestion: 'Replace $.writeln() calls with modern logging functions (logDebug, logInfo, etc.)',
-            modern_percentage: analysis.logging_compliance.modernPercentage
-        });
-    }
-
-    // Function architecture issues
-    if (analysis.function_architecture.oversizedFunctions && analysis.function_architecture.oversizedFunctions.length > 0) {
-        analysis.function_architecture.oversizedFunctions.forEach(func => {
-            const severity = classifyViolationSeverity('function_architecture', 'oversized_function', func);
-            
-            const issue = {
-                category: 'function_architecture',
-                type: 'oversized_function',
-                function_name: func.name,
-                line_count: func.lines,
-                severity: severity,
-                description: `Function '${func.name}' is ${severity} (${func.lines} lines)`,
-                impact: func.lines > 200 ? 'Very difficult to maintain and debug' : 'Harder to maintain and test',
-                fix_suggestion: func.lines > 200 ? 
-                    'Critical: Break into smaller functions immediately' : 
-                    'Consider refactoring to reduce function length'
-            };
-
-            switch (severity) {
-                case 'high':
-                    issues.high_priority_issues.push(issue);
-                    break;
-                case 'medium':
-                    issues.medium_priority_issues.push(issue);
-                    break;
-                default:
-                    issues.warnings.push(issue);
-            }
-        });
-    }
-
-    // Performance issues
-    if (analysis.performance_indicators && analysis.performance_indicators.potential_issues) {
-        analysis.performance_indicators.potential_issues.forEach(perfIssue => {
-            const severity = classifyViolationSeverity('performance', perfIssue.type);
-            
-            const issue = {
-                category: 'performance',
-                type: perfIssue.type,
-                count: perfIssue.count || 1,
-                description: perfIssue.description,
-                severity: severity,
-                impact: getPerformanceImpact(perfIssue.type),
-                fix_suggestion: getPerformanceFix(perfIssue.type)
-            };
-
-            switch (severity) {
-                case 'high':
-                    issues.high_priority_issues.push(issue);
-                    break;
-                case 'medium':
-                    issues.medium_priority_issues.push(issue);
-                    break;
-                default:
-                    issues.warnings.push(issue);
-            }
-        });
-    }
-
-    // Internal dependency warnings
-    if (analysis.internal_dependencies && analysis.internal_dependencies.forwardReferences) {
-        analysis.internal_dependencies.forwardReferences.forEach(ref => {
-            issues.warnings.push({
-                category: 'internal_dependencies',
-                type: 'forward_reference',
-                caller: ref.caller,
-                called: ref.called,
-                description: `Function calls another function defined later in file`,
-                severity: 'low',
-                impact: 'Potential execution order issues',
-                fix_suggestion: 'Consider reordering functions to avoid forward references'
+    if (!registration.isCompliant) {
+        if (registration.functionsNotRegistered && registration.functionsNotRegistered.length > 0) {
+            highConfidenceCount++;
+            issues.critical_issues.push({
+                category: 'registration_compliance',
+                type: 'functions_not_registered',
+                description: `${registration.functionsNotRegistered.length} functions not registered`,
+                affected_functions: registration.functionsNotRegistered,
+                confidence: CONFIDENCE_LEVELS.CERTAIN,
+                confidence_level: 'CERTAIN',
+                severity: 'CRITICAL',
+                impact: 'Functions will not be available at runtime',
+                fix_suggestion: `Add to registerModule(): ['${registration.functionsNotRegistered.join("', '")}']`,
+                estimated_fix_time: '5 minutes'
             });
+        }
+
+        if (registration.registeredButNotFound && registration.registeredButNotFound.length > 0) {
+            highConfidenceCount++;
+            issues.high_priority_issues.push({
+                category: 'registration_compliance',
+                type: 'registered_but_not_found',
+                description: `${registration.registeredButNotFound.length} non-existent functions registered`,
+                affected_functions: registration.registeredButNotFound,
+                confidence: CONFIDENCE_LEVELS.CERTAIN,
+                confidence_level: 'CERTAIN',
+                severity: 'HIGH',
+                impact: 'Runtime errors when trying to call non-existent functions',
+                fix_suggestion: `Remove from registerModule(): ['${registration.registeredButNotFound.join("', '")}']`,
+                estimated_fix_time: '3 minutes'
+            });
+        }
+    }
+
+    // Performance and security issues (filtered by confidence)
+    if (analysis.security_patterns?.security_issues) {
+        analysis.security_patterns.security_issues.forEach(secIssue => {
+            const confidence = secIssue.confidence || CONFIDENCE_LEVELS.HIGH;
+            
+            if (confidence >= CONFIDENCE_LEVELS.HIGH) {
+                highConfidenceCount++;
+                issues.critical_issues.push({
+                    category: 'security',
+                    type: secIssue.type,
+                    description: secIssue.description,
+                    confidence: confidence,
+                    confidence_level: getConfidenceLevel(confidence),
+                    severity: secIssue.severity,
+                    impact: 'Security vulnerability',
+                    fix_suggestion: `Remove or replace ${secIssue.type}`,
+                    estimated_fix_time: estimateFixTime(secIssue.type, secIssue.severity)
+                });
+            }
         });
     }
+
+    // Update confidence summary
+    issues.confidence_summary.total_high_confidence_issues = highConfidenceCount;
+    issues.confidence_summary.total_medium_confidence_issues = mediumConfidenceCount;
+    issues.confidence_summary.issues_requiring_manual_review = mediumConfidenceCount;
 
     return issues;
 };
 
-// Helper functions for the enhanced issues section
-function generateCodeExamples(violation) {
-    if (!violation.locations || violation.locations.length === 0) {
-        return [];
-    }
+/**
+ * Get confidence level description
+ * @param {number} confidence - Confidence score
+ * @returns {string} Confidence level name
+ */
+const getConfidenceLevel = (confidence) => {
+    if (confidence >= CONFIDENCE_LEVELS.CERTAIN) return 'CERTAIN';
+    if (confidence >= CONFIDENCE_LEVELS.HIGH) return 'HIGH';
+    if (confidence >= CONFIDENCE_LEVELS.MEDIUM) return 'MEDIUM';
+    if (confidence >= CONFIDENCE_LEVELS.LOW) return 'LOW';
+    return 'UNCERTAIN';
+};
 
-    return violation.locations.slice(0, 3).map(lineNum => ({
-        line_number: lineNum,
-        code_sample: `Line ${lineNum}: [Code sample would be extracted from source file]`,
-        suggested_fix: getSpecificFix(violation.type, lineNum)
-    }));
-}
-
-function getImpactDescription(category, type) {
-    const impacts = {
-        es3_compliance: {
-            destructuring: 'Will crash in ExtendScript environment',
-            spread_operator: 'Will crash in ExtendScript environment', 
-            forbidden_keyword: 'Will crash in ExtendScript environment',
-            arrow_function: 'Will crash in ExtendScript environment',
-            template_literal: 'Will crash in ExtendScript environment'
-        },
-        reserved_word_safety: {
-            default: 'May crash in ExtendScript environment'
-        }
+/**
+ * Estimate fix time based on violation type and severity
+ * @param {string} violationType - Type of violation
+ * @param {string} severity - Severity level
+ * @returns {string} Estimated fix time
+ */
+const estimateFixTime = (violationType, severity) => {
+    const fixTimes = {
+        // ES3 compliance fixes
+        'destructuring': '10 minutes',
+        'arrow_function': '5 minutes',
+        'template_literal': '8 minutes',
+        'const_declaration': '2 minutes',
+        'let_declaration': '2 minutes',
+        
+        // Reserved word fixes
+        'dangerous_property_usage': '5 minutes',
+        
+        // Security fixes
+        'eval_usage': '15 minutes',
+        'function_constructor': '10 minutes',
+        
+        // Default estimates by severity
+        'CRITICAL': '15 minutes',
+        'HIGH': '10 minutes',
+        'MEDIUM': '5 minutes'
     };
-
-    return impacts[category]?.[type] || impacts[category]?.default || 'Potential runtime issues';
-}
-
-function getFixSuggestion(category, type) {
-    const fixes = {
-        es3_compliance: {
-            destructuring: 'Replace with explicit assignment: var x = obj.x; var y = obj.y;',
-            spread_operator: 'Replace with arrayConcat() or explicit operations',
-            forbidden_keyword: 'Replace forbidden keywords (export → exportSettings)',
-            arrow_function: 'Replace with function expressions',
-            template_literal: 'Replace with string concatenation'
-        }
-    };
-
-    return fixes[category]?.[type] || 'Review ES3 compatibility requirements';
-}
-
-function getSpecificFix(violationType, lineNumber) {
-    const fixes = {
-        destructuring: `var x = obj.x; var y = obj.y; // Replace destructuring`,
-        spread_operator: `arrayConcat(arr1, arr2) // Replace spread operator`,
-        forbidden_keyword: `exportSettings // Replace 'export' keyword`
-    };
-
-    return fixes[violationType] || 'Apply ES3-compatible fix';
-}
-
-function getPerformanceImpact(type) {
-    const impacts = {
-        nested_loops: 'Exponential time complexity - slow with large data sets',
-        string_concat_in_loop: 'Memory allocation on every iteration - 10x slower'
-    };
-
-    return impacts[type] || 'Potential performance degradation';
-}
-
-function getPerformanceFix(type) {
-    const fixes = {
-        nested_loops: 'Use Map/Object for O(1) lookups instead of nested iteration',
-        string_concat_in_loop: 'Use arrayJoin() pattern or createStringBuilder()'
-    };
-
-    return fixes[type] || 'Review performance impact and consider optimization';
-}
+    
+    return fixTimes[violationType] || fixTimes[severity] || '10 minutes';
+};
 
 /**
  * Create health score breakdown section
@@ -765,113 +687,114 @@ const createHealthScoreBreakdown = (analysis) => {
             net_adjustments: (health.bonuses || 0) - (health.penalties || 0)
         },
 
-        penalty_breakdown: health.penalty_breakdown || {},
-        bonus_breakdown: health.bonus_breakdown || {},
+        // ENHANCED - Confidence-based penalty breakdown
+        violation_analysis: {
+            total_violations: health.violations_count || 0,
+            high_confidence_violations: health.high_confidence_violations || 0,
+            critical_penalties_applied: Math.round((health.penalties || 0) * 0.6), // Estimate
+            confidence_adjustments_made: health.violations_count > health.high_confidence_violations
+        },
 
-        grade_explanation: getGradeExplanation(health.grade)
+        grade_explanation: getGradeExplanation(health.grade, health.total_score)
     };
 };
 
 /**
- * Get explanation for health grade
+ * Get explanation for health grade with specific score context
  * @param {string} grade - Health grade
+ * @param {number} score - Actual score
  * @returns {string} Grade explanation
  */
-const getGradeExplanation = (grade) => {
+const getGradeExplanation = (grade, score) => {
     const explanations = {
-        'A+': 'Exemplary - exceeds all standards',
-        'A': 'Excellent - minor improvements possible',
-        'B+': 'Good - some issues to address',
-        'B': 'Acceptable - notable improvements needed',
-        'C+': 'Below standard - requires attention',
-        'C': 'Poor - needs refactoring',
-        'D': 'Critical issues present',
-        'F': 'Unacceptable - major problems that must be fixed'
+        'A+': `Exemplary module (${score}/1000) - ready for production deployment`,
+        'A': `Excellent module (${score}/1000) - minor improvements possible`,
+        'B+': `Good module (${score}/1000) - some issues to address before deployment`,
+        'B': `Acceptable module (${score}/1000) - notable improvements needed`,
+        'C+': `Below standard (${score}/1000) - requires attention before production use`,
+        'C': `Poor quality (${score}/1000) - needs refactoring`,
+        'D': `Critical issues present (${score}/1000) - deployment not recommended`,
+        'F': `Unacceptable quality (${score}/1000) - major problems must be fixed`
     };
 
-    return explanations[grade] || 'Unknown grade';
+    return explanations[grade] || `Grade ${grade} (${score}/1000)`;
 };
 
 /**
- * Create recommendations section
+ * ENHANCED - Create actionable recommendations
  * @param {Object} analysis - Module analysis
- * @returns {Array} Recommendations
+ * @returns {Array} Recommendations prioritized by impact
  */
-const createRecommendations = (analysis) => {
+const createActionableRecommendations = (analysis) => {
     const recommendations = [];
 
-    // Critical priority recommendations
-    if (!analysis.es3_compliance.compliant) {
+    // CRITICAL - ES3 compliance (if any high-confidence violations remain)
+    const highConfidenceES3 = (analysis.es3_compliance.violations || [])
+        .filter(v => (v.confidence || 0) >= CONFIDENCE_LEVELS.HIGH);
+    
+    if (highConfidenceES3.length > 0) {
         recommendations.push({
-            priority: 'critical',
+            priority: 'CRITICAL',
             category: 'es3_compliance',
-            title: 'Fix ES3 Compatibility Issues',
-            description: `${analysis.es3_compliance.violations?.length || 0} critical ES3 violations found`,
-            action: 'Review and fix all ES3 compatibility violations to ensure ExtendScript compatibility',
-            estimated_effort: 'medium'
+            title: 'Fix ES3 compatibility violations',
+            description: `${highConfidenceES3.length} confirmed ES3 violations will crash ExtendScript`,
+            action: 'Review and fix all ES3 compatibility violations immediately',
+            estimated_effort: 'medium',
+            estimated_time: `${highConfidenceES3.length * 10} minutes`,
+            deployment_blocker: true,
+            specific_fixes: highConfidenceES3.map(v => v.fix_suggestion).filter(f => f)
         });
     }
 
-    // High priority recommendations
-    if (analysis.registration_compliance.accuracyPercentage < 100) {
+    // HIGH - Registration accuracy
+    if (!analysis.registration_compliance.isCompliant) {
         recommendations.push({
-            priority: 'high',
+            priority: 'HIGH',
             category: 'registration_compliance',
-            title: 'Improve Function Registration Accuracy',
+            title: 'Fix function registration mismatches',
             description: `Registration accuracy: ${analysis.registration_compliance.accuracyPercentage}%`,
             action: 'Update registerModule() call to match actual function exports',
-            estimated_effort: 'low'
+            estimated_effort: 'low',
+            estimated_time: '5 minutes',
+            specific_fixes: [
+                analysis.registration_compliance.functionsNotRegistered?.length > 0 
+                    ? `Add: ${analysis.registration_compliance.functionsNotRegistered.slice(0, 3).join(', ')}`
+                    : null,
+                analysis.registration_compliance.registeredButNotFound?.length > 0
+                    ? `Remove: ${analysis.registration_compliance.registeredButNotFound.slice(0, 3).join(', ')}`
+                    : null
+            ].filter(f => f)
         });
     }
 
-    if (analysis.function_architecture.errorHandlingCoverage < 70) {
-        recommendations.push({
-            priority: 'high',
-            category: 'error_handling',
-            title: 'Improve Error Handling Coverage',
-            description: `Only ${analysis.function_architecture.errorHandlingCoverage}% of functions have error handling`,
-            action: 'Add try-catch blocks to critical functions',
-            estimated_effort: 'medium'
-        });
-    }
-
-    // Medium priority recommendations
-    if (analysis.logging_compliance.modernPercentage < 80) {
-        recommendations.push({
-            priority: 'medium',
-            category: 'logging_modernization',
-            title: 'Modernize Logging Calls',
-            description: `${analysis.logging_compliance.modernPercentage}% modern logging adoption`,
-            action: 'Replace $.writeln() calls with modern logging functions',
-            estimated_effort: 'low'
-        });
-    }
-
-    if (analysis.function_architecture.loggingCoverage < 50) {
-        recommendations.push({
-            priority: 'medium',
-            category: 'logging_coverage',
-            title: 'Improve Logging Coverage',
-            description: `Only ${analysis.function_architecture.loggingCoverage}% of functions have logging`,
-            action: 'Add logging to important functions for better debugging',
-            estimated_effort: 'medium'
-        });
-    }
-
-    // Performance recommendations
-    if (analysis.function_architecture.oversizedFunctions && analysis.function_architecture.oversizedFunctions.length > 0) {
-        const criticalCount = analysis.function_architecture.oversizedFunctions.filter(f => f.severity === 'critical').length;
+    // MEDIUM - Performance improvements
+    if (analysis.function_architecture.oversizedFunctions?.length > 0) {
+        const criticalOversized = analysis.function_architecture.oversizedFunctions
+            .filter(f => f.severity === 'critical');
         
-        if (criticalCount > 0) {
+        if (criticalOversized.length > 0) {
             recommendations.push({
-                priority: 'high',
+                priority: 'MEDIUM',
                 category: 'function_architecture',
-                title: 'Refactor Oversized Functions',
-                description: `${criticalCount} critically oversized functions found`,
-                action: 'Break down large functions into smaller, more manageable pieces',
-                estimated_effort: 'high'
+                title: 'Refactor oversized functions',
+                description: `${criticalOversized.length} functions exceed size guidelines`,
+                action: 'Break down large functions into smaller, manageable pieces',
+                estimated_effort: 'high',
+                affected_functions: criticalOversized.map(f => f.name)
             });
         }
+    }
+
+    // LOW - Code organization
+    if ((analysis.code_organization?.organization_score || 0) < 60) {
+        recommendations.push({
+            priority: 'LOW',
+            category: 'code_organization',
+            title: 'Improve code organization',
+            description: 'Code organization could be improved with better structure',
+            action: 'Add section headers and improve code grouping',
+            estimated_effort: 'low'
+        });
     }
 
     return recommendations;
