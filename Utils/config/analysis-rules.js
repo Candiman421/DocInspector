@@ -1,6 +1,6 @@
 // config/analysis-rules.js
-// ANALYSIS RULES CONFIGURATION - FIXED VERSION
-// ZERO FALSE POSITIVE TOLERANCE - EVIDENCE-BASED DETECTION
+// ANALYSIS RULES CONFIGURATION - COMPLETE PHASE 1 IMPLEMENTATION
+// ZERO FALSE POSITIVE TOLERANCE - EVIDENCE-BASED DETECTION WITH ALL EXPORTS
 // ============================================================================
 
 /**
@@ -171,9 +171,41 @@ export const ES3_RULES = {
         }
     ],
 
+    // Legacy compatibility - kept for backward compatibility
+    forbidden_keywords: [
+        'const', 'let', 'class', 'import', 'export', 'async', 'await',
+        'yield', 'static', 'extends', 'super'
+    ],
+
+    forbidden_patterns: [
+        {
+            pattern: /=>\s*[{(]/g,
+            name: 'arrow_function',
+            description: 'Arrow functions not supported in ES3'
+        },
+        {
+            pattern: /`[^`]*`/g,
+            name: 'template_literal',
+            description: 'Template literals not supported in ES3'
+        },
+        {
+            pattern: /\.\.\./g,
+            name: 'spread_operator',
+            description: 'Spread operator not supported in ES3'
+        },
+        {
+            pattern: /\[[^\]]*\]\s*=/g,
+            name: 'destructuring',
+            description: 'Destructuring assignment not supported in ES3'
+        }
+    ],
+
     // Penalty weights with confidence adjustment
+    penalty_per_violation: 100,
     base_penalty: 100,
     critical_multiplier: 3,
+    critical: true,
+    
     confidence_adjustment: function(penalty, confidence) {
         // Reduce penalty for low confidence detections
         if (confidence < CONFIDENCE_LEVELS.LOW) {
@@ -198,6 +230,12 @@ export const RESERVED_WORD_SAFETY = {
         'class',     // Reserved and crashes
         'const',     // Crashes in property context
         'let'        // Crashes in property context
+    ],
+
+    // Other dangerous reserved words (legacy compatibility)
+    dangerous_property_names: [
+        'export', 'import', 'class', 'const', 'let', 'static',
+        'extends', 'super', 'yield', 'async', 'await'
     ],
 
     // Property usage patterns with context verification
@@ -225,11 +263,18 @@ export const RESERVED_WORD_SAFETY = {
                 // This is definitely property access
                 return true;
             }
-        }
+        },
+        // Legacy patterns for backward compatibility
+        /\b\w+\.({word})\b/,           // obj.export
+        /\[['"]({word})['"]\]/,        // obj['export']
+        /\{['"]?({word})['"]?\s*:/,    // {export: value}
+        /({word})\s*:/                 // export: value
     ],
 
+    penalty_per_violation: 150,
     base_penalty: 150,
     critical_multiplier: 2,
+    critical: true,
 
     confidence_adjustment: function(penalty, confidence) {
         return ES3_RULES.confidence_adjustment(penalty, confidence);
@@ -241,9 +286,13 @@ export const RESERVED_WORD_SAFETY = {
  */
 export const DEPENDENCY_RULES = {
     // Load order validation - must be sequential (1.1 → 1.2 → 2.1)
+    load_order_violations: 20,
     load_order_violation_penalty: 200,    // CRITICAL - will break at runtime
+    circular_dependencies: 200,
     circular_dependency_penalty: 300,     // CRITICAL - impossible to resolve
+    missing_validations: 30,
     missing_dependency_penalty: 250,      // CRITICAL - will crash
+    undeclared_dependencies: 25,
     reverse_dependency_penalty: 400,      // CRITICAL - like 1.15→1.1 example
     
     // Version order enforcement
@@ -267,15 +316,11 @@ export const LOGGING_RULES = {
     target_modern_percentage: 80,  // More realistic target
 
     modern_patterns: [
-        /\blogDebug\s*\(/g,
-        /\blogInfo\s*\(/g, 
-        /\blogWarn\s*\(/g,
-        /\blogError\s*\(/g,
-        /\blogMessage\s*\(/g
+        'logDebug(', 'logInfo(', 'logWarn(', 'logError(', 'logMessage('
     ],
 
     legacy_patterns: [
-        /\$\.writeln\s*\(/g
+        '$.writeln('
     ],
 
     // Valid categories from actual DocDom usage
@@ -291,6 +336,187 @@ export const LOGGING_RULES = {
     confidence_adjustment: function(penalty, confidence) {
         return ES3_RULES.confidence_adjustment(penalty, confidence);
     }
+};
+
+/**
+ * MEMORY RULES - Function size and cleanup patterns
+ */
+export const MEMORY_RULES = {
+    function_length_warning: 100,
+    function_length_critical: 200,
+    penalty_per_line_over_warning: 1,
+    penalty_per_line_over_critical: 5,
+    cleanup_bonus: 20,
+
+    cleanup_patterns: [
+        'memoryCleanup', '= null', 'delete ', 'cleanup'
+    ]
+};
+
+/**
+ * FUNCTION ARCHITECTURE RULES - Error handling and structure
+ */
+export const FUNCTION_ARCHITECTURE = {
+    registration_mismatch_penalty: 15,
+    nesting_depth_warning: 3,
+    nesting_depth_penalty: 2,
+    try_catch_bonus: 5,
+    error_logging_bonus: 10,
+
+    error_handling_patterns: [
+        'try {', 'catch (', 'finally {'
+    ],
+
+    logging_in_catch_patterns: [
+        'logError(', 'logWarn(', '$.writeln('
+    ]
+};
+
+/**
+ * API SAFETY RULES - Dangerous property access
+ */
+export const API_SAFETY = {
+    dangerous_access_penalty: 50,
+    validation_bonus: 15,
+    environment_check_bonus: 30,
+
+    dangerous_patterns: [
+        'prototype', 'constructor', '__proto__', 'caller', 'arguments',
+        '__defineGetter__', '__defineSetter__', '__lookupGetter__', '__lookupSetter__'
+    ],
+
+    validation_patterns: [
+        'isDangerousProperty', 'validateEnvironment', 'validateDocumentState',
+        'checkEnvironmentCompatibility'
+    ]
+};
+
+/**
+ * CODE ORGANIZATION RULES - Structure and formatting
+ */
+export const CODE_ORGANIZATION = {
+    naming_convention_bonus: 5,
+    consistent_formatting_bonus: 10,
+    header_structure_bonus: 15,
+    section_organization_bonus: 10,
+
+    required_header_elements: [
+        '// PURPOSE:', '// DEPENDENCIES:', '// SIZE:'
+    ],
+
+    section_header_pattern: /\/\/ =+/g,
+    minimum_sections: 3
+};
+
+/**
+ * PERFORMANCE PATTERNS - Performance anti-patterns
+ */
+export const PERFORMANCE_PATTERNS = {
+    loop_complexity_warning: 3,
+    recursion_depth_warning: 5,
+    eval_usage_penalty: 100,
+    dynamic_code_penalty: 50,
+
+    dangerous_patterns: [
+        {
+            pattern: /\beval\s*\(/g,
+            name: 'eval_usage',
+            penalty: 100,
+            severity: 'critical'
+        },
+        {
+            pattern: /new Function\s*\(/g,
+            name: 'function_constructor',
+            penalty: 50,
+            severity: 'high'
+        },
+        {
+            pattern: /document\.write\s*\(/g,
+            name: 'document_write',
+            penalty: 25,
+            severity: 'medium'
+        }
+    ]
+};
+
+/**
+ * SECURITY PATTERNS - Security vulnerabilities
+ */
+export const SECURITY_PATTERNS = {
+    eval_penalty: 100,
+    function_constructor_penalty: 50,
+    dynamic_content_penalty: 25,
+    input_validation_bonus: 15,
+    error_handling_bonus: 10,
+
+    security_violations: [
+        {
+            pattern: /\beval\s*\(/g,
+            name: 'eval_usage',
+            severity: 'critical',
+            description: 'eval() can execute arbitrary code'
+        },
+        {
+            pattern: /new Function\s*\(/g,
+            name: 'function_constructor',
+            severity: 'high',
+            description: 'Function constructor can execute arbitrary code'
+        },
+        {
+            pattern: /innerHTML\s*=/g,
+            name: 'innerHTML_usage',
+            severity: 'medium',
+            description: 'innerHTML can be vulnerable if not sanitized'
+        }
+    ],
+
+    positive_patterns: [
+        'validate', 'sanitize', 'escape', 'encode'
+    ]
+};
+
+/**
+ * SIMILARITY RULES - Function similarity detection
+ */
+export const SIMILARITY_RULES = {
+    exact_duplicate_penalty: 100,
+    high_similarity_penalty: 75,       // >90% similar
+    moderate_similarity_penalty: 50,   // >75% similar
+    cross_module_duplicate_penalty: 150,
+    similar_purpose_warning: 25,
+    consolidation_opportunity_bonus: 20,
+
+    thresholds: {
+        exact_match: 98,
+        very_similar: 90,
+        similar: 75,
+        somewhat_similar: 60
+    },
+
+    scoring_weights: {
+        signature_similarity: 25,
+        content_similarity: 40,
+        calls_similarity: 20,
+        purpose_similarity: 15
+    }
+};
+
+/**
+ * INTERNAL DEPENDENCY RULES - Function order analysis
+ */
+export const INTERNAL_DEPENDENCY_RULES = {
+    // For analyzing function order within a single module
+    forward_reference_penalty: 10,
+    undefined_function_penalty: 50,
+    circular_reference_penalty: 25,
+
+    // Skip these common patterns that are OK to call before definition
+    allowed_forward_references: [
+        'registerModule',   // Called at end but defined anywhere
+        'toString',         // Built-in methods
+        'valueOf',
+        'hasOwnProperty'
+    ]
 };
 
 /**
@@ -351,7 +577,7 @@ export const calculateHealthScore = (violations, bonuses, maxScore = 1000) => {
     
     // Apply penalties with confidence weighting
     violations.forEach(violation => {
-        const basePenalty = violation.penalty || 0;
+        const basePenalty = violation.penalty || violation.value || 0;
         const confidence = violation.confidence || CONFIDENCE_LEVELS.MEDIUM;
         const severity = violation.severity || 'MEDIUM';
         
@@ -459,8 +685,16 @@ export default {
     RESERVED_WORD_SAFETY,
     DEPENDENCY_RULES,
     LOGGING_RULES,
-    SEVERITY_CLASSIFICATION,
+    MEMORY_RULES,
+    FUNCTION_ARCHITECTURE,
+    API_SAFETY,
+    CODE_ORGANIZATION,
+    PERFORMANCE_PATTERNS,
+    SECURITY_PATTERNS,
     HEALTH_THRESHOLDS,
+    SIMILARITY_RULES,
+    INTERNAL_DEPENDENCY_RULES,
+    SEVERITY_CLASSIFICATION,
     CONFIDENCE_LEVELS,
     calculateHealthScore,
     validateDetection

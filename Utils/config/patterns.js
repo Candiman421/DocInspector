@@ -135,19 +135,13 @@ export const CONTENT_PATTERNS = {
     dependencies: /\/\/\s*DEPENDENCIES:\s*(.*)/,
     size_comment: /\/\/\s*SIZE:\s*(.*)/,
 
-    // FIXED Logging patterns - more precise
+    // FIXED Logging patterns - proper regex escaping
     modern_logging: /\b(logDebug|logInfo|logWarn|logError|logMessage)\s*\(/g,
     legacy_logging: /\$\.writeln\s*\(/g,
 
     // Error handling (unchanged - works correctly)
     try_catch: /try\s*\{[\s\S]*?\}\s*catch\s*\([^)]*\)\s*\{/g,
 
-    // REMOVED BROKEN ES3 PATTERNS - These were generating false positives
-    // OLD (BROKEN): const_let: /\b(const|let)\s+/g,
-    // OLD (BROKEN): arrow_functions: /=>\s*[{(]/g,
-    // OLD (BROKEN): template_literals: /`[^`]*`/g,
-    // OLD (BROKEN): destructuring: /\[[^\]]*\]\s*=/g,
-    
     // FIXED Reserved word usage - context-aware patterns
     export_property_usage: /(\w+\.export\b|\w+\[['"]export['"]\]|\{['"]?export['"]?\s*:)/g,
     import_property_usage: /(\w+\.import\b|\w+\[['"]import['"]\]|\{['"]?import['"]?\s*:)/g,

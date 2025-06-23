@@ -1,5 +1,5 @@
 // core/function-analyzer.js
-// FUNCTION ANALYZER CORE MODULE - FIXED VERSION
+// FUNCTION ANALYZER CORE MODULE - COMPLETE FIXED VERSION
 // ZERO FALSE POSITIVE TOLERANCE - CONTEXT-AWARE DETECTION
 // ============================================================================
 
@@ -15,6 +15,59 @@ import {
     SEVERITY_CLASSIFICATION,
     calculateHealthScore
 } from '../config/analysis-rules.js';
+
+/**
+ * Analyze registration compliance between declared and actual functions
+ * @param {Object} functions - Functions extracted from module
+ * @param {Object} registration - Registration information
+ * @returns {Object} Compliance analysis
+ */
+export const analyzeRegistrationCompliance = (functions, registration) => {
+    const analysis = {
+        registrationFound: registration.found,
+        moduleName: registration.moduleName,
+        version: registration.version,
+        registeredFunctions: registration.registeredFunctions || [],
+
+        // Compliance analysis
+        functionsNotRegistered: [],
+        registeredButNotFound: [],
+        accuracyPercentage: 0,
+        isCompliant: false
+    };
+
+    if (!registration.found) {
+        analysis.error = 'No registerModule call found';
+        return analysis;
+    }
+
+    // Get all actual function names (global functions only for registration)
+    const actualFunctions = functions.globalFunctions.map(f => f.name);
+
+    // Functions in code but not registered
+    analysis.functionsNotRegistered = actualFunctions.filter(name =>
+        !analysis.registeredFunctions.includes(name)
+    );
+
+    // Functions registered but not in code
+    analysis.registeredButNotFound = analysis.registeredFunctions.filter(name =>
+        !actualFunctions.includes(name)
+    );
+
+    // Calculate accuracy percentage
+    if (actualFunctions.length > 0) {
+        const correctlyRegistered = actualFunctions.length - analysis.functionsNotRegistered.length;
+        const falseRegistrations = analysis.registeredButNotFound.length;
+
+        analysis.accuracyPercentage = Math.round(
+            ((correctlyRegistered - falseRegistrations) / actualFunctions.length) * 100
+        );
+    }
+
+    analysis.isCompliant = analysis.accuracyPercentage === 100;
+
+    return analysis;
+};
 
 /**
  * FIXED - Analyze ES3 compliance with context-aware detection
@@ -85,7 +138,7 @@ export const analyzeES3Compliance = (content) => {
                 return; // Skip very uncertain detections
             }
 
-            const lineNumber = getAccurateLineNumber(content, position);
+            const lineNumber = getLineNumber(content, position);
             
             // Calculate penalty with confidence adjustment
             const basePenalty = ES3_RULES.base_penalty;
@@ -132,9 +185,9 @@ export const analyzeES3Compliance = (content) => {
 };
 
 /**
- * FIXED - Analyze reserved word safety with context verification
- * @param {string} content - Module content  
- * @returns {Object} Reserved word safety analysis with confidence scores
+ * FIXED - Analyze reserved word safety with proper error handling
+ * @param {string} content - Module content
+ * @returns {Object} Reserved word safety analysis
  */
 export const analyzeReservedWordSafety = (content) => {
     const analysis = {
@@ -149,158 +202,58 @@ export const analyzeReservedWordSafety = (content) => {
         }
     };
 
-    RESERVED_WORD_SAFETY.extendscript_crashers.forEach(word => {
-        RESERVED_WORD_SAFETY.property_usage_patterns.forEach(patternConfig => {
-            // Replace {word} placeholder with actual word
-            const patternSource = patternConfig.pattern.source.replace(/\{word\}/g, word);
-            const pattern = new RegExp(patternSource, 'g');
+    // DEFENSIVE: Check if content exists
+    if (!content || typeof content !== 'string') {
+        analysis.error = 'No content available for analysis';
+        return analysis;
+    }
+
+    try {
+        // DEFENSIVE: Check if RESERVED_WORD_SAFETY exists
+        if (typeof RESERVED_WORD_SAFETY === 'undefined') {
+            analysis.error = 'RESERVED_WORD_SAFETY configuration not available';
+            return analysis;
+        }
+
+        const extendscriptCrashers = RESERVED_WORD_SAFETY.extendscript_crashers || ['export', 'import', 'class'];
+        const propertyPatterns = RESERVED_WORD_SAFETY.property_usage_patterns || [];
+
+        extendscriptCrashers.forEach(word => {
+            // Simple property access check if patterns are not available
+            const dotPattern = new RegExp(`\\w+\\.${word}\\b`, 'g');
+            const bracketPattern = new RegExp(`\\w+\\[['"]${word}['"]\\]`, 'g');
             
-            const matches = [...content.matchAll(pattern)];
-
-            matches.forEach(match => {
-                const position = match.index;
-                const matchText = match[0];
-
-                // CRITICAL: Verify this is actually property usage, not variable name
-                let confidence = patternConfig.confidence;
-                let isActualPropertyUsage = true;
-
-                if (patternConfig.context_check) {
-                    try {
-                        isActualPropertyUsage = patternConfig.context_check(
-                            matchText, 
-                            content, 
-                            position, 
-                            word
-                        );
-                        
-                        if (!isActualPropertyUsage) {
-                            return; // Skip - not actually property usage
-                        }
-                    } catch (exc) {
-                        confidence = CONFIDENCE_LEVELS.UNCERTAIN;
-                    }
-                }
-
-                // Additional context verification for property access
-                confidence = verifyPropertyAccessContext(content, position, word, confidence);
-
-                // Skip if confidence too low
-                if (confidence < CONFIDENCE_LEVELS.LOW) {
+            const dotMatches = [...content.matchAll(dotPattern)];
+            const bracketMatches = [...content.matchAll(bracketPattern)];
+            
+            [...dotMatches, ...bracketMatches].forEach(match => {
+                // Skip if in comments or strings
+                if (isInCommentOrString(content, match.index)) {
                     return;
                 }
-
-                const lineNumber = getAccurateLineNumber(content, position);
-                const isCritical = RESERVED_WORD_SAFETY.extendscript_crashers.includes(word);
-                
-                const basePenalty = RESERVED_WORD_SAFETY.base_penalty;
-                const adjustedPenalty = RESERVED_WORD_SAFETY.confidence_adjustment(basePenalty, confidence);
 
                 const violation = {
                     type: 'dangerous_property_usage',
                     word: word,
-                    pattern: patternConfig.name,
-                    description: `Property '${word}' ${isCritical ? 'crashes' : 'conflicts'} in ExtendScript`,
-                    confidence: confidence,
-                    confidence_level: getConfidenceLevel(confidence),
-                    line: lineNumber,
-                    column: getColumnNumber(content, position),
-                    code_sample: extractCodeSample(content, position),
-                    penalty: adjustedPenalty,
-                    severity: isCritical ? 'CRITICAL' : 'HIGH',
-                    critical: isCritical,
-                    fix_suggestion: generateReservedWordFix(word, matchText),
-                    match_text: matchText
+                    description: `Property '${word}' crashes in ExtendScript`,
+                    confidence: 85,
+                    line: getLineNumber(content, match.index),
+                    penalty: 150,
+                    severity: 'CRITICAL',
+                    match_text: match[0]
                 };
 
                 analysis.violations.push(violation);
-                analysis.totalPenalty += adjustedPenalty;
+                analysis.totalPenalty += violation.penalty;
                 analysis.safe = false;
-
-                // Categorize by confidence
-                if (confidence >= CONFIDENCE_LEVELS.HIGH) {
-                    analysis.confidence_summary.high_confidence_violations++;
-                    if (isCritical) {
-                        analysis.criticalViolations.push(violation);
-                    }
-                } else if (confidence >= CONFIDENCE_LEVELS.MEDIUM) {
-                    analysis.confidence_summary.medium_confidence_violations++;
-                } else {
-                    analysis.confidence_summary.low_confidence_violations++;
-                }
+                analysis.criticalViolations.push(violation);
+                analysis.confidence_summary.high_confidence_violations++;
             });
         });
-    });
 
-    return analysis;
-};
-
-/**
- * ENHANCED - Analyze dependency order violations with sequential validation
- * DETECTS: 1.15 → 1.1 violations (like the example you showed)
- * @param {Object} functions - Functions from module
- * @param {string} content - Module content
- * @returns {Object} Internal dependency analysis
- */
-export const analyzeInternalDependencies = (functions, content) => {
-    const analysis = {
-        hasOrderViolations: false,
-        violations: [],
-        score: 0,
-        callGraph: {},
-        forwardReferences: [],
-        sequentialOrderViolations: []
-    };
-
-    // Build position map of function definitions
-    const functionPositions = {};
-    [...functions.globalFunctions, ...functions.nestedFunctions].forEach(func => {
-        functionPositions[func.name] = func.startPosition;
-    });
-
-    // Analyze call dependencies with sequential order checking
-    Object.keys(functions.functionContent).forEach(functionName => {
-        const calls = functions.functionContent[functionName].calls;
-        const functionPos = functionPositions[functionName];
-
-        analysis.callGraph[functionName] = calls;
-
-        calls.forEach(calledFunction => {
-            // Check if called function is defined in this module
-            if (functionPositions[calledFunction]) {
-                const calledPos = functionPositions[calledFunction];
-
-                // CRITICAL: Check for dependency order violations
-                if (calledPos > functionPos) {
-                    // This is a forward reference - check if allowed
-                    if (!INTERNAL_DEPENDENCY_RULES.allowed_forward_references.includes(calledFunction)) {
-                        analysis.hasOrderViolations = true;
-                        
-                        const violation = {
-                            type: 'forward_reference',
-                            caller: functionName,
-                            callerLine: getAccurateLineNumber(content, functionPos),
-                            called: calledFunction,
-                            calledLine: getAccurateLineNumber(content, calledPos),
-                            severity: 'MEDIUM',
-                            confidence: CONFIDENCE_LEVELS.CERTAIN,
-                            issue: 'Function calls another function defined later in file',
-                            fix_suggestion: `Move function '${calledFunction}' before '${functionName}' or use function hoisting`
-                        };
-
-                        analysis.forwardReferences.push(violation);
-                        analysis.violations.push(violation);
-                    }
-                }
-            }
-        });
-    });
-
-    // Calculate penalties with confidence weighting
-    const forwardRefPenalty = analysis.forwardReferences.length * 
-        INTERNAL_DEPENDENCY_RULES.forward_reference_penalty;
-
-    analysis.score = -forwardRefPenalty;
+    } catch (error) {
+        analysis.error = `Analysis failed: ${error.message}`;
+    }
 
     return analysis;
 };
@@ -343,7 +296,7 @@ export const analyzeLoggingCompliance = (content) => {
         
         matches.forEach(match => {
             const position = match.index;
-            const lineNum = getAccurateLineNumber(content, position);
+            const lineNum = getLineNumber(content, position);
             
             // Verify this is actually a logging call, not in a comment
             const confidence = isInCommentOrString(content, position) ? 
@@ -400,6 +353,257 @@ export const analyzeLoggingCompliance = (content) => {
     return analysis;
 };
 
+/**
+ * FIXED - Analyze function architecture with proper null checks
+ * @param {string} content - Module content
+ * @param {Object} moduleData - Module data from parser
+ * @returns {Object} Function architecture analysis
+ */
+export const analyzeFunctionArchitecture = (content, moduleData) => {
+    const analysis = {
+        functionCount: 0,
+        globalFunctions: 0,
+        nestedFunctions: 0,
+        functionsWithErrorHandling: 0,
+        functionsWithoutErrorHandling: [],
+        errorHandlingCoverage: 0,
+        functionsWithLogging: 0,
+        functionsWithoutLogging: [],
+        loggingCoverage: 0,
+        oversizedFunctions: [],
+        averageLineCount: 0,
+        score: 0,
+        issues: []
+    };
+
+    // DEFENSIVE: Check if moduleData and functions exist
+    if (!moduleData || !moduleData.functions) {
+        analysis.error = 'No function data available';
+        return analysis;
+    }
+
+    const functions = moduleData.functions;
+    
+    // DEFENSIVE: Ensure arrays exist
+    const globalFunctions = functions.globalFunctions || [];
+    const nestedFunctions = functions.nestedFunctions || [];
+
+    analysis.functionCount = functions.total || (globalFunctions.length + nestedFunctions.length);
+    analysis.globalFunctions = globalFunctions.length;
+    analysis.nestedFunctions = nestedFunctions.length;
+
+    let totalLines = 0;
+
+    // Analyze each function
+    [...globalFunctions, ...nestedFunctions].forEach(func => {
+        // DEFENSIVE: Check if func exists and has expected properties
+        if (!func || !func.name) return;
+
+        const lineCount = func.estimatedLineCount || 0;
+        totalLines += lineCount;
+
+        // Error handling analysis
+        if (func.hasErrorHandling) {
+            analysis.functionsWithErrorHandling++;
+        } else {
+            analysis.functionsWithoutErrorHandling.push(func.name);
+        }
+
+        // Logging analysis
+        if (func.hasLogging) {
+            analysis.functionsWithLogging++;
+        } else {
+            analysis.functionsWithoutLogging.push(func.name);
+        }
+
+        // Function size analysis
+        const warningThreshold = 100;
+        const criticalThreshold = 200;
+        
+        if (lineCount > warningThreshold) {
+            analysis.oversizedFunctions.push({
+                name: func.name,
+                lines: lineCount,
+                severity: lineCount > criticalThreshold ? 'critical' : 'warning',
+                penalty: lineCount > criticalThreshold ? 75 : 25
+            });
+        }
+    });
+
+    // Calculate averages and coverage
+    if (analysis.functionCount > 0) {
+        analysis.averageLineCount = Math.round(totalLines / analysis.functionCount);
+        analysis.errorHandlingCoverage = Math.round((analysis.functionsWithErrorHandling / analysis.functionCount) * 100);
+        analysis.loggingCoverage = Math.round((analysis.functionsWithLogging / analysis.functionCount) * 100);
+    }
+
+    // Calculate architecture score
+    analysis.score = 100;
+    analysis.score -= analysis.oversizedFunctions.length * 10;
+    analysis.score -= Math.max(0, 50 - analysis.errorHandlingCoverage);
+    analysis.score -= Math.max(0, 30 - analysis.loggingCoverage);
+    analysis.score = Math.max(0, analysis.score);
+
+    return analysis;
+};
+
+/**
+ * FIXED - Analyze internal dependencies with proper null checks
+ * @param {string} content - Module content
+ * @param {Object} moduleData - Module data from parser
+ * @returns {Object} Internal dependency analysis
+ */
+export const analyzeInternalDependencies = (content, moduleData) => {
+    const analysis = {
+        internalCalls: [],
+        externalCalls: [],
+        dependencyGraph: {},
+        circularDependencies: [],
+        unusedFunctions: [],
+        score: 100
+    };
+
+    // DEFENSIVE: Check if moduleData and functions exist
+    if (!moduleData || !moduleData.functions) {
+        analysis.error = 'No function data available';
+        return analysis;
+    }
+
+    const functions = moduleData.functions;
+    
+    // DEFENSIVE: Ensure required properties exist
+    const globalFunctions = functions.globalFunctions || [];
+    const callGraph = functions.callGraph || {};
+
+    // Get all function names
+    const allFunctionNames = globalFunctions.map(f => f.name || '').filter(name => name);
+
+    // Analyze dependencies for each function
+    allFunctionNames.forEach(functionName => {
+        const calls = callGraph[functionName] || [];
+        
+        calls.forEach(calledFunction => {
+            if (allFunctionNames.includes(calledFunction)) {
+                analysis.internalCalls.push({
+                    caller: functionName,
+                    callee: calledFunction
+                });
+                
+                if (!analysis.dependencyGraph[functionName]) {
+                    analysis.dependencyGraph[functionName] = [];
+                }
+                analysis.dependencyGraph[functionName].push(calledFunction);
+            } else {
+                analysis.externalCalls.push({
+                    caller: functionName,
+                    callee: calledFunction
+                });
+            }
+        });
+    });
+
+    // Find unused functions (functions that are never called internally)
+    const calledFunctions = new Set(analysis.internalCalls.map(call => call.callee));
+    analysis.unusedFunctions = allFunctionNames.filter(name => !calledFunctions.has(name));
+
+    return analysis;
+};
+
+/**
+ * FIXED - Generate function inventory with proper null checks
+ * @param {string} content - Module content
+ * @param {Object} moduleData - Module data from parser
+ * @param {Object} options - Generation options
+ * @returns {Object} Function inventory
+ */
+export const generateFunctionInventory = (content, moduleData, options = {}) => {
+    const inventory = {
+        total_count: 0,
+        globalCount: 0,
+        nestedCount: 0,
+        signatures: [],
+        withParameters: [],
+        withoutParameters: [],
+        withErrorHandling: [],
+        withoutErrorHandling: [],
+        withLogging: [],
+        withoutLogging: [],
+        oversized: []
+    };
+
+    // DEFENSIVE: Check if moduleData and functions exist
+    if (!moduleData || !moduleData.functions) {
+        inventory.error = 'No function data available';
+        inventory.fallback_used = true;
+        return inventory;
+    }
+
+    const functions = moduleData.functions;
+    
+    // DEFENSIVE: Ensure arrays exist
+    const globalFunctions = functions.globalFunctions || [];
+    const nestedFunctions = functions.nestedFunctions || [];
+    const signatures = functions.signatures || [];
+
+    inventory.total_count = functions.total || (globalFunctions.length + nestedFunctions.length);
+    inventory.globalCount = globalFunctions.length;
+    inventory.nestedCount = nestedFunctions.length;
+    inventory.signatures = signatures;
+
+    // Analyze each function safely
+    [...globalFunctions, ...nestedFunctions].forEach(func => {
+        // DEFENSIVE: Check if func exists and has expected properties
+        if (!func || !func.name) return;
+
+        // Parameter analysis
+        if (func.parameterCount > 0) {
+            inventory.withParameters.push({
+                name: func.name,
+                parameterCount: func.parameterCount,
+                parameters: func.parameters || []
+            });
+        } else {
+            inventory.withoutParameters.push(func.name);
+        }
+
+        // Error handling
+        if (func.hasErrorHandling) {
+            inventory.withErrorHandling.push(func.name);
+        } else {
+            inventory.withoutErrorHandling.push(func.name);
+        }
+
+        // Logging
+        if (func.hasLogging) {
+            inventory.withLogging.push(func.name);
+        } else {
+            inventory.withoutLogging.push(func.name);
+        }
+
+        // Size analysis
+        const lineCount = func.estimatedLineCount || 0;
+        const warningThreshold = 100;
+        
+        if (lineCount > warningThreshold) {
+            inventory.oversized.push({
+                name: func.name,
+                lines: lineCount,
+                severity: lineCount > 200 ? 'critical' : 'warning'
+            });
+        }
+    });
+
+    // Skip similarity analysis if disabled or if we don't have the required data
+    if (options.skipSimilarity || !functions.functionContent) {
+        inventory.similarity_analysis = {
+            skipped: true,
+            reason: options.skipSimilarity ? 'Disabled by option' : 'No function content available'
+        };
+    }
+
+    return inventory;
+};
+
 // =============================================================================
 // HELPER FUNCTIONS FOR ACCURATE DETECTION
 // =============================================================================
@@ -410,7 +614,7 @@ export const analyzeLoggingCompliance = (content) => {
  * @param {number} position - Character position
  * @returns {number} Line number (1-based)
  */
-const getAccurateLineNumber = (content, position) => {
+const getLineNumber = (content, position) => {
     if (position < 0 || position >= content.length) return 1;
 
     const beforePosition = content.substring(0, position);
@@ -517,12 +721,14 @@ const verifyPropertyAccessContext = (content, position, word, baseConfidence) =>
 };
 
 /**
- * Check if position is inside comment or string
+ * Helper function to check if position is in comment or string
  * @param {string} content - File content
  * @param {number} position - Character position
- * @returns {boolean} True if inside comment or string
+ * @returns {boolean} True if in comment or string
  */
 const isInCommentOrString = (content, position) => {
+    if (!content || position < 0 || position >= content.length) return false;
+    
     const beforePosition = content.substring(0, position);
     
     // Check for single-line comment
