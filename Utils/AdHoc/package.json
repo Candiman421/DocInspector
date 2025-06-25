@@ -1,0 +1,14 @@
+{
+    "name": "adhoc-claude-merger",
+    "version": "1.0.0",
+    "description": "Simple tools for merging Claude responses into code",
+    "type": "module",
+    "scripts": {
+        "merge": "node merge-claude.js",
+        "template": "node make-template.js"
+    },
+    "dependencies": {},
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
