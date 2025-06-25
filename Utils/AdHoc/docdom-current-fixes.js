@@ -13,7 +13,7 @@ export default {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "config/patterns.js",
+            targetFile: "Utils/config/patterns.js", // FIXED: Use relative path
             find: "register_module: /registerModule\\s*\\(\\s*(['\"])([^'\"]+)\\1\\s*,\\s*(['\"])([^'\"]+)\\3\\s*,\\s*\\[([\\s\\S]*?)\\]\\s*\\)\\s*;?/gs,",
             replace: "register_module: /registerModule\\s*\\(\\s*(['\"])([^'\"]+)\\1\\s*,\\s*(['\"])([^'\"]+)\\3\\s*,\\s*\\[([\\s\\S]*?)\\]\\s*\\)\\s*;?/s,",
             description: "Fix core regex pattern - remove global flag that breaks capturing groups",
@@ -22,7 +22,7 @@ export default {
         
         {
             action: "REPLACE_FUNCTION",
-            targetFile: "core/module-parser.js",
+            targetFile: "Utils/core/module-parser.js", // FIXED: Use relative path
             functionName: "extractRegistration",
             description: "Enhanced registration extraction with full debugging",
             priority: 2,
@@ -186,7 +186,7 @@ const extractRegistration = (content) => {
         
         {
             action: "INSERT_FUNCTION_AFTER",
-            targetFile: "core/module-parser.js",
+            targetFile: "Utils/core/module-parser.js", // FIXED: Use relative path
             afterFunction: "extractRegistration",
             description: "Add filename vs registration validation function",
             priority: 3,
@@ -249,7 +249,7 @@ const validateFilenameRegistration = (filename, registration) => {
         
         {
             action: "INSERT_FUNCTION_AFTER",
-            targetFile: "core/module-parser.js",
+            targetFile: "Utils/core/module-parser.js", // FIXED: Use relative path
             afterFunction: "validateFilenameRegistration",
             description: "Add comprehensive debugging function",
             priority: 4,
@@ -334,7 +334,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "UPDATE_EXPORTS",
-            targetFile: "core/module-parser.js",
+            targetFile: "Utils/core/module-parser.js", // FIXED: Use relative path
             description: "Add new functions to exports",
             priority: 5,
             newExports: `export default {
@@ -356,7 +356,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "1.20.0.0_safety-utilities.jsx",
+            targetFile: "DocDomV4.1/1.20.0.0_safety-utilities.jsx", // FIXED: Use relative path
             find: "registerModule('1.2.0.0_safety-utilities'",
             replace: "registerModule('1.20.0.0_safety-utilities'",
             description: "Fix critical version mismatch in safety utilities",
@@ -365,7 +365,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "2.1.0.0_dom-enumerator.jsx",
+            targetFile: "DocDomV4.1/2.1.0.0_dom-enumerator.jsx", // FIXED: Use relative path
             find: "registerModule('2.1_dom-enumerator'",
             replace: "registerModule('2.1.0.0_dom-enumerator'",
             description: "Fix missing version in dom enumerator",
@@ -374,7 +374,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "2.2.0.0_collection-sampler.jsx",
+            targetFile: "DocDomV4.1/2.2.0.0_collection-sampler.jsx", // FIXED: Use relative path
             find: "registerModule('2.2_collection-sampler'",
             replace: "registerModule('2.2.0.0_collection-sampler'",
             description: "Fix missing version in collection sampler",
@@ -383,7 +383,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "3.1.0.0_property-sampler.jsx",
+            targetFile: "DocDomV4.1/3.1.0.0_property-sampler.jsx", // FIXED: Use relative path
             find: "registerModule('3.1_property-sampler'",
             replace: "registerModule('3.1.0.0_property-sampler'",
             description: "Fix missing version in property sampler",
@@ -392,7 +392,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "3.2.0.0_dom-exporter.jsx",
+            targetFile: "DocDomV4.1/3.2.0.0_dom-exporter.jsx", // FIXED: Use relative path
             find: "registerModule('3.2_dom-exporter'",
             replace: "registerModule('3.2.0.0_dom-exporter'",
             description: "Fix missing version in dom exporter",
@@ -401,7 +401,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "4.1.0.0_json-analyzer.jsx",
+            targetFile: "DocDomV4.1/4.1.0.0_json-analyzer.jsx", // FIXED: Use relative path
             find: "registerModule('4.1_json-analyzer'",
             replace: "registerModule('4.1.0.0_json-analyzer'",
             description: "Fix missing version in json analyzer",
@@ -410,7 +410,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "4.2.0.0_dom-comparator.jsx",
+            targetFile: "DocDomV4.1/4.2.0.0_dom-comparator.jsx", // FIXED: Use relative path
             find: "registerModule('4.2_dom-comparator'",
             replace: "registerModule('4.2.0.0_dom-comparator'",
             description: "Fix missing version in dom comparator",
@@ -419,7 +419,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "5.1.0.0_deep-mapper.jsx",
+            targetFile: "DocDomV4.1/5.1.0.0_deep-mapper.jsx", // FIXED: Use relative path
             find: "registerModule('5.1_deep-mapper'",
             replace: "registerModule('5.1.0.0_deep-mapper'",
             description: "Fix missing version in deep mapper",
@@ -428,7 +428,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "5.2.0.0_dom-visualizer.jsx",
+            targetFile: "DocDomV4.1/5.2.0.0_dom-visualizer.jsx", // FIXED: Use relative path
             find: "registerModule('5.2_dom-visualizer'",
             replace: "registerModule('5.2.0.0_dom-visualizer'",
             description: "Fix missing version in dom visualizer",
@@ -437,7 +437,7 @@ const debugRegistrationExtraction = (filePath) => {
         
         {
             action: "SIMPLE_REPLACE",
-            targetFile: "6.1.0.0_advanced-ui.jsx",
+            targetFile: "DocDomV4.1/6.1.0.0_advanced-ui.jsx", // FIXED: Use relative path
             find: "registerModule('6.1_advanced-ui'",
             replace: "registerModule('6.1.0.0_advanced-ui'",
             description: "Fix missing version in advanced ui",

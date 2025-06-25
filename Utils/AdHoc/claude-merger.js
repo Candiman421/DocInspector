@@ -19,9 +19,14 @@ const PROJECT_ROOT = path.resolve(__dirname, '../../');
 
 export class ClaudeResponseMerger {
     constructor(options = {}) {
-        this.projectRoot = options.projectRoot || PROJECT_ROOT;
+        this.projectRoot = options.projectRoot || PROJECT_ROOT; // FIXED: restored proper fallback
         this.verbose = options.verbose || false;
         this.dryRun = options.dryRun || false;
+        
+        // Debug path resolution
+        if (this.verbose) {
+            console.log(chalk.blue(`📁 Project root: ${this.projectRoot}`));
+        }
     }
 
     /**
@@ -454,7 +459,13 @@ export class ClaudeResponseMerger {
         }
         
         // Resolve relative to project root
-        return path.resolve(this.projectRoot, targetFile);
+        const resolvedPath = path.resolve(this.projectRoot, targetFile);
+        
+        if (this.verbose) {
+            console.log(chalk.gray(`   📍 Resolving: ${targetFile} -> ${resolvedPath}`));
+        }
+        
+        return resolvedPath;
     }
 
     escapeRegex(string) {
