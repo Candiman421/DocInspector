@@ -54,8 +54,8 @@ export const analyzeModuleSystem = (folderInfo, options = {}) => {
         // STEP 3: CRITICAL - Analyze dependency order compliance (PLAN REQUIREMENT)
         console.log(chalk.cyan('🔍 Validating sequential dependency order (CRITICAL)...'));
         const dependencyAnalysis = analyzeSequentialDependencies(
-            folderInfo.moduleFiles, 
-            sortedModules, 
+            sortedModules.map(m => m.filename),
+            sortedModules,
             moduleAnalyses
         );
 
@@ -115,7 +115,7 @@ export const analyzeModuleSystem = (folderInfo, options = {}) => {
         console.log(chalk.green(`✅ System analysis complete (${systemAnalysis.analysis_time_ms}ms)`));
         console.log(chalk.cyan(`   System Health: ${systemAnalysis.system_health.overall_grade}`));
         console.log(chalk.cyan(`   Dependencies: ${dependencyAnalysis.dependency_violations?.length || 0} violations detected`));
-        
+
         if (dependencyAnalysis.dependency_violations?.length > 0) {
             console.log(chalk.red(`   🚨 DEPENDENCY VIOLATIONS FOUND - SEE INDIVIDUAL REPORTS`));
         } else {
@@ -156,7 +156,7 @@ const determineModuleTypeInternal = (filename) => {
     const version = versionMatch[1];
     const name = versionMatch[2];
     const versionComponents = parseVersion(version);
-    
+
     // Calculate load order from version components
     let loadOrder = 0;
     for (let i = 0; i < Math.min(versionComponents.length, 4); i++) {
@@ -193,7 +193,7 @@ const determineModuleTypeInternal = (filename) => {
 const sortModulesByDependencyOrder = (moduleFiles) => {
     const moduleData = moduleFiles.map(filename => {
         const moduleType = determineModuleTypeInternal(filename);
-        
+
         return {
             filename,
             version: moduleType.version,
@@ -250,7 +250,7 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
         correctOrderMap[module.filename] = index;
         versionToFile[module.version] = module.filename;
         fileToVersion[module.filename] = module.version;
-        
+
         analysis.sequential_order_check.expected_sequence.push({
             position: index + 1,
             filename: module.filename,
@@ -334,7 +334,7 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
                     });
                     analysis.dependency_order_valid = false;
                     analysis.compliance_score -= 35;
-                    
+
                     console.log(chalk.red(`   ❌ MISSING DEP: ${moduleName} needs '${depName}' (not found)`));
                 } else {
                     // Check load order for this dependency
@@ -344,7 +344,7 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
                     if (moduleIndex !== -1 && depIndex !== -1 && depIndex > moduleIndex) {
                         // Dependency loads after the module that needs it
                         const depVersion = fileToVersion[depFile] || extractVersionFromFilename(depFile);
-                        
+
                         const violation = {
                             type: 'dependency_order_violation',
                             severity: 'CRITICAL',
@@ -358,11 +358,11 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
                             fix: `Move ${depFile} (v${depVersion}) before ${moduleName} (v${moduleVersion}) in load order`,
                             runtime_impact: 'CRITICAL - Dependency functions not available when needed'
                         };
-                        
+
                         analysis.dependency_violations.push(violation);
                         analysis.dependency_order_valid = false;
                         analysis.compliance_score -= 40;
-                        
+
                         console.log(chalk.red(`   ❌ DEP ORDER: ${moduleName} needs ${depFile} but it loads later`));
                     }
                 }
@@ -374,7 +374,7 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
     const dependencyMap = {};
     moduleAnalyses.forEach(ma => {
         const moduleName = ma.analysis?.module_info?.filename;
-        const deps = extractDeclaredDependencies(ma.analysis);
+        const deps = extractDeclaredDependencies(ma.analysis, correctOrder);
         dependencyMap[moduleName] = deps || [];
     });
 
@@ -383,7 +383,7 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
     if (circularResult.circular.length > 0) {
         analysis.dependency_order_valid = false;
         analysis.compliance_score -= circularResult.circular.length * 45;
-        
+
         circularResult.circular.forEach(circular => {
             console.log(chalk.red(`   ❌ CIRCULAR: ${circular.cycle?.join(' → ') || 'Circular dependency detected'}`));
         });
@@ -394,7 +394,7 @@ const analyzeSequentialDependencies = (actualLoadOrder, correctOrder, moduleAnal
 
     // Final summary
     const totalViolations = analysis.dependency_violations.length + analysis.missing_dependencies.length + analysis.circular_dependencies.length;
-    
+
     if (totalViolations === 0) {
         console.log(chalk.green(`   ✅ No dependency violations found - sequential order is correct`));
     } else {
@@ -430,14 +430,14 @@ const findDependencyFile = (depName, actualLoadOrder, fileToVersion) => {
     if (actualLoadOrder.includes(depName)) {
         return depName;
     }
-    
+
     // Try partial match
     for (const filename of actualLoadOrder) {
         if (filename.includes(depName) || depName.includes(extractModuleBaseName(filename))) {
             return filename;
         }
     }
-    
+
     // Try base name match
     for (const filename of actualLoadOrder) {
         const baseName = extractModuleBaseName(filename);
@@ -445,7 +445,7 @@ const findDependencyFile = (depName, actualLoadOrder, fileToVersion) => {
             return filename;
         }
     }
-    
+
     return null;
 };
 
@@ -459,43 +459,39 @@ const extractModuleBaseName = (filename) => {
 };
 
 /**
- * Extract declared dependencies from module analysis
- * @param {Object} moduleAnalysis - Individual module analysis
- * @returns {Array} Array of dependency names
+ * PROPER - Extract dependencies based purely on version ordering
+ * Each module depends only on modules with lower version numbers
+ * @param {Object} moduleAnalysis - Individual module analysis object containing module_info
+ * @param {Array} allModules - Array of all available modules sorted by version (from correctOrder/sortedModules)
+ * @returns {Array} Array of dependency filenames that have lower version numbers
  */
-const extractDeclaredDependencies = (moduleAnalysis) => {
+const extractDeclaredDependencies = (moduleAnalysis, allModules = []) => {
     const dependencies = [];
-    
-    // Check multiple locations for dependency declarations
-    if (moduleAnalysis?.dependencies?.declared) {
-        dependencies.push(...moduleAnalysis.dependencies.declared);
+
+    const currentModuleName = moduleAnalysis?.module_info?.filename || '';
+    const currentVersion = moduleAnalysis?.module_info?.version || '';
+
+    if (!currentVersion || !currentModuleName) {
+        return dependencies;
     }
-    
-    if (moduleAnalysis?.registration_compliance?.dependencies) {
-        dependencies.push(...moduleAnalysis.registration_compliance.dependencies);
-    }
-    
-    // Infer common dependencies based on module patterns
-    const moduleName = moduleAnalysis?.module_info?.filename || '';
-    const version = moduleAnalysis?.module_info?.version || '';
-    
-    if (moduleName.includes('adapter') || moduleName.includes('safety') || moduleName.includes('utilities')) {
-        if (!dependencies.includes('1.1.0.0_bootstrap-foundation')) {
-            dependencies.push('1.1.0.0_bootstrap-foundation');
+
+    const currentVersionComponents = parseVersion(currentVersion);
+
+    // Find all modules with lower version numbers
+    allModules.forEach(module => {
+        if (module.filename === currentModuleName) {
+            return; // Skip self
         }
-    }
-    
-    // Higher-level modules typically depend on foundation and utilities
-    if (version && version.match(/^[2-9]/)) {
-        if (!dependencies.includes('1.1.0.0_bootstrap-foundation')) {
-            dependencies.push('1.1.0.0_bootstrap-foundation');
+
+        const moduleVersionComponents = parseVersion(module.version);
+
+        // If this module has a lower version number, it's a potential dependency
+        if (compareVersions(moduleVersionComponents, currentVersionComponents) < 0) {
+            dependencies.push(module.filename);
         }
-        if (!dependencies.includes('1.2.0.0_safety-utilities')) {
-            dependencies.push('1.2.0.0_safety-utilities');
-        }
-    }
-    
-    return [...new Set(dependencies)]; // Remove duplicates
+    });
+
+    return dependencies;
 };
 
 /**
@@ -505,25 +501,25 @@ const extractDeclaredDependencies = (moduleAnalysis) => {
  */
 const extractCriticalIssues = (analysis) => {
     const issues = [];
-    
+
     if (analysis?.es3_compliance?.criticalViolations) {
         analysis.es3_compliance.criticalViolations.forEach(v => {
             issues.push(`ES3: ${v.type || v.keyword || 'violation'}`);
         });
     }
-    
+
     if (analysis?.reserved_word_safety?.criticalViolations) {
         analysis.reserved_word_safety.criticalViolations.forEach(v => {
             issues.push(`Reserved: ${v.word || 'word'}`);
         });
     }
-    
+
     if (analysis?.registration_compliance?.functionsNotRegistered) {
         analysis.registration_compliance.functionsNotRegistered.forEach(f => {
             issues.push(`Unregistered: ${f}`);
         });
     }
-    
+
     return issues.slice(0, 5); // Limit to 5 most important
 };
 
@@ -537,14 +533,14 @@ const detectCircularDependencies = (dependencyMap, moduleFiles) => {
     const circular = [];
     const visited = new Set();
     const recursionStack = new Set();
-    
+
     const dfs = (moduleName, path) => {
         if (recursionStack.has(moduleName)) {
             // Found a cycle
             const cycleStart = path.indexOf(moduleName);
             const cycle = path.slice(cycleStart);
             cycle.push(moduleName); // Complete the cycle
-            
+
             circular.push({
                 type: 'circular_dependency',
                 cycle: cycle,
@@ -555,13 +551,13 @@ const detectCircularDependencies = (dependencyMap, moduleFiles) => {
             });
             return;
         }
-        
+
         if (visited.has(moduleName)) return;
-        
+
         visited.add(moduleName);
         recursionStack.add(moduleName);
         path.push(moduleName);
-        
+
         const dependencies = dependencyMap[moduleName] || [];
         dependencies.forEach(depName => {
             const depFile = findDependencyFile(depName, moduleFiles, {});
@@ -569,18 +565,18 @@ const detectCircularDependencies = (dependencyMap, moduleFiles) => {
                 dfs(depFile, [...path]);
             }
         });
-        
+
         recursionStack.delete(moduleName);
         path.pop();
     };
-    
+
     // Check each module for circular dependencies
     Object.keys(dependencyMap).forEach(moduleName => {
         if (!visited.has(moduleName)) {
             dfs(moduleName, []);
         }
     });
-    
+
     return { circular };
 };
 
@@ -608,7 +604,7 @@ const analyzeCrossModuleFunctions = (moduleAnalyses, options) => {
     moduleAnalyses.forEach(ma => {
         const moduleName = ma.analysis?.module_info?.filename || 'unknown';
         const registeredFuncs = ma.analysis?.registration_compliance?.registeredFunctions || [];
-        
+
         analysis.total_functions += ma.analysis?.function_inventory?.total_count || 0;
 
         // Track registered functions by exact name
@@ -709,7 +705,7 @@ const calculateSystemHealth = (moduleAnalyses) => {
     moduleAnalyses.forEach(ma => {
         const moduleHealth = ma.analysis?.health_score;
         if (!moduleHealth) return;
-        
+
         const grade = moduleHealth.grade;
         const score = moduleHealth.total_score;
 
@@ -731,7 +727,7 @@ const calculateSystemHealth = (moduleAnalyses) => {
     });
 
     // Calculate average health score
-    health.average_health_score = moduleAnalyses.length > 0 ? 
+    health.average_health_score = moduleAnalyses.length > 0 ?
         Math.round(totalScore / moduleAnalyses.length) : 0;
 
     // Determine overall system grade (enhanced criteria)
@@ -757,7 +753,7 @@ const calculateSystemHealth = (moduleAnalyses) => {
     if (health.total_critical_issues === 0) {
         health.system_strengths.push('No critical issues detected');
     }
-    
+
     if (health.healthy_modules > health.unhealthy_modules) {
         health.system_strengths.push('Majority of modules are healthy');
     }

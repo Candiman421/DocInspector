@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { CONTENT_PATTERNS } from '../config/patterns.js';
+import { parseRegistrationArray } from '../config/patterns.js';
 
 /**
  * Parse a single module file completely
@@ -312,7 +313,7 @@ const extractFunctionCalls = (content) => {
 };
 
 /**
- * Extract module registration information
+ * ENHANCED - Extract module registration information with multiline support + FULL DEBUGGING
  * @param {string} content - File content
  * @returns {Object} Registration analysis
  */
@@ -322,31 +323,281 @@ const extractRegistration = (content) => {
         moduleName: null,
         version: null,
         registeredFunctions: [],
-        registrationCall: null
+        registrationCall: null,
+        versionMismatch: null,
+        debugInfo: {
+            hasRegisterModule: false,
+            simpleMatchFound: false,
+            complexMatchFound: false,
+            capturingGroups: 0,
+            manualExtractionAttempted: false,
+            parsingMethod: null
+        }
     };
 
     try {
+        console.log('\n=== ENHANCED DEBUGGING extractRegistration ===');
+
+        // Test if registerModule exists at all
+        const hasRegisterModule = content.includes('registerModule');
+        registration.debugInfo.hasRegisterModule = hasRegisterModule;
+        console.log('Debug - File contains registerModule:', hasRegisterModule);
+
+        if (hasRegisterModule) {
+            // Find the basic pattern first
+            const simpleMatch = content.match(/registerModule\s*\(/);
+            registration.debugInfo.simpleMatchFound = !!simpleMatch;
+            console.log('Debug - Simple registerModule match:', simpleMatch ? 'FOUND' : 'NOT FOUND');
+        }
+
+        // Test the CORRECTED regex (without global flag)
         const registerMatch = content.match(CONTENT_PATTERNS.register_module);
+        registration.debugInfo.complexMatchFound = !!registerMatch;
+        console.log('Debug - Complex regex match:', registerMatch ? 'FOUND' : 'NOT FOUND');
 
         if (registerMatch) {
-            registration.found = true;
-            registration.moduleName = registerMatch[1];
-            registration.version = registerMatch[2];
-            registration.registrationCall = registerMatch[0];
+            console.log('\n--- FULL MATCH OBJECT DEBUG ---');
+            registration.debugInfo.capturingGroups = registerMatch.length;
+            console.log('Total capturing groups:', registerMatch.length);
 
-            // Extract function list
-            const functionsString = registerMatch[3];
-            const functionMatches = functionsString.match(/'([^']+)'/g);
+            for (let i = 0; i < registerMatch.length; i++) {
+                const value = registerMatch[i];
+                if (value !== undefined) {
+                    const preview = value.length > 100 ? value.slice(0, 100) + '...' : value;
+                    console.log(`  [${i}]: "${preview}"`);
+                } else {
+                    console.log(`  [${i}]: undefined`);
+                }
+            }
 
-            if (functionMatches) {
-                registration.registeredFunctions = functionMatches.map(match => match.slice(1, -1));
+            console.log('\n--- EXPECTED CONTENT ---');
+            console.log('Module name should be at index 2:', registerMatch[2]);
+            console.log('Version should be at index 4:', registerMatch[4]);
+            console.log('Array content should be at index 5:', registerMatch[5] ? 'EXISTS' : 'UNDEFINED');
+
+            if (registerMatch[2] && registerMatch[4] && registerMatch[5]) {
+                registration.found = true;
+                registration.moduleName = registerMatch[2];
+                registration.version = registerMatch[4];
+                registration.registrationCall = registerMatch[0];
+                registration.debugInfo.parsingMethod = 'regex_success';
+
+                // Debug array parsing
+                const arrayContent = registerMatch[5];
+                console.log('\n--- ARRAY PARSING DEBUG ---');
+                console.log('Raw array content exists, length:', arrayContent.length);
+                console.log('Calling parseRegistrationArray...');
+
+                registration.registeredFunctions = parseRegistrationArray(arrayContent);
+                console.log('parseRegistrationArray returned:', registration.registeredFunctions.length, 'functions');
+                
+                if (registration.registeredFunctions.length > 0) {
+                    console.log('First 5 functions:', registration.registeredFunctions.slice(0, 5));
+                }
+            } else {
+                console.log('ERROR: Some capturing groups undefined - falling back to manual extraction');
             }
         }
+
+        // Enhanced manual extraction if regex failed
+        if (!registration.found) {
+            console.log('\n--- ENHANCED MANUAL EXTRACTION ---');
+            registration.debugInfo.manualExtractionAttempted = true;
+            
+            // More robust manual pattern
+            const manualMatch = content.match(/registerModule\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*\[([\s\S]*?)\]\s*\)/);
+            
+            if (manualMatch) {
+                console.log('Enhanced manual extraction SUCCESS');
+                registration.found = true;
+                registration.moduleName = manualMatch[1];
+                registration.version = manualMatch[2];
+                registration.registrationCall = manualMatch[0];
+                registration.debugInfo.parsingMethod = 'manual_success';
+                
+                registration.registeredFunctions = parseRegistrationArray(manualMatch[3]);
+                console.log('Manual functions found:', registration.registeredFunctions.length);
+                
+                if (registration.registeredFunctions.length > 0) {
+                    console.log('First 5 functions:', registration.registeredFunctions.slice(0, 5));
+                }
+            } else {
+                console.log('Enhanced manual extraction also FAILED');
+                registration.debugInfo.parsingMethod = 'failed';
+                
+                // Show the actual registerModule call for debugging
+                const callMatch = content.match(/registerModule[\s\S]{0,500}/);
+                if (callMatch) {
+                    console.log('Actual registerModule call found:');
+                    console.log(callMatch[0]);
+                }
+            }
+        }
+
+        // Version mismatch detection
+        if (registration.found && registration.moduleName) {
+            const moduleNameParts = registration.moduleName.split('_');
+            const registeredVersion = moduleNameParts[0];
+            
+            // Extract version from module name for comparison
+            console.log('\n--- VERSION MISMATCH DETECTION ---');
+            console.log('Registered module name:', registration.moduleName);
+            console.log('Extracted registered version:', registeredVersion);
+            
+            registration.versionMismatch = {
+                hasNameVersionPrefix: !!registeredVersion,
+                registeredNameVersion: registeredVersion,
+                registeredCallVersion: registration.version
+            };
+        }
+
+        console.log('\n--- FINAL REGISTRATION OBJECT ---');
+        console.log('Found:', registration.found);
+        console.log('Module name:', registration.moduleName);
+        console.log('Version:', registration.version);
+        console.log('Functions count:', registration.registeredFunctions.length);
+        console.log('Parsing method:', registration.debugInfo.parsingMethod);
+        console.log('=== END ENHANCED DEBUGGING ===\n');
+
     } catch (error) {
+        console.log('ERROR in extractRegistration:', error.message);
         registration.error = error.message;
+        registration.debugInfo.parsingMethod = 'error';
     }
 
     return registration;
+};
+
+/**
+ * Validate filename vs registration consistency
+ * @param {string} filename - Module filename
+ * @param {Object} registration - Registration object
+ * @returns {Object} Validation result
+ */
+const validateFilenameRegistration = (filename, registration) => {
+    const validation = {
+        consistent: true,
+        issues: [],
+        filenameVersion: null,
+        registeredVersion: null,
+        recommendations: []
+    };
+
+    try {
+        // Extract version from filename
+        const filenameMatch = filename.match(/^(\d+(?:\.\d+)*)_(.+)\.jsx?$/);
+        if (filenameMatch) {
+            validation.filenameVersion = filenameMatch[1];
+        }
+
+        // Extract version from registration
+        if (registration.found && registration.moduleName) {
+            const moduleNameParts = registration.moduleName.split('_');
+            validation.registeredVersion = moduleNameParts[0];
+        }
+
+        // Compare versions
+        if (validation.filenameVersion && validation.registeredVersion) {
+            if (validation.filenameVersion !== validation.registeredVersion) {
+                validation.consistent = false;
+                validation.issues.push({
+                    type: 'version_mismatch',
+                    severity: 'high',
+                    description: `Filename version (${validation.filenameVersion}) doesn't match registration version (${validation.registeredVersion})`,
+                    filename: filename,
+                    registrationCall: registration.registrationCall
+                });
+                
+                validation.recommendations.push({
+                    action: 'update_registration',
+                    description: `Update registerModule() call to use version '${validation.filenameVersion}'`,
+                    suggestedFix: `registerModule('${validation.filenameVersion}_${registration.moduleName.split('_')[1]}', '${registration.version}', [...`
+                });
+            }
+        }
+
+    } catch (error) {
+        validation.error = error.message;
+    }
+
+    return validation;
+};
+
+/**
+ * Comprehensive registration debugging
+ * @param {string} filePath - Module file path
+ * @returns {Object} Detailed analysis
+ */
+const debugRegistrationExtraction = (filePath) => {
+    const filename = path.basename(filePath);
+    const content = fs.readFileSync(filePath, 'utf8');
+    
+    console.log(`\n🔍 DEBUGGING REGISTRATION EXTRACTION: ${filename}`);
+    console.log('='.repeat(60));
+    
+    const analysis = {
+        filename,
+        contentLength: content.length,
+        hasRegisterModule: content.includes('registerModule'),
+        registerModuleCalls: [],
+        extractionAttempts: {
+            regex: null,
+            manual: null,
+            enhanced: null
+        },
+        finalResult: null
+    };
+    
+    // Find all registerModule calls
+    const allCalls = content.match(/registerModule[^;]*/g);
+    if (allCalls) {
+        analysis.registerModuleCalls = allCalls.map(call => ({
+            call: call.substring(0, 100) + (call.length > 100 ? '...' : ''),
+            length: call.length
+        }));
+    }
+    
+    console.log('📊 Basic Analysis:');
+    console.log(`   Content length: ${analysis.contentLength} chars`);
+    console.log(`   Contains registerModule: ${analysis.hasRegisterModule}`);
+    console.log(`   RegisterModule calls found: ${analysis.registerModuleCalls.length}`);
+    
+    if (analysis.registerModuleCalls.length > 0) {
+        console.log('📋 Found calls:');
+        analysis.registerModuleCalls.forEach((call, i) => {
+            console.log(`   ${i + 1}. ${call.call}`);
+        });
+    }
+    
+    // Test extraction methods
+    analysis.extractionAttempts.regex = extractRegistration(content);
+    analysis.finalResult = analysis.extractionAttempts.regex;
+    
+    // Validation
+    const validation = validateFilenameRegistration(filename, analysis.finalResult);
+    analysis.validation = validation;
+    
+    console.log('🎯 Final Results:');
+    console.log(`   Extraction successful: ${analysis.finalResult.found}`);
+    console.log(`   Module name: ${analysis.finalResult.moduleName}`);
+    console.log(`   Version: ${analysis.finalResult.version}`);
+    console.log(`   Functions count: ${analysis.finalResult.registeredFunctions.length}`);
+    console.log(`   Version consistent: ${validation.consistent}`);
+    
+    if (!validation.consistent) {
+        console.log('⚠️  Issues found:');
+        validation.issues.forEach(issue => {
+            console.log(`   - ${issue.description}`);
+        });
+        console.log('💡 Recommendations:');
+        validation.recommendations.forEach(rec => {
+            console.log(`   - ${rec.description}`);
+        });
+    }
+    
+    console.log('='.repeat(60));
+    
+    return analysis;
 };
 
 /**
@@ -579,5 +830,7 @@ export default {
     extractDependencies,
     extractFunctionContent,
     normalizeFunctionContent,
-    extractFunctionCalls
+    extractFunctionCalls,
+    validateFilenameRegistration,
+    debugRegistrationExtraction
 };

@@ -29,14 +29,14 @@ export const ES3_RULES = {
             name: 'var_destructuring_assignment',
             description: 'ES6 destructuring assignment with var',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 // Verify this is actual destructuring, not object literal
                 var beforeMatch = fullContent.substring(Math.max(0, position - 50), position);
                 var afterMatch = fullContent.substring(position, position + 100);
-                
+
                 // Must have var/let/const before and = after
-                return (beforeMatch.match(/\b(var|let|const)\s*$/) && 
-                        afterMatch.match(/^\{[^}]*\}\s*=/));
+                return (beforeMatch.match(/\b(var|let|const)\s*$/) &&
+                    afterMatch.match(/^\{[^}]*\}\s*=/));
             }
         },
         {
@@ -45,7 +45,7 @@ export const ES3_RULES = {
             name: 'function_parameter_destructuring',
             description: 'ES6 destructuring in function parameters',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 // Verify this is in function parameters, not object method
                 return match.indexOf('function') !== -1;
             }
@@ -56,7 +56,7 @@ export const ES3_RULES = {
             name: 'array_destructuring',
             description: 'ES6 array destructuring assignment',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 // Must be variable declaration, not array access
                 var beforeMatch = fullContent.substring(Math.max(0, position - 20), position);
                 return beforeMatch.match(/\b(var|let|const)\s*$/);
@@ -72,13 +72,13 @@ export const ES3_RULES = {
             name: 'arrow_function',
             description: 'ES6 arrow function syntax',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 // Verify not inside comments or strings
                 var beforeMatch = fullContent.substring(0, position);
-                var inString = (beforeMatch.split('"').length % 2 === 0) && 
-                              (beforeMatch.split("'").length % 2 === 0);
+                var inString = (beforeMatch.split('"').length % 2 === 0) &&
+                    (beforeMatch.split("'").length % 2 === 0);
                 var inComment = beforeMatch.lastIndexOf('//') > beforeMatch.lastIndexOf('\n');
-                
+
                 return inString && !inComment;
             }
         }
@@ -92,7 +92,7 @@ export const ES3_RULES = {
             name: 'template_literal_interpolation',
             description: 'ES6 template literal with interpolation',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 // Must contain ${} interpolation to be ES6 template literal
                 return match.indexOf('${') !== -1;
             }
@@ -103,7 +103,7 @@ export const ES3_RULES = {
             name: 'multiline_template_literal',
             description: 'Multi-line template literal (ES6)',
             confidence: CONFIDENCE_LEVELS.HIGH,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 // Verify contains actual newlines, not \n escape
                 return match.indexOf('\n') !== -1;
             }
@@ -118,7 +118,7 @@ export const ES3_RULES = {
             name: 'const_declaration',
             description: 'ES6 const variable declaration',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 return !isInCommentOrString(fullContent, position);
             }
         },
@@ -128,7 +128,7 @@ export const ES3_RULES = {
             name: 'let_declaration',
             description: 'ES6 let variable declaration',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 return !isInCommentOrString(fullContent, position);
             }
         }
@@ -142,7 +142,7 @@ export const ES3_RULES = {
             name: 'spread_function_call',
             description: 'ES6 spread operator in function call',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 return !isInCommentOrString(fullContent, position);
             }
         },
@@ -152,7 +152,7 @@ export const ES3_RULES = {
             name: 'spread_array_literal',
             description: 'ES6 spread operator in array literal',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 return !isInCommentOrString(fullContent, position);
             }
         }
@@ -165,7 +165,7 @@ export const ES3_RULES = {
             name: 'class_declaration',
             description: 'ES6 class declaration',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position) {
+            context_check: function (match, fullContent, position) {
                 return !isInCommentOrString(fullContent, position);
             }
         }
@@ -205,8 +205,8 @@ export const ES3_RULES = {
     base_penalty: 100,
     critical_multiplier: 3,
     critical: true,
-    
-    confidence_adjustment: function(penalty, confidence) {
+
+    confidence_adjustment: function (penalty, confidence) {
         // Reduce penalty for low confidence detections
         if (confidence < CONFIDENCE_LEVELS.LOW) {
             return penalty * 0.3;
@@ -245,11 +245,11 @@ export const RESERVED_WORD_SAFETY = {
             pattern: /(\w+\.({word})\s*=|[\{\s]({word})\s*:)/g,
             name: 'property_definition',
             confidence: CONFIDENCE_LEVELS.HIGH,
-            context_check: function(match, fullContent, position, word) {
+            context_check: function (match, fullContent, position, word) {
                 // Verify this is actual property access, not variable name
                 var beforeMatch = fullContent.substring(Math.max(0, position - 20), position);
                 var afterMatch = fullContent.substring(position, position + 20);
-                
+
                 // Look for object.property or {property: patterns
                 return (match.indexOf('.') !== -1 || match.indexOf(':') !== -1);
             }
@@ -259,7 +259,7 @@ export const RESERVED_WORD_SAFETY = {
             pattern: /\w+\[['"]({word})['"]\]/g,
             name: 'bracket_property_access',
             confidence: CONFIDENCE_LEVELS.CERTAIN,
-            context_check: function(match, fullContent, position, word) {
+            context_check: function (match, fullContent, position, word) {
                 // This is definitely property access
                 return true;
             }
@@ -276,7 +276,7 @@ export const RESERVED_WORD_SAFETY = {
     critical_multiplier: 2,
     critical: true,
 
-    confidence_adjustment: function(penalty, confidence) {
+    confidence_adjustment: function (penalty, confidence) {
         return ES3_RULES.confidence_adjustment(penalty, confidence);
     }
 };
@@ -294,7 +294,7 @@ export const DEPENDENCY_RULES = {
     missing_dependency_penalty: 250,      // CRITICAL - will crash
     undeclared_dependencies: 25,
     reverse_dependency_penalty: 400,      // CRITICAL - like 1.15→1.1 example
-    
+
     // Version order enforcement
     version_order_rules: {
         // Must follow X.Y.Z.W pattern where each component increases
@@ -316,11 +316,15 @@ export const LOGGING_RULES = {
     target_modern_percentage: 80,  // More realistic target
 
     modern_patterns: [
-        'logDebug(', 'logInfo(', 'logWarn(', 'logError(', 'logMessage('
+        /\blogDebug\s*\(/g,
+        /\blogInfo\s*\(/g,
+        /\blogWarn\s*\(/g,
+        /\blogError\s*\(/g,
+        /\blogMessage\s*\(/g
     ],
 
     legacy_patterns: [
-        '$.writeln('
+        /\$\.writeln\s*\(/g
     ],
 
     // Valid categories from actual DocDom usage
@@ -332,8 +336,8 @@ export const LOGGING_RULES = {
 
     // Categories that crash ExtendScript
     forbidden_categories: ['export', 'import', 'class', 'const', 'let'],
-    
-    confidence_adjustment: function(penalty, confidence) {
+
+    confidence_adjustment: function (penalty, confidence) {
         return ES3_RULES.confidence_adjustment(penalty, confidence);
     }
 };
@@ -530,21 +534,21 @@ export const SEVERITY_CLASSIFICATION = {
         penalty_multiplier: 4,
         requires_immediate_fix: true
     },
-    
+
     HIGH: {
         description: 'Causes runtime errors or bugs in production',
         examples: ['Missing error handling', 'Circular references', 'Function collisions'],
         penalty_multiplier: 2,
         requires_immediate_fix: false
     },
-    
+
     MEDIUM: {
         description: 'Technical debt, impacts maintenance',
         examples: ['Poor logging coverage', 'Oversized functions', 'Code organization'],
         penalty_multiplier: 1,
         requires_immediate_fix: false
     },
-    
+
     LOW: {
         description: 'Style/convention issues, no functional impact',
         examples: ['Missing comments', 'Inconsistent formatting'],
@@ -574,27 +578,27 @@ export const HEALTH_THRESHOLDS = {
 export const calculateHealthScore = (violations, bonuses, maxScore = 1000) => {
     let totalPenalties = 0;
     let totalBonuses = bonuses.reduce((sum, b) => sum + b.value, 0);
-    
+
     // Apply penalties with confidence weighting
     violations.forEach(violation => {
         const basePenalty = violation.penalty || violation.value || 0;
         const confidence = violation.confidence || CONFIDENCE_LEVELS.MEDIUM;
         const severity = violation.severity || 'MEDIUM';
-        
+
         // Apply confidence adjustment
         let adjustedPenalty = ES3_RULES.confidence_adjustment(basePenalty, confidence);
-        
+
         // Apply severity multiplier
         const severityMultiplier = SEVERITY_CLASSIFICATION[severity]?.penalty_multiplier || 1;
         adjustedPenalty *= severityMultiplier;
-        
+
         totalPenalties += adjustedPenalty;
     });
-    
+
     // Calculate final score
     let score = maxScore - totalPenalties + totalBonuses;
     score = Math.max(0, Math.min(maxScore, score));
-    
+
     // Determine grade
     let grade = 'F';
     for (const [gradeLevel, threshold] of Object.entries(HEALTH_THRESHOLDS)) {
@@ -603,7 +607,7 @@ export const calculateHealthScore = (violations, bonuses, maxScore = 1000) => {
             break;
         }
     }
-    
+
     return {
         total_score: Math.round(score),
         grade,
@@ -612,7 +616,7 @@ export const calculateHealthScore = (violations, bonuses, maxScore = 1000) => {
         bonuses: totalBonuses,
         max_possible: maxScore,
         violations_count: violations.length,
-        high_confidence_violations: violations.filter(v => 
+        high_confidence_violations: violations.filter(v =>
             (v.confidence || 0) >= CONFIDENCE_LEVELS.HIGH).length
     };
 };
@@ -626,25 +630,25 @@ export const calculateHealthScore = (violations, bonuses, maxScore = 1000) => {
  */
 function isInCommentOrString(content, position) {
     const beforePosition = content.substring(0, position);
-    
+
     // Check for single-line comment
     const lastNewline = beforePosition.lastIndexOf('\n');
     const afterNewline = beforePosition.substring(lastNewline);
     if (afterNewline.indexOf('//') !== -1) {
         return true;
     }
-    
+
     // Check for multi-line comment
     const lastCommentStart = beforePosition.lastIndexOf('/*');
     const lastCommentEnd = beforePosition.lastIndexOf('*/');
     if (lastCommentStart > lastCommentEnd) {
         return true;
     }
-    
+
     // Check for string literals (simplified)
     const doubleQuotes = (beforePosition.match(/"/g) || []).length;
     const singleQuotes = (beforePosition.match(/'/g) || []).length;
-    
+
     return (doubleQuotes % 2 === 1) || (singleQuotes % 2 === 1);
 }
 
@@ -660,23 +664,23 @@ export const validateDetection = (pattern, testSamples) => {
         precision: 0,
         recall: 0
     };
-    
+
     testSamples.forEach(sample => {
         const detected = pattern.test(sample.code);
         const shouldDetect = sample.shouldMatch;
-        
+
         if (detected && shouldDetect) results.truePositives++;
         else if (detected && !shouldDetect) results.falsePositives++;
         else if (!detected && !shouldDetect) results.trueNegatives++;
         else if (!detected && shouldDetect) results.falseNegatives++;
     });
-    
+
     const totalDetected = results.truePositives + results.falsePositives;
     const totalShouldMatch = results.truePositives + results.falseNegatives;
-    
+
     results.precision = totalDetected > 0 ? results.truePositives / totalDetected : 0;
     results.recall = totalShouldMatch > 0 ? results.truePositives / totalShouldMatch : 0;
-    
+
     return results;
 };
 

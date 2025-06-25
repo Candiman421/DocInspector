@@ -15,7 +15,9 @@ import {
     parseVersion,
     compareVersions
 } from '../config/patterns.js';
+import { sortModulesByVersion } from '../config/patterns.js';
 
+// Remove local function entirely, just use the imported one
 /**
  * Discover all folders containing DocDom modules
  * @param {string} rootPath - Root path to scan from
@@ -142,35 +144,6 @@ export const analyzeFolderContext = (folderInfo) => {
     }
 
     return context;
-};
-
-/**
- * Sort module files by version for dependency order
- * @param {string[]} moduleFiles - Array of module filenames
- * @returns {Array} Sorted module file information
- */
-export const sortModulesByVersion = (moduleFiles) => {
-    const moduleData = moduleFiles.map(filename => {
-        const version = extractVersion(filename);
-        const versionArray = version ? parseVersion(version) : [0];
-
-        return {
-            filename,
-            version,
-            versionArray,
-            sortKey: versionArray.join('.')
-        };
-    });
-
-    // Sort by version array comparison
-    moduleData.sort((a, b) => compareVersions(a.versionArray, b.versionArray));
-
-    console.log(chalk.cyan('📋 Module dependency order:'));
-    moduleData.forEach((module, index) => {
-        console.log(chalk.gray(`   ${index + 1}. ${module.filename} (v${module.version || 'unknown'})`));
-    });
-
-    return moduleData;
 };
 
 /**

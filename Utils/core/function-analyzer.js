@@ -113,12 +113,12 @@ export const analyzeES3Compliance = (content) => {
             if (patternConfig.context_check) {
                 try {
                     isActualViolation = patternConfig.context_check(
-                        matchText, 
-                        content, 
+                        matchText,
+                        content,
                         position,
                         match[1] // captured group if any
                     );
-                    
+
                     // Reduce confidence if context check is uncertain
                     if (!isActualViolation) {
                         return; // Skip this match - false positive
@@ -139,7 +139,7 @@ export const analyzeES3Compliance = (content) => {
             }
 
             const lineNumber = getLineNumber(content, position);
-            
+
             // Calculate penalty with confidence adjustment
             const basePenalty = ES3_RULES.base_penalty;
             const adjustedPenalty = ES3_RULES.confidence_adjustment(basePenalty, confidence);
@@ -222,10 +222,10 @@ export const analyzeReservedWordSafety = (content) => {
             // Simple property access check if patterns are not available
             const dotPattern = new RegExp(`\\w+\\.${word}\\b`, 'g');
             const bracketPattern = new RegExp(`\\w+\\[['"]${word}['"]\\]`, 'g');
-            
+
             const dotMatches = [...content.matchAll(dotPattern)];
             const bracketMatches = [...content.matchAll(bracketPattern)];
-            
+
             [...dotMatches, ...bracketMatches].forEach(match => {
                 // Skip if in comments or strings
                 if (isInCommentOrString(content, match.index)) {
@@ -279,32 +279,34 @@ export const analyzeLoggingCompliance = (content) => {
 
     // Count modern logging calls with confidence
     LOGGING_RULES.modern_patterns.forEach(pattern => {
-        const matches = [...content.matchAll(pattern)];
-        analysis.modernCalls += matches.length;
+        // Ensure pattern is a RegExp object
+        const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern.replace(/[()]/g, '\\$&'), 'g');
+        const regexMatches = [...content.matchAll(regex)];
+        analysis.modernCalls += regexMatches.length;
     });
 
     // Count legacy logging calls
     LOGGING_RULES.legacy_patterns.forEach(pattern => {
-        const matches = [...content.matchAll(pattern)];
-        analysis.legacyCalls += matches.length;
+        const regexMatches = [...content.matchAll(pattern)];
+        analysis.legacyCalls += regexMatches.length;
     });
 
     // Check for invalid categories (like 'export') with context verification
     LOGGING_RULES.forbidden_categories.forEach(category => {
         const pattern = new RegExp(`log\\w+\\([^,]*,\\s*['"]${category}['"]`, 'g');
-        const matches = [...content.matchAll(pattern)];
-        
-        matches.forEach(match => {
+        const regexMatches = [...content.matchAll(pattern)];
+
+        regexMatches.forEach(match => {
             const position = match.index;
             const lineNum = getLineNumber(content, position);
-            
+
             // Verify this is actually a logging call, not in a comment
-            const confidence = isInCommentOrString(content, position) ? 
+            const confidence = isInCommentOrString(content, position) ?
                 CONFIDENCE_LEVELS.UNCERTAIN : CONFIDENCE_LEVELS.HIGH;
-            
+
             if (confidence >= CONFIDENCE_LEVELS.MEDIUM) {
                 analysis.invalidCategories++;
-                
+
                 const violation = {
                     type: 'forbidden_category',
                     category: category,
@@ -316,9 +318,9 @@ export const analyzeLoggingCompliance = (content) => {
                     fix: `Replace category '${category}' with valid category (crashes ExtendScript)`,
                     penalty: LOGGING_RULES.invalid_category_penalty
                 };
-                
+
                 analysis.violations.push(violation);
-                
+
                 if (confidence >= CONFIDENCE_LEVELS.HIGH) {
                     analysis.confidence_summary.high_confidence_violations++;
                 } else {
@@ -383,7 +385,7 @@ export const analyzeFunctionArchitecture = (content, moduleData) => {
     }
 
     const functions = moduleData.functions;
-    
+
     // DEFENSIVE: Ensure arrays exist
     const globalFunctions = functions.globalFunctions || [];
     const nestedFunctions = functions.nestedFunctions || [];
@@ -419,7 +421,7 @@ export const analyzeFunctionArchitecture = (content, moduleData) => {
         // Function size analysis
         const warningThreshold = 100;
         const criticalThreshold = 200;
-        
+
         if (lineCount > warningThreshold) {
             analysis.oversizedFunctions.push({
                 name: func.name,
@@ -470,7 +472,7 @@ export const analyzeInternalDependencies = (content, moduleData) => {
     }
 
     const functions = moduleData.functions;
-    
+
     // DEFENSIVE: Ensure required properties exist
     const globalFunctions = functions.globalFunctions || [];
     const callGraph = functions.callGraph || {};
@@ -481,14 +483,14 @@ export const analyzeInternalDependencies = (content, moduleData) => {
     // Analyze dependencies for each function
     allFunctionNames.forEach(functionName => {
         const calls = callGraph[functionName] || [];
-        
+
         calls.forEach(calledFunction => {
             if (allFunctionNames.includes(calledFunction)) {
                 analysis.internalCalls.push({
                     caller: functionName,
                     callee: calledFunction
                 });
-                
+
                 if (!analysis.dependencyGraph[functionName]) {
                     analysis.dependencyGraph[functionName] = [];
                 }
@@ -539,7 +541,7 @@ export const generateFunctionInventory = (content, moduleData, options = {}) => 
     }
 
     const functions = moduleData.functions;
-    
+
     // DEFENSIVE: Ensure arrays exist
     const globalFunctions = functions.globalFunctions || [];
     const nestedFunctions = functions.nestedFunctions || [];
@@ -583,7 +585,7 @@ export const generateFunctionInventory = (content, moduleData, options = {}) => 
         // Size analysis
         const lineCount = func.estimatedLineCount || 0;
         const warningThreshold = 100;
-        
+
         if (lineCount > warningThreshold) {
             inventory.oversized.push({
                 name: func.name,
@@ -632,7 +634,7 @@ const getColumnNumber = (content, position) => {
 
     const beforePosition = content.substring(0, position);
     const lastNewline = beforePosition.lastIndexOf('\n');
-    
+
     return position - lastNewline;
 };
 
@@ -646,16 +648,16 @@ const getColumnNumber = (content, position) => {
 const extractCodeSample = (content, position, radius = 50) => {
     const start = Math.max(0, position - radius);
     const end = Math.min(content.length, position + radius);
-    
+
     const sample = content.substring(start, end);
     const relativePos = position - start;
-    
+
     // Mark the problematic section
-    return sample.substring(0, relativePos) + 
-           '>>>' + 
-           sample.substring(relativePos, relativePos + 10) + 
-           '<<<' + 
-           sample.substring(relativePos + 10);
+    return sample.substring(0, relativePos) +
+        '>>>' +
+        sample.substring(relativePos, relativePos + 10) +
+        '<<<' +
+        sample.substring(relativePos + 10);
 };
 
 /**
@@ -676,14 +678,14 @@ const adjustConfidenceBasedOnContext = (content, position, baseConfidence) => {
     // Reduce confidence if near template or example code
     const beforeContext = content.substring(Math.max(0, position - 200), position);
     const afterContext = content.substring(position, Math.min(content.length, position + 200));
-    
+
     const contextIndicators = [
         'example', 'template', 'todo', 'fixme', 'placeholder',
         'comment out', 'disabled', 'unused'
     ];
-    
+
     contextIndicators.forEach(indicator => {
-        if (beforeContext.toLowerCase().includes(indicator) || 
+        if (beforeContext.toLowerCase().includes(indicator) ||
             afterContext.toLowerCase().includes(indicator)) {
             confidence = Math.min(confidence, CONFIDENCE_LEVELS.LOW);
         }
@@ -703,20 +705,20 @@ const adjustConfidenceBasedOnContext = (content, position, baseConfidence) => {
 const verifyPropertyAccessContext = (content, position, word, baseConfidence) => {
     const beforeContext = content.substring(Math.max(0, position - 30), position);
     const afterContext = content.substring(position, Math.min(content.length, position + 30));
-    
+
     // High confidence if clearly property access
-    if (beforeContext.match(/\w+\.$/) || 
+    if (beforeContext.match(/\w+\.$/) ||
         beforeContext.match(/\[$/) && afterContext.match(/^['"]/) ||
         afterContext.match(/^\s*:/)) {
         return Math.max(baseConfidence, CONFIDENCE_LEVELS.HIGH);
     }
-    
+
     // Low confidence if might be variable name
     if (beforeContext.match(/\b(var|let|const|function)\s*$/) ||
         afterContext.match(/^\s*[=(]/)) {
         return Math.min(baseConfidence, CONFIDENCE_LEVELS.LOW);
     }
-    
+
     return baseConfidence;
 };
 
@@ -728,27 +730,27 @@ const verifyPropertyAccessContext = (content, position, word, baseConfidence) =>
  */
 const isInCommentOrString = (content, position) => {
     if (!content || position < 0 || position >= content.length) return false;
-    
+
     const beforePosition = content.substring(0, position);
-    
+
     // Check for single-line comment
     const lastNewline = beforePosition.lastIndexOf('\n');
     const afterNewline = beforePosition.substring(lastNewline);
     if (afterNewline.indexOf('//') !== -1) {
         return true;
     }
-    
+
     // Check for multi-line comment
     const lastCommentStart = beforePosition.lastIndexOf('/*');
     const lastCommentEnd = beforePosition.lastIndexOf('*/');
     if (lastCommentStart > lastCommentEnd) {
         return true;
     }
-    
+
     // Check for string literals
     const doubleQuotes = (beforePosition.match(/"/g) || []).length;
     const singleQuotes = (beforePosition.match(/'/g) || []).length;
-    
+
     return (doubleQuotes % 2 === 1) || (singleQuotes % 2 === 1);
 };
 
@@ -785,7 +787,7 @@ const generateES3FixSuggestion = (violationType, code) => {
         'spread_array_literal': 'Replace with arrayConcat() helper function',
         'class_declaration': 'Replace with constructor function pattern'
     };
-    
+
     return fixes[violationType] || `Convert ${violationType} to ES3-compatible syntax`;
 };
 
@@ -803,7 +805,7 @@ const generateReservedWordFix = (word, code) => {
         'const': `Rename to '${word}Value' or '${word}Setting'`,
         'let': `Rename to '${word}Value' or '${word}Data'`
     };
-    
+
     return suggestions[word] || `Rename property '${word}' to avoid ExtendScript conflicts`;
 };
 
@@ -825,14 +827,14 @@ const validateAgainstKnownGoodPatterns = (violations, content) => {
     return violations.filter(violation => {
         // If violation matches a known good pattern, it's likely a false positive
         const codeSnippet = violation.code_sample || violation.match_text || '';
-        
+
         for (const goodPattern of knownGoodPatterns) {
             if (goodPattern.test(codeSnippet)) {
                 console.warn(`Filtering potential false positive: ${violation.type} in "${codeSnippet}"`);
                 return false;
             }
         }
-        
+
         return true;
     });
 };

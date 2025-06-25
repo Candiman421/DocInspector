@@ -1,4 +1,10 @@
 // config/patterns.js
+// ENHANCED VERSION PATTERNS AND UTILITIES
+// ============================================================================
+
+import fs from 'fs';
+import path from 'path';
+
 // FILE PATTERNS AND EXCLUSIONS - FIXED VERSION
 // ENHANCED VERSION DETECTION - NO MORE FALSE POSITIVES
 // ============================================================================
@@ -42,7 +48,7 @@ export const EXCLUDED_FILES = [
     /^example.*\.jsx?$/i, /^sample.*\.jsx?$/i,
 
     // Hidden files
-    /^\./, 
+    /^\./,
 
     // Package files
     /^package.*\.json$/, /^yarn\.lock$/, /^package-lock\.json$/,
@@ -61,12 +67,12 @@ export const VERSION_COMPARISON_PATTERNS = {
         // Version numbers
         /_[Vv](\d+(?:\.\d+)*)\.jsx?$/,        // _V3.1.jsx, _v2.0.jsx
         /_version(\d+(?:\.\d+)*)\.jsx?$/,     // _version1.2.jsx
-        
+
         // Years and timestamps  
         /_(\d{4})\.jsx?$/,                    // _2024.jsx, _2023.jsx
         /_(\d{8})\.jsx?$/,                    // _20240615.jsx (YYYYMMDD)
         /_(\d{6})\.jsx?$/,                    // _202406.jsx (YYYYMM)
-        
+
         // Semantic version indicators
         /_old\.jsx?$/,                        // _old.jsx
         /_new\.jsx?$/,                        // _new.jsx
@@ -84,7 +90,7 @@ export const VERSION_COMPARISON_PATTERNS = {
         /_test\.jsx?$/,                       // _test.jsx
         /_dev\.jsx?$/,                        // _dev.jsx
         /_prod\.jsx?$/,                       // _prod.jsx
-        
+
         // Complex versioning (like real DocDom files)
         /_(\d+\.\d+\.\d{4}\.\d+\.\d+)\.jsx?$/ // _1.15.1.2025.20.4.jsx
     ]
@@ -99,17 +105,17 @@ export const SYSTEM_ANALYSIS_PATTERNS = {
     dependency_indicators: [
         // Foundation/core modules (should load first)
         /bootstrap/i, /foundation/i, /core/i, /base/i,
-        
+
         // App adapters (load after foundation)
         /adapter/i, /indesign/i, /photoshop/i, /illustrator/i,
-        
+
         // Utility modules (load after foundation)
         /safety/i, /utils/i, /utilities/i, /helpers/i,
-        
+
         // Functionality modules (load after utilities)
         /dom/i, /analyzer/i, /parser/i, /enumerator/i,
         /exporter/i, /visualizer/i, /sampler/i,
-        
+
         // UI modules (load last)
         /ui/i, /interface/i, /advanced/i, /display/i
     ]
@@ -123,8 +129,8 @@ export const CONTENT_PATTERNS = {
     // Function calls (unchanged - works correctly)
     function_call: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
 
-    // Module registration (unchanged - works correctly)
-    register_module: /registerModule\s*\(\s*['"]([^'"]+)['"],\s*['"]([^'"]+)['"],\s*\[(.*?)\]/s,
+    // Replace the current register_module pattern with the robust version
+    register_module: /registerModule\s*\(\s*(['"])([^'"]+)\1\s*,\s*(['"])([^'"]+)\3\s*,\s*\[([\s\S]*?)\]\s*\)\s*;?/gs,
 
     // Dependency validation (unchanged - works correctly)
     dependency_validation: /validateDependencies\s*\(\s*\[(.*?)\]/s,
@@ -145,7 +151,7 @@ export const CONTENT_PATTERNS = {
     // FIXED Reserved word usage - context-aware patterns
     export_property_usage: /(\w+\.export\b|\w+\[['"]export['"]\]|\{['"]?export['"]?\s*:)/g,
     import_property_usage: /(\w+\.import\b|\w+\[['"]import['"]\]|\{['"]?import['"]?\s*:)/g,
-    
+
     // Memory management (unchanged - works correctly)
     memory_cleanup: /(memoryCleanup|= null|delete\s+)/g,
 
@@ -161,7 +167,7 @@ export const OUTPUT_PATTERNS = {
     version_comparison: '~version-comparison-{prefix}-{timestamp}.yaml',
     assembled: '{folder}_ASSEMBLED_{timestamp}.jsx',
     includes: '{folder}_INCLUDES_{timestamp}.jsx',
-    
+
     gitignore_patterns: [
         '*_ASSEMBLED_*.jsx', '*_INCLUDES_*.jsx',
         '~analysis-*.yaml', '~module-*.yaml',
@@ -186,70 +192,195 @@ export const TIMESTAMP_FORMAT = {
 };
 
 /**
- * ENHANCED Parse version string into comparable array
- * NOW SUPPORTS: Complex versions like 1.15.1.2025.20.4
- * @param {string} versionString - Version like "1.2.1" or "1.15.1.2025.20.4"
+ * ENHANCED - Parse version string into comparable array with normalization support
+ * @param {string} versionString - Version like "1.2" or "1.15.1.2025.20.4"
+ * @param {number} targetLength - Target length to pad to (optional)
  * @returns {number[]} Array of version numbers
  */
-export const parseVersion = (versionString) => {
+export const parseVersion = (versionString, targetLength = null) => {
     if (!versionString) return [0];
-    
-    return versionString.split('.').map(num => {
-        const parsed = parseInt(num, 10);
-        return isNaN(parsed) ? 0 : parsed;
-    });
+
+    const components = versionString.split('.').map(num => parseInt(num, 10) || 0);
+
+    // Pad to target length if specified
+    if (targetLength && components.length < targetLength) {
+        while (components.length < targetLength) {
+            components.push(0);
+        }
+    }
+
+    return components;
 };
 
 /**
- * ENHANCED Compare two version arrays
- * HANDLES: Complex version numbers with more than 4 components
- * @param {number[]} a - First version array
- * @param {number[]} b - Second version array  
- * @returns {number} -1 (a < b), 0 (a == b), or 1 (a > b)
+ * ENHANCED - Compare version arrays with automatic normalization
+ * @param {number[]} version1 - First version array
+ * @param {number[]} version2 - Second version array
+ * @returns {number} -1, 0, or 1 for comparison
  */
-export const compareVersions = (a, b) => {
-    if (!Array.isArray(a) || !Array.isArray(b)) {
+export const compareVersions = (version1, version2) => {
+    if (!Array.isArray(version1) || !Array.isArray(version2)) {
         return 0;
     }
-    
-    const maxLength = Math.max(a.length, b.length);
 
+    // Normalize to same length
+    const maxLength = Math.max(version1.length, version2.length);
+    const v1 = [...version1];
+    const v2 = [...version2];
+
+    while (v1.length < maxLength) v1.push(0);
+    while (v2.length < maxLength) v2.push(0);
+
+    // Compare component by component
     for (let i = 0; i < maxLength; i++) {
-        const aVal = a[i] || 0;
-        const bVal = b[i] || 0;
-
-        if (aVal < bVal) return -1;
-        if (aVal > bVal) return 1;
+        if (v1[i] < v2[i]) return -1;
+        if (v1[i] > v2[i]) return 1;
     }
 
     return 0;
 };
 
 /**
- * ENHANCED Extract version from filename
- * SUPPORTS: _V3.1.jsx, _1.15.1.2025.20.4.jsx, etc.
- * @param {string} filename - Module filename
- * @returns {string|null} Version string or null
+ * Extract version from filename - UNLIMITED COMPONENTS
+ * @param {string} filename - Filename to extract version from
+ * @returns {string} Version string or null
  */
 export const extractVersion = (filename) => {
-    if (!filename) return null;
-    
-    // Try main version pattern first (most common)
-    const mainMatch = filename.match(VERSION_EXTRACTION_PATTERN);
-    if (mainMatch) {
-        return mainMatch[1];
-    }
-    
-    // Try version indicators for comparison files
-    for (const pattern of VERSION_COMPARISON_PATTERNS.version_indicators) {
-        const match = filename.match(pattern);
-        if (match) {
-            // Return the captured version number or the semantic version
-            return match[1] || extractSemanticVersion(filename);
+    const match = filename.match(/^(\d+(?:\.\d+)*)_/);
+    return match ? match[1] : null;
+};
+
+/**
+ * NEW - Normalize all versions in a collection to same length
+ * @param {Array} filenames - Array of filenames
+ * @returns {Object} Mapping of filename to normalized version array
+ */
+export const normalizeVersionsInCollection = (filenames) => {
+    const versionData = {};
+    let maxLength = 0;
+
+    // First pass: extract all versions and find max length
+    filenames.forEach(filename => {
+        const version = extractVersion(filename);
+        if (version) {
+            const components = parseVersion(version);
+            versionData[filename] = components;
+            maxLength = Math.max(maxLength, components.length);
+        } else {
+            versionData[filename] = [0];
         }
+    });
+
+    // Second pass: normalize all to max length
+    Object.keys(versionData).forEach(filename => {
+        const components = versionData[filename];
+        while (components.length < maxLength) {
+            components.push(0);
+        }
+    });
+
+    return versionData;
+};
+
+/**
+ * CANONICAL - Sort module files by normalized version comparison
+ * @param {string[]} moduleFiles - Array of module filenames
+ * @param {Object} options - Optional formatting options
+ * @returns {Array} Sorted module information
+ */
+export const sortModulesByVersion = (moduleFiles, options = {}) => {
+    // Get normalized versions for all files
+    const normalizedVersions = normalizeVersionsInCollection(moduleFiles);
+
+    const moduleData = moduleFiles.map(filename => {
+        const version = extractVersion(filename) || '0';
+        const versionArray = normalizedVersions[filename];
+
+        const result = {
+            filename,
+            version,
+            versionArray
+        };
+
+        // Optional: add sortKey if requested
+        if (options.includeSortKey) {
+            result.sortKey = versionArray.join('.');
+        }
+
+        return result;
+    });
+
+    // Sort by normalized version array comparison
+    moduleData.sort((a, b) => compareVersions(a.versionArray, b.versionArray));
+
+    // Optional: logging
+    if (options.verbose) {
+        console.log(chalk.cyan('📋 Module dependency order:'));
+        moduleData.forEach((module, index) => {
+            console.log(chalk.gray(`   ${index + 1}. ${module.filename} (v${module.version})`));
+        });
     }
-    
-    return null;
+
+    return moduleData;
+};
+
+/**
+ * Validate module files accessibility and basic structure
+ * @param {string} folderPath - Path to folder containing modules
+ * @param {string[]} moduleFiles - Array of module filenames
+ * @returns {Object} Validation results
+ */
+export const validateModuleFiles = (folderPath, moduleFiles) => {
+    const validation = { valid: [], invalid: [] };
+
+    moduleFiles.forEach(filename => {
+        const fullPath = path.join(folderPath, filename);
+        try {
+            fs.accessSync(fullPath, fs.constants.R_OK);
+            const content = fs.readFileSync(fullPath, 'utf8');
+            if (content.includes('function ')) {
+                validation.valid.push(filename);
+            } else {
+                validation.invalid.push(filename);
+            }
+        } catch (error) {
+            validation.invalid.push(filename);
+        }
+    });
+
+    return validation;
+};
+
+/**
+ * ENHANCED - Extract function list from registerModule array string
+ * Handles multiline arrays with comments and various formatting
+ * @param {string} arrayContent - Content between [ and ]
+ * @returns {Array} Array of function names
+ */
+export const parseRegistrationArray = (arrayContent) => {
+    if (!arrayContent) return [];
+
+    const functions = [];
+
+    // Remove all comments and whitespace noise
+    let cleaned = arrayContent
+        .replace(/\/\/.*$/gm, '')          // Remove line comments
+        .replace(/\/\*[\s\S]*?\*\//g, '')  // Remove block comments
+        .replace(/\s+/g, ' ')              // Normalize whitespace
+        .trim();
+
+    // Extract ALL quoted strings (both single and double quotes)
+    const singleQuotes = cleaned.match(/'([^']+)'/g) || [];
+    const doubleQuotes = cleaned.match(/"([^"]+)"/g) || [];
+
+    [...singleQuotes, ...doubleQuotes].forEach(match => {
+        const funcName = match.slice(1, -1).trim();
+        if (funcName && funcName.length > 0 && !functions.includes(funcName)) {
+            functions.push(funcName);
+        }
+    });
+
+    return functions;
 };
 
 /**
@@ -261,19 +392,19 @@ const extractSemanticVersion = (filename) => {
     const semanticOrder = {
         'old': '0.1', 'original': '0.2', 'backup': '0.3',
         'alpha': '0.4', 'beta': '0.5', 'test': '0.6', 'dev': '0.7',
-        'current': '1.0', 'updated': '1.1', 'modified': '1.2', 
-        'revised': '1.3', 'fixed': '1.4', 'new': '1.5', 
+        'current': '1.0', 'updated': '1.1', 'modified': '1.2',
+        'revised': '1.3', 'fixed': '1.4', 'new': '1.5',
         'latest': '1.9', 'final': '2.0', 'prod': '2.1'
     };
-    
+
     const lowerFilename = filename.toLowerCase();
-    
+
     for (const [semantic, version] of Object.entries(semanticOrder)) {
         if (lowerFilename.includes(semantic)) {
             return version;
         }
     }
-    
+
     // Default version for unknown semantics
     return '1.0';
 };
@@ -295,7 +426,7 @@ export const isModuleFile = (filename) => {
  */
 export const isExcludedFile = (filename) => {
     if (!filename) return true;
-    
+
     return EXCLUDED_FILES.some(pattern => {
         if (pattern instanceof RegExp) {
             return pattern.test(filename);
@@ -330,7 +461,7 @@ export const groupByVersionPrefix = (filenames) => {
             // e.g., 1.15.1.2025.20.4 → 1.15
             const versionComponents = version.split('.');
             const baseVersion = versionComponents.slice(0, 2).join('.');
-            
+
             if (!groups[baseVersion]) {
                 groups[baseVersion] = [];
             }
@@ -350,11 +481,11 @@ export const groupByVersionPrefix = (filenames) => {
 export const determineModuleType = (filename, content = '') => {
     const version = extractVersion(filename);
     const versionComponents = parseVersion(version || '0');
-    
+
     // Determine module category based on version prefix
     let category = 'unknown';
     let loadOrder = 999;
-    
+
     if (versionComponents[0] === 1) {
         if (versionComponents[1] === 1) {
             category = 'foundation';
@@ -382,7 +513,7 @@ export const determineModuleType = (filename, content = '') => {
         category = 'ui';
         loadOrder = 8;
     }
-    
+
     return {
         category,
         loadOrder,
@@ -407,11 +538,11 @@ export const validateDependencyOrder = (moduleList) => {
         loadOrder: [],
         errors: []
     };
-    
+
     if (!Array.isArray(moduleList) || moduleList.length === 0) {
         return validation;
     }
-    
+
     // Sort modules by their version numbers
     const sortedModules = moduleList.map(module => ({
         ...module,
@@ -419,23 +550,23 @@ export const validateDependencyOrder = (moduleList) => {
     })).sort((a, b) => {
         return compareVersions(a.moduleType.versionComponents, b.moduleType.versionComponents);
     });
-    
+
     // Check for dependency order violations
     for (let i = 0; i < sortedModules.length; i++) {
         const currentModule = sortedModules[i];
         const currentVersion = currentModule.moduleType.versionComponents;
-        
+
         // Check dependencies if available
         if (currentModule.dependencies && Array.isArray(currentModule.dependencies)) {
             currentModule.dependencies.forEach(depName => {
                 // Find the dependency in the module list
-                const dependency = sortedModules.find(m => 
+                const dependency = sortedModules.find(m =>
                     m.filename.includes(depName) || m.moduleName === depName
                 );
-                
+
                 if (dependency) {
                     const depVersion = dependency.moduleType.versionComponents;
-                    
+
                     // Check if dependency has higher version number (should load first)
                     if (compareVersions(depVersion, currentVersion) > 0) {
                         validation.valid = false;
@@ -454,9 +585,9 @@ export const validateDependencyOrder = (moduleList) => {
             });
         }
     }
-    
+
     validation.loadOrder = sortedModules.map(m => m.filename);
-    
+
     return validation;
 };
 

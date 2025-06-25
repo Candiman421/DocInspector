@@ -8,7 +8,10 @@ import path from 'path';
 import chalk from 'chalk';
 import { generateTimestamp } from './yaml-generator.js';
 import { parseVersion, compareVersions } from '../config/patterns.js';
+import { sortModulesByVersion } from '../config/patterns.js';
+import { validateModuleFiles } from '../config/patterns.js';
 
+// Remove local function entirely, just use the imported one
 /**
  * Assemble modules in dependency order
  * @param {Object} folderInfo - Folder information
@@ -79,47 +82,6 @@ export const assembleModules =  (folderInfo, options = {}) => {
             assemblyTime: Date.now() - startTime
         };
     }
-};
-
-/**
- * Sort modules by version for dependency order
- */
-const sortModulesByVersion = (moduleFiles) => {
-    return moduleFiles.map(filename => {
-        const versionMatch = filename.match(/^(\d+(?:\.\d+){0,3})_/);
-        const version = versionMatch ? versionMatch[1] : '0';
-        const versionArray = parseVersion(version);
-
-        return {
-            filename,
-            version,
-            versionArray
-        };
-    }).sort((a, b) => compareVersions(a.versionArray, b.versionArray));
-};
-
-/**
- * Validate module files
- */
-const validateModuleFiles = (folderPath, moduleFiles) => {
-    const validation = { valid: [], invalid: [] };
-    
-    moduleFiles.forEach(filename => {
-        const fullPath = path.join(folderPath, filename);
-        try {
-            fs.accessSync(fullPath, fs.constants.R_OK);
-            const content = fs.readFileSync(fullPath, 'utf8');
-            if (content.includes('function ')) {
-                validation.valid.push(filename);
-            } else {
-                validation.invalid.push(filename);
-            }
-        } catch (error) {
-            validation.invalid.push(filename);
-        }
-    });
-
-    return validation;
 };
 
 /**
