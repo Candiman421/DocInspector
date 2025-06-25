@@ -130,7 +130,7 @@ export const CONTENT_PATTERNS = {
     function_call: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
 
     // Replace the current register_module pattern with the robust version
-    register_module: /registerModule\s*\(\s*(['"])([^'"]+)\1\s*,\s*(['"])([^'"]+)\3\s*,\s*\[([\s\S]*?)\]\s*\)\s*;?/gs,
+    register_module: /registerModule\s*\(\s*(['"])([^'"]+)\1\s*,\s*(['"])([^'"]+)\3\s*,\s*\[([\s\S]*?)\]\s*\)\s*;?/s,
 
     // Dependency validation (unchanged - works correctly)
     dependency_validation: /validateDependencies\s*\(\s*\[(.*?)\]/s,

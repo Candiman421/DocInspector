@@ -1015,7 +1015,7 @@ function saveContentToFile(content, defaultName, extension) {
 // =============================================================================
 
 // Register this module with all its functions - NOTE: UI helper functions REMOVED (now in 1.2_safety-utilities)
-registerModule('3.2_dom-exporter', '4.1', [
+registerModule('3.2.0.0_dom-exporter', '4.1', [
     // Main Export Functions
     'exportDOMStructure', 'exportAsJSON', 'exportAsText', 'exportAsCSV',
 

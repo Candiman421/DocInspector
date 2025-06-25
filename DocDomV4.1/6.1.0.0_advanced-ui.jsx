@@ -2392,7 +2392,7 @@ function closeAdvancedUI() {
 // =============================================================================
 
 // Register this module with all its functions - CORRECTED TO MATCH ACTUAL FUNCTIONS
-registerModule('6.1_advanced-ui', '4.1', [
+registerModule('6.1.0.0_advanced-ui', '4.1', [
     // Main Functions (2)
     'showAdvancedDOMAnalysis', 'initializeAdvancedUI',
     

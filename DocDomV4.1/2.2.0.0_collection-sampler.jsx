@@ -1155,7 +1155,7 @@ function enhanceCollectionWithSamplingData(collection, samplingResult) {
 // =============================================================================
 
 // Register this module with all its functions
-registerModule('2.2_collection-sampler', '4.1', [
+registerModule('2.2.0.0_collection-sampler', '4.1', [
     // Main Functions
     'sampleCollectionContents', 'sampleNodeCollections', 'sampleSingleCollection',
 

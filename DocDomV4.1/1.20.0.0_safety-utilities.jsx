@@ -2342,7 +2342,7 @@ function retryOperation(operation, maxRetries, delay) {
 // =============================================================================
 
 // Register this module with all its functions (LOGGING FUNCTIONS REMOVED)
-registerModule('1.2.0.0_safety-utilities', '4.1', [
+registerModule('1.20.0.0_safety-utilities', '4.1', [
     // Array Helpers (6)
     'arrayIndexOf', 'arraySlice', 'arrayJoin', 'arrayPush', 'arrayPop', 'arrayConcat',
 

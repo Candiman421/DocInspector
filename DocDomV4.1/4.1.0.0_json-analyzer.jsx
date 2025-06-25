@@ -1339,7 +1339,7 @@ function generateCollectionAccessExample(path) {
 // =============================================================================
 
 // Register this module with all its functions (REMOVED generateCollectionContentSummary)
-registerModule('4.1_json-analyzer', '4.1', [
+registerModule('4.1.0.0_json-analyzer', '4.1', [
     // Main Analysis Functions
     'analyzeJSONExport', 'analyzeLoadedJSON',
     

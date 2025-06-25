@@ -1841,7 +1841,7 @@ function closeVisualizer() {
 // =============================================================================
 
 // Register this module with all its functions
-registerModule('5.2_dom-visualizer', '4.1', [
+registerModule('5.2.0.0_dom-visualizer', '4.1', [
     // Main Functions
     'showDOMVisualizer', 'createVisualizerWindow', 'initializeVisualizerComponents',
 

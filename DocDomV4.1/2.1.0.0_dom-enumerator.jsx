@@ -1194,7 +1194,7 @@ function createProgressReporter() {
 // =============================================================================
 
 // Register this module with all its functions
-registerModule('2.1_dom-enumerator', '4.1', [
+registerModule('2.1.0.0_dom-enumerator', '4.1', [
     // Main Functions
     'enumerateDocumentDOM', 'enumerateObjectStructure',
 

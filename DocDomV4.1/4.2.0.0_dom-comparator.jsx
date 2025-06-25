@@ -2160,7 +2160,7 @@ function extractDocumentMetadata(data) {
 // =============================================================================
 
 // Register this module with all its functions
-registerModule('4.2_dom-comparator', '4.1', [
+registerModule('4.2.0.0_dom-comparator', '4.1', [
     // Main Functions
     'compareDOMExports', 'validateComparisonInputs', 'createComparisonSession',
     

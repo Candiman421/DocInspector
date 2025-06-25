@@ -1245,7 +1245,7 @@ function showDeepMapper() {
 // =============================================================================
 
 // Register this module with all its functions
-registerModule('5.1_deep-mapper', '4.1', [
+registerModule('5.1.0.0_deep-mapper', '4.1', [
     // Main Deep Mapping Functions
     'performDeepDOMMapping', 'performDeepObjectMapping',
     

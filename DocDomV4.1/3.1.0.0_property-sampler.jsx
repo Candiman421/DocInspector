@@ -934,7 +934,7 @@ function validateSamplingConfig(config) {
 // =============================================================================
 
 // Register this module with all its functions - NOTE: isLikelyCollection REMOVED (now in 2.1_dom-enumerator)
-registerModule('3.1_property-sampler', '4.1', [
+registerModule('3.1.0.0_property-sampler', '4.1', [
     // Main Functions
     'sampleDOMValues', 'sampleNodeValues', 'samplePropertyValue',
 
