@@ -1,35 +1,18 @@
 {
-  "name": "doc-inspector",
-  "version": "2.1.0",
-  "description": "Document content analysis utility",
-  "main": "InDesignDocumentInspector.jsx",
+  "name": "docdom-discovery-builder",
+  "version": "4.1.0", 
+  "description": "Adobe ExtendScript DOM Discovery System",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Testing requires specialized environment\" && exit 0"
+    "analyze": "node Utils/main-system-analyzer.js",
+    "assemble": "node Utils/main-assembler.js", 
+    "compare": "node Utils/main-version-comparator.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/CandiMan421/DocInspector.git"
-  },
-  "keywords": [
-    "utility",
-    "tool", 
-    "content",
-    "analysis",
-    "helper"
-  ],
-  "author": {
-    "name": "CandiMan421"
-  },
-  "license": "MIT",
-  "private": true,
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "config": {
-    "features": {
-      "contentAnalysis": true,
-      "errorHandling": true,
-      "performanceMonitoring": true
-    }
+  "workspaces": ["Utils"],
+  "keywords": ["adobe", "extendscript", "dom", "analysis"],
+  "docdom": {
+    "isProjectRoot": true,
+    "moduleFolders": ["DocDomV4.1"],
+    "toolsFolder": "Utils"
   }
 }

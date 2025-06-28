@@ -453,6 +453,52 @@ export const validateModuleFiles = (folderPath, moduleFiles) => {
     return validation;
 };
 
+/**
+ * Parse registration array from module content - CRITICAL MISSING FUNCTION
+ * @param {string} registrationString - Registration array string from registerModule call
+ * @returns {Array} Array of function names
+ */
+export const parseRegistrationArray = (registrationString) => {
+    if (!registrationString || typeof registrationString !== 'string') {
+        return [];
+    }
+
+    try {
+        // Clean the registration string
+        let cleaned = registrationString
+            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
+            .replace(/\/\/.*$/gm, '')         // Remove line comments
+            .replace(/\s+/g, ' ')             // Normalize whitespace
+            .trim();
+
+        // Remove outer brackets if present
+        if (cleaned.startsWith('[') && cleaned.endsWith(']')) {
+            cleaned = cleaned.slice(1, -1);
+        }
+
+        // Split by commas and clean each function name
+        const functions = cleaned
+            .split(',')
+            .map(func => {
+                return func
+                    .replace(/['"]/g, '')     // Remove quotes
+                    .replace(/^\s+|\s+$/g, '') // Trim whitespace
+                    .replace(/\/\/.*$/, '')    // Remove inline comments
+                    .trim();
+            })
+            .filter(func => {
+                // Only keep valid function names
+                return func && func.length > 0 && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(func);
+            });
+
+        return functions;
+
+    } catch (error) {
+        console.warn(`parseRegistrationArray failed: ${error.message}`);
+        return [];
+    }
+};
+
 // ============================================================================
 // DEFAULT EXPORT (MAINTAIN COMPATIBILITY)
 // ============================================================================
