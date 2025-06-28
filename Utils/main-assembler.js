@@ -1,7 +1,25 @@
 #!/usr/bin/env node
 
 // main-assembler.js
-// Entry point for module assembly utility - ENHANCED FOR ADAPTER SUPPORT
+// Entry point for module assembly utility - ENHANCED FOR EASY ADAPTER SUPPORT
+// =============================================================================
+// EASY ADAPTER ASSEMBLY COMMANDS - COPY & PASTE READY:
+//
+// # InDesign Assembly:
+// node main-assembler.js -f DocDomV4.1 -a 1.15.1.2025.20.4_indesign-adapter.jsx
+//
+// # Photoshop Assembly:
+// node main-assembler.js -f DocDomV4.1 -a 1.15.2.2025.26.8_photoshop-adapter.jsx
+//
+// # Illustrator Assembly (when created):
+// node main-assembler.js -f DocDomV4.1 -a 1.15.3.2025.xx.x_illustrator-adapter.jsx
+//
+// # Standard Assembly (no adapter):
+// node main-assembler.js -f DocDomV4.1
+//
+// # Process all folders with InDesign adapter:
+// node main-assembler.js -a 1.15.1.2025.20.4_indesign-adapter.jsx
+// =============================================================================
 
 import { Command } from 'commander';
 import chalk from 'chalk';
@@ -20,10 +38,17 @@ const program = new Command();
 const MODULE_FILE_PATTERN = /^(\d+(?:\.\d+)*)_.*\.jsx?$/;
 const ADAPTER_KEYWORD = 'adapter';
 
+// Known adapter files for easy reference
+const KNOWN_ADAPTERS = {
+    indesign: '1.15.1.2025.20.4_indesign-adapter.jsx',
+    photoshop: '1.15.2.2025.26.8_photoshop-adapter.jsx',
+    illustrator: '1.15.3.2025.xx.x_illustrator-adapter.jsx' // Template for future
+};
+
 // CLI Configuration
 program
     .name('docdom-assembler')
-    .description('DocDom Module Auto-Assembler - Sequential dependency assembly with adapter support')
+    .description('DocDom Module Auto-Assembler - Sequential dependency assembly with enhanced adapter support')
     .version('1.0.0')
     .option('-f, --folder <path>', 'Assemble modules in specific folder')
     .option('-a, --adapter <filename>', 'Specific adapter file to include (e.g., 1.15.1.2025.20.4_indesign-adapter.jsx)')
@@ -32,12 +57,13 @@ program
     .option('--skip-validation', 'Skip file validation during assembly')
     .option('--no-includes', 'Skip generation of includes-based file')
     .option('--no-auto-start', 'Disable auto-start interface in assembled files')
+    .option('--list-adapters', 'List all available adapter files in target folder')
     .parse();
 
 const options = program.opts();
 
 /**
- * Enhanced file discovery with adapter support
+ * Enhanced file discovery with improved adapter support
  * @param {string} folderPath - Path to scan
  * @returns {Object} Folder information with filtered modules
  */
@@ -53,7 +79,7 @@ function discoverModulesWithAdapterSupport(folderPath) {
 
     // Get all files in directory
     const allFiles = fs.readdirSync(folderPath);
-    
+
     if (!options.quiet) {
         console.log(chalk.gray(`📁 Scanning folder: ${path.basename(folderPath)}`));
         console.log(chalk.gray(`   Found ${allFiles.length} total files`));
@@ -76,7 +102,7 @@ function discoverModulesWithAdapterSupport(folderPath) {
 }
 
 /**
- * Filter module files based on enhanced rules
+ * Enhanced filter module files with better adapter detection
  * @param {Array} allFiles - All files in directory
  * @param {string} folderPath - Folder path for validation
  * @returns {Array} Filtered module files
@@ -85,6 +111,7 @@ function filterModuleFiles(allFiles, folderPath) {
     const validModules = [];
     const excludedFiles = [];
     const adapterFiles = [];
+    const otherAdapterFiles = [];
 
     // First pass: categorize all files
     allFiles.forEach(filename => {
@@ -111,13 +138,14 @@ function filterModuleFiles(allFiles, folderPath) {
         validModules.push(filename);
     });
 
-    // Handle adapter inclusion logic
+    // Enhanced adapter inclusion logic
     if (options.adapter) {
         const specifiedAdapter = options.adapter;
-        
+
         // Validate specified adapter exists
         if (!allFiles.includes(specifiedAdapter)) {
-            throw new Error(`Specified adapter file not found: ${specifiedAdapter}`);
+            throw new Error(`Specified adapter file not found: ${specifiedAdapter}\n` +
+                `Available adapters in folder: ${adapterFiles.join(', ') || 'none'}`);
         }
 
         // Validate specified adapter matches pattern and is actually an adapter
@@ -131,45 +159,119 @@ function filterModuleFiles(allFiles, folderPath) {
 
         // Add specified adapter to valid modules
         validModules.push(specifiedAdapter);
-        
+
+        // Track other adapters that are being excluded
+        otherAdapterFiles = adapterFiles.filter(adapter => adapter !== specifiedAdapter);
+
         if (!options.quiet) {
             console.log(chalk.green(`✅ Including specified adapter: ${specifiedAdapter}`));
+            if (otherAdapterFiles.length > 0) {
+                console.log(chalk.gray(`🔌 Excluding other adapters: ${otherAdapterFiles.join(', ')}`));
+            }
         }
     } else if (adapterFiles.length > 0) {
+        // Show available adapters when none specified
         if (!options.quiet) {
             console.log(chalk.yellow(`⚠️  Found ${adapterFiles.length} adapter file(s) but none specified:`));
             adapterFiles.forEach(adapter => {
-                console.log(chalk.yellow(`   📋 ${adapter}`));
+                const appType = detectAdapterType(adapter);
+                console.log(chalk.yellow(`   🔌 ${adapter} ${appType ? `(${appType})` : ''}`));
             });
             console.log(chalk.blue(`💡 Use --adapter <filename> to include a specific adapter`));
+            console.log(chalk.blue(`💡 Example: --adapter ${adapterFiles[0]}`));
         }
+
+        // Track all adapters as excluded
+        otherAdapterFiles = adapterFiles.slice();
     }
 
     // Report filtering results
     if (!options.quiet) {
         console.log(chalk.cyan(`📊 File filtering results:`));
         console.log(chalk.green(`   ✅ Valid modules: ${validModules.length}`));
-        console.log(chalk.yellow(`   📋 Adapter files found: ${adapterFiles.length}`));
-        console.log(chalk.gray(`   ❌ Excluded files: ${excludedFiles.length}`));
-        
-        if (options.verbose && excludedFiles.length > 0) {
+        if (options.adapter) {
+            console.log(chalk.green(`   🔌 Included adapter: 1 (${options.adapter})`));
+        }
+        console.log(chalk.gray(`   🔌 Available adapters: ${adapterFiles.length}`));
+        console.log(chalk.gray(`   ❌ Excluded files: ${excludedFiles.length + otherAdapterFiles.length}`));
+
+        if (options.verbose && (excludedFiles.length > 0 || otherAdapterFiles.length > 0)) {
             console.log(chalk.gray(`\n📋 Excluded files:`));
             excludedFiles.forEach(({ file, reason }) => {
                 console.log(chalk.gray(`   • ${file} - ${reason}`));
             });
+            otherAdapterFiles.forEach(file => {
+                console.log(chalk.gray(`   • ${file} - Adapter not selected`));
+            });
         }
-        
-        console.log(chalk.cyan(`\n📋 Files to be assembled:`));
+
+        console.log(chalk.cyan(`\n📋 Files to be assembled (in load order):`));
         const sortedModules = sortModulesByVersion(validModules);
         sortedModules.forEach((module, index) => {
             const isAdapter = module.filename.toLowerCase().includes(ADAPTER_KEYWORD);
+            const appType = isAdapter ? detectAdapterType(module.filename) : null;
             const icon = isAdapter ? '🔌' : '📦';
-            const type = isAdapter ? '(adapter)' : '(module)';
-            console.log(chalk.white(`   ${index + 1}. ${icon} ${module.filename} v${module.version} ${type}`));
+            const type = isAdapter ? `(${appType || 'adapter'})` : '(module)';
+            console.log(chalk.white(`   ${String(index + 1).padStart(2)}. ${icon} ${module.filename} v${module.version} ${type}`));
         });
     }
 
     return validModules;
+}
+
+/**
+ * Detect adapter type from filename
+ * @param {string} filename - Adapter filename
+ * @returns {string|null} App type or null
+ */
+function detectAdapterType(filename) {
+    const lower = filename.toLowerCase();
+    if (lower.includes('indesign')) return 'InDesign';
+    if (lower.includes('photoshop')) return 'Photoshop';
+    if (lower.includes('illustrator')) return 'Illustrator';
+    if (lower.includes('aftereffects')) return 'After Effects';
+    if (lower.includes('premiere')) return 'Premiere Pro';
+    return null;
+}
+
+/**
+ * List available adapters in folder
+ * @param {string} folderPath - Path to scan
+ */
+function listAvailableAdapters(folderPath) {
+    if (!fs.existsSync(folderPath)) {
+        console.log(chalk.red(`❌ Folder does not exist: ${folderPath}`));
+        return;
+    }
+
+    const allFiles = fs.readdirSync(folderPath);
+    const adapterFiles = allFiles.filter(file =>
+        file.match(/\.jsx?$/) &&
+        file.match(MODULE_FILE_PATTERN) &&
+        file.toLowerCase().includes(ADAPTER_KEYWORD)
+    );
+
+    console.log(chalk.cyan(`🔌 Available Adapters in ${path.basename(folderPath)}:`));
+    console.log(chalk.gray('='.repeat(50)));
+
+    if (adapterFiles.length === 0) {
+        console.log(chalk.yellow('   No adapter files found'));
+        return;
+    }
+
+    adapterFiles.forEach((adapter, index) => {
+        const appType = detectAdapterType(adapter);
+        const version = adapter.match(MODULE_FILE_PATTERN);
+        console.log(chalk.white(`   ${index + 1}. ${adapter}`));
+        if (appType) {
+            console.log(chalk.blue(`      🎯 Target: ${appType}`));
+        }
+        if (version) {
+            console.log(chalk.gray(`      📦 Version: ${version[1]}`));
+        }
+        console.log(chalk.green(`      💻 Command: node main-assembler.js -f ${path.basename(folderPath)} -a ${adapter}`));
+        console.log();
+    });
 }
 
 /**
@@ -187,7 +289,8 @@ function sortModulesByVersion(moduleFiles) {
             filename,
             version,
             versionArray,
-            sortKey: versionArray.map(n => String(n).padStart(4, '0')).join('.')
+            sortKey: versionArray.map(n => String(n).padStart(4, '0')).join('.'),
+            isAdapter: filename.toLowerCase().includes(ADAPTER_KEYWORD)
         };
     });
 
@@ -233,9 +336,17 @@ function main() {
     try {
         showHeader();
 
+        // Handle list adapters command
+        if (options.listAdapters) {
+            const folderPath = options.folder ? path.resolve(options.folder) : process.cwd();
+            listAvailableAdapters(folderPath);
+            return;
+        }
+
         // Validate adapter argument if provided
         if (options.adapter && !options.folder) {
             console.log(chalk.red('❌ --adapter option requires --folder to be specified'));
+            console.log(chalk.blue('💡 Example: node main-assembler.js -f DocDomV4.1 -a 1.15.1.2025.20.4_indesign-adapter.jsx'));
             process.exit(1);
         }
 
@@ -247,6 +358,7 @@ function main() {
             console.log(chalk.blue('💡 Create folders with files matching pattern: #.#.#_*.jsx (e.g., 1.2.3_module.jsx)'));
             if (options.adapter) {
                 console.log(chalk.blue('💡 Use --folder to specify the folder containing your adapter file'));
+                console.log(chalk.blue(`💡 Example: node main-assembler.js -f DocDomV4.1 -a ${options.adapter}`));
             }
             return;
         }
@@ -264,6 +376,9 @@ function main() {
     } catch (error) {
         console.error(chalk.red('\n❌ FATAL ERROR:'), error.message);
         console.error(chalk.yellow('🔧 Check your configuration and try again'));
+        if (error.message.includes('adapter')) {
+            console.error(chalk.blue('💡 Use --list-adapters to see available adapters'));
+        }
         process.exit(1);
     }
 }
@@ -276,7 +391,8 @@ function showHeader() {
         console.log(chalk.cyan('🔧 DocDom Module Assembler - Document Analysis System'));
         console.log(chalk.cyan('===================================================='));
         if (options.adapter) {
-            console.log(chalk.blue(`🔌 Adapter Mode: Including ${options.adapter}`));
+            const appType = detectAdapterType(options.adapter);
+            console.log(chalk.blue(`🔌 Adapter Mode: Including ${options.adapter} ${appType ? `(${appType})` : ''}`));
         }
         console.log();
     }
@@ -312,7 +428,7 @@ function processSingleFolder(folderPath) {
 }
 
 /**
- * Discover all project folders with modules
+ * Enhanced discover all project folders with better adapter detection
  */
 function discoverAllProjectFolders() {
     if (!options.quiet) {
@@ -339,25 +455,33 @@ function discoverAllProjectFolders() {
                 // If modules found, add folder to list
                 if (moduleFiles.length > 0) {
                     const folderName = relativePath || 'Root';
+                    const adapterCount = allFiles.filter(file =>
+                        file.match(/\.jsx?$/) &&
+                        file.match(MODULE_FILE_PATTERN) &&
+                        file.toLowerCase().includes(ADAPTER_KEYWORD)
+                    ).length;
+
                     const folderInfo = {
                         name: folderName,
                         path: dirPath,
                         relativePath: relativePath,
                         moduleFiles: moduleFiles,
-                        moduleCount: moduleFiles.length
+                        moduleCount: moduleFiles.length,
+                        adapterCount: adapterCount
                     };
 
                     foldersWithModules.push(folderInfo);
 
                     if (!options.quiet) {
-                        console.log(chalk.green(`📁 Found ${moduleFiles.length} modules in: ${folderName}`));
+                        const adapterText = adapterCount > 0 ? `, ${adapterCount} adapter(s)` : '';
+                        console.log(chalk.green(`📁 Found ${moduleFiles.length} modules${adapterText} in: ${folderName}`));
                     }
                 }
 
                 // Recursively scan subdirectories (skip node_modules, .git, etc.)
                 entries
                     .filter(entry => entry.isDirectory())
-                    .filter(entry => !['node_modules', '.git', '.vscode', 'build', 'dist'].includes(entry.name))
+                    .filter(entry => !['node_modules', '.git', '.vscode', 'build', 'dist', 'target'].includes(entry.name))
                     .forEach(entry => {
                         const subPath = path.join(dirPath, entry.name);
                         const subRelative = relativePath ? `${relativePath}/${entry.name}` : entry.name;
@@ -375,6 +499,13 @@ function discoverAllProjectFolders() {
 
         if (!options.quiet && foldersWithModules.length > 0) {
             console.log(chalk.green(`\n🎯 Discovery complete: ${foldersWithModules.length} folders with modules found`));
+
+            // Show adapter summary
+            const totalAdapters = foldersWithModules.reduce((sum, folder) => sum + (folder.adapterCount || 0), 0);
+            if (totalAdapters > 0) {
+                console.log(chalk.blue(`🔌 Total adapters available: ${totalAdapters}`));
+                console.log(chalk.blue(`💡 Use --list-adapters to see detailed adapter information`));
+            }
         }
 
         return foldersWithModules;
@@ -411,7 +542,8 @@ function processFolder(folderInfo) {
                 console.log(chalk.green(`✅ Assembly completed successfully`));
                 console.log(chalk.blue(`📊 Processed ${result.moduleCount} modules`));
                 if (options.adapter) {
-                    console.log(chalk.blue(`🔌 Included adapter: ${options.adapter}`));
+                    const appType = detectAdapterType(options.adapter);
+                    console.log(chalk.blue(`🔌 Included adapter: ${options.adapter} ${appType ? `(${appType})` : ''}`));
                 }
                 if (result.assembledFile) {
                     console.log(chalk.blue(`🔗 Assembled: ${result.assembledFile}`));
@@ -443,7 +575,7 @@ function processFolder(folderInfo) {
 }
 
 /**
- * Show assembly summary for all processed folders
+ * Enhanced show assembly summary with adapter details
  */
 function showAssemblySummary(results) {
     if (options.quiet) return;
@@ -464,7 +596,8 @@ function showAssemblySummary(results) {
     console.log(chalk.blue(`• Total modules assembled: ${successful.reduce((sum, r) => sum + r.moduleCount, 0)}`));
 
     if (options.adapter) {
-        console.log(chalk.blue(`🔌 Adapter included: ${options.adapter}`));
+        const appType = detectAdapterType(options.adapter);
+        console.log(chalk.blue(`🔌 Adapter included: ${options.adapter} ${appType ? `(${appType})` : ''}`));
     }
 
     // Successful assemblies
@@ -498,24 +631,36 @@ function showAssemblySummary(results) {
     console.log(chalk.blue('3. OR run the *_INCLUDES_*.jsx file for development/debugging'));
     console.log(chalk.blue('4. Document analysis interface opens automatically (if available)'));
 
-    // Features overview
+    // Enhanced features overview
     console.log(chalk.cyan('\n🔧 Key Features:'));
     console.log(chalk.green('• ✅ Sequential dependency validation'));
     console.log(chalk.green('• ✅ Flexible version numbering (#.#.#.#.#...)'));
-    console.log(chalk.green('• ✅ Adapter file support with selective inclusion'));
+    console.log(chalk.green('• ✅ Enhanced adapter file support with selective inclusion'));
+    console.log(chalk.green('• ✅ Auto-detection of adapter types (InDesign, Photoshop, etc.)'));
     console.log(chalk.green('• ✅ Auto-start document analysis interface'));
     console.log(chalk.green('• ✅ Both concatenated and include-based formats'));
     console.log(chalk.green('• ✅ Per-folder assembly with full isolation'));
     console.log(chalk.green('• ✅ Comprehensive build verification'));
     console.log(chalk.green('• ✅ Cross-platform document analysis support'));
 
-    // Adapter instructions
+    // Enhanced adapter instructions
     if (options.adapter || successful.some(r => r.adapterIncluded)) {
         console.log(chalk.cyan('\n🔌 Adapter Support:'));
-        console.log(chalk.green('• ✅ Selective adapter inclusion'));
+        console.log(chalk.green('• ✅ Selective adapter inclusion (only one per assembly)'));
         console.log(chalk.green('• ✅ Multiple adapter versions supported'));
         console.log(chalk.green('• ✅ Automatic adapter detection and filtering'));
+        console.log(chalk.green('• ✅ App-specific interface standardization'));
+        console.log(chalk.blue(`• 💡 Use --list-adapters to see available adapters`));
     }
+
+    // Quick reference commands
+    console.log(chalk.cyan('\n⚡ Quick Reference Commands:'));
+    console.log(chalk.white('# List available adapters:'));
+    console.log(chalk.blue('node main-assembler.js --list-adapters -f DocDomV4.1'));
+    console.log(chalk.white('# InDesign assembly:'));
+    console.log(chalk.blue('node main-assembler.js -f DocDomV4.1 -a 1.15.1.2025.20.4_indesign-adapter.jsx'));
+    console.log(chalk.white('# Photoshop assembly:'));
+    console.log(chalk.blue('node main-assembler.js -f DocDomV4.1 -a 1.15.2.2025.26.8_photoshop-adapter.jsx'));
 
     // GitIgnore recommendations
     console.log(chalk.yellow('\n📝 GitIgnore Recommendations:'));
@@ -538,24 +683,32 @@ process.on('uncaughtException', (error) => {
     process.exit(1);
 });
 
-// Help text customization
+// Enhanced help text
 program.addHelpText('after', `
 
-Examples:
-  ${chalk.green('node main-assembler.js')}                                           # Assemble all project folders
-  ${chalk.green('node main-assembler.js -f ../DocDomV4.1')}                         # Assemble specific folder
-  ${chalk.green('node main-assembler.js -f ../DocDomV4.1 -a 1.15.1.2025.20.4_indesign-adapter.jsx')}  # Include specific adapter
+${chalk.cyan('Quick Start Examples:')}
+  ${chalk.green('node main-assembler.js --list-adapters -f DocDomV4.1')}             # List available adapters
+  ${chalk.green('node main-assembler.js -f DocDomV4.1')}                            # Assemble without adapter
+  ${chalk.green('node main-assembler.js -f DocDomV4.1 -a 1.15.1.2025.20.4_indesign-adapter.jsx')}    # InDesign
+  ${chalk.green('node main-assembler.js -f DocDomV4.1 -a 1.15.2.2025.26.8_photoshop-adapter.jsx')}   # Photoshop
   ${chalk.green('node main-assembler.js --verbose')}                                # Show detailed process
-  ${chalk.green('node main-assembler.js --no-includes')}                            # Skip includes file generation
 
-Adapter Support:
-  Adapters are special files containing 'adapter' in their filename.
+${chalk.cyan('Enhanced Adapter Support:')}
+  Adapters are special files containing 'adapter' in their filename that provide
+  app-specific interfaces for different Adobe Creative Suite applications.
+  
   • By default, ALL adapter files are excluded from assembly
   • Use --adapter <filename> to include a specific adapter
   • Only one adapter can be included per assembly
-  • Adapter files must still follow the version pattern (#.#.#_*.jsx)
+  • Adapter files must follow the version pattern (#.#.#_*.jsx)
+  • Each adapter provides the same function interface for app compatibility
 
-Pattern Matching:
+${chalk.cyan('Known Adapter Types:')}
+  • InDesign:    1.15.1.2025.20.4_indesign-adapter.jsx
+  • Photoshop:   1.15.2.2025.26.8_photoshop-adapter.jsx
+  • Illustrator: 1.15.3.2025.xx.x_illustrator-adapter.jsx (future)
+
+${chalk.cyan('Pattern Matching:')}
   Discovers files matching: #.#.#_*.jsx with unlimited decimal levels
   Examples: 1.2_*.jsx, 1.2.3_*.jsx, 1.15.1.2025.20.4_*.jsx
   
@@ -564,17 +717,18 @@ Pattern Matching:
   • Files containing 'adapter' are excluded unless specified with --adapter
   • All other files are ignored
 
-Output Files:
+${chalk.cyan('Output Files:')}
   Each folder containing modules will get:
-  • {FolderName}_ASSEMBLED_{timestamp}.jsx   (concatenated version)
-  • {FolderName}_INCLUDES_{timestamp}.jsx    (include-based version)
+  • {FolderName}_ASSEMBLED_{timestamp}.jsx   (concatenated version - recommended)
+  • {FolderName}_INCLUDES_{timestamp}.jsx    (include-based version - for debugging)
 
-Architecture:
+${chalk.cyan('Architecture:')}
   • Sequential dependency system (1.1 → 1.2 → 2.1)
   • ES3/ExtendScript compatibility maintained
   • Auto-start interface integration
   • Build verification and error handling
   • Selective adapter inclusion for multi-app support
+  • Standardized function interfaces across adapters
 `);
 
 // Show help if no arguments provided
@@ -585,7 +739,6 @@ if (process.argv.length === 2) {
 // Execute main function
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     try {
-        console.log("=== ABOUT TO CALL MAIN ===");
         main();
     } catch (error) {
         console.error('Fatal error:', error);
