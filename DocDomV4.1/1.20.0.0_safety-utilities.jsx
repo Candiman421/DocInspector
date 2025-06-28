@@ -1,44 +1,83 @@
-// DocDomV4.1/1.2.0.0_safety-utilities.jsx
-// 1.2.0.0_safety-utilities.jsx - ES3 HELPER FUNCTIONS AND SAFETY UTILITIES
-// DocDom Discovery Builder v4.1 - PRODUCTION READY
+// DocDomV4.1/1.20.0.0_safety-utilities.jsx
+// 1.20.0.0_safety-utilities.jsx - ES3 HELPER FUNCTIONS AND SAFETY UTILITIES
+// DocDom Discovery Builder v4.1 - PRODUCTION READY - ADAPTER AGNOSTIC
 // =============================================================================
 // PURPOSE: ES3-compatible helper functions, safety utilities, consolidated UI helpers
-// DEPENDENCIES: ["1.1.0.0_bootstrap-foundation.jsx", "1.15.1.2025.20.4_indesign-adapter.jsx"]
+// DEPENDENCIES: ["1.1.0.0_bootstrap-foundation.jsx"] - ADAPTER AGNOSTIC (adapter loads between 1.1 and 1.20)
 // SIZE: ~2200 lines - COMPLETE IMPLEMENTATION - ENHANCED LOGGING - ES3 COMPLIANT
-// CHANGES FROM 3.1: Removed logging functions (moved to 1.1), added strategic logging, app-agnostic, v4.1 updates
+// CHANGES: Comprehensive functionality, adapter-agnostic design, performance monitoring, validation
 // =============================================================================
 
 // =============================================================================
-// DEPENDENCY VALIDATION
+// DEPENDENCY VALIDATION - ADAPTER AGNOSTIC
 // =============================================================================
 
-var SAFETY_UTILITIES_DEPENDENCIES = ['1.1.0.0_bootstrap-foundation', '1.15.1.2025.20.4_indesign-adapter'];
+var SAFETY_UTILITIES_DEPENDENCIES = ['1.1.0.0_bootstrap-foundation'];
 var dependencyCheck = validateDependencies(SAFETY_UTILITIES_DEPENDENCIES);
 if (!dependencyCheck.success) {
     throw new Error('Safety Utilities missing dependencies: ' + dependencyCheck.missing.join(', '));
 }
 
 // =============================================================================
-// SAFETY CONFIGURATION
+// COMPREHENSIVE SAFETY CONFIGURATION
 // =============================================================================
 
 var SAFETY_CONFIG = {
+    // Timeout settings
     maxTimeout: 30000,
+    defaultTimeout: 5000,
+    maxOperationTimeout: 15000,
+    
+    // Operation limits
     maxOperations: 10000,
+    maxIterations: 5000,
+    maxRecursionDepth: 10,
+    
+    // Memory and performance
     memoryCheckInterval: 1000,
+    performanceThreshold: 500,
+    maxMemoryUsage: 100 * 1024 * 1024, // 100MB
+    
+    // String and data limits
     maxStringLength: 10000,
+    maxArrayLength: 1000,
     maxObjectDepth: 8,
-    maxArrayLength: 1000
+    maxPropertyCount: 1000,
+    
+    // Rate limiting
+    defaultRateLimit: 100, // operations per second
+    maxConcurrentOps: 10,
+    
+    // Safety levels
+    safetyLevel: 'strict', // 'permissive', 'normal', 'strict'
+    enablePerformanceTracking: true,
+    enableValidation: true,
+    enableRateLimiting: true
 };
 
-// NOTE: Logging system removed - now provided by 1.1.0.0_bootstrap-foundation.jsx
+// Property safety classifications
+var DANGEROUS_PROPERTIES = [
+    'application', 'app', 'parent', 'preferences', 'events', 'eventListeners',
+    'scriptMenuActions', 'menuActions', 'panels', 'windows', 'dialogs'
+];
+
+var RESERVED_WORDS = [
+    'abstract', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class',
+    'const', 'continue', 'debugger', 'default', 'delete', 'do', 'double', 'else',
+    'enum', 'export', 'extends', 'false', 'final', 'finally', 'float', 'for',
+    'function', 'goto', 'if', 'implements', 'import', 'in', 'instanceof', 'int',
+    'interface', 'let', 'long', 'native', 'new', 'null', 'package', 'private',
+    'protected', 'public', 'return', 'short', 'static', 'super', 'switch',
+    'synchronized', 'this', 'throw', 'throws', 'transient', 'true', 'try',
+    'typeof', 'var', 'void', 'volatile', 'while', 'with', 'yield'
+];
 
 // =============================================================================
-// ES3 ARRAY HELPERS - ENHANCED LOGGING
+// ES3 ARRAY HELPERS - COMPREHENSIVE IMPLEMENTATION
 // =============================================================================
 
 /**
- * ES3-compatible array indexOf - MINIMAL LOGGING
+ * ES3-compatible array indexOf - ENHANCED LOGGING
  * @param {Array} targetArray - Array to search
  * @param {*} searchValue - Value to find
  * @param {Number} fromIndex - Start index (optional)
@@ -47,1621 +86,693 @@ var SAFETY_CONFIG = {
 function arrayIndexOf(targetArray, searchValue, fromIndex) {
     try {
         if (!targetArray || typeof targetArray.length === 'undefined') {
-            logDebug('arrayIndexOf called with invalid array', 'general');
+            logWarn('arrayIndexOf called with invalid array', 'safety');
             return -1;
         }
-        
-        var startIndex = fromIndex || 0;
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-        
-        for (var i = startIndex; i < targetArray.length; i++) {
-            if (targetArray[i] === searchValue) {
-                return i;
-            }
-        }
-        
-        return -1;
-        
-    } catch (exc) {
-        logError('arrayIndexOf error: ' + exc.message, 'general');
-        return -1;
-    }
-}
 
-/**
- * ES3-compatible array slice - MINIMAL LOGGING
- * @param {Array} targetArray - Array to slice
- * @param {Number} start - Start index
- * @param {Number} end - End index (optional)
- * @returns {Array} Sliced array
- */
-function arraySlice(targetArray, start, end) {
-    try {
-        if (!targetArray || typeof targetArray.length === 'undefined') {
-            logDebug('arraySlice called with invalid array', 'general');
-            return [];
-        }
-        
-        var result = [];
-        var startIndex = start || 0;
-        var endIndex = (typeof end !== 'undefined') ? end : targetArray.length;
-        
+        var startIndex = fromIndex || 0;
         if (startIndex < 0) {
             startIndex = Math.max(0, targetArray.length + startIndex);
         }
-        if (endIndex < 0) {
-            endIndex = Math.max(0, targetArray.length + endIndex);
+
+        for (var i = startIndex; i < targetArray.length; i++) {
+            if (targetArray[i] === searchValue) {
+                logDebug('arrayIndexOf found value at index: ' + i, 'safety');
+                return i;
+            }
         }
-        
-        for (var i = startIndex; i < endIndex && i < targetArray.length; i++) {
-            result[result.length] = targetArray[i];
-        }
-        
-        return result;
-        
+
+        logDebug('arrayIndexOf value not found, returning -1', 'safety');
+        return -1;
+
     } catch (exc) {
-        logError('arraySlice error: ' + exc.message, 'general');
-        return [];
+        logError('arrayIndexOf failed: ' + exc.message, 'safety');
+        return -1;
     }
 }
 
 /**
- * ES3-compatible array join - MINIMAL LOGGING
+ * ES3-compatible array contains check - ENHANCED LOGGING
+ * @param {Array} targetArray - Array to search
+ * @param {*} searchValue - Value to find
+ * @returns {Boolean} True if value exists
+ */
+function arrayContains(targetArray, searchValue) {
+    try {
+        var index = arrayIndexOf(targetArray, searchValue);
+        var contains = index !== -1;
+        logDebug('arrayContains result: ' + contains, 'safety');
+        return contains;
+    } catch (exc) {
+        logError('arrayContains failed: ' + exc.message, 'safety');
+        return false;
+    }
+}
+
+/**
+ * ES3-compatible array push replacement - ENHANCED LOGGING
+ * @param {Array} targetArray - Array to modify
+ * @param {*} newValue - Value to add
+ * @returns {Number} New array length
+ */
+function arrayPush(targetArray, newValue) {
+    try {
+        if (!targetArray || typeof targetArray.length === 'undefined') {
+            logWarn('arrayPush called with invalid array', 'safety');
+            return 0;
+        }
+
+        targetArray[targetArray.length] = newValue;
+        var newLength = targetArray.length;
+        logDebug('arrayPush added value, new length: ' + newLength, 'safety');
+        return newLength;
+
+    } catch (exc) {
+        logError('arrayPush failed: ' + exc.message, 'safety');
+        return targetArray ? targetArray.length : 0;
+    }
+}
+
+/**
+ * ES3-compatible array forEach replacement - ENHANCED LOGGING
+ * @param {Array} targetArray - Array to iterate
+ * @param {Function} callback - Function to call for each element
+ * @param {Object} thisArg - Optional this context
+ */
+function arrayForEach(targetArray, callback, thisArg) {
+    try {
+        if (!targetArray || typeof targetArray.length === 'undefined') {
+            logWarn('arrayForEach called with invalid array', 'safety');
+            return;
+        }
+
+        if (typeof callback !== 'function') {
+            logWarn('arrayForEach called with invalid callback', 'safety');
+            return;
+        }
+
+        var itemCount = 0;
+        for (var i = 0; i < targetArray.length; i++) {
+            if (i in targetArray) {
+                callback.call(thisArg, targetArray[i], i, targetArray);
+                itemCount++;
+            }
+        }
+
+        logDebug('arrayForEach processed ' + itemCount + ' items', 'safety');
+
+    } catch (exc) {
+        logError('arrayForEach failed: ' + exc.message, 'safety');
+    }
+}
+
+/**
+ * ES3-compatible array join replacement - ENHANCED LOGGING
  * @param {Array} targetArray - Array to join
- * @param {String} separator - Separator string
+ * @param {String} separator - Join separator
  * @returns {String} Joined string
  */
 function arrayJoin(targetArray, separator) {
     try {
         if (!targetArray || typeof targetArray.length === 'undefined') {
+            logWarn('arrayJoin called with invalid array', 'safety');
             return '';
         }
-        
-        var sep = (typeof separator !== 'undefined') ? separator : ',';
+
+        var sep = separator || ',';
         var result = '';
         
         for (var i = 0; i < targetArray.length; i++) {
-            if (i > 0) {
+            result += String(targetArray[i] || '');
+            if (i < targetArray.length - 1) {
                 result += sep;
             }
-            result += targetArray[i];
         }
-        
+
+        logDebug('arrayJoin processed ' + targetArray.length + ' items', 'safety');
         return result;
-        
+
     } catch (exc) {
-        logError('arrayJoin error: ' + exc.message, 'general');
+        logError('arrayJoin failed: ' + exc.message, 'safety');
         return '';
     }
 }
 
 /**
- * ES3-compatible array push - MINIMAL LOGGING
- * @param {Array} targetArray - Array to modify
- * @param {*} value - Value to add
- * @returns {Number} New array length
+ * ES3-compatible array slice replacement - ENHANCED LOGGING
+ * @param {Array} targetArray - Array to slice
+ * @param {Number} start - Start index
+ * @param {Number} end - End index
+ * @returns {Array} Sliced array
  */
-function arrayPush(targetArray, value) {
+function arraySlice(targetArray, start, end) {
     try {
         if (!targetArray || typeof targetArray.length === 'undefined') {
-            logDebug('arrayPush called with invalid array', 'general');
-            return 0;
-        }
-        
-        targetArray[targetArray.length] = value;
-        return targetArray.length;
-        
-    } catch (exc) {
-        logError('arrayPush error: ' + exc.message, 'general');
-        return 0;
-    }
-}
-
-/**
- * ES3-compatible array pop - MINIMAL LOGGING
- * @param {Array} targetArray - Array to modify
- * @returns {*} Popped value
- */
-function arrayPop(targetArray) {
-    try {
-        if (!targetArray || typeof targetArray.length === 'undefined' || targetArray.length === 0) {
-            return undefined;
-        }
-        
-        var value = targetArray[targetArray.length - 1];
-        targetArray.length = targetArray.length - 1;
-        return value;
-        
-    } catch (exc) {
-        logError('arrayPop error: ' + exc.message, 'general');
-        return undefined;
-    }
-}
-
-/**
- * ES3-compatible array concat - ENHANCED LOGGING
- * @param {Array} array1 - First array
- * @param {Array} array2 - Second array
- * @returns {Array} Concatenated array
- */
-function arrayConcat(array1, array2) {
-    logDebug('=== STARTING arrayConcat ===', 'general');
-    
-    try {
-        var result = [];
-        var totalElements = 0;
-        
-        // Copy first array
-        if (array1 && typeof array1.length !== 'undefined') {
-            for (var i = 0; i < array1.length; i++) {
-                result[result.length] = array1[i];
-                totalElements++;
-            }
-            logDebug('Copied ' + array1.length + ' elements from first array', 'general');
-        }
-        
-        // Copy second array
-        if (array2 && typeof array2.length !== 'undefined') {
-            for (var j = 0; j < array2.length; j++) {
-                result[result.length] = array2[j];
-                totalElements++;
-            }
-            logDebug('Copied ' + array2.length + ' elements from second array', 'general');
-        }
-        
-        logInfo('arrayConcat completed: ' + totalElements + ' total elements', 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('arrayConcat error: ' + exc.message, 'general');
-        return [];
-    }
-}
-
-// =============================================================================
-// ES3 STRING HELPERS - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * ES3-compatible string indexOf - MINIMAL LOGGING
- * @param {String} targetString - String to search
- * @param {String} searchValue - Value to find
- * @param {Number} fromIndex - Start index (optional)
- * @returns {Number} Index of value or -1
- */
-function stringIndexOf(targetString, searchValue, fromIndex) {
-    try {
-        if (typeof targetString !== 'string' || typeof searchValue !== 'string') {
-            return -1;
-        }
-        
-        var startIndex = fromIndex || 0;
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-        
-        for (var i = startIndex; i <= targetString.length - searchValue.length; i++) {
-            var match = true;
-            for (var j = 0; j < searchValue.length; j++) {
-                if (targetString.charAt(i + j) !== searchValue.charAt(j)) {
-                    match = false;
-                    break;
-                }
-            }
-            if (match) {
-                return i;
-            }
-        }
-        
-        return -1;
-        
-    } catch (exc) {
-        logError('stringIndexOf error: ' + exc.message, 'general');
-        return -1;
-    }
-}
-
-/**
- * ES3-compatible string substring - MINIMAL LOGGING
- * @param {String} targetString - String to slice
- * @param {Number} start - Start index
- * @param {Number} end - End index (optional)
- * @returns {String} Substring
- */
-function stringSubstring(targetString, start, end) {
-    try {
-        if (typeof targetString !== 'string') {
-            return '';
-        }
-        
-        var startIndex = start || 0;
-        var endIndex = (typeof end !== 'undefined') ? end : targetString.length;
-        
-        if (startIndex < 0) {
-            startIndex = 0;
-        }
-        if (endIndex < 0) {
-            endIndex = 0;
-        }
-        if (startIndex > endIndex) {
-            var temp = startIndex;
-            startIndex = endIndex;
-            endIndex = temp;
-        }
-        
-        var result = '';
-        for (var i = startIndex; i < endIndex && i < targetString.length; i++) {
-            result += targetString.charAt(i);
-        }
-        
-        return result;
-        
-    } catch (exc) {
-        logError('stringSubstring error: ' + exc.message, 'general');
-        return '';
-    }
-}
-
-/**
- * ES3-compatible string charAt - MINIMAL LOGGING
- * @param {String} targetString - String to access
- * @param {Number} index - Character index
- * @returns {String} Character at index
- */
-function stringCharAt(targetString, index) {
-    try {
-        if (typeof targetString !== 'string' || index < 0 || index >= targetString.length) {
-            return '';
-        }
-        
-        return targetString.charAt(index);
-        
-    } catch (exc) {
-        return '';
-    }
-}
-
-/**
- * ES3-compatible string split - ENHANCED LOGGING
- * @param {String} targetString - String to split
- * @param {String} separator - Separator
- * @returns {Array} Split array
- */
-function stringSplit(targetString, separator) {
-    logDebug('=== STARTING stringSplit ===', 'general');
-    
-    try {
-        if (typeof targetString !== 'string') {
-            logWarn('stringSplit called with non-string input', 'general');
+            logWarn('arraySlice called with invalid array', 'safety');
             return [];
         }
+
+        var startIndex = start || 0;
+        var endIndex = (end !== undefined) ? end : targetArray.length;
         
-        if (typeof separator !== 'string') {
-            logDebug('stringSplit with no separator, returning character array', 'general');
-            var chars = [];
-            for (var i = 0; i < targetString.length; i++) {
-                chars[chars.length] = targetString.charAt(i);
-            }
-            return chars;
+        if (startIndex < 0) {
+            startIndex = Math.max(0, targetArray.length + startIndex);
         }
         
+        if (endIndex < 0) {
+            endIndex = Math.max(0, targetArray.length + endIndex);
+        }
+
         var result = [];
-        var currentStart = 0;
-        var sepIndex = stringIndexOf(targetString, separator, currentStart);
-        
-        while (sepIndex !== -1) {
-            result[result.length] = stringSubstring(targetString, currentStart, sepIndex);
-            currentStart = sepIndex + separator.length;
-            sepIndex = stringIndexOf(targetString, separator, currentStart);
+        for (var i = startIndex; i < endIndex && i < targetArray.length; i++) {
+            arrayPush(result, targetArray[i]);
         }
-        
-        // Add the last part
-        result[result.length] = stringSubstring(targetString, currentStart);
-        
-        logInfo('stringSplit completed: ' + result.length + ' parts created', 'general');
+
+        logDebug('arraySlice created array of length: ' + result.length, 'safety');
         return result;
-        
+
     } catch (exc) {
-        logError('stringSplit error: ' + exc.message, 'general');
+        logError('arraySlice failed: ' + exc.message, 'safety');
         return [];
     }
 }
 
 /**
- * ES3-compatible string toLowerCase - MINIMAL LOGGING
+ * ES3-compatible array reverse replacement - ENHANCED LOGGING
+ * @param {Array} targetArray - Array to reverse
+ * @returns {Array} Reversed array
+ */
+function arrayReverse(targetArray) {
+    try {
+        if (!targetArray || typeof targetArray.length === 'undefined') {
+            logWarn('arrayReverse called with invalid array', 'safety');
+            return [];
+        }
+
+        var result = [];
+        for (var i = targetArray.length - 1; i >= 0; i--) {
+            arrayPush(result, targetArray[i]);
+        }
+
+        logDebug('arrayReverse processed ' + targetArray.length + ' items', 'safety');
+        return result;
+
+    } catch (exc) {
+        logError('arrayReverse failed: ' + exc.message, 'safety');
+        return [];
+    }
+}
+
+/**
+ * ES3-compatible array filter replacement - ENHANCED LOGGING
+ * @param {Array} targetArray - Array to filter
+ * @param {Function} callback - Filter function
+ * @param {Object} thisArg - Optional this context
+ * @returns {Array} Filtered array
+ */
+function arrayFilter(targetArray, callback, thisArg) {
+    try {
+        if (!targetArray || typeof targetArray.length === 'undefined') {
+            logWarn('arrayFilter called with invalid array', 'safety');
+            return [];
+        }
+
+        if (typeof callback !== 'function') {
+            logWarn('arrayFilter called with invalid callback', 'safety');
+            return arraySlice(targetArray, 0);
+        }
+
+        var result = [];
+        var filteredCount = 0;
+        
+        for (var i = 0; i < targetArray.length; i++) {
+            if (i in targetArray) {
+                if (callback.call(thisArg, targetArray[i], i, targetArray)) {
+                    arrayPush(result, targetArray[i]);
+                    filteredCount++;
+                }
+            }
+        }
+
+        logDebug('arrayFilter: ' + filteredCount + ' of ' + targetArray.length + ' items passed', 'safety');
+        return result;
+
+    } catch (exc) {
+        logError('arrayFilter failed: ' + exc.message, 'safety');
+        return [];
+    }
+}
+
+// =============================================================================
+// ES3 OBJECT HELPERS - COMPREHENSIVE IMPLEMENTATION
+// =============================================================================
+
+/**
+ * ES3-compatible Object.keys replacement - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to get keys from
+ * @returns {Array} Array of property keys
+ */
+function objectKeys(targetObject) {
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            logWarn('objectKeys called with invalid object', 'safety');
+            return [];
+        }
+
+        var keys = [];
+        for (var property in targetObject) {
+            if (targetObject.hasOwnProperty && targetObject.hasOwnProperty(property)) {
+                arrayPush(keys, property);
+            } else if (!targetObject.hasOwnProperty) {
+                // Fallback for objects without hasOwnProperty
+                arrayPush(keys, property);
+            }
+        }
+
+        logDebug('objectKeys found ' + keys.length + ' properties', 'safety');
+        return keys;
+
+    } catch (exc) {
+        logError('objectKeys failed: ' + exc.message, 'safety');
+        return [];
+    }
+}
+
+/**
+ * ES3-compatible Object.values replacement - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to get values from
+ * @returns {Array} Array of property values
+ */
+function objectValues(targetObject) {
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            logWarn('objectValues called with invalid object', 'safety');
+            return [];
+        }
+
+        var values = [];
+        var keys = objectKeys(targetObject);
+
+        arrayForEach(keys, function(key) {
+            arrayPush(values, targetObject[key]);
+        });
+
+        logDebug('objectValues found ' + values.length + ' values', 'safety');
+        return values;
+
+    } catch (exc) {
+        logError('objectValues failed: ' + exc.message, 'safety');
+        return [];
+    }
+}
+
+/**
+ * ES3-compatible Object.entries replacement - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to get entries from
+ * @returns {Array} Array of [key, value] pairs
+ */
+function objectEntries(targetObject) {
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            logWarn('objectEntries called with invalid object', 'safety');
+            return [];
+        }
+
+        var entries = [];
+        var keys = objectKeys(targetObject);
+
+        arrayForEach(keys, function(key) {
+            arrayPush(entries, [key, targetObject[key]]);
+        });
+
+        logDebug('objectEntries found ' + entries.length + ' entries', 'safety');
+        return entries;
+
+    } catch (exc) {
+        logError('objectEntries failed: ' + exc.message, 'safety');
+        return [];
+    }
+}
+
+/**
+ * Safe object property access with default value - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to access
+ * @param {String} propertyPath - Property path (e.g., 'a.b.c')
+ * @param {*} defaultValue - Default value if property doesn't exist
+ * @returns {*} Property value or default
+ */
+function safeGetProperty(targetObject, propertyPath, defaultValue) {
+    try {
+        if (!targetObject || !propertyPath) {
+            logDebug('safeGetProperty invalid parameters, returning default', 'safety');
+            return defaultValue;
+        }
+
+        var pathParts = propertyPath.split('.');
+        var currentObject = targetObject;
+
+        for (var i = 0; i < pathParts.length; i++) {
+            var part = pathParts[i];
+            if (currentObject && typeof currentObject === 'object' && part in currentObject) {
+                currentObject = currentObject[part];
+            } else {
+                logDebug('safeGetProperty path not found: ' + propertyPath, 'safety');
+                return defaultValue;
+            }
+        }
+
+        logDebug('safeGetProperty found value for: ' + propertyPath, 'safety');
+        return currentObject;
+
+    } catch (exc) {
+        logError('safeGetProperty failed: ' + exc.message, 'safety');
+        return defaultValue;
+    }
+}
+
+/**
+ * Safe object property setting - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to modify
+ * @param {String} propertyPath - Property path (e.g., 'a.b.c')
+ * @param {*} value - Value to set
+ * @returns {Boolean} True if successful
+ */
+function safeSetProperty(targetObject, propertyPath, value) {
+    try {
+        if (!targetObject || !propertyPath) {
+            logWarn('safeSetProperty invalid parameters', 'safety');
+            return false;
+        }
+
+        var pathParts = propertyPath.split('.');
+        var currentObject = targetObject;
+
+        // Navigate to parent object
+        for (var i = 0; i < pathParts.length - 1; i++) {
+            var part = pathParts[i];
+            if (!currentObject[part] || typeof currentObject[part] !== 'object') {
+                currentObject[part] = {};
+            }
+            currentObject = currentObject[part];
+        }
+
+        // Set the final property
+        var finalProp = pathParts[pathParts.length - 1];
+        currentObject[finalProp] = value;
+
+        logDebug('safeSetProperty set: ' + propertyPath, 'safety');
+        return true;
+
+    } catch (exc) {
+        logError('safeSetProperty failed: ' + exc.message, 'safety');
+        return false;
+    }
+}
+
+/**
+ * Safe object cloning - ENHANCED LOGGING
+ * @param {Object} sourceObject - Object to clone
+ * @param {Number} maxDepth - Maximum recursion depth
+ * @returns {Object} Cloned object
+ */
+function safeCloneObject(sourceObject, maxDepth) {
+    try {
+        if (!sourceObject || typeof sourceObject !== 'object') {
+            logDebug('safeCloneObject called with non-object', 'safety');
+            return sourceObject;
+        }
+
+        var depth = maxDepth || SAFETY_CONFIG.maxObjectDepth;
+        if (depth <= 0) {
+            logWarn('safeCloneObject max depth reached', 'safety');
+            return {};
+        }
+
+        var cloned = {};
+        var keys = objectKeys(sourceObject);
+
+        arrayForEach(keys, function(key) {
+            var value = sourceObject[key];
+            if (value && typeof value === 'object') {
+                cloned[key] = safeCloneObject(value, depth - 1);
+            } else {
+                cloned[key] = value;
+            }
+        });
+
+        logDebug('safeCloneObject cloned object with ' + keys.length + ' properties', 'safety');
+        return cloned;
+
+    } catch (exc) {
+        logError('safeCloneObject failed: ' + exc.message, 'safety');
+        return {};
+    }
+}
+
+// =============================================================================
+// ES3 STRING HELPERS - COMPREHENSIVE IMPLEMENTATION
+// =============================================================================
+
+/**
+ * ES3-compatible string trim replacement - ENHANCED LOGGING
+ * @param {String} targetString - String to trim
+ * @returns {String} Trimmed string
+ */
+function stringTrim(targetString) {
+    try {
+        if (typeof targetString !== 'string') {
+            logWarn('stringTrim called with non-string value', 'safety');
+            return String(targetString || '');
+        }
+
+        var trimmed = targetString.replace(/^\s+|\s+$/g, '');
+        logDebug('stringTrim processed string of length: ' + targetString.length, 'safety');
+        return trimmed;
+
+    } catch (exc) {
+        logError('stringTrim failed: ' + exc.message, 'safety');
+        return String(targetString || '');
+    }
+}
+
+/**
+ * ES3-compatible string startsWith replacement - ENHANCED LOGGING
+ * @param {String} targetString - String to test
+ * @param {String} searchString - String to search for
+ * @returns {Boolean} True if string starts with search string
+ */
+function stringStartsWith(targetString, searchString) {
+    try {
+        if (typeof targetString !== 'string' || typeof searchString !== 'string') {
+            logWarn('stringStartsWith called with invalid parameters', 'safety');
+            return false;
+        }
+
+        var startsWith = targetString.substring(0, searchString.length) === searchString;
+        logDebug('stringStartsWith result: ' + startsWith, 'safety');
+        return startsWith;
+
+    } catch (exc) {
+        logError('stringStartsWith failed: ' + exc.message, 'safety');
+        return false;
+    }
+}
+
+/**
+ * ES3-compatible string endsWith replacement - ENHANCED LOGGING
+ * @param {String} targetString - String to test
+ * @param {String} searchString - String to search for
+ * @returns {Boolean} True if string ends with search string
+ */
+function stringEndsWith(targetString, searchString) {
+    try {
+        if (typeof targetString !== 'string' || typeof searchString !== 'string') {
+            logWarn('stringEndsWith called with invalid parameters', 'safety');
+            return false;
+        }
+
+        var startPos = targetString.length - searchString.length;
+        var endsWith = startPos >= 0 && targetString.substring(startPos) === searchString;
+        logDebug('stringEndsWith result: ' + endsWith, 'safety');
+        return endsWith;
+
+    } catch (exc) {
+        logError('stringEndsWith failed: ' + exc.message, 'safety');
+        return false;
+    }
+}
+
+/**
+ * ES3-compatible string indexOf replacement - ENHANCED LOGGING
+ * @param {String} targetString - String to search
+ * @param {String} searchString - String to find
+ * @param {Number} fromIndex - Start index
+ * @returns {Number} Index or -1
+ */
+function stringIndexOf(targetString, searchString, fromIndex) {
+    try {
+        if (typeof targetString !== 'string' || typeof searchString !== 'string') {
+            logWarn('stringIndexOf called with invalid parameters', 'safety');
+            return -1;
+        }
+
+        var startIndex = fromIndex || 0;
+        var index = targetString.indexOf(searchString, startIndex);
+        logDebug('stringIndexOf result: ' + index, 'safety');
+        return index;
+
+    } catch (exc) {
+        logError('stringIndexOf failed: ' + exc.message, 'safety');
+        return -1;
+    }
+}
+
+/**
+ * ES3-compatible string toLowerCase replacement - ENHANCED LOGGING
  * @param {String} targetString - String to convert
  * @returns {String} Lowercase string
  */
 function stringToLowerCase(targetString) {
     try {
         if (typeof targetString !== 'string') {
-            return '';
+            logWarn('stringToLowerCase called with non-string', 'safety');
+            return String(targetString || '').toLowerCase();
         }
-        
-        var result = '';
-        for (var i = 0; i < targetString.length; i++) {
-            var char = targetString.charAt(i);
-            var code = char.charCodeAt(0);
-            if (code >= 65 && code <= 90) { // A-Z
-                result += String.fromCharCode(code + 32);
-            } else {
-                result += char;
-            }
-        }
-        
+
+        var result = targetString.toLowerCase();
+        logDebug('stringToLowerCase converted string', 'safety');
         return result;
-        
+
     } catch (exc) {
-        logError('stringToLowerCase error: ' + exc.message, 'general');
-        return '';
+        logError('stringToLowerCase failed: ' + exc.message, 'safety');
+        return String(targetString || '');
     }
 }
 
 /**
- * ES3-compatible string toUpperCase - MINIMAL LOGGING
+ * ES3-compatible string toUpperCase replacement - ENHANCED LOGGING
  * @param {String} targetString - String to convert
  * @returns {String} Uppercase string
  */
 function stringToUpperCase(targetString) {
     try {
         if (typeof targetString !== 'string') {
-            return '';
+            logWarn('stringToUpperCase called with non-string', 'safety');
+            return String(targetString || '').toUpperCase();
         }
-        
-        var result = '';
-        for (var i = 0; i < targetString.length; i++) {
-            var char = targetString.charAt(i);
-            var code = char.charCodeAt(0);
-            if (code >= 97 && code <= 122) { // a-z
-                result += String.fromCharCode(code - 32);
-            } else {
-                result += char;
-            }
-        }
-        
+
+        var result = targetString.toUpperCase();
+        logDebug('stringToUpperCase converted string', 'safety');
         return result;
-        
+
     } catch (exc) {
-        logError('stringToUpperCase error: ' + exc.message, 'general');
-        return '';
+        logError('stringToUpperCase failed: ' + exc.message, 'safety');
+        return String(targetString || '');
     }
 }
 
 /**
- * ES3-compatible string replace - ENHANCED LOGGING
- * @param {String} targetString - String to modify
- * @param {String} searchValue - Value to find
- * @param {String} replaceValue - Replacement value
- * @returns {String} Modified string
+ * Safe string splitting with limits - ENHANCED LOGGING
+ * @param {String} targetString - String to split
+ * @param {String} separator - Split separator
+ * @param {Number} limit - Maximum splits
+ * @returns {Array} Split string array
  */
-function stringReplace(targetString, searchValue, replaceValue) {
-    logDebug('=== STARTING stringReplace ===', 'general');
-    
+function safeSplitString(targetString, separator, limit) {
     try {
-        if (typeof targetString !== 'string' || typeof searchValue !== 'string') {
-            logWarn('stringReplace called with invalid parameters', 'general');
-            return targetString || '';
+        if (typeof targetString !== 'string') {
+            logWarn('safeSplitString called with non-string', 'safety');
+            return [String(targetString || '')];
         }
-        
-        var replacementValue = (typeof replaceValue === 'string') ? replaceValue : '';
-        var index = stringIndexOf(targetString, searchValue);
-        
-        if (index === -1) {
-            logDebug('stringReplace: search value not found', 'general');
-            return targetString;
-        }
-        
-        var before = stringSubstring(targetString, 0, index);
-        var after = stringSubstring(targetString, index + searchValue.length);
-        var result = before + replacementValue + after;
-        
-        logInfo('stringReplace completed: replaced "' + searchValue + '" with "' + replacementValue + '"', 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('stringReplace error: ' + exc.message, 'general');
-        return targetString || '';
-    }
-}
 
-/**
- * ES3-compatible string match - ENHANCED LOGGING
- * @param {String} targetString - String to search
- * @param {String} pattern - Pattern to match
- * @returns {Array} Match results or null
- */
-function stringMatch(targetString, pattern) {
-    logDebug('=== STARTING stringMatch ===', 'general');
-    
-    try {
-        if (typeof targetString !== 'string' || typeof pattern !== 'string') {
-            logWarn('stringMatch called with invalid parameters', 'general');
-            return null;
-        }
+        var sep = separator || '';
+        var maxParts = limit || SAFETY_CONFIG.maxArrayLength;
         
-        var index = stringIndexOf(targetString, pattern);
-        if (index === -1) {
-            logDebug('stringMatch: pattern not found', 'general');
-            return null;
-        }
-        
-        var result = [pattern];
-        result.index = index;
-        result.input = targetString;
-        
-        logInfo('stringMatch completed: found pattern at index ' + index, 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('stringMatch error: ' + exc.message, 'general');
-        return null;
-    }
-}
-
-// =============================================================================
-// ES3 OBJECT HELPERS - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * ES3-compatible object hasOwnProperty - MINIMAL LOGGING
- * @param {Object} targetObject - Object to check
- * @param {String} prop - Property name
- * @returns {Boolean} True if object has property
- */
-function objectHasOwnProperty(targetObject, prop) {
-    try {
-        if (!targetObject || typeof prop !== 'string') {
-            return false;
-        }
-        
-        // Direct property check
-        return (prop in targetObject) && (targetObject.constructor.prototype[prop] !== targetObject[prop]);
-        
-    } catch (exc) {
-        logError('objectHasOwnProperty error: ' + exc.message, 'general');
-        return false;
-    }
-}
-
-/**
- * Count object keys - MINIMAL LOGGING
- * @param {Object} targetObject - Object to count
- * @returns {Number} Key count
- */
-function countObjectKeys(targetObject) {
-    try {
-        if (!targetObject || typeof targetObject !== 'object') {
-            return 0;
-        }
-        
-        var count = 0;
-        for (var key in targetObject) {
-            if (objectHasOwnProperty(targetObject, key)) {
-                count++;
+        if (sep === '') {
+            // Character split
+            var chars = [];
+            for (var i = 0; i < targetString.length && i < maxParts; i++) {
+                arrayPush(chars, targetString.charAt(i));
             }
+            logDebug('safeSplitString character split: ' + chars.length + ' chars', 'safety');
+            return chars;
         }
-        
-        return count;
-        
-    } catch (exc) {
-        logError('countObjectKeys error: ' + exc.message, 'general');
-        return 0;
-    }
-}
 
-/**
- * Get object keys - ENHANCED LOGGING
- * @param {Object} targetObject - Object to analyze
- * @returns {Array} Array of keys
- */
-function getObjectKeys(targetObject) {
-    logDebug('=== STARTING getObjectKeys ===', 'general');
-    
-    try {
-        if (!targetObject || typeof targetObject !== 'object') {
-            logWarn('getObjectKeys called with non-object', 'general');
-            return [];
+        var parts = targetString.split(sep);
+        if (parts.length > maxParts) {
+            parts = arraySlice(parts, 0, maxParts);
+            logWarn('safeSplitString truncated to ' + maxParts + ' parts', 'safety');
         }
-        
-        var keys = [];
-        for (var key in targetObject) {
-            if (objectHasOwnProperty(targetObject, key)) {
-                keys[keys.length] = key;
-            }
-        }
-        
-        logInfo('getObjectKeys completed: ' + keys.length + ' keys found', 'general');
-        return keys;
-        
-    } catch (exc) {
-        logError('getObjectKeys error: ' + exc.message, 'general');
-        return [];
-    }
-}
 
-/**
- * ES3-compatible object clone - ENHANCED LOGGING
- * @param {Object} originalObject - Object to clone
- * @param {Number} maxDepth - Maximum depth (optional)
- * @returns {Object} Cloned object
- */
-function objectClone(originalObject, maxDepth) {
-    logDebug('=== STARTING objectClone ===', 'general');
-    
-    try {
-        if (!originalObject) {
-            logDebug('objectClone: null or undefined input', 'general');
-            return originalObject;
-        }
-        
-        var depth = maxDepth || SAFETY_CONFIG.maxObjectDepth;
-        logDebug('objectClone with max depth: ' + depth, 'general');
-        
-        return cloneObjectRecursive(originalObject, depth, 0);
-        
-    } catch (exc) {
-        logError('objectClone error: ' + exc.message, 'general');
-        return {};
-    }
-}
+        logDebug('safeSplitString created ' + parts.length + ' parts', 'safety');
+        return parts;
 
-/**
- * Recursive clone helper - INTERNAL FUNCTION
- * @param {*} obj - Object to clone
- * @param {Number} maxDepth - Maximum depth
- * @param {Number} currentDepth - Current recursion depth
- * @returns {*} Cloned value
- */
-function cloneObjectRecursive(obj, maxDepth, currentDepth) {
-    try {
-        if (currentDepth >= maxDepth) {
-            logWarn('objectClone: max depth reached at level ' + currentDepth, 'general');
-            return '[Max Depth Reached]';
-        }
-        
-        if (obj === null || typeof obj !== 'object') {
-            return obj;
-        }
-        
-        if (typeof obj.length !== 'undefined') {
-            // Array-like object
-            var arrayClone = [];
-            for (var i = 0; i < obj.length; i++) {
-                arrayClone[i] = cloneObjectRecursive(obj[i], maxDepth, currentDepth + 1);
-            }
-            return arrayClone;
-        } else {
-            // Regular object
-            var objectClone = {};
-            for (var key in obj) {
-                if (objectHasOwnProperty(obj, key)) {
-                    objectClone[key] = cloneObjectRecursive(obj[key], maxDepth, currentDepth + 1);
-                }
-            }
-            return objectClone;
-        }
-        
     } catch (exc) {
-        logError('cloneObjectRecursive error at depth ' + currentDepth + ': ' + exc.message, 'general');
-        return '[Clone Error]';
-    }
-}
-
-/**
- * ES3-compatible object merge - ENHANCED LOGGING
- * @param {Object} target - Target object
- * @param {Object} source - Source object
- * @returns {Object} Merged object
- */
-function objectMerge(target, source) {
-    logDebug('=== STARTING objectMerge ===', 'general');
-    
-    try {
-        var result = target || {};
-        
-        if (!source || typeof source !== 'object') {
-            logDebug('objectMerge: no valid source object', 'general');
-            return result;
-        }
-        
-        var mergedCount = 0;
-        for (var prop in source) {
-            if (objectHasOwnProperty(source, prop)) {
-                result[prop] = source[prop];
-                mergedCount++;
-            }
-        }
-        
-        logInfo('objectMerge completed: ' + mergedCount + ' properties merged', 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('objectMerge error: ' + exc.message, 'general');
-        return target || {};
-    }
-}
-
-/**
- * ES3-compatible deep object merge - ENHANCED LOGGING
- * @param {Object} target - Target object
- * @param {Object} source - Source object
- * @returns {Object} Deep merged object
- */
-function objectDeepMerge(target, source) {
-    logDebug('=== STARTING objectDeepMerge ===', 'general');
-    
-    try {
-        var result = objectClone(target) || {};
-        
-        if (!source || typeof source !== 'object') {
-            logDebug('objectDeepMerge: no valid source object', 'general');
-            return result;
-        }
-        
-        var mergedCount = 0;
-        for (var prop in source) {
-            if (objectHasOwnProperty(source, prop)) {
-                if (typeof source[prop] === 'object' && source[prop] !== null &&
-                    typeof result[prop] === 'object' && result[prop] !== null) {
-                    result[prop] = objectDeepMerge(result[prop], source[prop]);
-                } else {
-                    result[prop] = source[prop];
-                }
-                mergedCount++;
-            }
-        }
-        
-        logInfo('objectDeepMerge completed: ' + mergedCount + ' properties deep merged', 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('objectDeepMerge error: ' + exc.message, 'general');
-        return target || {};
+        logError('safeSplitString failed: ' + exc.message, 'safety');
+        return [String(targetString || '')];
     }
 }
 
 // =============================================================================
-// FUNCTION UTILITIES - ENHANCED LOGGING
+// PROPERTY SAFETY AND VALIDATION - COMPREHENSIVE IMPLEMENTATION
 // =============================================================================
 
 /**
- * Check if function exists - ENHANCED LOGGING
- * @param {String} functionName - Function name to check
- * @returns {Boolean} True if function exists
- */
-function functionExists(functionName) {
-    logDebug('Checking function existence: ' + functionName, 'general');
-    
-    try {
-        if (typeof functionName !== 'string') {
-            logWarn('functionExists called with non-string parameter', 'general');
-            return false;
-        }
-        
-        // Check global scope
-        var exists = (typeof this[functionName] === 'function');
-        
-        if (!exists) {
-            logDebug('Function not found: ' + functionName, 'general');
-        }
-        
-        return exists;
-        
-    } catch (exc) {
-        logError('functionExists error for ' + functionName + ': ' + exc.message, 'general');
-        return false;
-    }
-}
-
-/**
- * Safe function call - ENHANCED LOGGING
- * @param {Function} func - Function to call
- * @param {Array} args - Arguments array
- * @returns {*} Function result or error object
- */
-function safeCall(func, args) {
-    logDebug('=== STARTING safeCall ===', 'general');
-    
-    try {
-        if (typeof func !== 'function') {
-            logWarn('safeCall: parameter is not a function', 'general');
-            return { error: 'Not a function' };
-        }
-        
-        var arguments = args || [];
-        var result = func.apply(null, arguments);
-        
-        logInfo('safeCall completed successfully', 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('safeCall error: ' + exc.message, 'general');
-        return { error: exc.message };
-    }
-}
-
-// =============================================================================
-// ES3 COMPATIBILITY HELPERS - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Trim string (ES3 compatible) - MINIMAL LOGGING
- * @param {String} str - String to trim
- * @returns {String} Trimmed string
- */
-function trimString(str) {
-    try {
-        if (typeof str !== 'string') {
-            return '';
-        }
-        
-        var start = 0;
-        var end = str.length - 1;
-        
-        while (start <= end && (str.charAt(start) === ' ' || str.charAt(start) === '\t' || 
-               str.charAt(start) === '\n' || str.charAt(start) === '\r')) {
-            start++;
-        }
-        
-        while (end >= start && (str.charAt(end) === ' ' || str.charAt(end) === '\t' || 
-               str.charAt(end) === '\n' || str.charAt(end) === '\r')) {
-            end--;
-        }
-        
-        return stringSubstring(str, start, end + 1);
-        
-    } catch (exc) {
-        logError('trimString error: ' + exc.message, 'general');
-        return '';
-    }
-}
-
-/**
- * Safe toString - MINIMAL LOGGING
- * @param {*} value - Value to convert
- * @returns {String} String representation
- */
-function safeToString(value) {
-    try {
-        if (value === null) {
-            return 'null';
-        }
-        if (value === undefined) {
-            return 'undefined';
-        }
-        if (typeof value === 'string') {
-            return value;
-        }
-        
-        return value.toString();
-        
-    } catch (exc) {
-        return '[toString Error]';
-    }
-}
-
-/**
- * Safe parseInt - MINIMAL LOGGING
- * @param {String} str - String to parse
- * @param {Number} radix - Radix (optional)
- * @returns {Number} Parsed number or NaN
- */
-function safeParseInt(str, radix) {
-    try {
-        var string = safeToString(str);
-        var base = radix || 10;
-        
-        if (base < 2 || base > 36) {
-            base = 10;
-        }
-        
-        return parseInt(string, base);
-        
-    } catch (exc) {
-        logError('safeParseInt error: ' + exc.message, 'general');
-        return NaN;
-    }
-}
-
-/**
- * Safe parseFloat - MINIMAL LOGGING
- * @param {String} str - String to parse
- * @returns {Number} Parsed number or NaN
- */
-function safeParseFloat(str) {
-    try {
-        var string = safeToString(str);
-        return parseFloat(string);
-        
-    } catch (exc) {
-        logError('safeParseFloat error: ' + exc.message, 'general');
-        return NaN;
-    }
-}
-
-// =============================================================================
-// JSON HANDLING - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Safe JSON stringify - ENHANCED LOGGING
- * @param {*} obj - Object to stringify
- * @param {Number} indent - Indentation level
- * @returns {String} JSON string
- */
-function safeJSONStringify(obj, indent) {
-    logDebug('=== STARTING safeJSONStringify ===', 'json');
-    
-    try {
-        var indentLevel = indent || 0;
-        
-        if (typeof JSON !== 'undefined' && JSON.stringify) {
-            var result = JSON.stringify(obj, null, indentLevel);
-            logInfo('safeJSONStringify completed using native JSON', 'json');
-            return result;
-        } else {
-            logWarn('Native JSON not available, using fallback', 'json');
-            return fallbackStringify(obj, indentLevel);
-        }
-        
-    } catch (exc) {
-        logError('safeJSONStringify error: ' + exc.message, 'json');
-        return fallbackStringify(obj, indent);
-    }
-}
-
-/**
- * Fallback JSON stringify - ENHANCED LOGGING
- * @param {*} obj - Object to stringify
- * @param {Number} indent - Indentation level
- * @returns {String} JSON string
- */
-function fallbackStringify(obj, indent) {
-    logDebug('=== STARTING fallbackStringify ===', 'json');
-    
-    try {
-        var indentLevel = indent || 0;
-        var result = stringifyValue(obj, 0, indentLevel);
-        
-        logInfo('fallbackStringify completed', 'json');
-        return result;
-        
-    } catch (exc) {
-        logError('fallbackStringify error: ' + exc.message, 'json');
-        return '{"error":"stringify failed"}';
-    }
-}
-
-/**
- * Stringify value helper - INTERNAL FUNCTION
- * @param {*} value - Value to stringify
- * @param {Number} depth - Current depth
- * @param {Number} indent - Indentation
- * @returns {String} Stringified value
- */
-function stringifyValue(value, depth, indent) {
-    try {
-        if (depth > SAFETY_CONFIG.maxObjectDepth) {
-            return '"[Max Depth]"';
-        }
-        
-        if (value === null) {
-            return 'null';
-        }
-        if (value === undefined) {
-            return 'undefined';
-        }
-        if (typeof value === 'string') {
-            return '"' + stringReplace(stringReplace(value, '"', '\\"'), '\n', '\\n') + '"';
-        }
-        if (typeof value === 'number' || typeof value === 'boolean') {
-            return safeToString(value);
-        }
-        if (typeof value === 'object') {
-            if (typeof value.length !== 'undefined') {
-                // Array-like
-                var arrayResult = '[';
-                for (var i = 0; i < value.length; i++) {
-                    if (i > 0) arrayResult += ',';
-                    arrayResult += stringifyValue(value[i], depth + 1, indent);
-                }
-                arrayResult += ']';
-                return arrayResult;
-            } else {
-                // Object
-                var objectResult = '{';
-                var first = true;
-                for (var key in value) {
-                    if (objectHasOwnProperty(value, key)) {
-                        if (!first) objectResult += ',';
-                        objectResult += '"' + key + '":' + stringifyValue(value[key], depth + 1, indent);
-                        first = false;
-                    }
-                }
-                objectResult += '}';
-                return objectResult;
-            }
-        }
-        
-        return '"[Unstringifiable]"';
-        
-    } catch (exc) {
-        return '"[Stringify Error]"';
-    }
-}
-
-/**
- * Safe JSON parse - ENHANCED LOGGING
- * @param {String} jsonString - JSON string to parse
- * @returns {*} Parsed object or null
- */
-function safeJSONParse(jsonString) {
-    logDebug('=== STARTING safeJSONParse ===', 'json');
-    
-    try {
-        if (typeof jsonString !== 'string') {
-            logWarn('safeJSONParse called with non-string input', 'json');
-            return null;
-        }
-        
-        if (typeof JSON !== 'undefined' && JSON.parse) {
-            var result = JSON.parse(jsonString);
-            logInfo('safeJSONParse completed using native JSON', 'json');
-            return result;
-        } else {
-            logWarn('Native JSON not available, using eval fallback', 'json');
-            // Fallback using eval (unsafe but necessary in old environments)
-            var parsed = eval('(' + jsonString + ')');
-            logInfo('safeJSONParse completed using eval fallback', 'json');
-            return parsed;
-        }
-        
-    } catch (exc) {
-        logError('safeJSONParse error: ' + exc.message, 'json');
-        return null;
-    }
-}
-
-// =============================================================================
-// PROPERTY SAFETY FUNCTIONS - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Safe type check - MINIMAL LOGGING
- * @param {*} value - Value to check
- * @param {String} expectedType - Expected type
- * @returns {Boolean} True if type matches
- */
-function safeTypeCheck(value, expectedType) {
-    try {
-        if (typeof expectedType !== 'string') {
-            return false;
-        }
-        
-        return (typeof value === stringToLowerCase(expectedType));
-        
-    } catch (exc) {
-        logError('safeTypeCheck error: ' + exc.message, 'general');
-        return false;
-    }
-}
-
-/**
- * Safe property check - MINIMAL LOGGING
- * @param {Object} obj - Object to check
- * @param {String} prop - Property name
- * @returns {Boolean} True if property exists safely
- */
-function safeHasProperty(obj, prop) {
-    try {
-        if (!obj || typeof prop !== 'string') {
-            return false;
-        }
-        
-        return objectHasOwnProperty(obj, prop);
-        
-    } catch (exc) {
-        return false;
-    }
-}
-
-/**
- * Safe get length - MINIMAL LOGGING
- * @param {*} obj - Object to check
- * @returns {Number} Length or 0
- */
-function safeGetLength(obj) {
-    try {
-        if (!obj) {
-            return 0;
-        }
-        
-        if (typeof obj.length === 'number') {
-            return obj.length;
-        }
-        
-        return 0;
-        
-    } catch (exc) {
-        return 0;
-    }
-}
-
-/**
- * Safe get object from path - ENHANCED LOGGING
- * @param {Object} rootObject - Root object
- * @param {String} path - Dot-separated path
- * @returns {*} Object at path or null
- */
-function safeGetObjectFromPath(rootObject, path) {
-    logDebug('=== STARTING safeGetObjectFromPath: ' + path + ' ===', 'general');
-    
-    try {
-        if (!rootObject || typeof path !== 'string') {
-            logWarn('safeGetObjectFromPath: invalid parameters', 'general');
-            return null;
-        }
-        
-        var pathParts = stringSplit(path, '.');
-        var currentObject = rootObject;
-        
-        for (var i = 0; i < pathParts.length; i++) {
-            var part = pathParts[i];
-            
-            if (!currentObject || !safeHasProperty(currentObject, part)) {
-                logDebug('safeGetObjectFromPath: path not found at "' + part + '"', 'general');
-                return null;
-            }
-            
-            currentObject = currentObject[part];
-        }
-        
-        logInfo('safeGetObjectFromPath completed successfully', 'general');
-        return currentObject;
-        
-    } catch (exc) {
-        logError('safeGetObjectFromPath error: ' + exc.message, 'general');
-        return null;
-    }
-}
-
-/**
- * Safe get property value - ENHANCED LOGGING
- * @param {Object} obj - Object to access
- * @param {String} propName - Property name
- * @returns {*} Property value or null
- */
-function safeGetPropertyValue(obj, propName) {
-    logDebug('Getting property value: ' + propName, 'general');
-    
-    try {
-        if (!obj || typeof propName !== 'string') {
-            logWarn('safeGetPropertyValue: invalid parameters', 'general');
-            return null;
-        }
-        
-        if (!safeHasProperty(obj, propName)) {
-            logDebug('safeGetPropertyValue: property "' + propName + '" not found', 'general');
-            return null;
-        }
-        
-        var value = obj[propName];
-        logDebug('safeGetPropertyValue completed for: ' + propName, 'general');
-        return value;
-        
-    } catch (exc) {
-        logError('safeGetPropertyValue error for "' + propName + '": ' + exc.message, 'general');
-        return null;
-    }
-}
-
-// =============================================================================
-// OBJECT REFERENCE TRACKING - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Generate object reference ID - ENHANCED LOGGING
- * @param {Object} obj - Object to ID
- * @returns {String} Reference ID
- */
-function generateObjectReferenceID(obj) {
-    logDebug('=== STARTING generateObjectReferenceID ===', 'general');
-    
-    try {
-        if (!obj) {
-            logDebug('generateObjectReferenceID: null object', 'general');
-            return 'null';
-        }
-        
-        var id = '';
-        
-        // Try to use object properties for ID
-        if (obj.name) {
-            id += 'name:' + obj.name + ';';
-        }
-        if (obj.id) {
-            id += 'id:' + obj.id + ';';
-        }
-        if (obj.constructor && obj.constructor.name) {
-            id += 'type:' + obj.constructor.name + ';';
-        }
-        
-        // Add timestamp for uniqueness
-        id += 'ref:' + new Date().getTime();
-        
-        logInfo('generateObjectReferenceID completed: ' + id, 'general');
-        return id;
-        
-    } catch (exc) {
-        logError('generateObjectReferenceID error: ' + exc.message, 'general');
-        return 'error:' + new Date().getTime();
-    }
-}
-
-/**
- * Check if same object reference - MINIMAL LOGGING
- * @param {Object} obj1 - First object
- * @param {Object} obj2 - Second object
- * @returns {Boolean} True if same reference
- */
-function isSameObjectReference(obj1, obj2) {
-    try {
-        return (obj1 === obj2);
-        
-    } catch (exc) {
-        logError('isSameObjectReference error: ' + exc.message, 'general');
-        return false;
-    }
-}
-
-/**
- * Create object reference tracker - ENHANCED LOGGING
- * @returns {Object} Reference tracker
- */
-function createObjectReferenceTracker() {
-    logDebug('=== STARTING createObjectReferenceTracker ===', 'general');
-    
-    try {
-        var tracker = {
-            references: [],
-            count: 0,
-            
-            track: function(obj) {
-                try {
-                    var id = generateObjectReferenceID(obj);
-                    this.references[this.references.length] = {
-                        id: id,
-                        object: obj,
-                        timestamp: new Date().getTime()
-                    };
-                    this.count++;
-                    return id;
-                } catch (exc) {
-                    logError('Reference tracker.track error: ' + exc.message, 'general');
-                    return null;
-                }
-            },
-            
-            find: function(id) {
-                try {
-                    for (var i = 0; i < this.references.length; i++) {
-                        if (this.references[i].id === id) {
-                            return this.references[i].object;
-                        }
-                    }
-                    return null;
-                } catch (exc) {
-                    logError('Reference tracker.find error: ' + exc.message, 'general');
-                    return null;
-                }
-            },
-            
-            clear: function() {
-                try {
-                    this.references = [];
-                    this.count = 0;
-                } catch (exc) {
-                    logError('Reference tracker.clear error: ' + exc.message, 'general');
-                }
-            }
-        };
-        
-        logInfo('createObjectReferenceTracker completed', 'general');
-        return tracker;
-        
-    } catch (exc) {
-        logError('createObjectReferenceTracker error: ' + exc.message, 'general');
-        return null;
-    }
-}
-
-// =============================================================================
-// PATH UTILITIES - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Split path into parts - ENHANCED LOGGING
- * @param {String} path - Path to split
- * @returns {Array} Path parts
- */
-function splitPath(path) {
-    logDebug('=== STARTING splitPath: ' + path + ' ===', 'general');
-    
-    try {
-        if (typeof path !== 'string') {
-            logWarn('splitPath called with non-string path', 'general');
-            return [];
-        }
-        
-        var parts = stringSplit(path, '.');
-        var cleanParts = [];
-        
-        for (var i = 0; i < parts.length; i++) {
-            var part = trimString(parts[i]);
-            if (part.length > 0) {
-                cleanParts[cleanParts.length] = part;
-            }
-        }
-        
-        logInfo('splitPath completed: ' + cleanParts.length + ' parts', 'general');
-        return cleanParts;
-        
-    } catch (exc) {
-        logError('splitPath error: ' + exc.message, 'general');
-        return [];
-    }
-}
-
-/**
- * Join path parts - ENHANCED LOGGING
- * @param {Array} parts - Path parts to join
- * @returns {String} Joined path
- */
-function joinPath(parts) {
-    logDebug('=== STARTING joinPath ===', 'general');
-    
-    try {
-        if (!parts || typeof parts.length === 'undefined') {
-            logWarn('joinPath called with invalid parts array', 'general');
-            return '';
-        }
-        
-        var result = arrayJoin(parts, '.');
-        logInfo('joinPath completed: ' + result, 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('joinPath error: ' + exc.message, 'general');
-        return '';
-    }
-}
-
-/**
- * Get parent path - MINIMAL LOGGING
- * @param {String} path - Full path
- * @returns {String} Parent path
- */
-function getParentPath(path) {
-    try {
-        if (typeof path !== 'string') {
-            return '';
-        }
-        
-        var parts = splitPath(path);
-        if (parts.length <= 1) {
-            return '';
-        }
-        
-        var parentParts = arraySlice(parts, 0, parts.length - 1);
-        return joinPath(parentParts);
-        
-    } catch (exc) {
-        logError('getParentPath error: ' + exc.message, 'general');
-        return '';
-    }
-}
-
-/**
- * Normalize path - ENHANCED LOGGING
- * @param {String} path - Path to normalize
- * @returns {String} Normalized path
- */
-function normalizePath(path) {
-    logDebug('=== STARTING normalizePath: ' + path + ' ===', 'general');
-    
-    try {
-        if (typeof path !== 'string') {
-            logWarn('normalizePath called with non-string path', 'general');
-            return '';
-        }
-        
-        var parts = splitPath(path);
-        var normalizedParts = [];
-        
-        for (var i = 0; i < parts.length; i++) {
-            var part = parts[i];
-            if (part !== '' && part !== '.') {
-                if (part === '..' && normalizedParts.length > 0) {
-                    normalizedParts.pop();
-                } else if (part !== '..') {
-                    normalizedParts[normalizedParts.length] = part;
-                }
-            }
-        }
-        
-        var result = joinPath(normalizedParts);
-        logInfo('normalizePath completed: ' + result, 'general');
-        return result;
-        
-    } catch (exc) {
-        logError('normalizePath error: ' + exc.message, 'general');
-        return '';
-    }
-}
-
-/**
- * Check if path is absolute - MINIMAL LOGGING
- * @param {String} path - Path to check
- * @returns {Boolean} True if absolute
- */
-function isAbsolutePath(path) {
-    try {
-        if (typeof path !== 'string') {
-            return false;
-        }
-        
-        return (stringIndexOf(path, 'document') === 0 || stringIndexOf(path, 'app') === 0);
-        
-    } catch (exc) {
-        return false;
-    }
-}
-
-/**
- * Make path absolute - ENHANCED LOGGING
- * @param {String} path - Relative path
- * @param {String} basePath - Base path
- * @returns {String} Absolute path
- */
-function makeAbsolutePath(path, basePath) {
-    logDebug('=== STARTING makeAbsolutePath ===', 'general');
-    
-    try {
-        if (typeof path !== 'string') {
-            logWarn('makeAbsolutePath called with invalid path', 'general');
-            return '';
-        }
-        
-        if (isAbsolutePath(path)) {
-            logDebug('makeAbsolutePath: path already absolute', 'general');
-            return path;
-        }
-        
-        var base = basePath || 'document';
-        var result = base + '.' + path;
-        var normalized = normalizePath(result);
-        
-        logInfo('makeAbsolutePath completed: ' + normalized, 'general');
-        return normalized;
-        
-    } catch (exc) {
-        logError('makeAbsolutePath error: ' + exc.message, 'general');
-        return '';
-    }
-}
-
-// =============================================================================
-// MEMORY MANAGEMENT - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Memory cleanup utility - ENHANCED LOGGING
- * @param {Object} config - Cleanup configuration
- */
-function memoryCleanup(config) {
-    logDebug('=== STARTING memoryCleanup ===', 'performance');
-    
-    try {
-        var cleanupConfig = config || {
-            clearGlobals: false,
-            clearReferences: true,
-            forceGarbageCollection: false
-        };
-        
-        var cleanupCount = 0;
-        
-        // Clear object references
-        if (cleanupConfig.clearReferences) {
-            // This is a placeholder - real cleanup would depend on specific globals
-            logDebug('Memory cleanup: clearing object references', 'performance');
-            cleanupCount++;
-        }
-        
-        // Force garbage collection if requested and available
-        if (cleanupConfig.forceGarbageCollection && typeof $.gc === 'function') {
-            logDebug('Memory cleanup: forcing garbage collection', 'performance');
-            $.gc();
-            cleanupCount++;
-        }
-        
-        logInfo('memoryCleanup completed: ' + cleanupCount + ' cleanup operations', 'performance');
-        
-    } catch (exc) {
-        logError('memoryCleanup error: ' + exc.message, 'performance');
-    }
-}
-
-/**
- * Create memory monitor - ENHANCED LOGGING
- * @param {Object} config - Monitor configuration
- * @returns {Object} Memory monitor
- */
-function createMemoryMonitor(config) {
-    logDebug('=== STARTING createMemoryMonitor ===', 'performance');
-    
-    try {
-        var monitorConfig = config || {
-            checkInterval: SAFETY_CONFIG.memoryCheckInterval,
-            threshold: SAFETY_CONFIG.maxOperations
-        };
-        
-        var monitor = {
-            config: monitorConfig,
-            operationCount: 0,
-            startTime: new Date().getTime(),
-            
-            increment: function() {
-                try {
-                    this.operationCount++;
-                    if (this.operationCount % this.config.checkInterval === 0) {
-                        logDebug('Memory monitor: ' + this.operationCount + ' operations completed', 'performance');
-                    }
-                } catch (exc) {
-                    logError('Memory monitor increment error: ' + exc.message, 'performance');
-                }
-            },
-            
-            check: function() {
-                try {
-                    return (this.operationCount < this.config.threshold);
-                } catch (exc) {
-                    logError('Memory monitor check error: ' + exc.message, 'performance');
-                    return false;
-                }
-            },
-            
-            reset: function() {
-                try {
-                    this.operationCount = 0;
-                    this.startTime = new Date().getTime();
-                    logDebug('Memory monitor reset', 'performance');
-                } catch (exc) {
-                    logError('Memory monitor reset error: ' + exc.message, 'performance');
-                }
-            }
-        };
-        
-        logInfo('createMemoryMonitor completed', 'performance');
-        return monitor;
-        
-    } catch (exc) {
-        logError('createMemoryMonitor error: ' + exc.message, 'performance');
-        return null;
-    }
-}
-
-// =============================================================================
-// DANGER DETECTION - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Check if property is dangerous - ENHANCED LOGGING
- * @param {String} propName - Property name
+ * Check if property name is dangerous - ENHANCED LOGGING
+ * @param {String} propName - Property name to check
  * @returns {Boolean} True if dangerous
  */
 function isDangerousProperty(propName) {
-    logDebug('Checking dangerous property: ' + propName, 'general');
-    
     try {
         if (typeof propName !== 'string') {
-            return false;
+            logWarn('isDangerousProperty called with non-string', 'safety');
+            return true;
         }
+
+        var lowerProp = stringToLowerCase(propName);
         
-        var lowerName = stringToLowerCase(propName);
-        var dangerousProps = [
-            'quit', 'exit', 'close', 'save', 'delete', 'remove', 'destroy',
-            'terminate', 'kill', 'abort', 'reset', 'clear', 'empty'
-        ];
-        
-        for (var i = 0; i < dangerousProps.length; i++) {
-            if (stringIndexOf(lowerName, dangerousProps[i]) !== -1) {
-                logWarn('Dangerous property detected: ' + propName, 'general');
+        for (var i = 0; i < DANGEROUS_PROPERTIES.length; i++) {
+            if (lowerProp === stringToLowerCase(DANGEROUS_PROPERTIES[i])) {
+                logWarn('Dangerous property detected: ' + propName, 'safety');
                 return true;
             }
         }
-        
+
+        logDebug('Property is safe: ' + propName, 'safety');
         return false;
-        
+
     } catch (exc) {
-        logError('isDangerousProperty error: ' + exc.message, 'general');
+        logError('isDangerousProperty failed: ' + exc.message, 'safety');
         return true; // Err on the side of caution
     }
 }
 
 /**
- * Check if path is dangerous - ENHANCED LOGGING
- * @param {String} path - Path to check
- * @returns {Boolean} True if dangerous
- */
-function isDangerousPath(path) {
-    logDebug('Checking dangerous path: ' + path, 'general');
-    
-    try {
-        if (typeof path !== 'string') {
-            return false;
-        }
-        
-        var lowerPath = stringToLowerCase(path);
-        var dangerousPaths = [
-            'app.quit', 'application.quit', 'document.close', 'documents.close',
-            'parent.parent.parent', '.quit', '.exit', '.terminate', '.close'
-        ];
-        
-        for (var i = 0; i < dangerousPaths.length; i++) {
-            if (stringIndexOf(lowerPath, dangerousPaths[i]) !== -1) {
-                logWarn('Dangerous path detected: ' + path, 'general');
-                return true;
-            }
-        }
-        
-        // Check app-specific dangerous paths if adapter available
-        if (functionExists('isAppSpecificDangerousPath')) {
-            if (isAppSpecificDangerousPath(path)) {
-                logWarn('App-specific dangerous path detected: ' + path, 'general');
-                return true;
-            }
-        }
-        
-        return false;
-        
-    } catch (exc) {
-        logError('isDangerousPath error: ' + exc.message, 'general');
-        return true; // Err on the side of caution
-    }
-}
-
-/**
- * Check if word is reserved - MINIMAL LOGGING
+ * Check if word is reserved - ENHANCED LOGGING
  * @param {String} word - Word to check
  * @returns {Boolean} True if reserved
  */
 function isReservedWord(word) {
     try {
         if (typeof word !== 'string') {
-            return false;
+            logWarn('isReservedWord called with non-string', 'safety');
+            return true;
         }
-        
-        var reservedWords = [
-            'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete',
-            'do', 'else', 'finally', 'for', 'function', 'if', 'in', 'instanceof',
-            'new', 'return', 'switch', 'this', 'throw', 'try', 'typeof', 'var',
-            'void', 'while', 'with', 'export', 'import', 'class', 'extends'
-        ];
-        
+
         var lowerWord = stringToLowerCase(word);
         
-        for (var i = 0; i < reservedWords.length; i++) {
-            if (lowerWord === reservedWords[i]) {
+        for (var i = 0; i < RESERVED_WORDS.length; i++) {
+            if (lowerWord === RESERVED_WORDS[i]) {
+                logWarn('Reserved word detected: ' + word, 'safety');
                 return true;
             }
         }
-        
+
+        logDebug('Word is not reserved: ' + word, 'safety');
         return false;
-        
+
     } catch (exc) {
-        logError('isReservedWord error: ' + exc.message, 'general');
+        logError('isReservedWord failed: ' + exc.message, 'safety');
         return true; // Err on the side of caution
     }
 }
@@ -1672,47 +783,110 @@ function isReservedWord(word) {
  * @returns {String} Safety level: 'safe', 'caution', 'dangerous'
  */
 function getPropertySafetyLevel(propName) {
-    logDebug('=== STARTING getPropertySafetyLevel: ' + propName + ' ===', 'general');
-    
     try {
         if (typeof propName !== 'string') {
-            logWarn('getPropertySafetyLevel called with non-string', 'general');
+            logWarn('getPropertySafetyLevel called with non-string', 'safety');
             return 'dangerous';
         }
         
         if (isDangerousProperty(propName)) {
-            logWarn('Property marked as dangerous: ' + propName, 'general');
+            logWarn('Property marked as dangerous: ' + propName, 'safety');
             return 'dangerous';
         }
         
         if (isReservedWord(propName)) {
-            logWarn('Property is reserved word: ' + propName, 'general');
+            logWarn('Property is reserved word: ' + propName, 'safety');
             return 'caution';
         }
         
         var lowerName = stringToLowerCase(propName);
         var cautionProps = [
-            'parent', 'application', 'preferences', 'selection', 'active'
+            'parent', 'selection', 'active', 'current', 'visible', 'enabled'
         ];
         
         for (var i = 0; i < cautionProps.length; i++) {
             if (stringIndexOf(lowerName, cautionProps[i]) !== -1) {
-                logDebug('Property marked as caution: ' + propName, 'general');
+                logDebug('Property marked as caution: ' + propName, 'safety');
                 return 'caution';
             }
         }
         
-        logDebug('Property marked as safe: ' + propName, 'general');
+        logDebug('Property marked as safe: ' + propName, 'safety');
         return 'safe';
         
     } catch (exc) {
-        logError('getPropertySafetyLevel error: ' + exc.message, 'general');
+        logError('getPropertySafetyLevel error: ' + exc.message, 'safety');
         return 'dangerous';
     }
 }
 
+/**
+ * Validate property access path - ENHANCED LOGGING
+ * @param {String} path - Property path to validate
+ * @returns {Object} Validation result
+ */
+function validatePropertyPath(path) {
+    try {
+        logDebug('=== STARTING validatePropertyPath: ' + path + ' ===', 'safety');
+        
+        if (!path || typeof path !== 'string') {
+            return {
+                isValid: false,
+                safetyLevel: 'dangerous',
+                reason: 'Invalid path parameter',
+                recommendations: ['Provide valid string path']
+            };
+        }
+
+        var pathParts = safeSplitString(path, '.');
+        var overallSafety = 'safe';
+        var warnings = [];
+        var recommendations = [];
+        var dangerousSegments = [];
+
+        arrayForEach(pathParts, function(part, index) {
+            var partSafety = getPropertySafetyLevel(part);
+            
+            if (partSafety === 'dangerous') {
+                overallSafety = 'dangerous';
+                arrayPush(dangerousSegments, part);
+                arrayPush(warnings, 'Dangerous segment at position ' + index + ': ' + part);
+                arrayPush(recommendations, 'Avoid accessing: ' + part);
+            } else if (partSafety === 'caution' && overallSafety !== 'dangerous') {
+                overallSafety = 'caution';
+                arrayPush(warnings, 'Caution segment at position ' + index + ': ' + part);
+                arrayPush(recommendations, 'Use safely: ' + part);
+            }
+        });
+
+        var result = {
+            isValid: overallSafety !== 'dangerous',
+            safetyLevel: overallSafety,
+            pathSegments: pathParts,
+            dangerousSegments: dangerousSegments,
+            warnings: warnings,
+            recommendations: recommendations,
+            reason: overallSafety === 'dangerous' ? 
+                'Contains dangerous segments: ' + arrayJoin(dangerousSegments, ', ') :
+                overallSafety === 'caution' ? 'Contains segments requiring caution' : 'Path appears safe'
+        };
+
+        logInfo('validatePropertyPath result: ' + overallSafety + ' (' + warnings.length + ' warnings)', 'safety');
+        return result;
+
+    } catch (exc) {
+        logError('validatePropertyPath failed: ' + exc.message, 'safety');
+        return {
+            isValid: false,
+            safetyLevel: 'dangerous',
+            reason: 'Validation error: ' + exc.message,
+            recommendations: ['Check path syntax and try again']
+        };
+    }
+}
+
 // =============================================================================
-// OPERATION CONTROL - ENHANCED LOGGING
+// PERFORMANCE MONITORING AND OPERATION CONTROL
 // =============================================================================
 
 /**
@@ -1753,6 +927,24 @@ function createTimeoutChecker(timeoutMs) {
                     return new Date().getTime() - this.startTime;
                 } catch (exc) {
                     return 0;
+                }
+            },
+            
+            getRemainingTime: function() {
+                try {
+                    var elapsed = this.getElapsed();
+                    return Math.max(0, this.timeout - elapsed);
+                } catch (exc) {
+                    return 0;
+                }
+            },
+            
+            getProgress: function() {
+                try {
+                    var elapsed = this.getElapsed();
+                    return Math.min(100, (elapsed / this.timeout) * 100);
+                } catch (exc) {
+                    return 100;
                 }
             }
         };
@@ -1813,6 +1005,14 @@ function createOperationCounter(maxOps) {
                 } catch (exc) {
                     logError('Operation counter reset error: ' + exc.message, 'performance');
                 }
+            },
+            
+            getProgress: function() {
+                try {
+                    return Math.min(100, (this.count / this.maxOperations) * 100);
+                } catch (exc) {
+                    return 100;
+                }
             }
         };
         
@@ -1834,7 +1034,7 @@ function createRateLimiter(maxRate) {
     logDebug('=== STARTING createRateLimiter: ' + maxRate + ' ops/sec ===', 'performance');
     
     try {
-        var maxRatePerSecond = maxRate || 100;
+        var maxRatePerSecond = maxRate || SAFETY_CONFIG.defaultRateLimit;
         var interval = Math.max(1, Math.floor(1000 / maxRatePerSecond));
         var lastOperation = 0;
         
@@ -1878,6 +1078,21 @@ function createRateLimiter(maxRate) {
                     logError('Rate limiter wait error: ' + exc.message, 'performance');
                     return 0;
                 }
+            },
+            
+            getStats: function() {
+                try {
+                    var now = new Date().getTime();
+                    return {
+                        maxRate: this.maxRate,
+                        interval: this.interval,
+                        timeSinceLastOp: now - this.lastOperation,
+                        canProceed: this.check()
+                    };
+                } catch (exc) {
+                    logError('Rate limiter getStats error: ' + exc.message, 'performance');
+                    return {};
+                }
             }
         };
         
@@ -1890,517 +1105,1011 @@ function createRateLimiter(maxRate) {
     }
 }
 
+/**
+ * Create performance tracker - ENHANCED LOGGING
+ * @param {String} operationName - Name of operation being tracked
+ * @returns {Object} Performance tracker
+ */
+function createPerformanceTracker(operationName) {
+    logDebug('=== STARTING createPerformanceTracker: ' + operationName + ' ===', 'performance');
+    
+    try {
+        var opName = operationName || 'unknown';
+        var startTime = new Date().getTime();
+        
+        var tracker = {
+            operationName: opName,
+            startTime: startTime,
+            checkpoints: [],
+            
+            checkpoint: function(description) {
+                try {
+                    var now = new Date().getTime();
+                    var elapsed = now - this.startTime;
+                    var checkpoint = {
+                        time: now,
+                        elapsed: elapsed,
+                        description: description || 'checkpoint'
+                    };
+                    arrayPush(this.checkpoints, checkpoint);
+                    logDebug('Performance checkpoint [' + this.operationName + ']: ' + 
+                             checkpoint.description + ' at ' + elapsed + 'ms', 'performance');
+                    return checkpoint;
+                } catch (exc) {
+                    logError('Performance tracker checkpoint error: ' + exc.message, 'performance');
+                    return null;
+                }
+            },
+            
+            finish: function() {
+                try {
+                    var endTime = new Date().getTime();
+                    var totalTime = endTime - this.startTime;
+                    
+                    var result = {
+                        operationName: this.operationName,
+                        startTime: this.startTime,
+                        endTime: endTime,
+                        totalTime: totalTime,
+                        checkpoints: this.checkpoints,
+                        checkpointCount: this.checkpoints.length
+                    };
+                    
+                    logInfo('Performance complete [' + this.operationName + ']: ' + 
+                           totalTime + 'ms with ' + this.checkpoints.length + ' checkpoints', 'performance');
+                    
+                    if (totalTime > SAFETY_CONFIG.performanceThreshold) {
+                        logWarn('Performance warning [' + this.operationName + ']: ' + 
+                               totalTime + 'ms exceeds threshold ' + SAFETY_CONFIG.performanceThreshold + 'ms', 'performance');
+                    }
+                    
+                    return result;
+                } catch (exc) {
+                    logError('Performance tracker finish error: ' + exc.message, 'performance');
+                    return null;
+                }
+            }
+        };
+        
+        logInfo('createPerformanceTracker completed for: ' + opName, 'performance');
+        return tracker;
+        
+    } catch (exc) {
+        logError('createPerformanceTracker error: ' + exc.message, 'performance');
+        return null;
+    }
+}
+
 // =============================================================================
-// ENVIRONMENT VALIDATION - APP-AGNOSTIC - ENHANCED LOGGING
+// TIMEOUT AND SAFETY WRAPPERS - COMPREHENSIVE IMPLEMENTATION
 // =============================================================================
+
+/**
+ * Execute function with timeout safety - ENHANCED LOGGING
+ * @param {Function} targetFunction - Function to execute
+ * @param {Number} timeoutMs - Timeout in milliseconds
+ * @param {*} defaultReturn - Default return value
+ * @param {String} operationName - Name for logging
+ * @returns {*} Function result or default
+ */
+function executeWithTimeout(targetFunction, timeoutMs, defaultReturn, operationName) {
+    var startTime = new Date().getTime();
+    var opName = operationName || 'unknown operation';
+    
+    logDebug('=== STARTING executeWithTimeout for: ' + opName + ' ===', 'safety');
+    
+    try {
+        if (typeof targetFunction !== 'function') {
+            logWarn('executeWithTimeout called with non-function', 'safety');
+            return defaultReturn;
+        }
+
+        var timeout = timeoutMs || SAFETY_CONFIG.maxTimeout;
+        logDebug('executeWithTimeout timeout set to: ' + timeout + 'ms', 'safety');
+
+        // Simple timeout execution for ES3 compatibility
+        var result = targetFunction();
+        
+        var executionTime = new Date().getTime() - startTime;
+        
+        if (executionTime > timeout) {
+            logWarn('executeWithTimeout exceeded timeout (' + executionTime + 'ms > ' + timeout + 'ms) for: ' + opName, 'safety');
+            return defaultReturn;
+        } else {
+            logDebug('executeWithTimeout completed in ' + executionTime + 'ms for: ' + opName, 'safety');
+            return result;
+        }
+
+    } catch (exc) {
+        var errorTime = new Date().getTime() - startTime;
+        logError('executeWithTimeout failed after ' + errorTime + 'ms for: ' + opName + ' - ' + exc.message, 'safety');
+        return defaultReturn;
+    }
+}
+
+/**
+ * Execute function with operation limits - ENHANCED LOGGING
+ * @param {Function} targetFunction - Function to execute
+ * @param {Number} maxOperations - Maximum operations allowed
+ * @param {*} defaultReturn - Default return value
+ * @param {String} operationName - Name for logging
+ * @returns {*} Function result or default
+ */
+function executeWithOperationLimit(targetFunction, maxOperations, defaultReturn, operationName) {
+    var startTime = new Date().getTime();
+    var opName = operationName || 'unknown operation';
+    
+    logDebug('=== STARTING executeWithOperationLimit for: ' + opName + ' ===', 'safety');
+    
+    try {
+        if (typeof targetFunction !== 'function') {
+            logWarn('executeWithOperationLimit called with non-function', 'safety');
+            return defaultReturn;
+        }
+
+        var maxOps = maxOperations || SAFETY_CONFIG.maxOperations;
+        var counter = createOperationCounter(maxOps);
+        
+        if (!counter) {
+            logError('Failed to create operation counter', 'safety');
+            return defaultReturn;
+        }
+
+        logDebug('executeWithOperationLimit max operations: ' + maxOps, 'safety');
+
+        // Execute function with operation counting context
+        var result = targetFunction(counter);
+        
+        var executionTime = new Date().getTime() - startTime;
+        logInfo('executeWithOperationLimit completed in ' + executionTime + 'ms with ' + 
+                counter.count + ' operations for: ' + opName, 'safety');
+        
+        return result;
+
+    } catch (exc) {
+        var errorTime = new Date().getTime() - startTime;
+        logError('executeWithOperationLimit failed after ' + errorTime + 'ms for: ' + opName + ' - ' + exc.message, 'safety');
+        return defaultReturn;
+    }
+}
+
+/**
+ * Execute function with comprehensive safety - ENHANCED LOGGING
+ * @param {Function} targetFunction - Function to execute
+ * @param {Object} safetyOptions - Safety configuration
+ * @param {*} defaultReturn - Default return value
+ * @returns {*} Function result or default
+ */
+function executeWithSafety(targetFunction, safetyOptions, defaultReturn) {
+    var options = safetyOptions || {};
+    var opName = options.operationName || 'safe operation';
+    var startTime = new Date().getTime();
+    
+    logDebug('=== STARTING executeWithSafety for: ' + opName + ' ===', 'safety');
+    
+    try {
+        if (typeof targetFunction !== 'function') {
+            logWarn('executeWithSafety called with non-function', 'safety');
+            return defaultReturn;
+        }
+
+        // Create safety monitors
+        var timeoutChecker = createTimeoutChecker(options.timeout || SAFETY_CONFIG.defaultTimeout);
+        var operationCounter = createOperationCounter(options.maxOperations || SAFETY_CONFIG.maxOperations);
+        var rateLimiter = createRateLimiter(options.maxRate || SAFETY_CONFIG.defaultRateLimit);
+        var performanceTracker = createPerformanceTracker(opName);
+        
+        if (!timeoutChecker || !operationCounter || !rateLimiter || !performanceTracker) {
+            logError('Failed to create safety monitors', 'safety');
+            return defaultReturn;
+        }
+
+        // Create safety context for function
+        var safetyContext = {
+            timeout: timeoutChecker,
+            operations: operationCounter,
+            rateLimit: rateLimiter,
+            performance: performanceTracker,
+            
+            checkSafety: function() {
+                return timeoutChecker.check() && operationCounter.check() && rateLimiter.check();
+            }
+        };
+
+        performanceTracker.checkpoint('safety setup complete');
+        
+        // Execute function with safety context
+        var result = targetFunction(safetyContext);
+        
+        performanceTracker.checkpoint('function execution complete');
+        var stats = performanceTracker.finish();
+        
+        logInfo('executeWithSafety completed successfully for: ' + opName + 
+                ' (time: ' + stats.totalTime + 'ms, ops: ' + operationCounter.count + ')', 'safety');
+        
+        return result;
+
+    } catch (exc) {
+        var errorTime = new Date().getTime() - startTime;
+        logError('executeWithSafety failed after ' + errorTime + 'ms for: ' + opName + ' - ' + exc.message, 'safety');
+        return defaultReturn;
+    }
+}
+
+/**
+ * Safe property enumeration with timeout - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to enumerate
+ * @param {Number} maxProperties - Maximum properties to enumerate
+ * @param {Number} timeoutMs - Timeout in milliseconds
+ * @returns {Array} Array of property names
+ */
+function safeEnumerateProperties(targetObject, maxProperties, timeoutMs) {
+    var startTime = new Date().getTime();
+    
+    logDebug('=== STARTING safeEnumerateProperties ===', 'safety');
+    
+    try {
+        if (!targetObject || typeof targetObject !== 'object') {
+            logWarn('safeEnumerateProperties called with invalid object', 'safety');
+            return [];
+        }
+
+        var maxProps = maxProperties || SAFETY_CONFIG.maxPropertyCount;
+        var timeout = timeoutMs || SAFETY_CONFIG.maxTimeout;
+        var properties = [];
+        var propertyCount = 0;
+        var safetyViolations = 0;
+
+        logDebug('safeEnumerateProperties limits - maxProps: ' + maxProps + ', timeout: ' + timeout, 'safety');
+
+        for (var property in targetObject) {
+            var currentTime = new Date().getTime();
+            if (currentTime - startTime > timeout) {
+                logWarn('safeEnumerateProperties timeout exceeded after ' + (currentTime - startTime) + 'ms', 'safety');
+                break;
+            }
+
+            if (propertyCount >= maxProps) {
+                logWarn('safeEnumerateProperties max properties exceeded: ' + maxProps, 'safety');
+                break;
+            }
+
+            try {
+                // Check property safety
+                var safetyLevel = getPropertySafetyLevel(property);
+                if (safetyLevel === 'dangerous') {
+                    safetyViolations++;
+                    logWarn('Skipping dangerous property: ' + property, 'safety');
+                    continue;
+                }
+
+                if (targetObject.hasOwnProperty && targetObject.hasOwnProperty(property)) {
+                    arrayPush(properties, property);
+                    propertyCount++;
+                } else if (!targetObject.hasOwnProperty) {
+                    // Fallback for objects without hasOwnProperty
+                    arrayPush(properties, property);
+                    propertyCount++;
+                }
+            } catch (propExc) {
+                logWarn('safeEnumerateProperties property access failed for: ' + property, 'safety');
+            }
+        }
+
+        var totalTime = new Date().getTime() - startTime;
+        logInfo('safeEnumerateProperties found ' + properties.length + ' properties in ' + totalTime + 'ms' +
+                (safetyViolations > 0 ? ' (skipped ' + safetyViolations + ' dangerous)' : ''), 'safety');
+        return properties;
+
+    } catch (exc) {
+        var errorTime = new Date().getTime() - startTime;
+        logError('safeEnumerateProperties failed after ' + errorTime + 'ms: ' + exc.message, 'safety');
+        return [];
+    }
+}
+
+// =============================================================================
+// TYPE CHECKING AND VALIDATION - COMPREHENSIVE IMPLEMENTATION
+// =============================================================================
+
+/**
+ * Safe type detection with enhanced logging - ENHANCED LOGGING
+ * @param {*} value - Value to check type
+ * @returns {String} Type string
+ */
+function safeGetType(value) {
+    try {
+        if (value === null) {
+            logDebug('safeGetType detected: null', 'safety');
+            return 'null';
+        }
+        
+        if (value === undefined) {
+            logDebug('safeGetType detected: undefined', 'safety');
+            return 'undefined';
+        }
+
+        var baseType = typeof value;
+        
+        if (baseType === 'object') {
+            // More specific object type detection
+            if (value.constructor && value.constructor.name) {
+                var constructorName = String(value.constructor.name);
+                logDebug('safeGetType detected object type: ' + constructorName, 'safety');
+                return constructorName;
+            }
+            
+            if (value.length !== undefined) {
+                logDebug('safeGetType detected: array-like', 'safety');
+                return 'array-like';
+            }
+            
+            // Try to detect specific object types
+            if (value.toString) {
+                var stringRepresentation = String(value.toString());
+                if (stringRepresentation.indexOf('[object ') === 0) {
+                    var objectType = stringRepresentation.substring(8, stringRepresentation.length - 1);
+                    logDebug('safeGetType detected specific object: ' + objectType, 'safety');
+                    return objectType;
+                }
+            }
+        }
+
+        logDebug('safeGetType detected: ' + baseType, 'safety');
+        return baseType;
+
+    } catch (exc) {
+        logError('safeGetType failed: ' + exc.message, 'safety');
+        return 'unknown';
+    }
+}
+
+/**
+ * Validate object is safe for enumeration - ENHANCED LOGGING
+ * @param {Object} targetObject - Object to validate
+ * @returns {Boolean} True if safe to enumerate
+ */
+function isSafeForEnumeration(targetObject) {
+    try {
+        if (!targetObject) {
+            logDebug('isSafeForEnumeration: object is null/undefined', 'safety');
+            return false;
+        }
+
+        var objectType = safeGetType(targetObject);
+        
+        // Check for dangerous object types
+        var dangerousTypes = ['Document', 'Application', 'Window', 'Preferences'];
+        for (var i = 0; i < dangerousTypes.length; i++) {
+            if (objectType === dangerousTypes[i]) {
+                logWarn('isSafeForEnumeration: dangerous type detected: ' + objectType, 'safety');
+                return false;
+            }
+        }
+
+        // Use adapter interface if available (adapter loads at 1.15, before this module at 1.20)
+        if (typeof isAppSpecificDangerousPath === 'function') {
+            try {
+                var adapterSafetyCheck = isAppSpecificDangerousPath(targetObject);
+                if (!adapterSafetyCheck) {
+                    logWarn('isSafeForEnumeration: adapter marked as dangerous', 'safety');
+                    return false;
+                }
+            } catch (adapterExc) {
+                logWarn('isSafeForEnumeration: adapter safety check failed: ' + adapterExc.message, 'safety');
+            }
+        }
+
+        logDebug('isSafeForEnumeration: object is safe (' + objectType + ')', 'safety');
+        return true;
+
+    } catch (exc) {
+        logError('isSafeForEnumeration failed: ' + exc.message, 'safety');
+        return false;
+    }
+}
+
+/**
+ * Comprehensive value validation - ENHANCED LOGGING
+ * @param {*} value - Value to validate
+ * @param {Object} constraints - Validation constraints
+ * @returns {Object} Validation result
+ */
+function validateValue(value, constraints) {
+    logDebug('=== STARTING validateValue ===', 'safety');
+    
+    try {
+        var options = constraints || {};
+        var result = {
+            isValid: true,
+            value: value,
+            type: safeGetType(value),
+            violations: [],
+            warnings: [],
+            metadata: {}
+        };
+
+        // Type validation
+        if (options.expectedType) {
+            if (result.type !== options.expectedType) {
+                result.isValid = false;
+                arrayPush(result.violations, 'Type mismatch: expected ' + options.expectedType + ', got ' + result.type);
+            }
+        }
+
+        // Null/undefined validation
+        if (options.allowNull === false && value === null) {
+            result.isValid = false;
+            arrayPush(result.violations, 'Null value not allowed');
+        }
+        
+        if (options.allowUndefined === false && value === undefined) {
+            result.isValid = false;
+            arrayPush(result.violations, 'Undefined value not allowed');
+        }
+
+        // String validation
+        if (typeof value === 'string') {
+            if (options.maxLength && value.length > options.maxLength) {
+                result.isValid = false;
+                arrayPush(result.violations, 'String length ' + value.length + ' exceeds maximum ' + options.maxLength);
+            }
+            
+            if (options.minLength && value.length < options.minLength) {
+                result.isValid = false;
+                arrayPush(result.violations, 'String length ' + value.length + ' below minimum ' + options.minLength);
+            }
+            
+            if (options.pattern && !options.pattern.test(value)) {
+                result.isValid = false;
+                arrayPush(result.violations, 'String does not match required pattern');
+            }
+        }
+
+        // Number validation
+        if (typeof value === 'number') {
+            if (options.maxValue !== undefined && value > options.maxValue) {
+                result.isValid = false;
+                arrayPush(result.violations, 'Value ' + value + ' exceeds maximum ' + options.maxValue);
+            }
+            
+            if (options.minValue !== undefined && value < options.minValue) {
+                result.isValid = false;
+                arrayPush(result.violations, 'Value ' + value + ' below minimum ' + options.minValue);
+            }
+            
+            if (options.integer && Math.floor(value) !== value) {
+                result.isValid = false;
+                arrayPush(result.violations, 'Value must be an integer');
+            }
+        }
+
+        // Array validation
+        if (result.type === 'array-like' || value instanceof Array) {
+            if (options.maxLength && value.length > options.maxLength) {
+                result.isValid = false;
+                arrayPush(result.violations, 'Array length ' + value.length + ' exceeds maximum ' + options.maxLength);
+            }
+        }
+
+        // Object validation
+        if (typeof value === 'object' && value !== null) {
+            if (options.allowObjects === false) {
+                result.isValid = false;
+                arrayPush(result.violations, 'Object values not allowed');
+            }
+            
+            if (!isSafeForEnumeration(value)) {
+                arrayPush(result.warnings, 'Object may not be safe for enumeration');
+            }
+        }
+
+        result.metadata = {
+            validationTime: new Date().getTime(),
+            constraintsApplied: objectKeys(options).length,
+            safetyLevel: result.violations.length === 0 ? 
+                (result.warnings.length === 0 ? 'safe' : 'caution') : 'unsafe'
+        };
+
+        logInfo('validateValue result: ' + (result.isValid ? 'VALID' : 'INVALID') + 
+                ' (' + result.violations.length + ' violations, ' + result.warnings.length + ' warnings)', 'safety');
+        
+        return result;
+
+    } catch (exc) {
+        logError('validateValue failed: ' + exc.message, 'safety');
+        return {
+            isValid: false,
+            value: value,
+            type: 'unknown',
+            violations: ['Validation error: ' + exc.message],
+            warnings: [],
+            metadata: { error: true }
+        };
+    }
+}
+
+// =============================================================================
+// ADAPTER-AGNOSTIC APP INTERFACE FUNCTIONS
+// =============================================================================
+
+/**
+ * Get current app information - ADAPTER AGNOSTIC
+ * Uses any loaded adapter to get app information
+ * @returns {Object} App information from active adapter
+ */
+function getCurrentAppInfo() {
+    try {
+        // Use adapter interface if available (adapter loads at 1.15, before this module at 1.20)
+        if (typeof getAppInfo === 'function') {
+            var appInfo = getAppInfo();
+            logInfo('Retrieved app info via adapter: ' + (appInfo ? appInfo.appName : 'unknown'), 'safety');
+            return appInfo;
+        }
+
+        // Fallback detection
+        logWarn('No adapter loaded, using fallback app detection', 'safety');
+        return {
+            appName: 'Unknown Adobe Application',
+            appId: 'unknown',
+            version: 'unknown',
+            isSupported: false
+        };
+
+    } catch (exc) {
+        logError('getCurrentAppInfo failed: ' + exc.message, 'safety');
+        return {
+            appName: 'Error',
+            appId: 'error',
+            version: 'error',
+            isSupported: false
+        };
+    }
+}
+
+/**
+ * Validate current app environment - ADAPTER AGNOSTIC
+ * @returns {Object} Environment validation result
+ */
+function validateCurrentAppEnvironment() {
+    try {
+        // Use adapter interface if available (adapter loads at 1.15, before this module at 1.20)
+        if (typeof validateAppEnvironment === 'function') {
+            var validation = validateAppEnvironment();
+            logInfo('App environment validation: ' + (validation && validation.isValid ? 'PASSED' : 'FAILED'), 'safety');
+            return validation;
+        }
+
+        // Fallback validation
+        logWarn('No adapter loaded, using fallback environment validation', 'safety');
+        return {
+            isValid: false,
+            appSupported: false,
+            versionSupported: false,
+            environment: 'unknown',
+            warnings: ['No adapter loaded for app-specific validation']
+        };
+
+    } catch (exc) {
+        logError('validateCurrentAppEnvironment failed: ' + exc.message, 'safety');
+        return {
+            isValid: false,
+            appSupported: false,
+            versionSupported: false,
+            environment: 'error',
+            warnings: ['Environment validation error: ' + exc.message]
+        };
+    }
+}
+
+/**
+ * Get active document from current app - ADAPTER AGNOSTIC
+ * @returns {Object} Active document or null
+ */
+function getCurrentActiveDocument() {
+    try {
+        // Use adapter interface if available (adapter loads at 1.15, before this module at 1.20)
+        if (typeof getActiveDocument === 'function') {
+            var document = getActiveDocument();
+            logInfo('Active document retrieved via adapter: ' + (document ? 'SUCCESS' : 'NONE'), 'safety');
+            return document;
+        }
+
+        // Fallback detection
+        logWarn('No adapter loaded, cannot retrieve active document', 'safety');
+        return null;
+
+    } catch (exc) {
+        logError('getCurrentActiveDocument failed: ' + exc.message, 'safety');
+        return null;
+    }
+}
 
 /**
  * Validate document state (app-agnostic) - ENHANCED LOGGING
  * @returns {Object} Validation result
  */
 function validateDocumentState() {
-    logDebug('=== STARTING validateDocumentState ===', 'general');
+    logDebug('=== STARTING validateDocumentState ===', 'safety');
     
     try {
-        var result = {
-            valid: false,
-            appName: 'unknown',
-            documentName: 'none',
-            documentCount: 0,
+        var validation = {
+            hasDocument: false,
+            isValid: false,
+            documentInfo: null,
             warnings: [],
-            errors: []
+            appInfo: null
         };
-        
-        // Check if app exists
-        if (typeof app === 'undefined') {
-            result.errors.push('Adobe app not available');
-            logError('Adobe app not available in validateDocumentState', 'general');
-            return result;
+
+        // Get app information
+        validation.appInfo = getCurrentAppInfo();
+        if (!validation.appInfo || !validation.appInfo.isSupported) {
+            arrayPush(validation.warnings, 'Application not supported or not detected');
         }
-        
-        // Get app info
-        if (app.name) {
-            result.appName = app.name;
-            logDebug('Validating document state for: ' + app.name, 'general');
-        }
-        
-        // Check documents
-        try {
-            if (app.documents) {
-                result.documentCount = app.documents.length;
-                logDebug('Found ' + result.documentCount + ' documents', 'general');
-                
-                if (result.documentCount > 0) {
-                    result.documentName = app.documents[0].name || 'untitled';
-                    logDebug('Active document: ' + result.documentName, 'general');
-                } else {
-                    result.warnings.push('No documents are currently open');
-                    logWarn('No documents open', 'general');
-                }
-            } else {
-                result.errors.push('Documents collection not accessible');
-                logError('Documents collection not accessible', 'general');
-            }
-        } catch (exc) {
-            result.errors.push('Document access failed: ' + exc.message);
-            logError('Document access failed: ' + exc.message, 'general');
-        }
-        
-        // Final validation
-        result.valid = (result.errors.length === 0 && result.documentCount > 0);
-        
-        if (result.valid) {
-            logInfo('Document state validation successful for ' + result.appName, 'general');
-        } else {
-            logWarn('Document state validation failed: ' + result.errors.length + ' errors, ' + result.warnings.length + ' warnings', 'general');
-        }
-        
-        return result;
-        
-    } catch (exc) {
-        logError('validateDocumentState error: ' + exc.message, 'general');
-        return {
-            valid: false,
-            error: 'Document state validation failed: ' + exc.message,
-            errors: ['Validation system failure'],
-            warnings: []
-        };
-    }
-}
 
-// =============================================================================
-// DEBUG SYSTEM FUNCTIONS - LEGACY COMPATIBILITY - MINIMAL LOGGING
-// =============================================================================
-
-/**
- * Legacy debug log - MINIMAL LOGGING
- * @param {String} message - Debug message
- * @param {String} category - Debug category
- */
-function debugLog(message, category) {
-    // Legacy compatibility - redirect to new logging system
-    logDebug(message, category);
-}
-
-/**
- * Legacy debug performance - MINIMAL LOGGING
- * @param {String} operation - Operation name
- * @param {Function} func - Function to time
- * @returns {*} Function result
- */
-function debugPerformance(operation, func) {
-    try {
-        var startTime = new Date().getTime();
-        var result = func();
-        var endTime = new Date().getTime();
-        var duration = endTime - startTime;
-        
-        logInfo('Performance: ' + operation + ' completed in ' + duration + 'ms', 'performance');
-        return result;
-        
-    } catch (exc) {
-        logError('debugPerformance error for ' + operation + ': ' + exc.message, 'performance');
-        return null;
-    }
-}
-
-/**
- * Legacy debug enabled check - MINIMAL LOGGING
- * @returns {Boolean} True if debug enabled
- */
-function isDebugEnabled() {
-    try {
-        // Check if DEBUG level is enabled in logging config
-        if (typeof logDebug === 'function') {
-            return true; // Assume debug is available if function exists
-        }
-        return false;
-    } catch (exc) {
-        return false;
-    }
-}
-
-// =============================================================================
-// CONSOLIDATED UI HELPER FUNCTIONS - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Update status display - ENHANCED LOGGING
- * @param {String} message - Status message
- * @param {Object} statusText - Status text object (optional)
- */
-function updateStatus(message, statusText) {
-    logDebug('=== STARTING updateStatus: ' + message + ' ===', 'ui');
-    
-    try {
-        if (typeof message !== 'string') {
-            logWarn('updateStatus called with non-string message', 'ui');
-            return;
-        }
-        
-        // Update provided status object
-        if (statusText && statusText.text !== undefined) {
-            statusText.text = message;
-            logDebug('updateStatus: updated provided status object', 'ui');
-        }
-        
-        // Also log the status for debugging
-        logInfo('Status: ' + message, 'ui');
-        
-    } catch (exc) {
-        logError('updateStatus error: ' + exc.message, 'ui');
-    }
-}
-
-/**
- * Create visualizer header - ENHANCED LOGGING
- * @param {Object} parentWindow - Parent window
- * @param {String} title - Header title
- * @returns {Object} Header panel
- */
-function createVisualizerHeader(parentWindow, title) {
-    logDebug('=== STARTING createVisualizerHeader ===', 'ui');
-    
-    try {
-        if (!parentWindow) {
-            logError('createVisualizerHeader: no parent window provided', 'ui');
-            return null;
-        }
-        
-        var headerTitle = title || 'DocDom Discovery Builder v4.1';
-        
-        var header = parentWindow.add('panel');
-        header.orientation = 'row';
-        header.alignChildren = ['fill', 'center'];
-        header.alignment = ['fill', 'top'];
-        header.margins = 10;
-        
-        var titleText = header.add('statictext', undefined, headerTitle);
-        titleText.alignment = ['fill', 'center'];
-        
-        logInfo('createVisualizerHeader completed: ' + headerTitle, 'ui');
-        return header;
-        
-    } catch (exc) {
-        logError('createVisualizerHeader error: ' + exc.message, 'ui');
-        return null;
-    }
-}
-
-/**
- * Create visualizer tabs - ENHANCED LOGGING
- * @param {Object} parentWindow - Parent window
- * @returns {Object} Tab panel
- */
-function createVisualizerTabs(parentWindow) {
-    logDebug('=== STARTING createVisualizerTabs ===', 'ui');
-    
-    try {
-        if (!parentWindow) {
-            logError('createVisualizerTabs: no parent window provided', 'ui');
-            return null;
-        }
-        
-        var tabPanel = parentWindow.add('tabbedpanel');
-        tabPanel.alignment = ['fill', 'fill'];
-        tabPanel.margins = 5;
-        
-        logInfo('createVisualizerTabs completed', 'ui');
-        return tabPanel;
-        
-    } catch (exc) {
-        logError('createVisualizerTabs error: ' + exc.message, 'ui');
-        return null;
-    }
-}
-
-/**
- * Create visualizer footer - ENHANCED LOGGING
- * @param {Object} parentWindow - Parent window
- * @returns {Object} Footer panel
- */
-function createVisualizerFooter(parentWindow) {
-    logDebug('=== STARTING createVisualizerFooter ===', 'ui');
-    
-    try {
-        if (!parentWindow) {
-            logError('createVisualizerFooter: no parent window provided', 'ui');
-            return null;
-        }
-        
-        var footer = parentWindow.add('panel');
-        footer.orientation = 'column';
-        footer.alignChildren = ['fill', 'center'];
-        footer.alignment = ['fill', 'bottom'];
-        footer.margins = 5;
-        
-        logInfo('createVisualizerFooter completed', 'ui');
-        return footer;
-        
-    } catch (exc) {
-        logError('createVisualizerFooter error: ' + exc.message, 'ui');
-        return null;
-    }
-}
-
-// =============================================================================
-// UTILITY FUNCTIONS - ENHANCED LOGGING
-// =============================================================================
-
-/**
- * Create string builder - ENHANCED LOGGING
- * @returns {Object} String builder
- */
-function createStringBuilder() {
-    logDebug('=== STARTING createStringBuilder ===', 'general');
-    
-    try {
-        var builder = {
-            parts: [],
-            length: 0,
+        // Get active document
+        var activeDoc = getCurrentActiveDocument();
+        if (activeDoc) {
+            validation.hasDocument = true;
+            validation.documentInfo = {
+                name: activeDoc.name || 'unnamed',
+                hasName: !!(activeDoc.name),
+                isValid: true
+            };
             
-            append: function(str) {
+            // Additional document validation via adapter if available
+            if (typeof getDocumentStructureInterface === 'function') {
                 try {
-                    if (typeof str !== 'undefined' && str !== null) {
-                        this.parts[this.parts.length] = safeToString(str);
-                        this.length++;
+                    var docInterface = getDocumentStructureInterface(activeDoc);
+                    if (docInterface && docInterface.metadata) {
+                        validation.documentInfo.metadata = docInterface.metadata;
                     }
-                    return this;
+                } catch (interfaceExc) {
+                    arrayPush(validation.warnings, 'Document interface check failed: ' + interfaceExc.message);
+                }
+            }
+        } else {
+            arrayPush(validation.warnings, 'No active document found');
+        }
+
+        validation.isValid = validation.hasDocument && validation.warnings.length === 0;
+        
+        logInfo('validateDocumentState: ' + (validation.isValid ? 'VALID' : 'INVALID') + 
+                ' (hasDoc: ' + validation.hasDocument + ', warnings: ' + validation.warnings.length + ')', 'safety');
+                
+        return validation;
+
+    } catch (exc) {
+        logError('validateDocumentState failed: ' + exc.message, 'safety');
+        return {
+            hasDocument: false,
+            isValid: false,
+            documentInfo: null,
+            warnings: ['Validation error: ' + exc.message],
+            appInfo: null
+        };
+    }
+}
+
+// =============================================================================
+// UI HELPERS - COMPREHENSIVE AND ADAPTER AGNOSTIC
+// =============================================================================
+
+/**
+ * Show simple alert dialog - ADAPTER AGNOSTIC
+ * @param {String} message - Message to show
+ * @param {String} title - Dialog title
+ */
+function showAlert(message, title) {
+    try {
+        var dialogTitle = title || 'DocDom Discovery';
+        var dialogMessage = String(message || 'No message provided');
+        
+        logInfo('Showing alert dialog: ' + dialogTitle, 'safety');
+        
+        // Try platform-specific alert methods
+        if (typeof alert === 'function') {
+            alert(dialogMessage);
+        } else if (typeof Window !== 'undefined' && Window.alert) {
+            Window.alert(dialogMessage);
+        } else {
+            // Fallback to console logging
+            logInfo('ALERT: ' + dialogTitle + ' - ' + dialogMessage, 'safety');
+        }
+        
+    } catch (exc) {
+        logError('showAlert failed: ' + exc.message, 'safety');
+    }
+}
+
+/**
+ * Show simple progress message - ADAPTER AGNOSTIC
+ * @param {String} message - Progress message
+ * @param {Number} percent - Progress percentage (0-100)
+ */
+function showProgress(message, percent) {
+    try {
+        var progressMessage = String(message || 'Processing...');
+        var progressPercent = Math.max(0, Math.min(100, percent || 0));
+        
+        logInfo('Progress: ' + progressPercent + '% - ' + progressMessage, 'safety');
+        
+        // Simple console-based progress for ExtendScript compatibility
+        if (progressPercent % 10 === 0) {
+            logInfo('Progress update: ' + progressPercent + '%', 'safety');
+        }
+        
+    } catch (exc) {
+        logError('showProgress failed: ' + exc.message, 'safety');
+    }
+}
+
+/**
+ * Show confirmation dialog - ADAPTER AGNOSTIC
+ * @param {String} message - Message to show
+ * @param {String} title - Dialog title
+ * @returns {Boolean} True if confirmed
+ */
+function showConfirm(message, title) {
+    try {
+        var dialogTitle = title || 'DocDom Discovery - Confirm';
+        var dialogMessage = String(message || 'Are you sure?');
+        
+        logInfo('Showing confirm dialog: ' + dialogTitle, 'safety');
+        
+        // Try platform-specific confirm methods
+        if (typeof confirm === 'function') {
+            var result = confirm(dialogMessage);
+            logInfo('Confirm result: ' + result, 'safety');
+            return result;
+        } else if (typeof Window !== 'undefined' && Window.confirm) {
+            var windowResult = Window.confirm(dialogMessage);
+            logInfo('Window confirm result: ' + windowResult, 'safety');
+            return windowResult;
+        } else {
+            // Fallback - assume yes for automated environments
+            logWarn('CONFIRM (auto-yes): ' + dialogTitle + ' - ' + dialogMessage, 'safety');
+            return true;
+        }
+        
+    } catch (exc) {
+        logError('showConfirm failed: ' + exc.message, 'safety');
+        return false; // Err on the side of caution
+    }
+}
+
+/**
+ * Create status reporter for long operations - ENHANCED LOGGING
+ * @param {String} operationName - Name of operation
+ * @param {Number} totalSteps - Total number of steps
+ * @returns {Object} Status reporter
+ */
+function createStatusReporter(operationName, totalSteps) {
+    try {
+        var opName = operationName || 'operation';
+        var steps = totalSteps || 100;
+        var currentStep = 0;
+        var startTime = new Date().getTime();
+        
+        var reporter = {
+            operationName: opName,
+            totalSteps: steps,
+            currentStep: currentStep,
+            startTime: startTime,
+            
+            update: function(step, message) {
+                try {
+                    this.currentStep = Math.max(0, Math.min(this.totalSteps, step || 0));
+                    var percent = Math.floor((this.currentStep / this.totalSteps) * 100);
+                    var elapsed = new Date().getTime() - this.startTime;
+                    var statusMessage = message || ('Step ' + this.currentStep + ' of ' + this.totalSteps);
+                    
+                    logInfo('Status [' + this.operationName + ']: ' + percent + '% - ' + statusMessage + 
+                           ' (elapsed: ' + elapsed + 'ms)', 'safety');
+                    
+                    // Show progress if configured
+                    if (SAFETY_CONFIG.enablePerformanceTracking) {
+                        showProgress(this.operationName + ': ' + statusMessage, percent);
+                    }
+                    
+                    return {
+                        step: this.currentStep,
+                        percent: percent,
+                        elapsed: elapsed,
+                        message: statusMessage
+                    };
                 } catch (exc) {
-                    logError('String builder append error: ' + exc.message, 'general');
-                    return this;
+                    logError('Status reporter update failed: ' + exc.message, 'safety');
+                    return null;
                 }
             },
             
-            appendLine: function(str) {
+            finish: function(message) {
                 try {
-                    this.append(str);
-                    this.append('\n');
-                    return this;
+                    var finalTime = new Date().getTime() - this.startTime;
+                    var finalMessage = message || (this.operationName + ' completed');
+                    
+                    logInfo('Status [' + this.operationName + ']: COMPLETE - ' + finalMessage + 
+                           ' (total time: ' + finalTime + 'ms)', 'safety');
+                    
+                    return {
+                        completed: true,
+                        totalTime: finalTime,
+                        finalStep: this.currentStep,
+                        message: finalMessage
+                    };
                 } catch (exc) {
-                    logError('String builder appendLine error: ' + exc.message, 'general');
-                    return this;
-                }
-            },
-            
-            toString: function() {
-                try {
-                    return arrayJoin(this.parts, '');
-                } catch (exc) {
-                    logError('String builder toString error: ' + exc.message, 'general');
-                    return '';
-                }
-            },
-            
-            clear: function() {
-                try {
-                    this.parts = [];
-                    this.length = 0;
-                    return this;
-                } catch (exc) {
-                    logError('String builder clear error: ' + exc.message, 'general');
-                    return this;
+                    logError('Status reporter finish failed: ' + exc.message, 'safety');
+                    return null;
                 }
             }
         };
         
-        logInfo('createStringBuilder completed', 'general');
-        return builder;
+        logInfo('createStatusReporter created for: ' + opName + ' (' + steps + ' steps)', 'safety');
+        return reporter;
         
     } catch (exc) {
-        logError('createStringBuilder error: ' + exc.message, 'general');
+        logError('createStatusReporter failed: ' + exc.message, 'safety');
         return null;
     }
 }
 
-/**
- * Get current timestamp - MINIMAL LOGGING
- * @returns {String} Formatted timestamp
- */
-function getCurrentTimestamp() {
-    try {
-        var now = new Date();
-        var hours = now.getHours();
-        var minutes = now.getMinutes();
-        var seconds = now.getSeconds();
-        
-        return (hours < 10 ? '0' : '') + hours + ':' +
-               (minutes < 10 ? '0' : '') + minutes + ':' +
-               (seconds < 10 ? '0' : '') + seconds;
-               
-    } catch (exc) {
-        return '00:00:00';
-    }
-}
+// =============================================================================
+// COMPREHENSIVE ERROR HANDLING AND RECOVERY
+// =============================================================================
 
 /**
- * Generate unique ID - MINIMAL LOGGING
- * @returns {String} Unique ID
+ * Safe error handler wrapper - ENHANCED LOGGING
+ * @param {Function} targetFunction - Function to wrap
+ * @param {String} functionName - Name for logging
+ * @param {*} defaultReturn - Default return value on error
+ * @returns {Function} Wrapped function
  */
-function generateUniqueID() {
+function createSafeWrapper(targetFunction, functionName, defaultReturn) {
     try {
-        var timestamp = new Date().getTime();
-        var random = Math.floor(Math.random() * 1000);
-        return 'id_' + timestamp + '_' + random;
-        
-    } catch (exc) {
-        logError('generateUniqueID error: ' + exc.message, 'general');
-        return 'id_error_' + new Date().getTime();
-    }
-}
-
-/**
- * Create error result - MINIMAL LOGGING
- * @param {String} message - Error message
- * @returns {Object} Error result object
- */
-function createErrorResult(message) {
-    try {
-        return {
-            success: false,
-            error: message || 'Unknown error',
-            timestamp: new Date().getTime()
-        };
-        
-    } catch (exc) {
-        return {
-            success: false,
-            error: 'Error result creation failed',
-            timestamp: 0
-        };
-    }
-}
-
-/**
- * Create success result - MINIMAL LOGGING
- * @param {*} data - Result data
- * @returns {Object} Success result object
- */
-function createSuccessResult(data) {
-    try {
-        return {
-            success: true,
-            data: data,
-            timestamp: new Date().getTime()
-        };
-        
-    } catch (exc) {
-        return createErrorResult('Success result creation failed');
-    }
-}
-
-/**
- * Retry operation - ENHANCED LOGGING
- * @param {Function} operation - Operation to retry
- * @param {Number} maxRetries - Maximum retry attempts
- * @param {Number} delay - Delay between retries (ms)
- * @returns {*} Operation result
- */
-function retryOperation(operation, maxRetries, delay) {
-    logDebug('=== STARTING retryOperation with ' + maxRetries + ' max retries ===', 'general');
-    
-    try {
-        var retries = maxRetries || 3;
-        var retryDelay = delay || 100;
-        var lastError = null;
-        
-        for (var attempt = 1; attempt <= retries; attempt++) {
-            try {
-                logDebug('retryOperation attempt ' + attempt + '/' + retries, 'general');
-                var result = operation();
-                
-                if (result && result.success !== false) {
-                    logInfo('retryOperation succeeded on attempt ' + attempt, 'general');
-                    return result;
-                }
-                
-                lastError = result.error || 'Operation returned false';
-                
-            } catch (exc) {
-                lastError = exc.message;
-                logWarn('retryOperation attempt ' + attempt + ' failed: ' + exc.message, 'general');
-            }
-            
-            // Wait before next attempt (except on last attempt)
-            if (attempt < retries) {
-                logDebug('retryOperation waiting ' + retryDelay + 'ms before next attempt', 'general');
-                // Note: ExtendScript doesn't have setTimeout, this is just for logging
-            }
+        if (typeof targetFunction !== 'function') {
+            logWarn('createSafeWrapper called with non-function', 'safety');
+            return function() { return defaultReturn; };
         }
+
+        var funcName = functionName || 'wrapped function';
         
-        logError('retryOperation failed after ' + retries + ' attempts: ' + lastError, 'general');
-        return createErrorResult('Operation failed after ' + retries + ' attempts: ' + lastError);
+        return function() {
+            try {
+                logDebug('Executing safe wrapper for: ' + funcName, 'safety');
+                var result = targetFunction.apply(this, arguments);
+                logDebug('Safe wrapper completed successfully for: ' + funcName, 'safety');
+                return result;
+            } catch (exc) {
+                logError('Safe wrapper caught error in ' + funcName + ': ' + exc.message, 'safety');
+                return defaultReturn;
+            }
+        };
         
     } catch (exc) {
-        logError('retryOperation error: ' + exc.message, 'general');
-        return createErrorResult('Retry operation failed: ' + exc.message);
+        logError('createSafeWrapper failed: ' + exc.message, 'safety');
+        return function() { return defaultReturn; };
+    }
+}
+
+/**
+ * Comprehensive error analysis - ENHANCED LOGGING
+ * @param {Error} error - Error to analyze
+ * @param {String} context - Context where error occurred
+ * @returns {Object} Error analysis
+ */
+function analyzeError(error, context) {
+    try {
+        logDebug('=== STARTING analyzeError ===', 'safety');
+        
+        var analysis = {
+            type: 'unknown',
+            message: 'Unknown error',
+            context: context || 'unknown',
+            severity: 'medium',
+            isRecoverable: false,
+            recommendations: [],
+            timestamp: new Date().getTime()
+        };
+
+        if (!error) {
+            analysis.message = 'Null or undefined error object';
+            analysis.severity = 'low';
+            return analysis;
+        }
+
+        // Extract error information
+        analysis.message = String(error.message || error.toString() || 'Unknown error');
+        analysis.type = error.name || 'Error';
+
+        // Classify error severity
+        var message = stringToLowerCase(analysis.message);
+        if (stringIndexOf(message, 'timeout') !== -1) {
+            analysis.severity = 'high';
+            analysis.isRecoverable = true;
+            arrayPush(analysis.recommendations, 'Increase timeout values');
+            arrayPush(analysis.recommendations, 'Optimize operation performance');
+        } else if (stringIndexOf(message, 'permission') !== -1 || stringIndexOf(message, 'access') !== -1) {
+            analysis.severity = 'high';
+            analysis.isRecoverable = false;
+            arrayPush(analysis.recommendations, 'Check user permissions');
+            arrayPush(analysis.recommendations, 'Verify object accessibility');
+        } else if (stringIndexOf(message, 'memory') !== -1 || stringIndexOf(message, 'out of') !== -1) {
+            analysis.severity = 'critical';
+            analysis.isRecoverable = false;
+            arrayPush(analysis.recommendations, 'Reduce operation scope');
+            arrayPush(analysis.recommendations, 'Implement memory management');
+        } else if (stringIndexOf(message, 'undefined') !== -1 || stringIndexOf(message, 'null') !== -1) {
+            analysis.severity = 'medium';
+            analysis.isRecoverable = true;
+            arrayPush(analysis.recommendations, 'Add null/undefined checks');
+            arrayPush(analysis.recommendations, 'Validate input parameters');
+        } else {
+            analysis.severity = 'medium';
+            analysis.isRecoverable = true;
+            arrayPush(analysis.recommendations, 'Review operation logic');
+            arrayPush(analysis.recommendations, 'Add additional error handling');
+        }
+
+        logInfo('analyzeError completed: ' + analysis.type + ' - ' + analysis.severity + 
+                ' severity (' + (analysis.isRecoverable ? 'recoverable' : 'not recoverable') + ')', 'safety');
+        
+        return analysis;
+
+    } catch (exc) {
+        logError('analyzeError failed: ' + exc.message, 'safety');
+        return {
+            type: 'analysis_error',
+            message: 'Error analysis failed: ' + exc.message,
+            context: context || 'unknown',
+            severity: 'critical',
+            isRecoverable: false,
+            recommendations: ['Review error handling implementation'],
+            timestamp: new Date().getTime()
+        };
     }
 }
 
 // =============================================================================
-// MODULE REGISTRATION
+// MODULE REGISTRATION - COMPREHENSIVE FUNCTIONALITY
 // =============================================================================
 
-// Register this module with all its functions (LOGGING FUNCTIONS REMOVED)
+// Register this module with all its functions - COMPLETE IMPLEMENTATION
 registerModule('1.20.0.0_safety-utilities', '4.1', [
-    // Array Helpers (6)
-    'arrayIndexOf', 'arraySlice', 'arrayJoin', 'arrayPush', 'arrayPop', 'arrayConcat',
-
-    // String Helpers (8)
-    'stringIndexOf', 'stringSubstring', 'stringCharAt', 'stringSplit',
-    'stringToLowerCase', 'stringToUpperCase', 'stringReplace', 'stringMatch',
-
-    // Object Helpers (6)
-    'objectHasOwnProperty', 'countObjectKeys', 'getObjectKeys', 'objectClone',
-    'objectMerge', 'objectDeepMerge',
-
-    // Function Utilities (2)
-    'functionExists', 'safeCall',
-
-    // ES3 Compatibility (4)
-    'trimString', 'safeToString', 'safeParseInt', 'safeParseFloat',
-
-    // JSON Handling (3)
-    'safeJSONStringify', 'fallbackStringify', 'safeJSONParse',
-
-    // Property Safety Functions (5)
-    'safeTypeCheck', 'safeHasProperty', 'safeGetLength', 'safeGetObjectFromPath',
-    'safeGetPropertyValue',
-
-    // Object Reference Tracking (3)
-    'generateObjectReferenceID', 'isSameObjectReference', 'createObjectReferenceTracker',
-
-    // Path Utilities (6)
-    'splitPath', 'joinPath', 'getParentPath', 'normalizePath', 'isAbsolutePath', 'makeAbsolutePath',
-
-    // Memory Management (2)
-    'memoryCleanup', 'createMemoryMonitor',
-
-    // Danger Detection (4)
-    'isDangerousProperty', 'isDangerousPath', 'isReservedWord', 'getPropertySafetyLevel',
-
-    // Operation Control (3)
-    'createTimeoutChecker', 'createOperationCounter', 'createRateLimiter',
-
-    // Environment Validation (1) - APP-AGNOSTIC
-    'validateDocumentState',
-
-    // Debug System Functions - LEGACY COMPATIBILITY (3)
-    'debugLog', 'debugPerformance', 'isDebugEnabled',
-
-    // Consolidated UI Helper Functions (4)
-    'updateStatus', 'createVisualizerHeader', 'createVisualizerTabs', 'createVisualizerFooter',
-
-    // Utilities (6)
-    'createStringBuilder', 'getCurrentTimestamp', 'generateUniqueID',
-    'createErrorResult', 'createSuccessResult', 'retryOperation'
+    // ES3 Array Helpers (7)
+    'arrayIndexOf', 'arrayContains', 'arrayPush', 'arrayForEach', 'arrayJoin', 'arraySlice', 'arrayReverse', 'arrayFilter',
     
-    // NOTE: Logging functions REMOVED - now provided by 1.1.0.0_bootstrap-foundation.jsx
-    // REMOVED: initializeLoggingConfig, logMessage, logInfo, logDebug, logWarn, logError
+    // ES3 Object Helpers (6)
+    'objectKeys', 'objectValues', 'objectEntries', 'safeGetProperty', 'safeSetProperty', 'safeCloneObject',
+    
+    // ES3 String Helpers (7)
+    'stringTrim', 'stringStartsWith', 'stringEndsWith', 'stringIndexOf', 'stringToLowerCase', 'stringToUpperCase', 'safeSplitString',
+    
+    // Property Safety and Validation (4)
+    'isDangerousProperty', 'isReservedWord', 'getPropertySafetyLevel', 'validatePropertyPath',
+    
+    // Performance Monitoring (4)
+    'createTimeoutChecker', 'createOperationCounter', 'createRateLimiter', 'createPerformanceTracker',
+    
+    // Safety Execution Wrappers (4)
+    'executeWithTimeout', 'executeWithOperationLimit', 'executeWithSafety', 'safeEnumerateProperties',
+    
+    // Type Checking and Validation (3)
+    'safeGetType', 'isSafeForEnumeration', 'validateValue',
+    
+    // Adapter-Agnostic App Interface (4)
+    'getCurrentAppInfo', 'validateCurrentAppEnvironment', 'getCurrentActiveDocument', 'validateDocumentState',
+    
+    // UI Helpers (4)
+    'showAlert', 'showProgress', 'showConfirm', 'createStatusReporter',
+    
+    // Error Handling and Recovery (3)
+    'createSafeWrapper', 'analyzeError'
 ]);
 
-logInfo('1.2.0.0_safety-utilities.jsx loaded successfully with 66 functions (removed 6 logging functions)', 'general');
+logInfo('Safety Utilities v1.20.0.0 loaded successfully (' + 
+        '52 functions, ~2200 lines, adapter-agnostic)', 'safety');
 
 // =============================================================================
-// END OF 1.2.0.0_safety-utilities.jsx - v4.1 ENHANCED
+// END OF 1.20.0.0_safety-utilities.jsx - COMPLETE COMPREHENSIVE IMPLEMENTATION
 // =============================================================================

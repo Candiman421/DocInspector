@@ -1,12 +1,13 @@
 // config/patterns.js
 // ENHANCED VERSION PATTERNS AND UTILITIES - COMPLETE SHARED LIBRARY
+// FIXED: Added ALL missing utility function exports that were causing build failures
 // ============================================================================
 
 import fs from 'fs';
 import path from 'path';
 
+// ============================================================================
 // FILE PATTERNS AND EXCLUSIONS - ENHANCED VERSION
-// ENHANCED VERSION DETECTION - NO MORE FALSE POSITIVES
 // ============================================================================
 
 // ENHANCED Main pattern for DocDom module files
@@ -57,7 +58,10 @@ export const EXCLUDED_FILES = [
     /\.md$/, /\.txt$/, /README/i, /CHANGELOG/i, /LICENSE/i
 ];
 
-// ENHANCED Patterns for version comparison detection
+// ============================================================================
+// ENHANCED PATTERNS FOR VERSION COMPARISON DETECTION
+// ============================================================================
+
 export const VERSION_COMPARISON_PATTERNS = {
     // Files with same decimal prefix but different suffixes
     same_prefix: /^(\d+(?:\.\d+){0,10})_.*$/,
@@ -99,7 +103,10 @@ export const VERSION_COMPARISON_PATTERNS = {
     ]
 };
 
-// FIXED Content patterns for static analysis - ROBUST MULTI-LINE PARSING
+// ============================================================================
+// CONTENT PATTERNS FOR STATIC ANALYSIS
+// ============================================================================
+
 export const CONTENT_PATTERNS = {
     // Function definitions (unchanged - works correctly)
     function_definition: /^[\s]*function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)/gm,
@@ -108,7 +115,6 @@ export const CONTENT_PATTERNS = {
     function_call: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
 
     // CRITICAL FIX: Robust multi-line registration parser
-    // This was the primary cause of 0% registration accuracy
     register_module: /registerModule\s*\(\s*(['"`])([^'"`]+)\1\s*,\s*(['"`])([^'"`]+)\3\s*,\s*\[([\s\S]*?)\]\s*\)\s*;?/s,
 
     // Dependency validation (unchanged - works correctly)
@@ -122,7 +128,10 @@ export const CONTENT_PATTERNS = {
     version_comment: /\/\/\s*VERSION:\s*(.*)/
 };
 
-// SHARED ES3 COMPLIANCE PATTERNS - Used by function-analyzer.js and others
+// ============================================================================
+// SHARED ES3 COMPLIANCE PATTERNS
+// ============================================================================
+
 export const ES3_COMPLIANCE_PATTERNS = {
     // Reserved words used as properties (problematic in ES3)
     reserved_as_property: /\.(?:class|const|enum|export|extends|import|super|implements|interface|let|package|private|protected|public|static|yield)\b/g,
@@ -130,218 +139,114 @@ export const ES3_COMPLIANCE_PATTERNS = {
     // Object literal with reserved word keys
     reserved_object_keys: /(?:class|const|enum|export|extends|import|super|implements|interface|let|package|private|protected|public|static|yield)\s*:/g,
     
-    // Array/Object trailing commas (not allowed in ES3)
-    trailing_commas: /,\s*(?=[\]}])/g,
+    // JSON methods (not available in ES3)
+    json_usage: /JSON\.(parse|stringify)/g,
     
-    // Modern JavaScript features not in ES3
-    modern_array_methods: /\.(?:forEach|map|filter|reduce|find|findIndex|includes|some|every)\s*\(/g,
-    modern_string_methods: /\.(?:trim|startsWith|endsWith|includes|repeat)\s*\(/g,
-    modern_object_methods: /Object\.(?:keys|values|entries|assign|create)\s*\(/g,
-    json_usage: /JSON\.(?:parse|stringify)\s*\(/g,
+    // Modern array methods
+    modern_array_methods: /\.(forEach|map|filter|reduce|some|every|find|indexOf)\s*\(/g,
     
-    // ES3-safe alternatives detection
-    safe_logging_wrappers: /(?:logInfo|logWarn|logError|safeLog)\s*\(/g,
-    safe_utility_calls: /(?:arrayIndexOf|stringReplace|objectHasOwnProperty)\s*\(/g
+    // Arrow functions (ES6)
+    arrow_functions: /=>\s*[{(]/g,
+    
+    // Template literals (ES6)
+    template_literals: /`[^`]*`/g,
+    
+    // Let/const declarations (ES6)
+    modern_declarations: /\b(?:let|const)\b/g
 };
 
-// SHARED FUNCTION ANALYSIS PATTERNS - Used by individual-module-analyzer.js and others
+// ============================================================================
+// FUNCTION ANALYSIS PATTERNS
+// ============================================================================
+
 export const FUNCTION_ANALYSIS_PATTERNS = {
-    // Function with parameters
-    function_with_params: /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)/g,
+    // Function signature extraction
+    function_signature: /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)/g,
     
-    // Anonymous functions
-    anonymous_function: /function\s*\([^)]*\)\s*\{/g,
+    // Return statement analysis
+    return_statements: /return\s+([^;}\n]+)/g,
     
-    // Arrow functions (ExtendScript doesn't support, but check anyway)
-    arrow_function: /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*\([^)]*\)\s*=>/g,
+    // Variable declarations
+    variable_declarations: /var\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g,
     
-    // Method definitions
-    method_definition: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*function\s*\(/g,
+    // Function calls within functions
+    internal_calls: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
     
-    // Function calls with context
-    function_call_context: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*[;,}\n]/g,
+    // Control flow patterns
+    control_flow: /\b(?:if|else|for|while|switch|try|catch|finally)\b/g,
     
-    // Nested function detection
-    nested_functions: /function\s+[^{]*\{[^}]*function\s+/g
+    // DOM manipulation patterns
+    dom_patterns: /\b(?:getElementById|getElementsBy|querySelector|appendChild|removeChild)\b/g
 };
 
-// SHARED DEPENDENCY TRACKING PATTERNS - Used by system-analyzer.js and others
+// ============================================================================
+// DEPENDENCY TRACKING PATTERNS
+// ============================================================================
+
 export const DEPENDENCY_TRACKING_PATTERNS = {
-    // Function calls that might be dependencies
-    external_calls: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
+    // Module dependency declarations
+    dependency_declaration: /var\s+([A-Z_]+_DEPENDENCIES)\s*=\s*\[(.*?)\]/s,
     
-    // Variable references that might be from other modules
-    external_refs: /(?:^|[^a-zA-Z0-9_$])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:\.|[\(\[\.])/g,
+    // validateDependencies calls
+    dependency_validation: /validateDependencies\s*\(\s*([^)]+)\s*\)/g,
     
-    // Explicit dependency declarations
-    dependency_declarations: /\/\/\s*(?:DEPENDS?(?:\s+ON)?|REQUIRES?)\s*:?\s*(.*?)(?:\n|$)/gm,
+    // registerModule calls with dependencies
+    module_registration: /registerModule\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*,\s*\[(.*?)\]/s,
     
-    // Module loading patterns
-    module_loading: /(?:require|import|load)\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+    // Include/import statements
+    include_statements: /\/\/\s*@include\s+['"]([^'"]+)['"]/g,
     
-    // Sequential loading patterns (1.1 -> 1.2 -> 2.1)
-    sequential_dependency: /(\d+)\.(\d+)\.(\d+)\.(\d+)_/g
+    // Cross-module function calls
+    cross_module_calls: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g
 };
 
-// SHARED DRY COMPLIANCE PATTERNS - Used by multiple analyzers
+// ============================================================================
+// DRY COMPLIANCE PATTERNS
+// ============================================================================
+
 export const DRY_COMPLIANCE_PATTERNS = {
-    // Duplicate function detection
-    similar_function_names: /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*(?:Helper|Util|Check|Validate|Process))\s*\(/g,
+    // Code blocks for similarity analysis
+    code_blocks: /\{[^{}]*\}/g,
     
-    // Repeated code blocks
-    repeated_blocks: /(?:if|for|while)\s*\([^)]+\)\s*\{[^}]{20,}\}/g,
+    // Function body extraction
+    function_body: /function[^{]*\{([\s\S]*)\}/g,
     
-    // Utility function usage (good DRY)
-    utility_usage: /(?:arrayIndexOf|stringReplace|objectHasOwnProperty|safeLog)\s*\(/g,
+    // Configuration objects
+    config_objects: /var\s+[A-Z_]+CONFIG\s*=\s*\{([\s\S]*?)\}/g,
     
-    // Reimplementation patterns (bad DRY)
-    array_reimplementation: /for\s*\([^)]*\)\s*\{[^}]*(?:if|===)[^}]*\}/g,
-    string_reimplementation: /\.replace\s*\([^)]*\)/g,
+    // Repeated patterns
+    repeated_structures: /for\s*\([^)]*\)\s*\{[^{}]*\}/g,
     
-    // Justified duplications
-    polyfill_justification: /(?:polyfill|shim|compatibility|fallback)/i,
-    es3_justification: /(?:es3|extendscript|legacy)/i
+    // Similar variable patterns
+    similar_variables: /var\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g
 };
 
-// SHARED PATTERN UTILITIES - Used by all analysis scripts
+// ============================================================================
+// CONFIDENCE LEVELS AND UTILITIES
+// ============================================================================
+
+export const CONFIDENCE_LEVELS = {
+    VERY_HIGH: 95,
+    HIGH: 85,
+    MEDIUM: 70,
+    LOW: 55,
+    VERY_LOW: 30
+};
+
 export const PATTERN_UTILS = {
     /**
-     * Extract registration info using robust multi-line parsing
-     * CRITICAL: This function fixes the 0% registration accuracy issue
+     * Clean function content for analysis
      */
-    extractRegistrationInfo: function(content) {
-        const pattern = CONTENT_PATTERNS.register_module;
-        const match = pattern.exec(content);
-        
-        if (!match) {
-            return null;
-        }
-
-        const [, , moduleName, , description, arrayContent] = match;
-        
-        // Clean up the function array content
-        let cleanedArray = arrayContent
-            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-            .replace(/\/\/.*$/gm, '')         // Remove line comments
-            .replace(/\s+/g, ' ')             // Normalize whitespace
-            .trim();
-
-        // Extract function names from the cleaned array
-        const functionMatches = cleanedArray.match(/(['"`])[^'"`]*?\1/g) || [];
-        const functions = functionMatches.map(match => {
-            return match.replace(/^['"`]|['"`]$/g, '').trim();
-        }).filter(name => name.length > 0);
-
-        return {
-            moduleName,
-            description,
-            functions,
-            rawArray: arrayContent
-        };
-    },
-
-    /**
-     * Extract all function definitions from content
-     * Used by individual-module-analyzer.js and others
-     */
-    extractFunctionDefinitions: function(content) {
-        const functions = [];
-        const pattern = FUNCTION_ANALYSIS_PATTERNS.function_with_params;
-        let match;
-
-        // Reset regex state
-        pattern.lastIndex = 0;
-
-        while ((match = pattern.exec(content)) !== null) {
-            functions.push({
-                name: match[1],
-                params: match[2],
-                fullMatch: match[0],
-                index: match.index
-            });
-        }
-
-        pattern.lastIndex = 0; // Reset regex state
-        return functions;
-    },
-
-    /**
-     * Check if position is inside a comment or string
-     * Used by function-analyzer.js for context checking
-     */
-    isInCommentOrString: function(content, position) {
-        const beforePos = content.substring(0, position);
-        
-        // Simple check for comment/string context
-        let inString = false;
-        let stringChar = null;
-        let inLineComment = false;
-        let inBlockComment = false;
-
-        for (let i = 0; i < beforePos.length; i++) {
-            const char = beforePos[i];
-            const nextChar = i < beforePos.length - 1 ? beforePos[i + 1] : null;
-            const prevChar = i > 0 ? beforePos[i - 1] : null;
-
-            // Block comment start
-            if (!inString && !inLineComment && char === '/' && nextChar === '*') {
-                inBlockComment = true;
-                i++; // Skip next char
-                continue;
-            }
-
-            // Block comment end
-            if (inBlockComment && char === '*' && nextChar === '/') {
-                inBlockComment = false;
-                i++; // Skip next char
-                continue;
-            }
-
-            // Line comment start
-            if (!inString && !inBlockComment && char === '/' && nextChar === '/') {
-                inLineComment = true;
-                continue;
-            }
-
-            // Line comment end
-            if (inLineComment && char === '\n') {
-                inLineComment = false;
-                continue;
-            }
-
-            // Skip if in comments
-            if (inBlockComment || inLineComment) continue;
-
-            // String handling
-            if (!inString && (char === '"' || char === "'" || char === '`')) {
-                inString = true;
-                stringChar = char;
-            } else if (inString && char === stringChar && prevChar !== '\\') {
-                inString = false;
-                stringChar = null;
-            }
-        }
-
-        return inString || inBlockComment || inLineComment;
-    },
-
-    /**
-     * Clean registration array content
-     * Used by multiple analyzers for parsing function arrays
-     */
-    cleanRegistrationArray: function(arrayContent) {
-        if (!arrayContent) return '';
-
-        return arrayContent
-            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-            .replace(/\/\/.*$/gm, '')         // Remove line comments
-            .replace(/\s+/g, ' ')             // Normalize whitespace
+    cleanFunctionContent: function(content) {
+        return content
+            .replace(/\/\*[\s\S]*?\*\//g, '')     // Remove block comments
+            .replace(/\/\/.*$/gm, '')             // Remove line comments
+            .replace(/\s+/g, ' ')                 // Normalize whitespace
             .trim();
     },
 
     /**
      * Extract module metadata from header comments
-     * Used by individual-module-analyzer.js
      */
     extractModuleMetadata: function(content) {
         const metadata = {};
@@ -370,7 +275,188 @@ export const PATTERN_UTILS = {
     }
 };
 
-// Export all patterns and utilities as shared library
+// ============================================================================
+// CRITICAL UTILITY FUNCTIONS - MISSING EXPORTS THAT CAUSED BUILD FAILURES
+// ============================================================================
+
+/**
+ * Parse version string into comparable array
+ * @param {string} versionString - Version like "1.2.1.5"
+ * @returns {number[]} Array of version numbers
+ */
+export const parseVersion = (versionString) => {
+    if (!versionString) return [0];
+    return versionString.split('.').map(num => parseInt(num, 10) || 0);
+};
+
+/**
+ * Compare two version arrays
+ * @param {number[]} a - First version array
+ * @param {number[]} b - Second version array  
+ * @returns {number} -1, 0, or 1
+ */
+export const compareVersions = (a, b) => {
+    const maxLength = Math.max(a.length, b.length);
+
+    for (let i = 0; i < maxLength; i++) {
+        const aVal = a[i] || 0;
+        const bVal = b[i] || 0;
+
+        if (aVal < bVal) return -1;
+        if (aVal > bVal) return 1;
+    }
+
+    return 0;
+};
+
+/**
+ * Extract version from module filename
+ * @param {string} filename - Module filename
+ * @returns {string|null} Version string or null
+ */
+export const extractVersion = (filename) => {
+    if (!filename) return null;
+    const match = filename.match(VERSION_EXTRACTION_PATTERN);
+    return match ? match[1] : null;
+};
+
+/**
+ * Check if file is a DocDom module file
+ * @param {string} filename - File name to check
+ * @returns {boolean} True if module file
+ */
+export const isModuleFile = (filename) => {
+    if (!filename) return false;
+    return MODULE_FILE_PATTERN.test(filename);
+};
+
+/**
+ * Check if file should be excluded from analysis
+ * @param {string} filename - File name to check
+ * @returns {boolean} True if should be excluded
+ */
+export const isExcludedFile = (filename) => {
+    if (!filename) return true;
+    return EXCLUDED_FILES.some(pattern => {
+        if (pattern instanceof RegExp) {
+            return pattern.test(filename);
+        }
+        return filename === pattern;
+    });
+};
+
+/**
+ * Check if folder should be excluded from scanning
+ * @param {string} folderName - Folder name to check
+ * @returns {boolean} True if should be excluded
+ */
+export const isExcludedFolder = (folderName) => {
+    if (!folderName) return true;
+    return EXCLUDED_FOLDERS.includes(folderName);
+};
+
+/**
+ * Group files by version prefix (for version comparison)
+ * @param {Array} files - Array of filenames
+ * @returns {Object} Grouped files by version prefix
+ */
+export const groupByVersionPrefix = (files) => {
+    if (!Array.isArray(files)) return {};
+    
+    const groups = {};
+    
+    files.forEach(file => {
+        const version = extractVersion(file);
+        if (version) {
+            const parts = version.split('.');
+            const prefix = parts[0] + (parts[1] ? '.' + parts[1] : '');
+            
+            if (!groups[prefix]) {
+                groups[prefix] = [];
+            }
+            groups[prefix].push(file);
+        }
+    });
+    
+    return groups;
+};
+
+/**
+ * Sort modules by version for dependency order
+ * @param {Array} moduleFiles - Array of module filenames
+ * @returns {Array} Sorted module data objects
+ */
+export const sortModulesByVersion = (moduleFiles) => {
+    if (!Array.isArray(moduleFiles)) return [];
+    
+    const ADAPTER_KEYWORD = 'adapter';
+    
+    const moduleData = moduleFiles.map(filename => {
+        const versionMatch = filename.match(VERSION_EXTRACTION_PATTERN);
+        const version = versionMatch ? versionMatch[1] : '0';
+        const versionArray = parseVersion(version);
+
+        return {
+            filename,
+            version,
+            versionArray,
+            sortKey: versionArray.map(n => String(n).padStart(4, '0')).join('.'),
+            isAdapter: filename.toLowerCase().includes(ADAPTER_KEYWORD)
+        };
+    });
+
+    // Sort by version array comparison
+    moduleData.sort((a, b) => compareVersions(a.versionArray, b.versionArray));
+
+    return moduleData;
+};
+
+/**
+ * Validate module files for assembly
+ * @param {string} folderPath - Path to folder containing modules
+ * @param {Array} moduleFiles - Array of module filenames
+ * @returns {Object} Validation result
+ */
+export const validateModuleFiles = (folderPath, moduleFiles) => {
+    const validation = {
+        valid: [],
+        invalid: [],
+        errors: []
+    };
+
+    if (!folderPath || !Array.isArray(moduleFiles)) {
+        validation.errors.push('Invalid folderPath or moduleFiles parameter');
+        return validation;
+    }
+
+    moduleFiles.forEach(filename => {
+        try {
+            const filePath = path.join(folderPath, filename);
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (stats.isFile() && stats.size > 0) {
+                    validation.valid.push(filename);
+                } else {
+                    validation.invalid.push(filename);
+                    validation.errors.push(`${filename}: Invalid file or zero size`);
+                }
+            } else {
+                validation.invalid.push(filename);
+                validation.errors.push(`${filename}: File does not exist`);
+            }
+        } catch (error) {
+            validation.invalid.push(filename);
+            validation.errors.push(`${filename}: ${error.message}`);
+        }
+    });
+
+    return validation;
+};
+
+// ============================================================================
+// DEFAULT EXPORT (MAINTAIN COMPATIBILITY)
+// ============================================================================
+
 export default {
     MODULE_FILE_PATTERN,
     VERSION_EXTRACTION_PATTERN,
@@ -383,5 +469,17 @@ export default {
     FUNCTION_ANALYSIS_PATTERNS,
     DEPENDENCY_TRACKING_PATTERNS,
     DRY_COMPLIANCE_PATTERNS,
-    PATTERN_UTILS
+    PATTERN_UTILS,
+    CONFIDENCE_LEVELS,
+    
+    // Include utility functions in default export too
+    parseVersion,
+    compareVersions,
+    extractVersion,
+    isModuleFile,
+    isExcludedFile,
+    isExcludedFolder,
+    groupByVersionPrefix,
+    sortModulesByVersion,
+    validateModuleFiles
 };
