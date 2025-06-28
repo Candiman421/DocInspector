@@ -1,20 +1,20 @@
 // config/patterns.js
-// ENHANCED VERSION PATTERNS AND UTILITIES
+// ENHANCED VERSION PATTERNS AND UTILITIES - COMPLETE SHARED LIBRARY
 // ============================================================================
 
 import fs from 'fs';
 import path from 'path';
 
-// FILE PATTERNS AND EXCLUSIONS - FIXED VERSION
+// FILE PATTERNS AND EXCLUSIONS - ENHANCED VERSION
 // ENHANCED VERSION DETECTION - NO MORE FALSE POSITIVES
 // ============================================================================
 
 // ENHANCED Main pattern for DocDom module files
 // NOW SUPPORTS: 1.1_file.jsx, 1.2.1_file.jsx, 1.4.2.1_file.jsx, 1.15.1.2025.20.4_file.jsx
-export const MODULE_FILE_PATTERN = /^(\d+(?:\.\d+){0,6})_.*\.jsx?$/;
+export const MODULE_FILE_PATTERN = /^(\d+(?:\.\d+){0,10})_.*\.jsx?$/;
 
 // ENHANCED Extract version from filename - supports more formats
-export const VERSION_EXTRACTION_PATTERN = /^(\d+(?:\.\d+){0,6})_/;
+export const VERSION_EXTRACTION_PATTERN = /^(\d+(?:\.\d+){0,10})_/;
 
 // Common file extensions for modules
 export const VALID_EXTENSIONS = ['.js', '.jsx'];
@@ -60,46 +60,24 @@ export const EXCLUDED_FILES = [
 // ENHANCED Patterns for version comparison detection
 export const VERSION_COMPARISON_PATTERNS = {
     // Files with same decimal prefix but different suffixes
-    same_prefix: /^(\d+(?:\.\d+){0,6})_.*$/,
+    same_prefix: /^(\d+(?:\.\d+){0,10})_.*$/,
 
     // ENHANCED version indicators - supports real-world naming
     version_indicators: [
         // Version numbers
         /_[Vv](\d+(?:\.\d+)*)\.jsx?$/,        // _V3.1.jsx, _v2.0.jsx
-        /_version(\d+(?:\.\d+)*)\.jsx?$/,     // _version1.2.jsx
+        /_version(\d+(?:\.\d+)*)\.jsx?$/,     // _version2.1.jsx
+        /_(\d+\.\d+(?:\.\d+)*)\.jsx?$/,       // _2.1.3.jsx
 
-        // Years and timestamps  
-        /_(\d{4})\.jsx?$/,                    // _2024.jsx, _2023.jsx
-        /_(\d{8})\.jsx?$/,                    // _20240615.jsx (YYYYMMDD)
-        /_(\d{6})\.jsx?$/,                    // _202406.jsx (YYYYMM)
+        // Date patterns
+        /_(\d{4}-\d{2}-\d{2})\.jsx?$/,        // _2024-03-15.jsx
+        /_(\d{8})\.jsx?$/,                    // _20240315.jsx
 
-        // Semantic version indicators
-        /_old\.jsx?$/,                        // _old.jsx
-        /_new\.jsx?$/,                        // _new.jsx
-        /_latest\.jsx?$/,                     // _latest.jsx
-        /_current\.jsx?$/,                    // _current.jsx
-        /_backup\.jsx?$/,                     // _backup.jsx
-        /_original\.jsx?$/,                   // _original.jsx
-        /_updated\.jsx?$/,                    // _updated.jsx
-        /_fixed\.jsx?$/,                      // _fixed.jsx
-        /_revised\.jsx?$/,                    // _revised.jsx
-        /_modified\.jsx?$/,                   // _modified.jsx
-        /_final\.jsx?$/,                      // _final.jsx
-        /_beta\.jsx?$/,                       // _beta.jsx
-        /_alpha\.jsx?$/,                      // _alpha.jsx
-        /_test\.jsx?$/,                       // _test.jsx
-        /_dev\.jsx?$/,                        // _dev.jsx
-        /_prod\.jsx?$/,                       // _prod.jsx
-
-        // Complex versioning (like real DocDom files)
-        /_(\d+\.\d+\.\d{4}\.\d+\.\d+)\.jsx?$/ // _1.15.1.2025.20.4.jsx
-    ]
-};
-
-// Patterns for system analysis (different modules working together)
-export const SYSTEM_ANALYSIS_PATTERNS = {
-    // Different decimal prefixes indicate different modules
-    different_modules: /^(\d+(?:\.\d+){0,6})_.*$/,
+        // Revision patterns
+        /_rev(\d+)\.jsx?$/,                   // _rev12.jsx
+        /_r(\d+)\.jsx?$/,                     // _r5.jsx
+        /_build(\d+)\.jsx?$/                  // _build123.jsx
+    ],
 
     // ENHANCED dependency indicators in module names
     dependency_indicators: [
@@ -121,7 +99,7 @@ export const SYSTEM_ANALYSIS_PATTERNS = {
     ]
 };
 
-// FIXED Content patterns for static analysis - NO MORE FALSE POSITIVES
+// FIXED Content patterns for static analysis - ROBUST MULTI-LINE PARSING
 export const CONTENT_PATTERNS = {
     // Function definitions (unchanged - works correctly)
     function_definition: /^[\s]*function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)/gm,
@@ -129,8 +107,9 @@ export const CONTENT_PATTERNS = {
     // Function calls (unchanged - works correctly)
     function_call: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
 
-    // Replace the current register_module pattern with the robust version
-    register_module: /registerModule\s*\(\s*(['"])([^'"]+)\1\s*,\s*(['"])([^'"]+)\3\s*,\s*\[([\s\S]*?)\]\s*\)\s*;?/s,
+    // CRITICAL FIX: Robust multi-line registration parser
+    // This was the primary cause of 0% registration accuracy
+    register_module: /registerModule\s*\(\s*(['"`])([^'"`]+)\1\s*,\s*(['"`])([^'"`]+)\3\s*,\s*\[([\s\S]*?)\]\s*\)\s*;?/s,
 
     // Dependency validation (unchanged - works correctly)
     dependency_validation: /validateDependencies\s*\(\s*\[(.*?)\]/s,
@@ -140,457 +119,258 @@ export const CONTENT_PATTERNS = {
     purpose: /\/\/\s*PURPOSE:\s*(.*)/,
     dependencies: /\/\/\s*DEPENDENCIES:\s*(.*)/,
     size_comment: /\/\/\s*SIZE:\s*(.*)/,
-
-    // FIXED Logging patterns - proper regex escaping
-    modern_logging: /\b(logDebug|logInfo|logWarn|logError|logMessage)\s*\(/g,
-    legacy_logging: /\$\.writeln\s*\(/g,
-
-    // Error handling (unchanged - works correctly)
-    try_catch: /try\s*\{[\s\S]*?\}\s*catch\s*\([^)]*\)\s*\{/g,
-
-    // FIXED Reserved word usage - context-aware patterns
-    export_property_usage: /(\w+\.export\b|\w+\[['"]export['"]\]|\{['"]?export['"]?\s*:)/g,
-    import_property_usage: /(\w+\.import\b|\w+\[['"]import['"]\]|\{['"]?import['"]?\s*:)/g,
-
-    // Memory management (unchanged - works correctly)
-    memory_cleanup: /(memoryCleanup|= null|delete\s+)/g,
-
-    // API safety (unchanged - works correctly)
-    dangerous_properties: /(prototype|constructor|__proto__|caller|arguments)/g,
-    validation_functions: /(isDangerousProperty|validateEnvironment|validateDocumentState)/g
+    version_comment: /\/\/\s*VERSION:\s*(.*)/
 };
 
-// Output file naming patterns (unchanged - works correctly)
-export const OUTPUT_PATTERNS = {
-    module_analysis: '~module-analysis-{filename}-{timestamp}.yaml',
-    system_analysis: '~system-analysis-{folder}-{timestamp}.yaml',
-    version_comparison: '~version-comparison-{prefix}-{timestamp}.yaml',
-    assembled: '{folder}_ASSEMBLED_{timestamp}.jsx',
-    includes: '{folder}_INCLUDES_{timestamp}.jsx',
-
-    gitignore_patterns: [
-        '*_ASSEMBLED_*.jsx', '*_INCLUDES_*.jsx',
-        '~analysis-*.yaml', '~module-*.yaml',
-        '~version-*.yaml', '~system-*.yaml'
-    ]
+// SHARED ES3 COMPLIANCE PATTERNS - Used by function-analyzer.js and others
+export const ES3_COMPLIANCE_PATTERNS = {
+    // Reserved words used as properties (problematic in ES3)
+    reserved_as_property: /\.(?:class|const|enum|export|extends|import|super|implements|interface|let|package|private|protected|public|static|yield)\b/g,
+    
+    // Object literal with reserved word keys
+    reserved_object_keys: /(?:class|const|enum|export|extends|import|super|implements|interface|let|package|private|protected|public|static|yield)\s*:/g,
+    
+    // Array/Object trailing commas (not allowed in ES3)
+    trailing_commas: /,\s*(?=[\]}])/g,
+    
+    // Modern JavaScript features not in ES3
+    modern_array_methods: /\.(?:forEach|map|filter|reduce|find|findIndex|includes|some|every)\s*\(/g,
+    modern_string_methods: /\.(?:trim|startsWith|endsWith|includes|repeat)\s*\(/g,
+    modern_object_methods: /Object\.(?:keys|values|entries|assign|create)\s*\(/g,
+    json_usage: /JSON\.(?:parse|stringify)\s*\(/g,
+    
+    // ES3-safe alternatives detection
+    safe_logging_wrappers: /(?:logInfo|logWarn|logError|safeLog)\s*\(/g,
+    safe_utility_calls: /(?:arrayIndexOf|stringReplace|objectHasOwnProperty)\s*\(/g
 };
 
-// Enhanced timestamp format
-export const TIMESTAMP_FORMAT = {
-    pattern: 'YYYYMMDD-HHMMSS',
-    generate: () => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-
-        return `${year}${month}${day}-${hours}${minutes}${seconds}`;
-    }
+// SHARED FUNCTION ANALYSIS PATTERNS - Used by individual-module-analyzer.js and others
+export const FUNCTION_ANALYSIS_PATTERNS = {
+    // Function with parameters
+    function_with_params: /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(([^)]*)\)/g,
+    
+    // Anonymous functions
+    anonymous_function: /function\s*\([^)]*\)\s*\{/g,
+    
+    // Arrow functions (ExtendScript doesn't support, but check anyway)
+    arrow_function: /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*\([^)]*\)\s*=>/g,
+    
+    // Method definitions
+    method_definition: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*function\s*\(/g,
+    
+    // Function calls with context
+    function_call_context: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*[;,}\n]/g,
+    
+    // Nested function detection
+    nested_functions: /function\s+[^{]*\{[^}]*function\s+/g
 };
 
-/**
- * ENHANCED - Parse version string into comparable array with normalization support
- * @param {string} versionString - Version like "1.2" or "1.15.1.2025.20.4"
- * @param {number} targetLength - Target length to pad to (optional)
- * @returns {number[]} Array of version numbers
- */
-export const parseVersion = (versionString, targetLength = null) => {
-    if (!versionString) return [0];
+// SHARED DEPENDENCY TRACKING PATTERNS - Used by system-analyzer.js and others
+export const DEPENDENCY_TRACKING_PATTERNS = {
+    // Function calls that might be dependencies
+    external_calls: /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g,
+    
+    // Variable references that might be from other modules
+    external_refs: /(?:^|[^a-zA-Z0-9_$])([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?:\.|[\(\[\.])/g,
+    
+    // Explicit dependency declarations
+    dependency_declarations: /\/\/\s*(?:DEPENDS?(?:\s+ON)?|REQUIRES?)\s*:?\s*(.*?)(?:\n|$)/gm,
+    
+    // Module loading patterns
+    module_loading: /(?:require|import|load)\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+    
+    // Sequential loading patterns (1.1 -> 1.2 -> 2.1)
+    sequential_dependency: /(\d+)\.(\d+)\.(\d+)\.(\d+)_/g
+};
 
-    const components = versionString.split('.').map(num => parseInt(num, 10) || 0);
+// SHARED DRY COMPLIANCE PATTERNS - Used by multiple analyzers
+export const DRY_COMPLIANCE_PATTERNS = {
+    // Duplicate function detection
+    similar_function_names: /function\s+([a-zA-Z_$][a-zA-Z0-9_$]*(?:Helper|Util|Check|Validate|Process))\s*\(/g,
+    
+    // Repeated code blocks
+    repeated_blocks: /(?:if|for|while)\s*\([^)]+\)\s*\{[^}]{20,}\}/g,
+    
+    // Utility function usage (good DRY)
+    utility_usage: /(?:arrayIndexOf|stringReplace|objectHasOwnProperty|safeLog)\s*\(/g,
+    
+    // Reimplementation patterns (bad DRY)
+    array_reimplementation: /for\s*\([^)]*\)\s*\{[^}]*(?:if|===)[^}]*\}/g,
+    string_reimplementation: /\.replace\s*\([^)]*\)/g,
+    
+    // Justified duplications
+    polyfill_justification: /(?:polyfill|shim|compatibility|fallback)/i,
+    es3_justification: /(?:es3|extendscript|legacy)/i
+};
 
-    // Pad to target length if specified
-    if (targetLength && components.length < targetLength) {
-        while (components.length < targetLength) {
-            components.push(0);
+// SHARED PATTERN UTILITIES - Used by all analysis scripts
+export const PATTERN_UTILS = {
+    /**
+     * Extract registration info using robust multi-line parsing
+     * CRITICAL: This function fixes the 0% registration accuracy issue
+     */
+    extractRegistrationInfo: function(content) {
+        const pattern = CONTENT_PATTERNS.register_module;
+        const match = pattern.exec(content);
+        
+        if (!match) {
+            return null;
         }
-    }
 
-    return components;
-};
+        const [, , moduleName, , description, arrayContent] = match;
+        
+        // Clean up the function array content
+        let cleanedArray = arrayContent
+            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
+            .replace(/\/\/.*$/gm, '')         // Remove line comments
+            .replace(/\s+/g, ' ')             // Normalize whitespace
+            .trim();
 
-/**
- * ENHANCED - Compare version arrays with automatic normalization
- * @param {number[]} version1 - First version array
- * @param {number[]} version2 - Second version array
- * @returns {number} -1, 0, or 1 for comparison
- */
-export const compareVersions = (version1, version2) => {
-    if (!Array.isArray(version1) || !Array.isArray(version2)) {
-        return 0;
-    }
+        // Extract function names from the cleaned array
+        const functionMatches = cleanedArray.match(/(['"`])[^'"`]*?\1/g) || [];
+        const functions = functionMatches.map(match => {
+            return match.replace(/^['"`]|['"`]$/g, '').trim();
+        }).filter(name => name.length > 0);
 
-    // Normalize to same length
-    const maxLength = Math.max(version1.length, version2.length);
-    const v1 = [...version1];
-    const v2 = [...version2];
-
-    while (v1.length < maxLength) v1.push(0);
-    while (v2.length < maxLength) v2.push(0);
-
-    // Compare component by component
-    for (let i = 0; i < maxLength; i++) {
-        if (v1[i] < v2[i]) return -1;
-        if (v1[i] > v2[i]) return 1;
-    }
-
-    return 0;
-};
-
-/**
- * Extract version from filename - UNLIMITED COMPONENTS
- * @param {string} filename - Filename to extract version from
- * @returns {string} Version string or null
- */
-export const extractVersion = (filename) => {
-    const match = filename.match(/^(\d+(?:\.\d+)*)_/);
-    return match ? match[1] : null;
-};
-
-/**
- * NEW - Normalize all versions in a collection to same length
- * @param {Array} filenames - Array of filenames
- * @returns {Object} Mapping of filename to normalized version array
- */
-export const normalizeVersionsInCollection = (filenames) => {
-    const versionData = {};
-    let maxLength = 0;
-
-    // First pass: extract all versions and find max length
-    filenames.forEach(filename => {
-        const version = extractVersion(filename);
-        if (version) {
-            const components = parseVersion(version);
-            versionData[filename] = components;
-            maxLength = Math.max(maxLength, components.length);
-        } else {
-            versionData[filename] = [0];
-        }
-    });
-
-    // Second pass: normalize all to max length
-    Object.keys(versionData).forEach(filename => {
-        const components = versionData[filename];
-        while (components.length < maxLength) {
-            components.push(0);
-        }
-    });
-
-    return versionData;
-};
-
-/**
- * CANONICAL - Sort module files by normalized version comparison
- * @param {string[]} moduleFiles - Array of module filenames
- * @param {Object} options - Optional formatting options
- * @returns {Array} Sorted module information
- */
-export const sortModulesByVersion = (moduleFiles, options = {}) => {
-    // Get normalized versions for all files
-    const normalizedVersions = normalizeVersionsInCollection(moduleFiles);
-
-    const moduleData = moduleFiles.map(filename => {
-        const version = extractVersion(filename) || '0';
-        const versionArray = normalizedVersions[filename];
-
-        const result = {
-            filename,
-            version,
-            versionArray
+        return {
+            moduleName,
+            description,
+            functions,
+            rawArray: arrayContent
         };
+    },
 
-        // Optional: add sortKey if requested
-        if (options.includeSortKey) {
-            result.sortKey = versionArray.join('.');
-        }
+    /**
+     * Extract all function definitions from content
+     * Used by individual-module-analyzer.js and others
+     */
+    extractFunctionDefinitions: function(content) {
+        const functions = [];
+        const pattern = FUNCTION_ANALYSIS_PATTERNS.function_with_params;
+        let match;
 
-        return result;
-    });
+        // Reset regex state
+        pattern.lastIndex = 0;
 
-    // Sort by normalized version array comparison
-    moduleData.sort((a, b) => compareVersions(a.versionArray, b.versionArray));
-
-    // Optional: logging
-    if (options.verbose) {
-        console.log(chalk.cyan('📋 Module dependency order:'));
-        moduleData.forEach((module, index) => {
-            console.log(chalk.gray(`   ${index + 1}. ${module.filename} (v${module.version})`));
-        });
-    }
-
-    return moduleData;
-};
-
-/**
- * Validate module files accessibility and basic structure
- * @param {string} folderPath - Path to folder containing modules
- * @param {string[]} moduleFiles - Array of module filenames
- * @returns {Object} Validation results
- */
-export const validateModuleFiles = (folderPath, moduleFiles) => {
-    const validation = { valid: [], invalid: [] };
-
-    moduleFiles.forEach(filename => {
-        const fullPath = path.join(folderPath, filename);
-        try {
-            fs.accessSync(fullPath, fs.constants.R_OK);
-            const content = fs.readFileSync(fullPath, 'utf8');
-            if (content.includes('function ')) {
-                validation.valid.push(filename);
-            } else {
-                validation.invalid.push(filename);
-            }
-        } catch (error) {
-            validation.invalid.push(filename);
-        }
-    });
-
-    return validation;
-};
-
-/**
- * ENHANCED - Extract function list from registerModule array string
- * Handles multiline arrays with comments and various formatting
- * @param {string} arrayContent - Content between [ and ]
- * @returns {Array} Array of function names
- */
-export const parseRegistrationArray = (arrayContent) => {
-    if (!arrayContent) return [];
-
-    const functions = [];
-
-    // Remove all comments and whitespace noise
-    let cleaned = arrayContent
-        .replace(/\/\/.*$/gm, '')          // Remove line comments
-        .replace(/\/\*[\s\S]*?\*\//g, '')  // Remove block comments
-        .replace(/\s+/g, ' ')              // Normalize whitespace
-        .trim();
-
-    // Extract ALL quoted strings (both single and double quotes)
-    const singleQuotes = cleaned.match(/'([^']+)'/g) || [];
-    const doubleQuotes = cleaned.match(/"([^"]+)"/g) || [];
-
-    [...singleQuotes, ...doubleQuotes].forEach(match => {
-        const funcName = match.slice(1, -1).trim();
-        if (funcName && funcName.length > 0 && !functions.includes(funcName)) {
-            functions.push(funcName);
-        }
-    });
-
-    return functions;
-};
-
-/**
- * Extract semantic version for ordering
- * @param {string} filename - Filename with semantic version
- * @returns {string} Version number for comparison
- */
-const extractSemanticVersion = (filename) => {
-    const semanticOrder = {
-        'old': '0.1', 'original': '0.2', 'backup': '0.3',
-        'alpha': '0.4', 'beta': '0.5', 'test': '0.6', 'dev': '0.7',
-        'current': '1.0', 'updated': '1.1', 'modified': '1.2',
-        'revised': '1.3', 'fixed': '1.4', 'new': '1.5',
-        'latest': '1.9', 'final': '2.0', 'prod': '2.1'
-    };
-
-    const lowerFilename = filename.toLowerCase();
-
-    for (const [semantic, version] of Object.entries(semanticOrder)) {
-        if (lowerFilename.includes(semantic)) {
-            return version;
-        }
-    }
-
-    // Default version for unknown semantics
-    return '1.0';
-};
-
-/**
- * Check if filename matches module pattern
- * @param {string} filename - Filename to check
- * @returns {boolean} True if valid module file
- */
-export const isModuleFile = (filename) => {
-    if (!filename) return false;
-    return MODULE_FILE_PATTERN.test(filename);
-};
-
-/**
- * Check if file should be excluded
- * @param {string} filename - Filename to check
- * @returns {boolean} True if file should be excluded
- */
-export const isExcludedFile = (filename) => {
-    if (!filename) return true;
-
-    return EXCLUDED_FILES.some(pattern => {
-        if (pattern instanceof RegExp) {
-            return pattern.test(filename);
-        }
-        return filename === pattern;
-    });
-};
-
-/**
- * Check if folder should be excluded
- * @param {string} folderName - Folder name to check
- * @returns {boolean} True if folder should be excluded
- */
-export const isExcludedFolder = (folderName) => {
-    if (!folderName) return true;
-    return EXCLUDED_FOLDERS.includes(folderName) || folderName.startsWith('.');
-};
-
-/**
- * ENHANCED Group files by version prefix for comparison analysis
- * SUPPORTS: Complex version prefixes like 1.15.1.2025.20.4
- * @param {string[]} filenames - Array of filenames
- * @returns {Object} Groups of files by version prefix
- */
-export const groupByVersionPrefix = (filenames) => {
-    const groups = {};
-
-    filenames.forEach(filename => {
-        const version = extractVersion(filename);
-        if (version) {
-            // Use the base version (first two components) for grouping
-            // e.g., 1.15.1.2025.20.4 → 1.15
-            const versionComponents = version.split('.');
-            const baseVersion = versionComponents.slice(0, 2).join('.');
-
-            if (!groups[baseVersion]) {
-                groups[baseVersion] = [];
-            }
-            groups[baseVersion].push(filename);
-        }
-    });
-
-    return groups;
-};
-
-/**
- * ENHANCED Determine module type from filename and content
- * @param {string} filename - Module filename
- * @param {string} content - Module content (optional)
- * @returns {Object} Module type information
- */
-export const determineModuleType = (filename, content = '') => {
-    const version = extractVersion(filename);
-    const versionComponents = parseVersion(version || '0');
-
-    // Determine module category based on version prefix
-    let category = 'unknown';
-    let loadOrder = 999;
-
-    if (versionComponents[0] === 1) {
-        if (versionComponents[1] === 1) {
-            category = 'foundation';
-            loadOrder = 1;
-        } else if (versionComponents[1] >= 15 && versionComponents[1] < 20) {
-            category = 'app_adapter';
-            loadOrder = 2;
-        } else if (versionComponents[1] >= 2 && versionComponents[1] < 15) {
-            category = 'utility';
-            loadOrder = 3;
-        }
-    } else if (versionComponents[0] === 2) {
-        category = 'core_functionality';
-        loadOrder = 4;
-    } else if (versionComponents[0] === 3) {
-        category = 'advanced_functionality';
-        loadOrder = 5;
-    } else if (versionComponents[0] === 4) {
-        category = 'analysis';
-        loadOrder = 6;
-    } else if (versionComponents[0] === 5) {
-        category = 'visualization';
-        loadOrder = 7;
-    } else if (versionComponents[0] === 6) {
-        category = 'ui';
-        loadOrder = 8;
-    }
-
-    return {
-        category,
-        loadOrder,
-        version,
-        versionComponents,
-        isFoundation: category === 'foundation',
-        isAppAdapter: category === 'app_adapter',
-        isUtility: category === 'utility'
-    };
-};
-
-/**
- * ENHANCED Validate sequential dependency order
- * DETECTS: Violations like 1.15 depending on 1.1 but loading first
- * @param {Array} moduleList - Array of module information objects
- * @returns {Object} Dependency order validation result
- */
-export const validateDependencyOrder = (moduleList) => {
-    const validation = {
-        valid: true,
-        violations: [],
-        loadOrder: [],
-        errors: []
-    };
-
-    if (!Array.isArray(moduleList) || moduleList.length === 0) {
-        return validation;
-    }
-
-    // Sort modules by their version numbers
-    const sortedModules = moduleList.map(module => ({
-        ...module,
-        moduleType: determineModuleType(module.filename)
-    })).sort((a, b) => {
-        return compareVersions(a.moduleType.versionComponents, b.moduleType.versionComponents);
-    });
-
-    // Check for dependency order violations
-    for (let i = 0; i < sortedModules.length; i++) {
-        const currentModule = sortedModules[i];
-        const currentVersion = currentModule.moduleType.versionComponents;
-
-        // Check dependencies if available
-        if (currentModule.dependencies && Array.isArray(currentModule.dependencies)) {
-            currentModule.dependencies.forEach(depName => {
-                // Find the dependency in the module list
-                const dependency = sortedModules.find(m =>
-                    m.filename.includes(depName) || m.moduleName === depName
-                );
-
-                if (dependency) {
-                    const depVersion = dependency.moduleType.versionComponents;
-
-                    // Check if dependency has higher version number (should load first)
-                    if (compareVersions(depVersion, currentVersion) > 0) {
-                        validation.valid = false;
-                        validation.violations.push({
-                            type: 'reverse_dependency',
-                            module: currentModule.filename,
-                            moduleVersion: currentModule.moduleType.version,
-                            dependency: dependency.filename,
-                            dependencyVersion: dependency.moduleType.version,
-                            severity: 'CRITICAL',
-                            description: `Module ${currentModule.moduleType.version} depends on ${dependency.moduleType.version} but loads before it`,
-                            fix: `Ensure ${dependency.filename} loads before ${currentModule.filename}`
-                        });
-                    }
-                }
+        while ((match = pattern.exec(content)) !== null) {
+            functions.push({
+                name: match[1],
+                params: match[2],
+                fullMatch: match[0],
+                index: match.index
             });
         }
+
+        pattern.lastIndex = 0; // Reset regex state
+        return functions;
+    },
+
+    /**
+     * Check if position is inside a comment or string
+     * Used by function-analyzer.js for context checking
+     */
+    isInCommentOrString: function(content, position) {
+        const beforePos = content.substring(0, position);
+        
+        // Simple check for comment/string context
+        let inString = false;
+        let stringChar = null;
+        let inLineComment = false;
+        let inBlockComment = false;
+
+        for (let i = 0; i < beforePos.length; i++) {
+            const char = beforePos[i];
+            const nextChar = i < beforePos.length - 1 ? beforePos[i + 1] : null;
+            const prevChar = i > 0 ? beforePos[i - 1] : null;
+
+            // Block comment start
+            if (!inString && !inLineComment && char === '/' && nextChar === '*') {
+                inBlockComment = true;
+                i++; // Skip next char
+                continue;
+            }
+
+            // Block comment end
+            if (inBlockComment && char === '*' && nextChar === '/') {
+                inBlockComment = false;
+                i++; // Skip next char
+                continue;
+            }
+
+            // Line comment start
+            if (!inString && !inBlockComment && char === '/' && nextChar === '/') {
+                inLineComment = true;
+                continue;
+            }
+
+            // Line comment end
+            if (inLineComment && char === '\n') {
+                inLineComment = false;
+                continue;
+            }
+
+            // Skip if in comments
+            if (inBlockComment || inLineComment) continue;
+
+            // String handling
+            if (!inString && (char === '"' || char === "'" || char === '`')) {
+                inString = true;
+                stringChar = char;
+            } else if (inString && char === stringChar && prevChar !== '\\') {
+                inString = false;
+                stringChar = null;
+            }
+        }
+
+        return inString || inBlockComment || inLineComment;
+    },
+
+    /**
+     * Clean registration array content
+     * Used by multiple analyzers for parsing function arrays
+     */
+    cleanRegistrationArray: function(arrayContent) {
+        if (!arrayContent) return '';
+
+        return arrayContent
+            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
+            .replace(/\/\/.*$/gm, '')         // Remove line comments
+            .replace(/\s+/g, ' ')             // Normalize whitespace
+            .trim();
+    },
+
+    /**
+     * Extract module metadata from header comments
+     * Used by individual-module-analyzer.js
+     */
+    extractModuleMetadata: function(content) {
+        const metadata = {};
+        
+        // Extract module name
+        const nameMatch = CONTENT_PATTERNS.module_name.exec(content);
+        if (nameMatch) metadata.name = nameMatch[1].trim();
+        
+        // Extract purpose
+        const purposeMatch = CONTENT_PATTERNS.purpose.exec(content);
+        if (purposeMatch) metadata.purpose = purposeMatch[1].trim();
+        
+        // Extract dependencies
+        const depMatch = CONTENT_PATTERNS.dependencies.exec(content);
+        if (depMatch) metadata.dependencies = depMatch[1].trim();
+        
+        // Extract size comment
+        const sizeMatch = CONTENT_PATTERNS.size_comment.exec(content);
+        if (sizeMatch) metadata.size = sizeMatch[1].trim();
+
+        // Extract version comment
+        const versionMatch = CONTENT_PATTERNS.version_comment.exec(content);
+        if (versionMatch) metadata.version = versionMatch[1].trim();
+
+        return metadata;
     }
-
-    validation.loadOrder = sortedModules.map(m => m.filename);
-
-    return validation;
 };
 
+// Export all patterns and utilities as shared library
 export default {
     MODULE_FILE_PATTERN,
     VERSION_EXTRACTION_PATTERN,
@@ -598,17 +378,10 @@ export default {
     EXCLUDED_FOLDERS,
     EXCLUDED_FILES,
     VERSION_COMPARISON_PATTERNS,
-    SYSTEM_ANALYSIS_PATTERNS,
     CONTENT_PATTERNS,
-    OUTPUT_PATTERNS,
-    TIMESTAMP_FORMAT,
-    parseVersion,
-    compareVersions,
-    extractVersion,
-    isModuleFile,
-    isExcludedFile,
-    isExcludedFolder,
-    groupByVersionPrefix,
-    determineModuleType,
-    validateDependencyOrder
+    ES3_COMPLIANCE_PATTERNS,
+    FUNCTION_ANALYSIS_PATTERNS,
+    DEPENDENCY_TRACKING_PATTERNS,
+    DRY_COMPLIANCE_PATTERNS,
+    PATTERN_UTILS
 };
