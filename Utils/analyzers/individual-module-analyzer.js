@@ -27,10 +27,12 @@ import {
 import { PATTERN_UTILS } from '../config/patterns.js';
 
 /**
- * FIXED - Prepare function objects for similarity analysis with enhanced error recovery
+ * Prepare function objects for similarity analysis with proper error recovery
+ * Ensures all required properties are present for analysis
+ * 
  * @param {Object} moduleData - Parsed module data
  * @param {string} filePath - File path for source property
- * @returns {Array} Function objects with required properties
+ * @returns {Array} Function objects with required properties for similarity analysis
  */
 const prepareFunctionsForSimilarityAnalysis = (moduleData, filePath) => {
     try {
@@ -41,240 +43,127 @@ const prepareFunctionsForSimilarityAnalysis = (moduleData, filePath) => {
         return moduleData.functions.list.map(func => ({
             // Required properties for similarity analysis
             name: func.name || 'unknown',
-            source: filePath, // ← This was missing before!
-            module: moduleData.filename || path.basename(filePath),
-
-            // Function details
-            signature: func.signature || `function ${func.name}()`,
-            lineCount: func.estimatedLineCount || 0,
-            parameterCount: func.parameterCount || 0,
-
-            // Code content (add safe defaults)
-            formattedCode: func.formattedCode || '',
-            rawCode: func.rawCode || '',
-
-            // Analysis properties
+            source: filePath,
+            signature: func.signature || '',
+            content: func.content || '',
+            parameters: func.parameters || [],
+            calls: func.calls || [],
+            
+            // Additional metadata for analysis
+            lineCount: func.lineCount || 0,
             hasErrorHandling: func.hasErrorHandling || false,
             hasLogging: func.hasLogging || false,
-            hasJSDoc: func.hasJSDoc || false,
-            purpose: func.purpose || '',
-
-            // Module context for analysis
-            module_health_score: 800, // Default health score
-            confidence: 85 // Default confidence level
+            complexity: func.complexity || 'low'
         }));
+
     } catch (error) {
-        console.warn(chalk.yellow(`prepareFunctionsForSimilarityAnalysis failed: ${error.message}`));
-        return []; // ENHANCED: Return empty array instead of crashing
+        console.error('Error preparing functions for similarity analysis:', error.message);
+        return [];
     }
 };
 
 /**
- * PRESERVED - Perform complete analysis of a single module with accurate health scoring
- * NO MORE FALSE A+ GRADES FOR BROKEN MODULES
- * @param {string} filePath - Path to module file
+ * Analyze individual module with proper path validation and error handling
+ * Prevents undefined path errors and provides comprehensive module analysis
+ * 
+ * @param {string} moduleFile - Module filename to analyze
+ * @param {string} folderPath - Path to folder containing the module
  * @param {Object} options - Analysis options
- * @returns {Object} Complete module analysis with accurate health scoring
+ * @returns {Object} Complete module analysis result
  */
-export const analyzeIndividualModule = (filePath, options = {}) => {
+export const analyzeIndividualModule = (moduleFile, folderPath, options = {}) => {
     const startTime = Date.now();
-    console.log(chalk.blue(`🔍 Analyzing individual module: ${filePath}`));
+    
+    // Critical validation to prevent undefined path errors
+    if (!moduleFile || !folderPath) {
+        console.error('❌ Invalid module file or folder path:', { moduleFile, folderPath });
+        return {
+            success: false,
+            error: 'Invalid module file or folder path provided',
+            filename: moduleFile || 'unknown',
+            parseTime: 0
+        };
+    }
+
+    const fullPath = path.join(folderPath, moduleFile);
+    
+    // Verify file exists before proceeding
+    if (!fs.existsSync(fullPath)) {
+        console.error('❌ Module file does not exist:', fullPath);
+        return {
+            success: false,
+            error: `Module file does not exist: ${fullPath}`,
+            filename: moduleFile,
+            parseTime: 0
+        };
+    }
 
     try {
+        console.log(chalk.cyan(`📋 Analyzing: ${moduleFile}`));
+
         // Parse module file
-        const moduleData = parseModuleFile(filePath);
-
-        if (moduleData.error) {
-            throw new Error(`Module parsing failed: ${moduleData.error}`);
+        const moduleData = parseModuleFile(fullPath);
+        
+        // Ensure moduleData is valid
+        if (!moduleData || !moduleData.filename) {
+            return {
+                success: false,
+                error: 'Failed to parse module data',
+                filename: moduleFile,
+                parseTime: Date.now() - startTime
+            };
         }
 
-        // Read content for analysis
-        const content = fs.readFileSync(filePath, 'utf8');
-
-        // DEFENSIVE: Core analyses with individual error handling
-        let registrationAnalysis, es3Analysis, reservedWordAnalysis, loggingAnalysis;
-        let architectureAnalysis, dependencyAnalysis, functionInventory;
-
-        // FIXED: Analyze registration compliance using enhanced patterns
-        try {
-            registrationAnalysis = analyzeRegistrationCompliance(content, moduleData);
-        } catch (error) {
-            console.warn(chalk.yellow(`Registration analysis failed: ${error.message}`));
-            // ENHANCED: Try fallback using PATTERN_UTILS for registration detection
-            try {
-                const registrationInfo = PATTERN_UTILS.extractRegistrationInfo(content);
-                registrationAnalysis = {
-                    isCompliant: registrationInfo.functions.length > 0,
-                    accuracyPercentage: registrationInfo.functions.length > 0 ? 85 : 0,
-                    registeredFunctions: registrationInfo.functions,
-                    moduleName: registrationInfo.moduleName,
-                    version: registrationInfo.version,
-                    fallback_used: true,
-                    error: error.message
-                };
-            } catch (fallbackError) {
-                registrationAnalysis = { isCompliant: false, accuracyPercentage: 0, error: error.message };
-            }
-        }
-
-        // Analyze ES3 compliance (safe)
-        try {
-            es3Analysis = analyzeES3Compliance(content);
-        } catch (error) {
-            console.warn(chalk.yellow(`ES3 analysis failed: ${error.message}`));
-            es3Analysis = { compliant: true, violations: [], error: error.message };
-        }
-
-        // Analyze reserved word safety (safe)
-        try {
-            reservedWordAnalysis = analyzeReservedWordSafety(content);
-        } catch (error) {
-            console.warn(chalk.yellow(`Reserved word analysis failed: ${error.message}`));
-            reservedWordAnalysis = { safe: true, violations: [], error: error.message };
-        }
-
-        // Analyze logging compliance (safe)
-        try {
-            loggingAnalysis = analyzeLoggingCompliance(content);
-        } catch (error) {
-            console.warn(chalk.yellow(`Logging analysis failed: ${error.message}`));
-            loggingAnalysis = { compliant: true, error: error.message };
-        }
-
-        // Analyze function architecture (safe)
-        try {
-            architectureAnalysis = analyzeFunctionArchitecture(content, moduleData);
-        } catch (error) {
-            console.warn(chalk.yellow(`Architecture analysis failed: ${error.message}`));
-            architectureAnalysis = { valid: true, error: error.message };
-        }
-
-        // Analyze internal dependencies (safe)
-        try {
-            dependencyAnalysis = analyzeInternalDependencies(content, moduleData);
-        } catch (error) {
-            console.warn(chalk.yellow(`Dependency analysis failed: ${error.message}`));
-            dependencyAnalysis = { valid: true, error: error.message };
-        }
-
-        // CRITICAL FIX: Function inventory with comprehensive error handling
-        try {
-            if (options.skipSimilarity) {
-                // ENHANCED: Use robust generateFunctionInventory from core/function-analyzer.js
-                functionInventory = generateFunctionInventory(content, moduleData, {
-                    includeSimilarity: false,
-                    skipSimilarity: true,
-                    forceStable: true // ADDED: Force stable mode
-                });
-            } else {
-                // FIXED: Enhanced error recovery for prepareFunctionsForSimilarityAnalysis
-                const preparedFunctions = prepareFunctionsForSimilarityAnalysis(moduleData, filePath);
-                functionInventory = generateFunctionInventory(content, moduleData, {
-                    includeSimilarity: false, // Force disable for stability
-                    functions: preparedFunctions,
-                    forceStable: true // ADDED: Force stable mode
-                });
-            }
-        } catch (error) {
-            console.warn(chalk.yellow(`Function inventory failed: ${error.message}`));
-            functionInventory = createBasicFunctionInventory(moduleData);
-            functionInventory.error = error.message;
-        }
-
-        // Enhanced analyses (safe)
-        let moduleMetadata, codeOrganization, performanceIndicators, securityPatterns;
-
-        try {
-            moduleMetadata = analyzeModuleMetadata(moduleData.metadata || {});
-        } catch (error) {
-            moduleMetadata = { completeness_score: 0, error: error.message };
-        }
-
-        try {
-            codeOrganization = analyzeCodeOrganization(content);
-        } catch (error) {
-            codeOrganization = { organization_score: 0, error: error.message };
-        }
-
-        try {
-            performanceIndicators = analyzePerformanceIndicators(content);
-        } catch (error) {
-            performanceIndicators = { performance_score: 0, error: error.message };
-        }
-
-        try {
-            securityPatterns = analyzeSecurityPatterns(content);
-        } catch (error) {
-            securityPatterns = { security_score: 0, error: error.message };
-        }
-
-        // Generate detailed function inventory
-        let detailedInventory = {};
-        try {
-            detailedInventory = generateDetailedFunctionInventory(moduleData.functions);
-        } catch (error) {
-            detailedInventory = { error: error.message };
-        }
-
-        // PRESERVE: Calculate health score with accurate assessment
+        // Perform comprehensive analysis
         const analysis = {
-            registration_compliance: registrationAnalysis,
-            es3_compliance: es3Analysis,
-            reserved_word_safety: reservedWordAnalysis,
-            logging_compliance: loggingAnalysis,
-            function_architecture: architectureAnalysis,
-            internal_dependencies: dependencyAnalysis,
-            function_inventory: functionInventory,
-            detailed_function_inventory: detailedInventory,
-            module_metadata: moduleMetadata,
-            code_organization: codeOrganization,
-            performance_indicators: performanceIndicators,
-            security_patterns: securityPatterns
-        };
-
-        // Calculate evidence-based health score
-        const { healthScore, details: healthScoreDetails } = calculateHealthScore(analysis);
-
-        // Validate analysis accuracy
-        let validationResult = {};
-        try {
-            validationResult = validateAnalysisAccuracy(analysis, content);
-        } catch (error) {
-            validationResult = { warnings: [], accuracy_score: 100, error: error.message };
-        }
-
-        const analysisTime = Date.now() - startTime;
-
-        return {
             success: true,
-            analysis: {
-                ...analysis,
-                health_score: {
-                    total_score: healthScore,
-                    grade: calculateGrade(healthScore),
-                    details: healthScoreDetails,
-                    violations_count: (es3Analysis.violations?.length || 0) + (reservedWordAnalysis.violations?.length || 0),
-                    high_confidence_violations: 0
-                },
-                validation: validationResult
-            },
-            filePath,
-            timestamp: new Date().toISOString(),
-            analysis_time_ms: analysisTime,
-            options: options
+            filename: moduleData.filename,
+            filePath: fullPath,
+            parseTime: Date.now() - startTime,
+            
+            // Core module information
+            metadata: moduleData.metadata,
+            functions: moduleData.functions,
+            registration: moduleData.registration,
+            dependencies: moduleData.dependencies,
+            content: moduleData.content,
+            quality: moduleData.quality,
+
+            // Detailed compliance analysis
+            es3_compliance: analyzeES3Compliance(moduleData.content, moduleData),
+            reserved_word_safety: analyzeReservedWordSafety(moduleData.content, moduleData),
+            registration_compliance: analyzeRegistrationCompliance(moduleData),
+            logging_compliance: analyzeLoggingCompliance(moduleData.content, moduleData),
+            function_architecture: analyzeFunctionArchitecture(moduleData.functions, moduleData),
+            internal_dependencies: analyzeInternalDependencies(moduleData.functions, moduleData),
+
+            // Generate function inventory for similarity analysis
+            function_inventory: generateFunctionInventory(moduleData),
+
+            // Calculate overall health score
+            health_score: calculateHealthScore({
+                es3_compliance: analysis?.es3_compliance,
+                reserved_word_safety: analysis?.reserved_word_safety,
+                registration_compliance: analysis?.registration_compliance,
+                logging_compliance: analysis?.logging_compliance,
+                function_architecture: analysis?.function_architecture,
+                internal_dependencies: analysis?.internal_dependencies
+            }, CONFIDENCE_LEVELS.HIGH)
         };
+
+        // Prepare functions for similarity analysis with proper source attribution
+        analysis.similarity_functions = prepareFunctionsForSimilarityAnalysis(moduleData, fullPath);
+
+        console.log(chalk.green(`✅ ${moduleFile} analyzed successfully`));
+        return analysis;
 
     } catch (error) {
-        const analysisTime = Date.now() - startTime;
-        
-        console.error(chalk.red(`❌ Individual module analysis failed: ${error.message}`));
-        
+        console.error('❌ Module analysis failed:', error.message);
         return {
             success: false,
             error: error.message,
-            filePath,
-            timestamp: new Date().toISOString(),
-            analysis_time_ms: analysisTime
+            filename: moduleFile,
+            parseTime: Date.now() - startTime
         };
     }
 };
