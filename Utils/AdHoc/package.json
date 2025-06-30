@@ -1,14 +1,35 @@
 {
-    "name": "adhoc-claude-merger",
+    "name": "adhoc-code-updater",
     "version": "1.0.0",
-    "description": "Simple tools for merging Claude responses into code",
+    "description": "Template-driven code updates from Claude responses",
     "type": "module",
+    "main": "server.js",
     "scripts": {
-        "merge": "node merge-claude.js",
-        "template": "node make-template.js"
+        "start": "node start.js",
+        "server": "node server.js",
+        "dev": "node server.js --dev",
+        "test": "node test.js"
     },
-    "dependencies": {},
+    "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5",
+        "chokidar": "^3.5.3",
+        "chalk": "^5.2.0",
+        "open": "^9.1.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    },
     "engines": {
-        "node": ">=18.0.0"
-    }
+        "node": ">=14.0.0"
+    },
+    "keywords": [
+        "code-automation",
+        "ai-assisted-coding",
+        "template-driven",
+        "docdom",
+        "claude-integration"
+    ],
+    "author": "DocDom Project",
+    "license": "MIT"
 }

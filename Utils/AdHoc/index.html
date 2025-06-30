@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdHoc Code Updater</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #161b22;
+            padding: 12px 20px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            color: #58a6ff;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #238636;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .main {
+            display: flex;
+            height: calc(100vh - 49px);
+        }
+        
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #30363d;
+            background: #0d1117;
+        }
+        
+        .panel:last-child {
+            border-right: none;
+        }
+        
+        .panel-header {
+            background: #21262d;
+            padding: 12px 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title {
+            font-weight: 600;
+            color: #f0f6fc;
+            font-size: 14px;
+        }
+        
+        .file-info {
+            font-size: 12px;
+            color: #7d8590;
+            font-family: 'SF Mono', monospace;
+        }
+        
+        .editor-container {
+            flex: 1;
+            position: relative;
+            background: #0d1117;
+        }
+        
+        .editor {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: #c9d1d9;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.45;
+            padding: 16px;
+            resize: none;
+            outline: none;
+            tab-size: 4;
+        }
+        
+        .editor:focus {
+            background: rgba(56, 139, 253, 0.03);
+        }
+        
+        .editor::placeholder {
+            color: #484f58;
+        }
+        
+        .controls {
+            background: #161b22;
+            padding: 12px 16px;
+            border-top: 1px solid #30363d;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #238636;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            background: #2ea043;
+            transform: translateY(-1px);
+        }
+        
+        .btn.primary {
+            background: #1f6feb;
+        }
+        
+        .btn.primary:hover:not(:disabled) {
+            background: #388bfd;
+        }
+        
+        .btn.danger {
+            background: #da3633;
+        }
+        
+        .btn.danger:hover:not(:disabled) {
+            background: #f85149;
+        }
+        
+        .btn:disabled {
+            background: #30363d;
+            color: #484f58;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            flex: 1;
+            font-size: 12px;
+            margin-left: 8px;
+            min-height: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .message.error {
+            color: #f85149;
+        }
+        
+        .message.success {
+            color: #56d364;
+        }
+        
+        .message.info {
+            color: #79c0ff;
+        }
+        
+        .message.warning {
+            color: #e3b341;
+        }
+        
+        .template-hint {
+            background: #0d1821;
+            border: 1px solid #1f6feb;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 12px 16px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .template-hint strong {
+            color: #58a6ff;
+        }
+        
+        .template-hint code {
+            background: rgba(110, 118, 129, 0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', monospace;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #7d8590;
+            font-size: 12px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .syntax-js { color: #79c0ff; }
+        .syntax-keyword { color: #ff7b72; }
+        .syntax-string { color: #a5d6ff; }
+        .syntax-comment { color: #8b949e; }
+        .syntax-function { color: #d2a8ff; }
+        
+        .diff-addition {
+            background: rgba(46, 160, 67, 0.15);
+            border-left: 3px solid #238636;
+            margin: 2px 0;
+            padding-left: 8px;
+        }
+        
+        .diff-deletion {
+            background: rgba(248, 81, 73, 0.15);
+            border-left: 3px solid #da3633;
+            margin: 2px 0;
+            padding-left: 8px;
+        }
+        
+        .file-tree {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #010409;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            margin: 8px 0;
+            display: none;
+        }
+        
+        .file-tree.show {
+            display: block;
+        }
+        
+        .file-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 11px;
+            border-bottom: 1px solid #21262d;
+        }
+        
+        .file-item:hover {
+            background: #21262d;
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛠️ AdHoc Code Updater</h1>
+        <div class="status">
+            <div class="status-indicator"></div>
+            <span id="status">Ready</span>
+        </div>
+    </div>
+    
+    <div class="main">
+        <!-- Left Panel: Template Input -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📝 Template Input</div>
+                <div class="file-info" id="input-info">Paste Claude response</div>
+            </div>
+            
+            <div class="template-hint">
+                <strong>Enhanced Template Format:</strong><br>
+                <code>Location: path/to/file.js</code><br>
+                <code>Operation: REPLACE_FUNCTION</code><br>
+                <code>Target: functionName</code><br>
+                <code>Notes: Description of changes</code><br>
+                <code>---</code><br>
+                <code>// your code here</code>
+            </div>
+            
+            <div class="editor-container">
+                <textarea 
+                    class="editor" 
+                    id="input-editor"
+                    placeholder="Location: Utils/core/module-parser.js
+Operation: REPLACE_FUNCTION
+Target: extractRegistration
+Notes: Enhanced function with comprehensive debugging and error handling
+---
+/**
+ * ENHANCED - Extract module registration with comprehensive debugging
+ * @param {string} content - File content to analyze
+ * @returns {Object} Registration analysis with debug info
+ */
+const extractRegistration = (content) => {
+    const startTime = Date.now();
+    console.log('🔍 Starting registration extraction...');
+    
+    const registration = {
+        found: false,
+        moduleName: null,
+        version: null,
+        registeredFunctions: [],
+        debugInfo: {
+            contentLength: content.length,
+            hasRegisterModule: content.includes('registerModule'),
+            processingTime: 0
+        }
+    };
+    
+    try {
+        // Enhanced implementation here
+        console.log('📊 Content analysis:', content.length, 'characters');
+        
+        // Pattern matching logic
+        const patterns = [
+            /registerModule\s*\(\s*['&quot;]([^'&quot;]+)['&quot;]\s*,\s*['&quot;]([^'&quot;]+)['&quot;]\s*,\s*\[([^\]]+)\]/s
+        ];
+        
+        for (const pattern of patterns) {
+            const match = content.match(pattern);
+            if (match) {
+                registration.found = true;
+                registration.moduleName = match[1];
+                registration.version = match[2];
+                console.log('✅ Registration found:', registration.moduleName);
+                break;
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Extraction error:', error.message);
+        registration.error = error.message;
+    } finally {
+        registration.debugInfo.processingTime = Date.now() - startTime;
+        console.log('⏱️ Processing completed in', registration.debugInfo.processingTime, 'ms');
+    }
+    
+    return registration;
+};"
+                ></textarea>
+                <div class="loading" id="input-loading">Processing template...</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn primary" id="parse-btn">
+                    🔍 Parse Template
+                </button>
+                <button class="btn" id="auto-parse-toggle">
+                    ⚡ Auto-parse: ON
+                </button>
+                <div class="message" id="input-message"></div>
+            </div>
+        </div>
+        
+        <!-- Right Panel: File Preview -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">👁️ File Preview</div>
+                <div class="file-info" id="output-info">No file loaded</div>
+            </div>
+            
+            <div class="editor-container">
+                <textarea 
+                    class="editor" 
+                    id="output-editor"
+                    readonly
+                    placeholder="Updated file content will appear here...
+
+The preview will show:
+• 🔄 All template operations applied
+• 📁 Real file content from your project  
+• ✅ Syntax validation
+• 🎯 Smart function placement
+
+Click 'Apply Changes' to save to disk."
+                ></textarea>
+                <div class="loading" id="output-loading">Loading file...</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" id="apply-btn" disabled>
+                    💾 Apply Changes
+                </button>
+                <button class="btn" id="reload-btn" disabled>
+                    🔄 Reload Original
+                </button>
+                <button class="btn danger" id="clear-btn">
+                    🗑️ Clear All
+                </button>
+                <div class="message" id="output-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = '';
+        const AUTO_PARSE_DELAY = 1000;
+
+        // Global state
+        let currentTemplate = null;
+        let originalFileContent = '';
+        let targetFilePath = '';
+        let previewContent = '';
+        let autoParse = true;
+        let parseTimeout = null;
+
+        // DOM elements
+        const inputEditor = document.getElementById('input-editor');
+        const outputEditor = document.getElementById('output-editor');
+        const parseBtn = document.getElementById('parse-btn');
+        const autoParseToggle = document.getElementById('auto-parse-toggle');
+        const applyBtn = document.getElementById('apply-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const status = document.getElementById('status');
+        const inputMessage = document.getElementById('input-message');
+        const outputMessage = document.getElementById('output-message');
+        const inputInfo = document.getElementById('input-info');
+        const outputInfo = document.getElementById('output-info');
+        const inputLoading = document.getElementById('input-loading');
+        const outputLoading = document.getElementById('output-loading');
+
+        // API Helper
+        class ApiClient {
+            async post(endpoint, data) {
+                const response = await fetch(`${API_BASE}/api${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Request failed');
+                }
+                
+                return result;
+            }
+
+            async get(endpoint) {
+                const response = await fetch(`${API_BASE}/api${endpoint}`);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Request failed');
+                }
+                
+                return result;
+            }
+        }
+
+        const api = new ApiClient();
+
+        // Main Functions
+        async function parseTemplate() {
+            const input = inputEditor.value.trim();
+            
+            if (!input) {
+                showInputMessage('Enter a template to parse', 'warning');
+                return;
+            }
+
+            try {
+                showLoading(inputLoading, true);
+                showInputMessage('Parsing enhanced template...', 'info');
+                
+                const result = await api.post('/parse', { template: input });
+                currentTemplate = stripNotesFromTemplate(result.template);
+                
+                // Use the first operation's target file, or detect from Location
+                if (currentTemplate.operations.length > 0) {
+                    targetFilePath = currentTemplate.operations[0].targetFile || targetFilePath;
+                } else if (!targetFilePath) {
+                    throw new Error('No target file detected in template');
+                }
+                
+                showInputMessage(`✅ Parsed ${currentTemplate.operations.length} operation(s)`, 'success');
+                inputInfo.textContent = `Target: ${targetFilePath}`;
+                updateStatus('Template parsed');
+                
+                // Auto-load and preview
+                await loadAndPreview();
+                
+                // Enable auto-merge for complete templates
+                if (currentTemplate.operations.length > 0) {
+                    autoMergeBtn.disabled = false;
+                }
+                
+            } catch (error) {
+                showInputMessage(`❌ Parse error: ${error.message}`, 'error');
+                currentTemplate = null;
+                targetFilePath = '';
+                resetPreview();
+                updateStatus('Parse failed');
+                autoMergeBtn.disabled = true;
+            } finally {
+                showLoading(inputLoading, false);
+            }
+        }
+
+        async function loadAndPreview() {
+            if (!currentTemplate || !targetFilePath) return;
+
+            try {
+                showLoading(outputLoading, true);
+                showOutputMessage('Loading original file...', 'info');
+                
+                // Load original file
+                const loadResult = await api.post('/load', { filePath: targetFilePath });
+                originalFileContent = loadResult.content;
+                
+                showOutputMessage('Generating preview...', 'info');
+                
+                // Generate preview
+                const previewResult = await api.post('/preview', {
+                    template: currentTemplate,
+                    originalContent: originalFileContent
+                });
+                
+                previewContent = previewResult.content;
+                outputEditor.value = previewContent;
+                
+                const lines = previewContent.split('\n').length;
+                outputInfo.textContent = `${targetFilePath} (${lines} lines)`;
+                
+                applyBtn.disabled = false;
+                reloadBtn.disabled = false;
+                
+                showOutputMessage('✅ Preview generated', 'success');
+                updateStatus('Preview ready');
+                
+            } catch (error) {
+                showOutputMessage(`❌ Preview error: ${error.message}`, 'error');
+                resetPreview();
+                updateStatus('Preview failed');
+            } finally {
+                showLoading(outputLoading, false);
+            }
+        }
+
+        async function applyChanges() {
+            if (!previewContent || !targetFilePath) return;
+
+            try {
+                showOutputMessage('Applying changes...', 'info');
+                
+                const result = await api.post('/apply', {
+                    filePath: targetFilePath,
+                    content: previewContent
+                });
+                
+                showOutputMessage(`✅ File updated: ${result.path}`, 'success');
+                updateStatus('Changes applied');
+                
+                // Update original content to match what we just saved
+                originalFileContent = previewContent;
+                
+            } catch (error) {
+                showOutputMessage(`❌ Apply error: ${error.message}`, 'error');
+                updateStatus('Apply failed');
+            }
+        }
+
+        async function reloadOriginal() {
+            if (!targetFilePath) return;
+
+            try {
+                showLoading(outputLoading, true);
+                
+                const result = await api.post('/load', { filePath: targetFilePath });
+                originalFileContent = result.content;
+                outputEditor.value = originalFileContent;
+                
+                applyBtn.disabled = true;
+                showOutputMessage('Original file reloaded', 'info');
+                
+            } catch (error) {
+                showOutputMessage(`❌ Reload error: ${error.message}`, 'error');
+            } finally {
+                showLoading(outputLoading, false);
+            }
+        }
+
+        function clearAll() {
+            inputEditor.value = '';
+            outputEditor.value = '';
+            currentTemplate = null;
+            originalFileContent = '';
+            targetFilePath = '';
+            previewContent = '';
+            
+            resetUI();
+            updateStatus('Cleared');
+        }
+
+        function resetPreview() {
+            outputEditor.value = '';
+            previewContent = '';
+            applyBtn.disabled = true;
+            reloadBtn.disabled = true;
+            outputInfo.textContent = 'No file loaded';
+        }
+
+        function resetUI() {
+            resetPreview();
+            inputInfo.textContent = 'Paste Claude response';
+            showInputMessage('', '');
+            showOutputMessage('', '');
+        }
+
+        // Event Handlers
+        parseBtn.addEventListener('click', parseTemplate);
+
+        autoParseToggle.addEventListener('click', () => {
+            autoParse = !autoParse;
+            autoParseToggle.textContent = `⚡ Auto-parse: ${autoParse ? 'ON' : 'OFF'}`;
+            autoParseToggle.style.background = autoParse ? '#238636' : '#30363d';
+        });
+
+        applyBtn.addEventListener('click', applyChanges);
+        reloadBtn.addEventListener('click', reloadOriginal);
+        clearBtn.addEventListener('click', clearAll);
+
+        // Auto-parse on input change
+        inputEditor.addEventListener('input', () => {
+            if (!autoParse) return;
+            
+            if (parseTimeout) {
+                clearTimeout(parseTimeout);
+            }
+            
+            parseTimeout = setTimeout(() => {
+                const input = inputEditor.value.trim();
+                
+                // Check for new template format with Location
+                if (input && input.includes('Location:') && input.includes('Operation:') && input.includes('---')) {
+                    parseTemplate();
+                }
+            }, AUTO_PARSE_DELAY);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        if (!applyBtn.disabled) applyChanges();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        if (!reloadBtn.disabled) reloadOriginal();
+                        break;
+                    case 'k':
+                        e.preventDefault();
+                        clearAll();
+                        break;
+                }
+            }
+        });
+
+        // Utility Functions
+        function showInputMessage(text, type) {
+            inputMessage.textContent = text;
+            inputMessage.className = `message ${type}`;
+        }
+
+        function showOutputMessage(text, type) {
+            outputMessage.textContent = text;
+            outputMessage.className = `message ${type}`;
+        }
+
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+
+        function showLoading(element, show) {
+            element.classList.toggle('show', show);
+        }
+
+        // Initialize
+        updateStatus('Ready');
+        
+        // Show helpful info on startup
+        setTimeout(() => {
+            showInputMessage('💡 Paste a Claude template to get started', 'info');
+        }, 500);
+    </script>
+</body>
+</html>
