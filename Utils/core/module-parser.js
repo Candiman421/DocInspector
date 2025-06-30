@@ -1,3 +1,4 @@
+// Location: Utils/core/module-parser.js
 // ============================================================================
 // MODULE PARSER CORE MODULE
 // Extract functions, metadata, and structure from DocDom module files

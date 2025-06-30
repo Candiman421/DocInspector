@@ -1,4 +1,4 @@
-// config/patterns.js
+// Location: Utils/config/patterns.js
 // COMPLETE PATTERNS AND UTILITIES LIBRARY - ALL MISSING EXPORTS FIXED
 // FIXES: parseRegistrationArray, DEPENDENCY_TRACKING_PATTERNS, PATTERN_UTILS, CONFIDENCE_LEVELS
 // ============================================================================
@@ -130,7 +130,11 @@ export const CONTENT_PATTERNS = {
     purpose: /\/\/\s*PURPOSE:\s*(.*)/,
     dependencies: /\/\/\s*DEPENDENCIES:\s*(.*)/,
     size_comment: /\/\/\s*SIZE:\s*(.*)/,
-    version_comment: /\/\/\s*VERSION:\s*(.*)/
+    version_comment: /\/\/\s*VERSION:\s*(.*)/,
+
+    // Logging patterns for module-parser.js compatibility
+    modern_logging: /log(?:Debug|Info|Warn|Error)\s*\(/g,
+    legacy_logging: /console\.(?:log|info|warn|error|debug)\s*\(/g
 };
 
 // ============================================================================

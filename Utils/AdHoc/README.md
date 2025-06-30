@@ -113,9 +113,10 @@ const extractRegistration = (content) => {
 |-----------|---------|---------|
 | `REPLACE_FUNCTION` | Replace entire function | Update function with enhancements |
 | `REPLACE_TEXT` | Replace specific text | Fix version numbers, imports |
-| `ADD_FUNCTION` | Add new function | Insert utility functions |
-| `ADD_IMPORT` | Add import statement | Include new dependencies |
-| `ADD_EXPORT` | Add export statement | Export new functionality |
+| `INSERT_AFTER` | Insert after specific function | Add related functionality |
+| `INSERT_BEFORE` | Insert before specific function | Add setup code |
+| `UPDATE_IMPORTS` | Update import statements | Reorganize dependencies |
+| `UPDATE_EXPORTS` | Update export statements | Export new functionality |
 | `QUERY_FUNCTION` | Analyze function | Get improvement suggestions |
 
 ## 🎯 Real-World Use Cases
@@ -173,6 +174,13 @@ The system intelligently places new functions:
 - **After similar functions**: Groups related functionality
 - **Before/after specific functions**: Precise placement control
 - **Maintains code organization**: Preserves existing structure
+
+### Auto-Parse & Real-Time Processing
+Advanced interface features:
+- **Auto-parse**: Automatically processes templates as you type
+- **GitHub-style UI**: Professional dark theme with syntax highlighting
+- **Keyboard shortcuts**: Ctrl+Enter to apply, Ctrl+R to reload, Ctrl+K to clear
+- **Real-time validation**: Live template format checking
 
 ### Template Validation
 Every template is validated for:

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-
+// Location: Utils/AdHoc/server.js
 // ============================================================================
 // ADHOC CODE UPDATER SERVER - FINAL INTEGRATION
 // Real-time file processing with template-driven updates for DocDom project
-// Location: Utils/AdHoc/server.js
 // ============================================================================
 
 import express from 'express';
@@ -247,7 +246,7 @@ class FileProcessor {
         const patterns = [
             // const functionName = () => {} or const functionName = function() {}
             new RegExp(
-                `(\/\\*\\*[\\s\\S]*?\\*\/\\s*)?` +           // Optional JSDoc
+                `(\\/\\*\\*[\\s\\S]*?\\*\\/\\s*)?` +           // Optional JSDoc
                 `(export\\s+)?` +                             // Optional export
                 `const\\s+${functionName}\\s*=\\s*` +         // const funcName =
                 `[\\s\\S]*?` +                                // Function content
@@ -256,7 +255,7 @@ class FileProcessor {
             ),
             // function functionName() {}
             new RegExp(
-                `(\/\\*\\*[\\s\\S]*?\\*\/\\s*)?` +           // Optional JSDoc
+                `(\\/\\*\\*[\\s\\S]*?\\*\\/\\s*)?` +           // Optional JSDoc
                 `(export\\s+)?` +                             // Optional export
                 `function\\s+${functionName}\\s*\\([^)]*\\)\\s*{` + // function definition
                 `[\\s\\S]*?` +                                // Function body
@@ -278,7 +277,7 @@ class FileProcessor {
     insertAfterFunction(content, afterFunction, newCode) {
         const patterns = [
             new RegExp(
-                `(\/\\*\\*[\\s\\S]*?\\*\/\\s*)?` +
+                `(\\/\\*\\*[\\s\\S]*?\\*\\/\\s*)?` +
                 `(export\\s+)?` +
                 `const\\s+${afterFunction}\\s*=\\s*` +
                 `[\\s\\S]*?` +
@@ -286,7 +285,7 @@ class FileProcessor {
                 'gm'
             ),
             new RegExp(
-                `(\/\\*\\*[\\s\\S]*?\\*\/\\s*)?` +
+                `(\\/\\*\\*[\\s\\S]*?\\*\\/\\s*)?` +
                 `(export\\s+)?` +
                 `function\\s+${afterFunction}\\s*\\([^)]*\\)\\s*{` +
                 `[\\s\\S]*?` +
@@ -308,7 +307,7 @@ class FileProcessor {
     insertBeforeFunction(content, beforeFunction, newCode) {
         const patterns = [
             new RegExp(
-                `(\/\\*\\*[\\s\\S]*?\\*\/\\s*)?` +
+                `(\\/\\*\\*[\\s\\S]*?\\*\\/\\s*)?` +
                 `(export\\s+)?` +
                 `(const\\s+${beforeFunction}\\s*=|function\\s+${beforeFunction}\\s*\\()`,
                 'gm'
@@ -381,7 +380,7 @@ class FileProcessor {
         try {
             // Find the function
             const functionPattern = new RegExp(
-                `(\/\\*\\*[\\s\\S]*?\\*\/\\s*)?` +
+                `(\\/\\*\\*[\\s\\S]*?\\*\\/\\s*)?` +
                 `(export\\s+)?` +
                 `(const\\s+${functionName}\\s*=|function\\s+${functionName}\\s*\\()` +
                 `[\\s\\S]*?` +

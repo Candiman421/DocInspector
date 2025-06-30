@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-
+// Location: Utils/AdHoc/start.js
 // ============================================================================
 // ADHOC CODE UPDATER - STARTUP SCRIPT
 // One command to start the entire system
-// Location: Utils/AdHoc/start.js
 // ============================================================================
 
 import { spawn, exec } from 'child_process';

@@ -504,7 +504,7 @@ Click 'Apply Changes' to save to disk."
                 showInputMessage('Parsing enhanced template...', 'info');
                 
                 const result = await api.post('/parse', { template: input });
-                currentTemplate = stripNotesFromTemplate(result.template);
+                currentTemplate = result.template;
                 
                 // Use the first operation's target file, or detect from Location
                 if (currentTemplate.operations.length > 0) {
@@ -520,18 +520,12 @@ Click 'Apply Changes' to save to disk."
                 // Auto-load and preview
                 await loadAndPreview();
                 
-                // Enable auto-merge for complete templates
-                if (currentTemplate.operations.length > 0) {
-                    autoMergeBtn.disabled = false;
-                }
-                
             } catch (error) {
                 showInputMessage(`❌ Parse error: ${error.message}`, 'error');
                 currentTemplate = null;
                 targetFilePath = '';
                 resetPreview();
                 updateStatus('Parse failed');
-                autoMergeBtn.disabled = true;
             } finally {
                 showLoading(inputLoading, false);
             }
