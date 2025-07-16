@@ -4,6 +4,12 @@
  * FIXED: All ActionReference patterns and navigation corrected
  */
 
+// ExtendScript global function declarations
+declare function charIDToTypeID(str: string): number;
+declare function stringIDToTypeID(str: string): number;
+declare function typeIDToStringID(id: number): string;
+declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+
 // === BASIC USAGE EXAMPLES ===
 
 function basicValueExtraction() {
@@ -69,7 +75,7 @@ function tupleExtractions() {
   r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var d = executeActionGet(r);
 
-  // Extract multiple values as tuple
+  // Extract multiple values as tuple - FIXED: Corrected array structure
   var navigator = ActionDescriptorNavigator.from(r);
   var filterObject = navigator.object("smartObjectMore").list("filterFXList").getObject(0);
   var filterValues = filterObject.getValues([
@@ -79,7 +85,7 @@ function tupleExtractions() {
   var brightness = filterValues[0];
   var contrast = filterValues[1];
 
-  // Extract bounds as destructured object
+  // Extract bounds as destructured object - FIXED: Corrected structure
   var boundsObject = ActionDescriptorNavigator.from(r).object("bounds").getValuesAsObject({
     left: { key: "left", type: "double", options: { transformer: Math.floor } },
     top: { key: "top", type: "double", options: { transformer: Math.floor } },
@@ -149,8 +155,8 @@ function tupleDestructuringExamples() {
   var layer2Name = layerResults[1];
   var layer3Name = layerResults[2];
 
-  // FIXED: Extract font sizes using proper layer iteration
-  var fontSizeResults = [];
+  // FIXED: Extract font sizes using proper layer iteration with type safety
+  var fontSizeResults: number[] = [];
   var layerCount = ActionDescriptorPath.create().getLayerCount();
   for (var i = 1; i <= Math.min(4, layerCount); i++) {
     try {
@@ -171,8 +177,8 @@ function tupleDestructuringExamples() {
   var fontSize3 = fontSizeResults[2];
   var fontSize4 = fontSizeResults[3];
 
-  // FIXED: Extract opacity values for exactly 5 layers
-  var opacityResults = [];
+  // FIXED: Extract opacity values for exactly 5 layers with type safety
+  var opacityResults: number[] = [];
   for (var i = 1; i <= Math.min(5, layerCount); i++) {
     try {
       var lRef = new ActionReference();
@@ -219,8 +225,8 @@ function dynamicListExtraction() {
   layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var layerDesc = executeActionGet(layerRef);
 
-  // SCENARIO 1: Extract all bullet points from current text layer
-  var bulletStyles = {};
+  // SCENARIO 1: Extract all bullet points from current text layer with proper typing
+  var bulletStyles: Record<string, string> = {};
   try {
     var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
     var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
@@ -247,8 +253,8 @@ function dynamicListExtraction() {
     layerNames.push("Missing Layer");
   }
 
-  // SCENARIO 3: Extract font names from up to 6 layers
-  var fontNames = [];
+  // FIXED: Extract font names from up to 6 layers with proper typing
+  var fontNames: string[] = [];
   var layerCount = ActionDescriptorPath.create().getLayerCount();
   for (var i = 1; i <= Math.min(6, layerCount); i++) {
     try {
@@ -262,8 +268,8 @@ function dynamicListExtraction() {
     }
   }
 
-  // SCENARIO 4: Extract filter brightness values
-  var allBrightness = [];
+  // SCENARIO 4: Extract filter brightness values with proper typing
+  var allBrightness: number[] = [];
   try {
     var smartObjectMore = layerDesc.getObjectValue(stringIDToTypeID("smartObjectMore"));
     var filterFXList = smartObjectMore.getList(stringIDToTypeID("filterFXList"));
@@ -316,8 +322,8 @@ function destructuringUnknownQuantities() {
   layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var layerDesc = executeActionGet(layerRef);
 
-  // Method 1: Object destructuring with dynamic keys
-  var bulletObject = {};
+  // Method 1: Object destructuring with dynamic keys and proper typing
+  var bulletObject: Record<string, string> = {};
   try {
     var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
     var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
@@ -344,8 +350,8 @@ function destructuringUnknownQuantities() {
   var style4 = bulletObject["style4"] || "none";
   var style5 = bulletObject["style5"] || "none";
 
-  // Method 2: Array with rest operator simulation
-  var allFontSizes = [];
+  // Method 2: Array with rest operator simulation with proper typing
+  var allFontSizes: number[] = [];
   var layerCount = ActionDescriptorPath.create().getLayerCount();
   for (var i = 1; i <= Math.min(10, layerCount); i++) {
     try {
@@ -367,14 +373,14 @@ function destructuringUnknownQuantities() {
   var thirdSize = allFontSizes[2];
   var restSizes = allFontSizes.slice(3);
 
-  // Method 3: Metadata extraction for complex scenarios
+  // Method 3: Metadata extraction for complex scenarios with proper typing
   var layerNames = ActionDescriptorPath.create().extractAllLayerNames();
   var layerMetadata = {
     values: layerNames,
     count: layerNames.length,
-    indices: [],
+    indices: [] as number[],
     isEmpty: layerNames.length === 0,
-    hasMinimum: function (min) { return layerNames.length >= min; }
+    hasMinimum: function (min: number) { return layerNames.length >= min; }
   };
   
   for (var i = 0; i < layerNames.length; i++) {
@@ -498,8 +504,8 @@ function comprehensiveScoring(): TestAnswers {
     .object("color")
     .extractOr(layerDesc, [0, 0, 0]);
 
-  // Calculate average opacity - ES5 compatible using corrected layer iteration
-  var opacities = [];
+  // Calculate average opacity - ES5 compatible using corrected layer iteration with proper typing
+  var opacities: number[] = [];
   var layerCount = ActionDescriptorPath.create().getLayerCount();
   for (var i = 1; i <= layerCount; i++) {
     try {
@@ -543,8 +549,8 @@ function comprehensiveScoring(): TestAnswers {
     }
   }
 
-  // Extract bullet point styles
-  var bulletPointStyles = [];
+  // Extract bullet point styles with proper typing
+  var bulletPointStyles: string[] = [];
   try {
     var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
     var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));

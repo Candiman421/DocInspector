@@ -4,6 +4,13 @@
  * FIXED: Correct ActionManager patterns and removed circular dependencies
  */
 
+// ExtendScript global function declarations
+declare function charIDToTypeID(str: string): number;
+declare function stringIDToTypeID(str: string): number;
+declare function typeIDToStringID(id: number): string;
+declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+declare function executeAction(eventID: number, descriptor?: ActionDescriptor, dialogMode?: number): ActionDescriptor;
+
 interface PathSegment {
   key: string;
   type: 'object' | 'list' | 'value';
@@ -254,9 +261,9 @@ class ActionDescriptorPath {
   }
 
   /**
-   * FIXED: Extract values from textStyleRange using correct patterns
+   * FIXED: Extract text style values from current layer with proper type handling
    */
-  extractTextStyleValues<T>(
+  extractTextStyleValues<T = any>(
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
     count: number,
@@ -275,17 +282,17 @@ class ActionDescriptorPath {
           try {
             var range = textStyleRanges.getObjectValue(i);
             var value = this.extractValueFromDescriptor(range, subPath, valueType);
-            results.push(value);
+            results.push(value as T);
           } catch (error) {
-            results.push(defaultValue || null);
+            results.push((defaultValue !== undefined ? defaultValue : null) as T);
           }
         } else {
-          results.push(defaultValue || null);
+          results.push((defaultValue !== undefined ? defaultValue : null) as T);
         }
       }
     } catch (error) {
       for (var i = 0; i < count; i++) {
-        results.push(defaultValue || null);
+        results.push((defaultValue !== undefined ? defaultValue : null) as T);
       }
     }
     
@@ -439,7 +446,7 @@ class ActionDescriptorPath {
   }
 
   private getPathString(): string {
-    var parts = [];
+    var parts: string[] = [];
     for (var i = 0; i < this.segments.length; i++) {
       var s = this.segments[i];
       parts.push(s.index !== undefined ? s.key + "[" + s.index + "]" : s.key);
@@ -465,9 +472,9 @@ var P = {
   list: function (key: string) { return ActionDescriptorPath.create().list(key); },
 
   /**
-   * Create value path
+   * Create value path - FIXED: Simplified generic
    */
-  val: function <T = any>(key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated') {
+  val: function (key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated') {
     return ActionDescriptorPath.create().value(key, type);
   },
 

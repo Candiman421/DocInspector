@@ -4,6 +4,12 @@
  * FIXED: Resolved TypeScript generic constraint issues
  */
 
+// ExtendScript global function declarations
+declare function charIDToTypeID(str: string): number;
+declare function stringIDToTypeID(str: string): number;
+declare function typeIDToStringID(id: number): string;
+declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+
 interface ListExtractionOptions extends ComparisonOptions {
   skipErrors?: boolean;
   includeIndices?: boolean;
@@ -12,6 +18,16 @@ interface ListExtractionOptions extends ComparisonOptions {
 interface IndexedValue<T = any> {
   index: number;
   value: T;
+}
+
+interface ValueTransformer {
+  (value: any): any;
+}
+
+interface ComparisonOptions {
+  tolerance?: number;
+  transformer?: ValueTransformer;
+  defaultValue?: any;
 }
 
 class ListValueExtractor {
@@ -313,7 +329,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract all items with metadata (count, indices)
+   * Extract all items with metadata (count, indices) - FIXED: Explicit array typing
    */
   extractAllWithMetadata<T = any>(rootDesc: ActionDescriptor): {
     values: T[];
@@ -323,7 +339,7 @@ class ListValueExtractor {
     hasMinimum: (min: number) => boolean;
   } {
     var values = this.extractAll<T>(rootDesc);
-    var indices = [];
+    var indices: number[] = [];
     for (var i = 0; i < values.length; i++) {
       indices.push(i);
     }
@@ -383,11 +399,13 @@ class ListValueExtractor {
   }
 
   /**
-   * Round numeric values
+   * Round numeric values - FIXED: Proper type handling and array typing
    */
   round(decimals: number = 0): ListValueExtractor {
     var factor = Math.pow(10, decimals);
-    return this.transform(function (val) { return Math.round(val * factor) / factor; });
+    return this.transform(function (val: any) { 
+      return Math.round((val as number) * factor) / factor; 
+    });
   }
 
   /**

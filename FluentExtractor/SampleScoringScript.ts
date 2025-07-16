@@ -3,6 +3,12 @@
  * Uses corrected ActionManager patterns and fixed PathAccessor methods
  */
 
+// ExtendScript global function declarations
+declare function charIDToTypeID(str: string): number;
+declare function stringIDToTypeID(str: string): number;
+declare function typeIDToStringID(id: number): string;
+declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+
 interface TestSpecification {
   name: string;
   description: string;

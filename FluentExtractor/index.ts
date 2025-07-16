@@ -6,6 +6,12 @@
  * FIXED: Updated factory functions to match corrected patterns
  */
 
+// ExtendScript global function declarations
+declare function charIDToTypeID(str: string): number;
+declare function stringIDToTypeID(str: string): number;
+declare function typeIDToStringID(id: number): string;
+declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+
 /**
  * Quick start factory for common extraction patterns
  */
@@ -85,7 +91,7 @@ var createExtractor = function () {
         },
 
         /**
-         * FIXED: Extract bullet point styles using corrected textKey navigation
+         * FIXED: Extract bullet point styles using corrected textKey navigation with proper typing
          */
         bulletStyles: function (count?: number, defaultValue: string = "plain") {
             return {
@@ -113,7 +119,7 @@ var createExtractor = function () {
                         
                         return results;
                     } catch (error) {
-                        var fallbackResults = [];
+                        var fallbackResults: string[] = [];
                         var fallbackCount = count !== undefined ? count : 4;
                         for (var i = 0; i < fallbackCount; i++) {
                             fallbackResults.push(defaultValue);
@@ -242,14 +248,14 @@ var CommonExtractions = {
     },
 
     /**
-     * FIXED: Extract specific number of layer names as tuple using corrected method
+     * FIXED: Extract specific number of layer names as tuple using corrected method with proper typing
      */
-    layerNameTuple: function <T extends readonly string[]>(d: ActionDescriptor | undefined, count: number, defaultValue: string = "Missing Layer"): T {
-        return ActionDescriptorPath.create().extractLayerTuple(count, defaultValue) as T;
+    layerNameTuple: function <T extends readonly string[]>(d: ActionDescriptor | undefined, count: number, defaultValue: string = "Missing Layer"): string[] {
+        return ActionDescriptorPath.create().extractLayerTuple(count, defaultValue);
     },
 
     /**
-     * FIXED: Extract bullet point styles using corrected textKey navigation
+     * FIXED: Extract bullet point styles using corrected textKey navigation with proper typing
      */
     bulletPointStyles: function (d?: ActionDescriptor, count?: number): string[] {
         if (!d) {
@@ -279,7 +285,7 @@ var CommonExtractions = {
             
             return results;
         } catch (error) {
-            var fallbackResults = [];
+            var fallbackResults: string[] = [];
             var fallbackCount = count !== undefined ? count : 4;
             for (var i = 0; i < fallbackCount; i++) {
                 fallbackResults.push("plain");

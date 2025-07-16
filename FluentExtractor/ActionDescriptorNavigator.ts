@@ -4,6 +4,13 @@
  * FINAL VERSION: All patterns consistent with corrected PathAccessor
  */
 
+// ExtendScript global function declarations
+declare function charIDToTypeID(str: string): number;
+declare function stringIDToTypeID(str: string): number;
+declare function typeIDToStringID(id: number): string;
+declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+declare function executeAction(eventID: number, descriptor?: ActionDescriptor, dialogMode?: number): ActionDescriptor;
+
 interface ValueTransformer {
   (value: any): any;
 }
@@ -140,17 +147,15 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get multiple values as tuple
+   * Get multiple values as tuple - FIXED: Simplified to avoid complex generics
    */
-  getValues<T extends readonly any[]>(
-    specs: readonly [...{ [K in keyof T]: { key: string, type: string, options?: ComparisonOptions } }]
-  ): T {
-    var results = [];
+  getValues(specs: { key: string, type: string, options?: ComparisonOptions }[]): any[] {
+    var results: any[] = [];
     for (var i = 0; i < specs.length; i++) {
       var spec = specs[i];
       results.push(this.getValue(spec.key, spec.type as any, spec.options));
     }
-    return results as unknown as T;
+    return results;
   }
 
   /**
@@ -257,7 +262,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * FIXED: Extract bullet styles using corrected textKey navigation
+   * FIXED: Extract bullet styles using corrected textKey navigation with proper typing
    */
   extractBulletStyles(count: number = 4, defaultValue: string = "plain"): string[] {
     try {
@@ -282,7 +287,7 @@ class ActionDescriptorNavigator {
       
       return results;
     } catch (error) {
-      var fallbackResults = [];
+      var fallbackResults: string[] = [];
       for (var i = 0; i < count; i++) {
         fallbackResults.push(defaultValue);
       }
@@ -383,52 +388,6 @@ class ActionListNavigator {
       }
     }
 
-    return results;
-  }
-
-  /**
-   * CORRECTED: Handle ActionReference lists (like document layers)
-   */
-  getAllReferences(): ActionReference[] {
-    var results: ActionReference[] = [];
-    
-    for (var i = 0; i < this.list.count; i++) {
-      if (this.list.getType(i) === DescValueType.REFERENCETYPE) {
-        results.push(this.list.getReference(i));
-      }
-    }
-    
-    return results;
-  }
-
-  /**
-   * CORRECTED: Extract values from ActionReference list (like layer names)
-   */
-  getAllValuesFromReferences<T = any>(
-    key: string,
-    type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    options?: ComparisonOptions
-  ): T[] {
-    var results: T[] = [];
-    
-    for (var i = 0; i < this.list.count; i++) {
-      if (this.list.getType(i) === DescValueType.REFERENCETYPE) {
-        try {
-          var ref = this.list.getReference(i);
-          var desc = executeActionGet(ref);
-          var navigator = new ActionDescriptorNavigator(desc);
-          var value = navigator.getValue<T>(key, type, options);
-          results.push(value);
-        } catch (error) {
-          if (options && options.defaultValue !== undefined) {
-            results.push(options.defaultValue);
-          } else {
-            throw error;
-          }
-        }
-      }
-    }
-    
     return results;
   }
 }
