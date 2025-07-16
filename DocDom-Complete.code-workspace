@@ -1,0 +1,252 @@
+{
+// Location: DocDom/DocDom-Complete.code-workspace
+// Complete Multi-Root Workspace for DocDom Project
+    "folders": [
+        {
+            "name": "📁 DocDom Project Root",
+            "path": "."
+        },
+        {
+            "name": "📊 Module Files (DocDomV4.1)",
+            "path": "./DocDomV4.1"
+        },
+        
+        {
+            "name": "📊 Module Files (DocDomV5.1)",
+            "path": "./DocDomV5.1"
+        },
+        {
+            "name": "🔧 Utils & Analyzers",
+            "path": "./Utils"
+        },
+        {
+            "name": "⚡ AdHoc Code Updater",
+            "path": "./Utils/AdHoc"
+        }
+    ],
+    "settings": {
+        // Global workspace settings
+        "files.associations": {
+            "*.jsx": "javascript",
+            "*.js": "javascript"
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/UtilsOutput": true,
+            "**/.git": true,
+            "**/coverage": true,
+            "**/*.backup.*": true
+        },
+        "files.exclude": {
+            "**/.git": true,
+            "**/node_modules": true,
+            "**/*.backup.*": true,
+            "**/*_ASSEMBLED_*": true
+        },
+        // JavaScript/Node.js settings
+        "javascript.preferences.includePackageJsonAutoImports": "auto",
+        "javascript.suggest.autoImports": true,
+        "typescript.preferences.includePackageJsonAutoImports": "auto",
+        // Terminal settings
+        "terminal.integrated.cwd": "${workspaceFolder}",
+        "terminal.integrated.defaultProfile.windows": "Git Bash",
+        // Editor settings for your codebase
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.detectIndentation": true,
+        "editor.wordWrap": "on",
+        "editor.minimap.enabled": true,
+        // File watching
+        "files.watcherExclude": {
+            "**/node_modules/**": true,
+            "**/UtilsOutput/**": true,
+            "**/.git/**": true
+        }
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "🚀 Start AdHoc Server",
+                "type": "npm",
+                "script": "start",
+                "options": {
+                    "cwd": "${workspaceFolder}/Utils/AdHoc"
+                },
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "dedicated",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+                "isBackground": true,
+                "problemMatcher": []
+            },
+            {
+                "label": "📊 Run System Analyzer",
+                "type": "shell",
+                "command": "node",
+                "args": ["main-system-analyzer.js", "--verbose"],
+                "options": {
+                    "cwd": "${workspaceFolder}/Utils"
+                },
+                "group": "test",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared"
+                }
+            },
+            {
+                "label": "🔧 Run Version Comparator",
+                "type": "shell",
+                "command": "node",
+                "args": ["main-version-comparator.js"],
+                "options": {
+                    "cwd": "${workspaceFolder}/Utils"
+                },
+                "group": "test",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared"
+                }
+            },
+            {
+                "label": "🏗️ Run Module Assembler",
+                "type": "shell",
+                "command": "node",
+                "args": ["main-assembler.js"],
+                "options": {
+                    "cwd": "${workspaceFolder}/Utils"
+                },
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared"
+                }
+            },
+            {
+                "label": "🔍 Analyze Single Module",
+                "type": "shell",
+                "command": "node",
+                "args": ["analyzers/individual-module-analyzer.js", "${input:moduleFile}"],
+                "options": {
+                    "cwd": "${workspaceFolder}/Utils"
+                },
+                "group": "test",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared"
+                }
+            }
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "🚀 Debug AdHoc Server",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/Utils/AdHoc/server.js",
+                "console": "integratedTerminal",
+                "cwd": "${workspaceFolder}/Utils/AdHoc",
+                "env": {
+                    "NODE_ENV": "development",
+                    "DEBUG": "*"
+                },
+                "skipFiles": [
+                    "<node_internals>/**"
+                ],
+                "restart": true,
+                "runtimeArgs": []
+            },
+            {
+                "name": "⚡ Run AdHoc (No Debug)",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/Utils/AdHoc/start.js",
+                "console": "integratedTerminal",
+                "cwd": "${workspaceFolder}/Utils/AdHoc"
+            },
+            {
+                "name": "📊 Debug System Analyzer",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/Utils/main-system-analyzer.js",
+                "args": ["--verbose"],
+                "console": "integratedTerminal",
+                "cwd": "${workspaceFolder}/Utils",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "🔧 Debug Version Comparator",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/Utils/main-version-comparator.js",
+                "console": "integratedTerminal",
+                "cwd": "${workspaceFolder}/Utils",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            },
+            {
+                "name": "🏗️ Debug Module Assembler",
+                "type": "node",
+                "request": "launch",
+                "program": "${workspaceFolder}/Utils/main-assembler.js",
+                "console": "integratedTerminal",
+                "cwd": "${workspaceFolder}/Utils",
+                "skipFiles": [
+                    "<node_internals>/**"
+                ]
+            }
+        ]
+    },
+    "inputs": [
+        {
+            "id": "moduleFile",
+            "description": "Select module file to analyze",
+            "type": "pickString",
+            "options": [
+                "1.1.0.0_bootstrap-foundation.jsx",
+                "1.15.1.2025.01.15_indesign-adapter.jsx",
+                "1.15.2.2025.01.20_photoshop-adapter.jsx",
+                "1.20.0.0_safety-utilities.jsx",
+                "2.1.0.0_dom-enumerator.jsx",
+                "2.2.0.0_collection-sampler.jsx",
+                "3.1.0.0_property-sampler.jsx",
+                "3.2.0.0_dom-exporter.jsx",
+                "4.1.0.0_json-analyzer.jsx",
+                "4.2.0.0_dom-comparator.jsx",
+                "5.1.0.0_deep-mapper.jsx",
+                "5.2.0.0_dom-visualizer.jsx",
+                "6.1.0.0_advanced-ui.jsx"
+            ]
+        }
+    ],
+    "extensions": {
+        "recommendations": [
+            "ms-vscode.vscode-node-azure-pack",
+            "ritwickdey.liveserver",
+            "ms-vscode.vscode-json",
+            "bradlc.vscode-tailwindcss",
+            "formulahendry.auto-rename-tag",
+            "esbenp.prettier-vscode",
+            "ms-vscode.vscode-thunder-client",
+            "alefragnani.project-manager"
+        ]
+    }
+}

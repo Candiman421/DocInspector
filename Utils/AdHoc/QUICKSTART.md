@@ -45,6 +45,7 @@ DocDom/                                    # PROJECT ROOT
 | `adhoc_template_guide` | `Utils/AdHoc/template-guide.md` | AI response format guide |
 | `adhoc_readme_final` | `Utils/AdHoc/README.md` | Complete documentation |
 | `patterns_complete_final` | `Utils/config/patterns.js` | Complete patterns library (replaces existing) |
+| `module_parser_final` | `Utils/core/module-parser.js` | Complete module parser (replaces existing) |
 
 ## 🛠️ Installation Steps
 
@@ -67,6 +68,7 @@ cd Utils/AdHoc
 6. Copy `adhoc_template_guide` → save as `template-guide.md`
 7. Copy `adhoc_readme_final` → save as `README.md`
 8. Copy `patterns_complete_final` → save as `../config/patterns.js` (replaces existing)
+9. Copy `module_parser_final` → save as `../core/module-parser.js` (replaces existing)
 
 ### Step 3: Install & Start
 ```bash
