@@ -1,6 +1,6 @@
 # Fluent Photoshop Document Scoring API
 
-A TypeScript library for extracting and evaluating values from Photoshop documents using ExtendScript's ActionManager. Designed for creating precise test scoring systems.
+A TypeScript library for extracting and evaluating values from Photoshop documents using ExtendScript's ActionManager. Designed for creating precise test scoring systems with a clean, self-contained architecture.
 
 ## Overview
 
@@ -28,10 +28,29 @@ const isValid = path.validate(d).passed; // Returns: true/false
 ## Installation & Setup
 
 ```typescript
-// Import the modules you need
-import { ActionDescriptorNavigator } from "./ActionDescriptorNavigator";
+// Primary imports (covers 95% of use cases)
 import { ActionDescriptorPath, P } from "./PathAccessor";
+
+// For complex tuple extractions
+import { ActionDescriptorNavigator } from "./ActionDescriptorNavigator";
+
+// For advanced list operations (optional)
 import { ListValueExtractor } from "./ListExtractors";
+```
+
+### TypeScript Configuration
+
+Ensure your `tsconfig.json` targets ES3 for ExtendScript compatibility:
+
+```json
+{
+  "compilerOptions": {
+    "target": "es3",
+    "module": "none",
+    "outFile": "./scoring.jsx",
+    "lib": ["es5"]
+  }
+}
 ```
 
 ## Quick Start
@@ -39,12 +58,12 @@ import { ListValueExtractor } from "./ListExtractors";
 ### Basic Value Extraction
 
 ```typescript
-// FIXED: Get layer reference using correct pattern
+// Create layer reference using correct pattern
 const r = new ActionReference();
 r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
 const d = executeActionGet(r);
 
-// Extract single values
+// Extract single values - Primary recommended approach
 const answers = {
   brightness: ActionDescriptorPath.create()
     .object("smartObjectMore")
@@ -54,7 +73,7 @@ const answers = {
     .extract<number>(d),
 
   fontSize: ActionDescriptorPath.create()
-    .object("textKey")  // FIXED: Use textKey not text
+    .object("textKey")
     .list("textStyleRange")
     .at(0)
     .object("textStyle")
@@ -84,9 +103,9 @@ const answers = {
 
 ## API Reference
 
-### ActionDescriptorPath
+### ActionDescriptorPath (Primary Interface)
 
-The main fluent interface for navigating ActionDescriptor structures.
+The main fluent interface for navigating ActionDescriptor structures. **This should be your primary choice for most extractions.**
 
 #### Navigation Methods
 
@@ -107,6 +126,7 @@ The main fluent interface for navigating ActionDescriptor structures.
 .toPoints(fromUnit?, dpi?)    // Convert to points
 .toPercentage()               // 0.75 → 75
 .fromPercentage()             // 75 → 0.75
+.defaultTo(value)             // Set default value
 ```
 
 #### Extraction Methods
@@ -115,65 +135,97 @@ The main fluent interface for navigating ActionDescriptor structures.
 .extract<T>(desc)             // Extract value (throws on error)
 .tryExtract<T>(desc)          // Extract value (returns null on error)
 .extractOr<T>(desc, fallback) // Extract value with fallback
-.defaultTo<T>(value)          // Set default before extraction
 ```
 
-## Tuple Destructuring for Lists
-
-Extract individual list items as tuples for precise testing:
+#### Specialized Layer Methods
 
 ```typescript
-// FIXED: Extract exactly 4 bullet point styles as individual variables
+// All layer names
+const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
+
+// Specific count with defaults
+const [layer1, layer2, layer3] = ActionDescriptorPath.create().extractLayerTuple(3, "Missing");
+
+// Layer count
+const layerCount = ActionDescriptorPath.create().getLayerCount();
+```
+
+#### Specialized Text Methods
+
+```typescript
+// Text style values from current layer
+const textStyles = ActionDescriptorPath.create().extractTextStyleValues<string>(
+  "paragraphStyle.listStyleType", "enumerated", 4, "plain"
+);
+const [bullet1, bullet2, bullet3, bullet4] = textStyles;
+
+// Standard list extraction with error handling
+const values = ActionDescriptorPath.create().extractAllFromList<string>(
+  "name", "string", true, "Default"
+);
+```
+
+## Layer and Text Extraction
+
+### Layer Operations
+
+```typescript
+// Extract all layer names
+const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
+// Result: ["Background", "Text Layer", "Effects", "Adjustment Layer"]
+
+// Extract specific number of layer names as tuple
+const layerTuple = ActionDescriptorPath.create().extractLayerTuple(4, "Missing Layer");
+const [layer1, layer2, layer3, layer4] = layerTuple;
+
+// Get total layer count
+const layerCount = ActionDescriptorPath.create().getLayerCount();
+
+// Destructure with defaults
+const [
+  backgroundLayer = "Missing",
+  textLayer = "Missing", 
+  effectsLayer = "Missing",
+  adjustmentLayer = "Missing",
+  ...extraLayers
+] = layerNames;
+```
+
+### Text Style Extraction
+
+```typescript
+// Extract bullet point styles from current text layer
 const bulletResults = ActionDescriptorPath.create().extractTextStyleValues<string>(
   "paragraphStyle.listStyleType", "enumerated", 4, "plain"
 );
 const [bullet1, bullet2, bullet3, bullet4] = bulletResults;
 
-// Now you can assign each to specific answer properties
-answers.firstBulletStyle = bullet1; // Did they make item 1 a bullet?
-answers.secondBulletStyle = bullet2; // Did they make item 2 a bullet?
-answers.thirdBulletStyle = bullet3; // Did they make item 3 numbered?
-answers.fourthBulletStyle = bullet4; // Did they make item 4 numbered?
+// Now assign to specific answer properties
+answers.firstBulletStyle = bullet1;   // Did they make item 1 a bullet?
+answers.secondBulletStyle = bullet2;  // Did they make item 2 a bullet?
+answers.thirdBulletStyle = bullet3;   // Did they make item 3 numbered?
+answers.fourthBulletStyle = bullet4;  // Did they make item 4 numbered?
 
-// FIXED: Extract 3 layer names as tuple using corrected method
-const layerNames = ActionDescriptorPath.create().extractLayerTuple(3, "Unnamed");
-const [layer1, layer2, layer3] = layerNames;
-
-// FIXED: Extract font sizes with transformation using corrected patterns
-const fontSizes = [];
-const layerCount = ActionDescriptorPath.create().getLayerCount();
+// Extract font information from multiple layers
+const fontInfo = [];
 for (let i = 1; i <= Math.min(3, layerCount); i++) {
   try {
     const lRef = new ActionReference();
     lRef.putIndex(charIDToTypeID("Lyr "), i);
     const lDesc = executeActionGet(lRef);
+    const fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
     const fontSize = P.textStyle('sizeKey', 'double', 0).round(1).defaultTo(12).extract<number>(lDesc);
-    fontSizes.push(fontSize);
+    fontInfo.push({ name: fontName, size: fontSize });
   } catch (error) {
-    fontSizes.push(12);
+    fontInfo.push({ name: "Unknown", size: 12 });
   }
 }
-const [fontSize1, fontSize2, fontSize3] = fontSizes;
+const [font1, font2, font3] = fontInfo;
 ```
 
-### List Extraction Methods
+## ActionDescriptorNavigator (Advanced Operations)
 
-```typescript
-// FIXED: Use direct extraction methods that return values immediately
-// Extract fixed number as tuple for layer names
-const layerNames = ActionDescriptorPath.create().extractLayerTuple(count, defaultValue);
-
-// Extract all layer names
-const allLayerNames = ActionDescriptorPath.create().extractAllLayerNames();
-
-// Extract text style values from current layer
-const textValues = ActionDescriptorPath.create().extractTextStyleValues(subPath, valueType, count, defaultValue);
-
-// Extract values from standard list with error handling
-const listValues = ActionDescriptorPath.create().extractAllFromList(subPath, valueType, skipErrors, defaultValue);
-```
-
-### Tuple and Object Extraction
+For complex tuple extractions and imperative-style navigation:
 
 ```typescript
 // Extract multiple values as tuple
@@ -183,113 +235,64 @@ const [brightness, contrast] = ActionDescriptorNavigator.from(r)
   .getObject(0)
   .getValues([
     { key: "brightness", type: "integer" },
-    { key: "contrast", type: "integer" },
+    { key: "contrast", type: "integer" }
   ]);
 
-// Extract as object
+// Extract values as object
 const bounds = ActionDescriptorNavigator.from(r)
   .object("bounds")
   .getValuesAsObject({
     left: { key: "left", type: "double" },
     top: { key: "top", type: "double" },
     width: { key: "width", type: "double" },
-    height: { key: "height", type: "double" },
+    height: { key: "height", type: "double" }
   });
+
+// Specialized utility methods
+const textProps = ActionDescriptorNavigator.forCurrentLayer().getTextProperties();
+const boundsInfo = ActionDescriptorNavigator.forCurrentLayer().getBounds();
+const bulletStyles = ActionDescriptorNavigator.forCurrentLayer().extractBulletStyles(4, "plain");
 ```
 
-## Dynamic List Extraction (Unknown Quantities)
-
-Perfect for scenarios where you don't know how many items exist but want to extract all of them:
-
-### Extract All Layer Names
+## Factory Functions (Convenience API)
 
 ```typescript
-// FIXED: Extract all layer names using corrected method
-const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
+// Quick path creation for common patterns
+var P = {
+  // Bounds extraction (converts points to pixels, floors result)
+  bounds: function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
+    return ActionDescriptorPath.create()
+      .object('bounds')
+      .value(property, 'double')
+      .toPixels('pt')
+      .floor();
+  },
 
-// Result: ["Background", "Text Layer", "Effects", "Adjustment Layer"]
-// Destructure with defaults:
-const [
-  backgroundLayer = "Missing",
-  textLayer = "Missing", 
-  effectsLayer = "Missing",
-  adjustmentLayer = "Missing",
-  ...extraLayers
-] = layerNames;
+  // Text style extraction (uses correct textKey navigation)
+  textStyle: function (property: string, type: string, textIndex: number = 0) {
+    return ActionDescriptorPath.create()
+      .object('textKey')
+      .list('textStyleRange')
+      .at(textIndex)
+      .object('textStyle')
+      .value(property, type);
+  },
 
-// Or get exact count needed
-const layerTuple = ActionDescriptorPath.create().extractLayerTuple(4, "Missing Layer");
-const [layer1, layer2, layer3, layer4] = layerTuple;
-```
-
-### Extract All Bullet Styles
-
-```typescript
-// FIXED: Extract all bullet points using corrected textKey navigation
-function extractAllBulletStyles(layerDesc: ActionDescriptor): Record<string, string> {
-  const bulletStyles = {};
-  try {
-    const textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
-    const paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
-    
-    for (let i = 0; i < paragraphStyleRanges.count; i++) {
-      try {
-        const range = paragraphStyleRanges.getObjectValue(i);
-        const paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
-        const listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
-        bulletStyles[`bullet${i + 1}`] = typeIDToStringID(listStyleType) || "plain";
-      } catch (error) {
-        bulletStyles[`bullet${i + 1}`] = "plain";
-      }
-    }
-  } catch (error) {
-    // No text content
+  // Filter effect extraction
+  filter: function (property: string, type: string, filterIndex: number = 0) {
+    return ActionDescriptorPath.create()
+      .object('smartObjectMore')
+      .list('filterFXList')
+      .at(filterIndex)
+      .object('filter')
+      .value(property, type);
   }
-  return bulletStyles;
-}
+};
 
-// Usage:
-const bulletObject = extractAllBulletStyles(layerDesc);
-// Result: { bullet1: "bullet", bullet2: "numbered", bullet3: "bullet" }
-
-// Destructure with defaults:
-const {
-  bullet1 = "none",
-  bullet2 = "none",
-  bullet3 = "none",
-  bullet4 = "none",
-} = bulletObject;
-```
-
-### Extract Font Information from Multiple Layers
-
-```typescript
-// FIXED: Extract font information using corrected layer iteration
-function extractFontInformation(maxLayers: number = 6): string[] {
-  const fontNames = [];
-  const layerCount = ActionDescriptorPath.create().getLayerCount();
-  
-  for (let i = 1; i <= Math.min(maxLayers, layerCount); i++) {
-    try {
-      const lRef = new ActionReference();
-      lRef.putIndex(charIDToTypeID("Lyr "), i);
-      const lDesc = executeActionGet(lRef);
-      const fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
-      fontNames.push(fontName);
-    } catch (error) {
-      fontNames.push("Unknown");
-    }
-  }
-  
-  return fontNames;
-}
-
-// Usage:
-const fontNames = extractFontInformation(5);
-// Result: ["Arial", "Helvetica", "Times", "Courier", "Georgia"]
-
-// Destructure:
-const [primaryFont, secondaryFont, tertiaryFont, ...otherFonts] = fontNames;
+// Usage examples
+const leftBound = P.bounds('left').extract<number>(d);
+const fontName = P.textStyle('fontName', 'string', 0).extract<string>(d);
+const brightness = P.filter('brightness', 'integer', 0).extract<number>(d);
 ```
 
 ## Real-World Examples
@@ -298,30 +301,52 @@ const [primaryFont, secondaryFont, tertiaryFont, ...otherFonts] = fontNames;
 
 ```typescript
 interface TestAnswers {
+  // Document properties
   documentWidth: number;
   documentHeight: number;
+  
+  // Text properties
   textContent: string;
   fontFamily: string;
   fontSize: number;
+  
+  // Filter properties
   brightnessValue: number;
   contrastValue: number;
+  
+  // Layer properties
   allLayerNames: string[];
+  layerCount: number;
+  
+  // Individual bullet styles
+  firstBulletStyle: string;
+  secondBulletStyle: string;
+  thirdBulletStyle: string;
+  fourthBulletStyle: string;
+  
+  // Calculated properties
   averageOpacity: number;
   hasArialFont: boolean;
 }
 
 function scoreCandidate(): TestAnswers {
-  // FIXED: Use correct references for different property types
+  // Document properties
   const docRef = new ActionReference();
   docRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
   const docDesc = executeActionGet(docRef);
 
+  // Layer properties
   const layerRef = new ActionReference();
   layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   const layerDesc = executeActionGet(layerRef);
 
+  // Extract bullet styles
+  const bulletStyles = ActionDescriptorPath.create().extractTextStyleValues<string>(
+    "paragraphStyle.listStyleType", "enumerated", 4, "plain"
+  );
+
   return {
-    // FIXED: Document properties from document descriptor
+    // Document dimensions
     documentWidth: ActionDescriptorPath.create()
       .value('width', 'integer')
       .extract<number>(docDesc),
@@ -329,9 +354,9 @@ function scoreCandidate(): TestAnswers {
       .value('height', 'integer')
       .extract<number>(docDesc),
 
-    // FIXED: Text properties using corrected textKey navigation
+    // Text properties using factory functions
     textContent: ActionDescriptorPath.create()
-      .object("textKey")  // FIXED: Use textKey
+      .object("textKey")
       .value("textKey", "string")
       .defaultTo("")
       .extract<string>(layerDesc),
@@ -351,12 +376,19 @@ function scoreCandidate(): TestAnswers {
       .defaultTo(0)
       .extract<number>(layerDesc),
 
-    // FIXED: List properties using corrected methods
+    // Layer information
     allLayerNames: ActionDescriptorPath.create().extractAllLayerNames(),
+    layerCount: ActionDescriptorPath.create().getLayerCount(),
 
-    // FIXED: Calculated properties using corrected layer iteration
+    // Individual bullet styles
+    firstBulletStyle: bulletStyles[0],
+    secondBulletStyle: bulletStyles[1],
+    thirdBulletStyle: bulletStyles[2],
+    fourthBulletStyle: bulletStyles[3],
+
+    // Calculated properties
     averageOpacity: (() => {
-      const opacities = [];
+      const opacities: number[] = [];
       const layerCount = ActionDescriptorPath.create().getLayerCount();
       
       for (let i = 1; i <= layerCount; i++) {
@@ -388,7 +420,9 @@ function scoreCandidate(): TestAnswers {
           const lRef = new ActionReference();
           lRef.putIndex(charIDToTypeID("Lyr "), i);
           const lDesc = executeActionGet(lRef);
-          const fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
+          const fontName = P.textStyle('fontName', 'string', 0)
+            .defaultTo("Unknown")
+            .extract<string>(lDesc);
           if (fontName === "Arial") {
             return true;
           }
@@ -406,17 +440,16 @@ function scoreCandidate(): TestAnswers {
 
 ```typescript
 // Pattern 1: Try with null coalescing
-const brightness =
-  ActionDescriptorPath.create()
-    .object("smartObjectMore")
-    .list("filterFXList")
-    .at(0)
-    .value("brightness", "integer")
-    .tryExtract<number>(d) ?? 0;
+const brightness = ActionDescriptorPath.create()
+  .object("smartObjectMore")
+  .list("filterFXList")
+  .at(0)
+  .value("brightness", "integer")
+  .tryExtract<number>(d) ?? 0;
 
 // Pattern 2: Extract with fallback
 const fontSize = ActionDescriptorPath.create()
-  .object("textKey")  // FIXED: Use textKey
+  .object("textKey")
   .list("textStyleRange")
   .at(0)
   .object("textStyle")
@@ -431,6 +464,32 @@ const contrast = ActionDescriptorPath.create()
   .value("contrast", "integer")
   .defaultTo(0)
   .extract<number>(d);
+
+// Pattern 4: Safe layer extraction
+const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
+// Always returns array, handles errors internally
+
+// Pattern 5: Safe text extraction with error handling
+const textStyles = ActionDescriptorPath.create().extractTextStyleValues<string>(
+  "paragraphStyle.listStyleType", "enumerated", 4, "plain"
+);
+// Always returns array of specified length, fills with defaults if needed
+```
+
+## Advanced List Operations (Optional)
+
+For complex list processing scenarios, use the standalone ListExtractors utility:
+
+```typescript
+import { ListValueExtractor } from "./ListExtractors";
+
+// Advanced filtering and metadata
+const extractor = new ListValueExtractor(path, "name", "string", {});
+const metadata = extractor.extractAllWithMetadata(desc);
+// Result: { values: [...], count: number, indices: [...], isEmpty: boolean }
+
+const filtered = extractor.extractWhere(desc, (value, index) => value.includes("Layer"));
+const withTransform = extractor.transform(val => val.toUpperCase()).extractAll(desc);
 ```
 
 ## Error Handling
@@ -441,7 +500,7 @@ The library provides several error handling strategies:
 2. **Return Null**: `.tryExtract()` returns null on failure
 3. **Fallback Value**: `.extractOr(fallback)` returns fallback on failure
 4. **Default Value**: `.defaultTo(value)` sets default before extraction
-5. **Skip Errors**: Use try-catch blocks around extraction calls
+5. **Built-in Safety**: Specialized methods like `.extractLayerTuple()` handle errors internally
 
 ## Unit Conversion
 
@@ -460,100 +519,84 @@ const opacityPercent = ActionDescriptorPath.create()
   .value("opacity", "double")
   .toPercentage()
   .extract<number>(d);
+
+// Chain conversions
+const roundedPixelWidth = P.bounds('width')
+  .toPixels('pt')
+  .floor()
+  .extract<number>(d);
 ```
 
 ## Best Practices
 
-1. **Use Correct References** for different property types:
+1. **Use ActionDescriptorPath as Primary Interface** - It covers 95% of use cases
+2. **Use Correct References** for different property types:
    - Document properties: `charIDToTypeID('Dcmn')`
    - Layer properties: `charIDToTypeID("Lyr ")`
-
-2. **Use Factory Functions** for common patterns (`P.bounds()`, `P.textStyle()`)
-
-3. **Use Correct Navigation Patterns**:
-   - Text properties: `.object("textKey").list("textStyleRange")`
-   - Layer extraction: Use `extractAllLayerNames()` and `extractLayerTuple()`
-
-4. **Chain Transformations** for complex value processing
-
+3. **Use Factory Functions** for common patterns (`P.bounds()`, `P.textStyle()`, `P.filter()`)
+4. **Use Specialized Methods** for layers and text:
+   - `.extractAllLayerNames()` for all layer names
+   - `.extractLayerTuple()` for specific count
+   - `.extractTextStyleValues()` for text properties
 5. **Handle Errors Gracefully** with appropriate fallback strategies
+6. **Chain Transformations** for complex value processing
+7. **Use TypeScript Generics** for type safety: `.extract<number>(d)`
 
-6. **Use TypeScript Generics** for type safety: `.extract<number>(d)`
+## Architecture Benefits
 
-## TypeScript Configuration
+### **Clean, Self-Contained Design**
+- **No circular dependencies** - Each file is independent
+- **Direct value returns** - No intermediate objects requiring further chaining
+- **Self-contained** - All ExtendScript globals declared in each file
 
-Ensure your `tsconfig.json` targets ES3 for ExtendScript compatibility:
+### **Progressive Enhancement**
+- Start with `ActionDescriptorPath.create()` for most extractions
+- Add `ActionDescriptorNavigator` for complex tuple operations
+- Use `ListExtractors` only for advanced scenarios
 
-```json
-{
-  "compilerOptions": {
-    "target": "es3",
-    "module": "none",
-    "outFile": "./scoring.jsx",
-    "lib": ["es5"],
-    "types": ["./photoshop.d.ts/dist/cc"]
-  }
-}
-```
+### **TypeScript-First with ExtendScript Compatibility**
+- Full type safety with generics
+- Compiles to ES3 for ExtendScript compatibility
+- All files include necessary ExtendScript global declarations
+- No external dependencies or complex build requirements
 
 ## Common Use Cases
 
-### Test Scoring
-
+### **Test Scoring**
 Extract exact values for comparison against expected results with tolerance support.
 
-### Document Analysis
-
+### **Document Analysis**
 Analyze document structure, layers, and properties for automated quality checks.
 
-### Batch Processing
-
+### **Batch Processing**
 Extract metadata and properties from multiple documents for reporting.
 
-### Skills Assessment
-
+### **Skills Assessment**
 Evaluate candidate work against specific requirements with detailed feedback.
 
 ---
 
-## Fixed Patterns Summary
+## Quick Reference
 
-### ✅ Correct ActionReference Patterns
-
+### **Most Common Operations**
 ```typescript
-// For layer properties (bounds, textKey, filters, etc.)
-const layerRef = new ActionReference();
-layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
-const layerDesc = executeActionGet(layerRef);
+// Import
+import { ActionDescriptorPath, P } from "./PathAccessor";
 
-// For document properties (width, height, etc.)  
-const docRef = new ActionReference();
-docRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
-const docDesc = executeActionGet(docRef);
+// Basic extraction
+const value = ActionDescriptorPath.create().object("key").value("prop", "type").extract<T>(d);
 
-// For specific layer by index
-const layerRef = new ActionReference();
-layerRef.putIndex(charIDToTypeID("Lyr "), layerIndex);
-const layerDesc = executeActionGet(layerRef);
+// Factory functions
+const bounds = P.bounds("width").extract<number>(d);
+const font = P.textStyle("fontName", "string", 0).extract<string>(d);
+const filter = P.filter("brightness", "integer", 0).extract<number>(d);
+
+// Layer operations
+const layers = ActionDescriptorPath.create().extractAllLayerNames();
+const [l1, l2, l3] = ActionDescriptorPath.create().extractLayerTuple(3, "Missing");
+
+// Text operations  
+const styles = ActionDescriptorPath.create().extractTextStyleValues<string>("path", "type", 4, "default");
 ```
 
-### ✅ Correct Text Navigation
-
-```typescript
-// FIXED: Use textKey for text properties
-P.textStyle('fontName', 'string', 0)  // Uses .object('textKey')
-
-// FIXED: Direct textKey access
-.object("textKey").list("textStyleRange").at(0).object("textStyle")
-```
-
-### ✅ Correct Layer Extraction
-
-```typescript
-// FIXED: Use specialized methods for layers
-const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
-const layerTuple = ActionDescriptorPath.create().extractLayerTuple(3, "Missing");
-const layerCount = ActionDescriptorPath.create().getLayerCount();
-```
-
-This API is designed specifically for precise, all-or-nothing evaluation scenarios like testing, where exact values matter more than fuzzy validation.
+This API is designed specifically for precise, value-extraction scenarios like testing, where exact values matter more than fuzzy validation. The clean architecture ensures maintainable, reliable code for production scoring systems.
