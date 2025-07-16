@@ -27,14 +27,14 @@ class ActionDescriptorNavigator {
   /**
    * Create navigator from ActionReference using proper patterns
    */
-  static from(ref: ActionReference): ActionDescriptorNavigator {
+  public static from(ref: ActionReference): ActionDescriptorNavigator {
     return new ActionDescriptorNavigator(executeActionGet(ref));
   }
 
   /**
    * Create navigator for layer properties
    */
-  static forCurrentLayer(): ActionDescriptorNavigator {
+  public static forCurrentLayer(): ActionDescriptorNavigator {
     var ref = new ActionReference();
     ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
     return new ActionDescriptorNavigator(executeActionGet(ref));
@@ -43,7 +43,7 @@ class ActionDescriptorNavigator {
   /**
    * Create navigator for document properties
    */
-  static forCurrentDocument(): ActionDescriptorNavigator {
+  public static forCurrentDocument(): ActionDescriptorNavigator {
     var ref = new ActionReference();
     ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
     return new ActionDescriptorNavigator(executeActionGet(ref));
@@ -52,7 +52,7 @@ class ActionDescriptorNavigator {
   /**
    * Create navigator for specific layer by index
    */
-  static forLayerByIndex(index: number): ActionDescriptorNavigator {
+  public static forLayerByIndex(index: number): ActionDescriptorNavigator {
     var ref = new ActionReference();
     ref.putIndex(charIDToTypeID("Lyr "), index); // 1-based indexing
     return new ActionDescriptorNavigator(executeActionGet(ref));
@@ -85,7 +85,7 @@ class ActionDescriptorNavigator {
   /**
    * FIXED: Get sentinel value based on type for testing scenarios - made static for broader access
    */
-  static getSentinelValue<T>(type: string): T {
+  public static getSentinelValue<T>(type: string): T {
     switch (type) {
       case 'string':
       case 'enumerated':
@@ -458,3 +458,5 @@ class ActionListNavigator {
     return results;
   }
 }
+
+// Ready for integration into existing frameworks

@@ -10,14 +10,7 @@ declare function stringIDToTypeID(str: string): number;
 declare function typeIDToStringID(id: number): string;
 declare function executeActionGet(ref: ActionReference): ActionDescriptor;
 
-// Import required types (will be available when files are used together)
-declare class ActionDescriptorPath {
-  extract(desc: ActionDescriptor): any;
-}
-
-declare class ActionDescriptorNavigator {
-  static getSentinelValue<T>(type: string): T;
-}
+// Note: ActionDescriptorPath and ActionDescriptorNavigator will be available when files are used together
 
 interface ListExtractionOptions extends ComparisonOptions {
   skipErrors?: boolean;
@@ -40,13 +33,13 @@ interface ComparisonOptions {
 }
 
 class ListValueExtractor {
-  private basePath: ActionDescriptorPath;
+  private basePath: any; // Will be ActionDescriptorPath when files are used together
   private subPath: string;
   private valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated';
   private options: ListExtractionOptions;
 
   constructor(
-    basePath: ActionDescriptorPath,
+    basePath: any,
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
     options: ListExtractionOptions = {}
@@ -61,7 +54,18 @@ class ListValueExtractor {
    * FIXED: Get sentinel value based on type for testing scenarios
    */
   private getSentinelValue<T>(type: string): T {
-    return ActionDescriptorNavigator.getSentinelValue<T>(type);
+    switch (type) {
+      case 'string':
+      case 'enumerated':
+        return "" as T;        // Empty string = missing/invalid
+      case 'integer':
+      case 'double':
+        return -1 as T;        // -1 = invalid (no negative pixels/sizes/percentages in PS)
+      case 'boolean':
+        return false as T;     // false = not found/not enabled
+      default:
+        return null as T;
+    }
   }
 
   /**
@@ -583,3 +587,5 @@ class ListValueExtractor {
     }
   }
 }
+
+// Ready for integration into existing frameworks
