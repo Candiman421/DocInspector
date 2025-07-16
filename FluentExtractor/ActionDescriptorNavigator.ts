@@ -1,7 +1,6 @@
 /**
- * FIXED ActionDescriptor navigation utilities for Photoshop document analysis
- * CORRECTIONS: Removed duplicate interfaces, standardized sentinel values, improved error handling
- * FINAL VERSION: All patterns consistent with proper sentinel values for testing
+ * Core navigation engine for Photoshop ActionDescriptor structures
+ * Provides foundational navigation methods and tuple extraction capabilities
  */
 
 // ExtendScript global function declarations
@@ -25,14 +24,14 @@ class ActionDescriptorNavigator {
   constructor(private desc: ActionDescriptor) { }
 
   /**
-   * Create navigator from ActionReference using proper patterns
+   * Create navigator from ActionReference
    */
   public static from(ref: ActionReference): ActionDescriptorNavigator {
     return new ActionDescriptorNavigator(executeActionGet(ref));
   }
 
   /**
-   * Create navigator for layer properties
+   * Create navigator for current layer properties
    */
   public static forCurrentLayer(): ActionDescriptorNavigator {
     var ref = new ActionReference();
@@ -41,7 +40,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Create navigator for document properties
+   * Create navigator for current document properties
    */
   public static forCurrentDocument(): ActionDescriptorNavigator {
     var ref = new ActionReference();
@@ -50,11 +49,11 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Create navigator for specific layer by index
+   * Create navigator for specific layer by index (1-based)
    */
   public static forLayerByIndex(index: number): ActionDescriptorNavigator {
     var ref = new ActionReference();
-    ref.putIndex(charIDToTypeID("Lyr "), index); // 1-based indexing
+    ref.putIndex(charIDToTypeID("Lyr "), index);
     return new ActionDescriptorNavigator(executeActionGet(ref));
   }
 
@@ -83,7 +82,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * FIXED: Get sentinel value based on type for testing scenarios - made static for broader access
+   * Get sentinel value based on type for missing/invalid data
    */
   public static getSentinelValue<T>(type: string): T {
     switch (type) {
@@ -102,7 +101,6 @@ class ActionDescriptorNavigator {
 
   /**
    * Get value with optional transformation - returns actual value for assignment
-   * FIXED: Uses sentinel values by default
    */
   getValue<T = any>(
     key: string,
@@ -141,7 +139,6 @@ class ActionDescriptorNavigator {
           return ActionDescriptorNavigator.getSentinelValue<T>(type);
       }
 
-      // Apply transformation if specified
       if (options && options.transformer) {
         value = options.transformer(value);
       }
@@ -163,7 +160,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get multiple values as tuple - FIXED: Better error handling with sentinel values
+   * Get multiple values as tuple
    */
   getValues(specs: { key: string, type: string, options?: ComparisonOptions }[]): any[] {
     var results: any[] = [];
@@ -179,7 +176,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get multiple values as object - FIXED: Better error handling
+   * Get multiple values as object
    */
   getValuesAsObject<T extends Record<string, any>>(
     specs: { [K in keyof T]: { key: string, type: string, options?: ComparisonOptions } }
@@ -201,8 +198,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get bounds object for layer (layer property only)
-   * FIXED: Returns sentinel values for missing bounds
+   * Get bounds object for layer
    */
   getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
     if (!this.desc.hasKey(stringIDToTypeID('bounds'))) {
@@ -239,8 +235,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get text properties from textKey (layer property only)
-   * FIXED: Returns sentinel values for missing text
+   * Get text properties from textKey
    */
   getTextProperties(): { content: string; fontName: string; fontSize: number } | null {
     if (!this.desc.hasKey(stringIDToTypeID('textKey'))) {
@@ -282,7 +277,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * FIXED: Get layer count using proper document reference pattern with error handling
+   * Get layer count using document reference
    */
   getLayerCount(): number {
     try {
@@ -291,12 +286,12 @@ class ActionDescriptorNavigator {
       ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
       return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
     } catch (error) {
-      return -1; // Sentinel value for failed layer count
+      return -1;
     }
   }
 
   /**
-   * FIXED: Extract all layer names using correct iteration pattern with error handling
+   * Extract all layer names using ActionManager pattern
    */
   extractAllLayerNames(): string[] {
     var results: string[] = [];
@@ -304,7 +299,7 @@ class ActionDescriptorNavigator {
     try {
       var layerCount = this.getLayerCount();
       if (layerCount === -1) {
-        return []; // Empty array for failed layer count
+        return [];
       }
       
       for (var i = 1; i <= layerCount; i++) {
@@ -313,13 +308,12 @@ class ActionDescriptorNavigator {
           layerRef.putIndex(charIDToTypeID("Lyr "), i);
           var layerDesc = executeActionGet(layerRef);
           var name = layerDesc.getString(stringIDToTypeID("name"));
-          results.push(name || ""); // Empty string for missing name
+          results.push(name || "");
         } catch (error) {
-          results.push(""); // Empty string sentinel
+          results.push("");
         }
       }
     } catch (error) {
-      // Return empty array if completely failed
       return [];
     }
     
@@ -327,7 +321,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * FIXED: Extract bullet styles using corrected textKey navigation with sentinel values
+   * Extract bullet styles from text layer
    */
   extractBulletStyles(count: number = 4): string[] {
     try {
@@ -343,10 +337,10 @@ class ActionDescriptorNavigator {
             var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
             results.push(typeIDToStringID(listStyleType) || "");
           } catch (error) {
-            results.push(""); // Empty string sentinel
+            results.push("");
           }
         } else {
-          results.push(""); // Empty string sentinel
+          results.push("");
         }
       }
       
@@ -354,9 +348,41 @@ class ActionDescriptorNavigator {
     } catch (error) {
       var fallbackResults: string[] = [];
       for (var i = 0; i < count; i++) {
-        fallbackResults.push(""); // Empty string sentinels
+        fallbackResults.push("");
       }
       return fallbackResults;
+    }
+  }
+
+  /**
+   * Find first value in a list that matches predicate
+   */
+  findValue<T = any>(
+    key: string,
+    type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    predicate: (value: T) => boolean,
+    options?: ComparisonOptions
+  ): T | null {
+    try {
+      var list = this.desc.getList(stringIDToTypeID(key));
+      
+      for (var i = 0; i < list.count; i++) {
+        try {
+          if (list.getType(i) === DescValueType.OBJECTTYPE) {
+            var obj = new ActionDescriptorNavigator(list.getObjectValue(i));
+            var value = obj.getValue<T>(key, type, options);
+            if (predicate(value)) {
+              return value;
+            }
+          }
+        } catch (error) {
+          // Continue to next item
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
     }
   }
 }
@@ -385,7 +411,6 @@ class ActionListNavigator {
 
   /**
    * Get value from all objects in list - returns array of values
-   * FIXED: Better sentinel value handling
    */
   getAllValues<T = any>(
     key: string,
@@ -415,7 +440,6 @@ class ActionListNavigator {
 
   /**
    * Get first matching value that meets condition
-   * FIXED: Better error handling
    */
   findValue<T = any>(
     key: string,
@@ -458,5 +482,3 @@ class ActionListNavigator {
     return results;
   }
 }
-
-// Ready for integration into existing frameworks

@@ -3,7 +3,7 @@
  * 
  * All classes and utilities for extracting and scoring Photoshop document properties.
  * This file should be included after all the core library files.
- * FIXED: Updated factory functions to match corrected patterns
+ * FIXED: Updated to match corrected PathAccessor method signatures
  */
 
 // ExtendScript global function declarations
@@ -23,7 +23,7 @@ var createExtractor = function () {
         path: function () { return ActionDescriptorPath.create(); },
 
         /**
-         * FIXED: Quick bounds extraction
+         * Quick bounds extraction
          */
         bounds: function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
             return ActionDescriptorPath.create()
@@ -34,11 +34,11 @@ var createExtractor = function () {
         },
 
         /**
-         * FIXED: Quick text style extraction using corrected textKey navigation
+         * Quick text style extraction
          */
         textStyle: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', index: number = 0) {
             return ActionDescriptorPath.create()
-                .object('textKey')  // FIXED: Use textKey not text
+                .object('textKey')
                 .list('textStyleRange')
                 .at(index)
                 .object('textStyle')
@@ -53,79 +53,60 @@ var createExtractor = function () {
                 .object('smartObjectMore')
                 .list('filterFXList')
                 .at(index)
-                .object('filter')
                 .value(property, type);
         },
 
         /**
-         * FIXED: Extract all layers using corrected method
+         * Extract all layers using corrected method
          */
         allLayers: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated') {
             if (property === "name") {
                 // Special case for layer names - use corrected extraction method
                 return {
-                    extractAll: function<T>(d: ActionDescriptor): T[] {
+                    extractAll: function<T>(d?: ActionDescriptor): T[] {
                         return ActionDescriptorPath.create().extractAllLayerNames() as T[];
                     }
                 };
             } else {
-                // For other properties, use general method
-                return ActionDescriptorPath.create().list("layers").extractAllFromList(property, type, true);
+                // For other properties, create a function that requires descriptor
+                return {
+                    extractAll: function<T>(d: ActionDescriptor): T[] {
+                        return ActionDescriptorPath.create().extractAllFromList<T>(d, property, type, true);
+                    }
+                };
             }
         },
 
         /**
-         * FIXED: Extract specific number of items as tuple using corrected methods
+         * FIXED: Extract specific number of items as tuple
          */
         layerTuple: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', count: number, defaultValue?: any) {
             if (property === "name") {
                 // Special case for layer names
                 return {
-                    extractAsTuple: function<T>(d: ActionDescriptor): T[] {
+                    extractAsTuple: function<T>(d?: ActionDescriptor): T[] {
                         return ActionDescriptorPath.create().extractLayerTuple(count, defaultValue || "Unnamed Layer") as T[];
                     }
                 };
             } else {
-                return ActionDescriptorPath.create().list("layers").extractAllFromList(property, type, true, defaultValue).slice(0, count);
+                return {
+                    extractAsTuple: function<T>(d: ActionDescriptor): T[] {
+                        var allValues = ActionDescriptorPath.create().extractAllFromList<T>(d, property, type, true, defaultValue);
+                        return allValues.slice(0, count);
+                    }
+                };
             }
         },
 
         /**
-         * FIXED: Extract bullet point styles using corrected textKey navigation with proper typing
+         * FIXED: Extract bullet point styles - now properly requires ActionDescriptor
          */
         bulletStyles: function (count?: number, defaultValue: string = "plain") {
             return {
                 extract: function(layerDesc: ActionDescriptor): string[] {
-                    try {
-                        var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
-                        var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
-                        var results: string[] = [];
-                        
-                        var maxCount = count !== undefined ? count : paragraphStyleRanges.count;
-                        for (var i = 0; i < maxCount; i++) {
-                            if (i < paragraphStyleRanges.count) {
-                                try {
-                                    var range = paragraphStyleRanges.getObjectValue(i);
-                                    var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
-                                    var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
-                                    results.push(typeIDToStringID(listStyleType) || defaultValue);
-                                } catch (error) {
-                                    results.push(defaultValue);
-                                }
-                            } else {
-                                results.push(defaultValue);
-                            }
-                        }
-                        
-                        return results;
-                    } catch (error) {
-                        var fallbackResults: string[] = [];
-                        var fallbackCount = count !== undefined ? count : 4;
-                        for (var i = 0; i < fallbackCount; i++) {
-                            fallbackResults.push(defaultValue);
-                        }
-                        return fallbackResults;
-                    }
+                    return ActionDescriptorPath.create().extractTextStyleValues<string>(
+                        layerDesc, "paragraphStyle.listStyleType", "enumerated", count || 4, defaultValue
+                    );
                 }
             };
         }
@@ -156,7 +137,7 @@ interface FilterProperties {
 }
 
 /**
- * FIXED: Utility function to create a document reference using correct pattern
+ * Utility function to create a document reference
  */
 var createDocumentReference = function (): ActionDescriptor {
     var r = new ActionReference();
@@ -165,7 +146,7 @@ var createDocumentReference = function (): ActionDescriptor {
 };
 
 /**
- * FIXED: Utility function to create a layer reference using correct pattern
+ * Utility function to create a layer reference
  */
 var createLayerReference = function (): ActionDescriptor {
     var r = new ActionReference();
@@ -175,11 +156,11 @@ var createLayerReference = function (): ActionDescriptor {
 
 /**
  * Common extraction patterns as ready-to-use functions
- * FIXED: Updated to use corrected navigation patterns
+ * FIXED: Updated to match corrected method signatures
  */
 var CommonExtractions = {
     /**
-     * FIXED: Extract basic document properties using correct reference
+     * Extract basic document properties
      */
     documentProperties: function (d?: ActionDescriptor): DocumentProperties {
         if (!d) {
@@ -200,7 +181,7 @@ var CommonExtractions = {
     },
 
     /**
-     * FIXED: Extract text properties using corrected textKey navigation
+     * FIXED: Extract text properties using corrected method signatures
      */
     textProperties: function (d?: ActionDescriptor): TextProperties {
         if (!d) {
@@ -209,14 +190,14 @@ var CommonExtractions = {
         
         return {
             content: ActionDescriptorPath.create()
-                .object("textKey")  // FIXED: Use textKey
+                .object("textKey")
                 .value('textKey', 'string')
                 .defaultTo("")
                 .extract<string>(d),
             fontFamily: P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(d),
             fontSize: P.textStyle('sizeKey', 'double', 0).round(1).defaultTo(12).extract<number>(d),
             alignment: ActionDescriptorPath.create()
-                .object("textKey")  // FIXED: Use textKey
+                .object("textKey")
                 .list("paragraphStyleRange")
                 .at(0)
                 .object("paragraphStyle")
@@ -241,56 +222,29 @@ var CommonExtractions = {
     },
 
     /**
-     * FIXED: Extract all layer names using corrected method
+     * Extract all layer names
      */
     allLayerNames: function (d?: ActionDescriptor): string[] {
         return ActionDescriptorPath.create().extractAllLayerNames();
     },
 
     /**
-     * FIXED: Extract specific number of layer names as tuple using corrected method with proper typing
+     * Extract specific number of layer names as tuple
      */
     layerNameTuple: function <T extends readonly string[]>(d: ActionDescriptor | undefined, count: number, defaultValue: string = "Missing Layer"): string[] {
         return ActionDescriptorPath.create().extractLayerTuple(count, defaultValue);
     },
 
     /**
-     * FIXED: Extract bullet point styles using corrected textKey navigation with proper typing
+     * FIXED: Extract bullet point styles using corrected method signature
      */
     bulletPointStyles: function (d?: ActionDescriptor, count?: number): string[] {
         if (!d) {
             d = createLayerReference();
         }
         
-        try {
-            var textKey = d.getObjectValue(stringIDToTypeID("textKey"));
-            var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
-            var results: string[] = [];
-            
-            var maxCount = count !== undefined ? count : paragraphStyleRanges.count;
-            for (var i = 0; i < maxCount; i++) {
-                if (i < paragraphStyleRanges.count) {
-                    try {
-                        var range = paragraphStyleRanges.getObjectValue(i);
-                        var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
-                        var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
-                        results.push(typeIDToStringID(listStyleType) || "plain");
-                    } catch (error) {
-                        results.push("plain");
-                    }
-                } else {
-                    results.push("plain");
-                }
-            }
-            
-            return results;
-        } catch (error) {
-            var fallbackResults: string[] = [];
-            var fallbackCount = count !== undefined ? count : 4;
-            for (var i = 0; i < fallbackCount; i++) {
-                fallbackResults.push("plain");
-            }
-            return fallbackResults;
-        }
+        return ActionDescriptorPath.create().extractTextStyleValues<string>(
+            d, "paragraphStyle.listStyleType", "enumerated", count || 4, "plain"
+        );
     }
 };

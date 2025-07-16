@@ -1,7 +1,7 @@
 /**
- * FIXED List extraction utilities for getting values from ActionList objects
+ * Advanced list extraction utilities for ActionList objects
  * Returns arrays of actual values for assignment to answer objects
- * CORRECTIONS: Standardized sentinel values, improved error handling, consistent patterns
+ * Independent utility for complex list processing scenarios
  */
 
 // ExtendScript global function declarations
@@ -10,11 +10,12 @@ declare function stringIDToTypeID(str: string): number;
 declare function typeIDToStringID(id: number): string;
 declare function executeActionGet(ref: ActionReference): ActionDescriptor;
 
-// Note: ActionDescriptorPath and ActionDescriptorNavigator will be available when files are used together
-
-interface ListExtractionOptions extends ComparisonOptions {
+interface ListExtractionOptions {
   skipErrors?: boolean;
   includeIndices?: boolean;
+  tolerance?: number;
+  transformer?: ValueTransformer;
+  defaultValue?: any;
 }
 
 interface IndexedValue<T = any> {
@@ -26,14 +27,8 @@ interface ValueTransformer {
   (value: any): any;
 }
 
-interface ComparisonOptions {
-  tolerance?: number;
-  transformer?: ValueTransformer;
-  defaultValue?: any;
-}
-
 class ListValueExtractor {
-  private basePath: any; // Will be ActionDescriptorPath when files are used together
+  private basePath: any; // Flexible type to accept any path-like object with .extract() method
   private subPath: string;
   private valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated';
   private options: ListExtractionOptions;
@@ -51,7 +46,7 @@ class ListValueExtractor {
   }
 
   /**
-   * FIXED: Get sentinel value based on type for testing scenarios
+   * Get sentinel value based on type for missing/invalid data
    */
   private getSentinelValue<T>(type: string): T {
     switch (type) {
@@ -70,7 +65,6 @@ class ListValueExtractor {
 
   /**
    * Extract all values from the list - returns array of actual values
-   * FIXED: Consistent sentinel value usage
    */
   extractAll<T = any>(rootDesc: ActionDescriptor): T[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
@@ -97,7 +91,7 @@ class ListValueExtractor {
   }
 
   /**
-   * FIXED: Extract fixed number of values as tuple with consistent sentinel values
+   * Extract fixed number of values as tuple
    */
   extractAsTuple<T = any>(
     rootDesc: ActionDescriptor,
@@ -135,7 +129,6 @@ class ListValueExtractor {
 
   /**
    * Extract exactly N values, padding with defaults if needed
-   * FIXED: Consistent sentinel value usage
    */
   extractExactly<T = any>(rootDesc: ActionDescriptor, count: number, defaultValue?: T): T[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
@@ -169,7 +162,6 @@ class ListValueExtractor {
 
   /**
    * Extract values with their indices
-   * FIXED: Consistent error handling
    */
   extractAllWithIndices<T = any>(rootDesc: ActionDescriptor): IndexedValue<T>[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
@@ -215,7 +207,6 @@ class ListValueExtractor {
 
   /**
    * Extract first value that matches condition
-   * FIXED: Better error handling with sentinel values
    */
   extractFirst<T = any>(
     rootDesc: ActionDescriptor,
@@ -241,7 +232,6 @@ class ListValueExtractor {
 
   /**
    * Extract value at specific index
-   * FIXED: Better bounds checking and error handling
    */
   extractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
     var list = this.basePath.extract(rootDesc) as ActionList;
@@ -265,7 +255,6 @@ class ListValueExtractor {
 
   /**
    * Extract last value
-   * FIXED: Better error handling
    */
   extractLast<T = any>(rootDesc: ActionDescriptor): T | null {
     var list = this.basePath.extract(rootDesc) as ActionList;
@@ -315,7 +304,6 @@ class ListValueExtractor {
 
   /**
    * Extract all items ensuring minimum count, pad if needed
-   * FIXED: Consistent sentinel value usage
    */
   extractAllWithMinimum<T = any>(rootDesc: ActionDescriptor, minCount: number, defaultValue?: T): T[] {
     var allValues = this.extractAll<T>(rootDesc);
@@ -341,7 +329,7 @@ class ListValueExtractor {
   }
 
   /**
-   * FIXED: Extract all items as dynamic tuple with consistent sentinel values
+   * Extract all items as dynamic tuple with padding
    */
   extractAllAsDynamicTuple<T = any>(rootDesc: ActionDescriptor, maxCount: number = 10, defaultValue?: T): T[] {
     var allValues = this.extractAll<T>(rootDesc);
@@ -350,13 +338,11 @@ class ListValueExtractor {
       var sentinelValue = defaultValue !== undefined ? 
         defaultValue : 
         this.getSentinelValue<T>(this.valueType);
-      return [sentinelValue]; // Return array with one sentinel value instead of throwing
+      return [sentinelValue];
     }
 
-    // Return actual values found, up to maxCount
     var result = allValues.slice(0, maxCount);
 
-    // If requested, pad to maxCount
     if (defaultValue !== undefined) {
       while (result.length < maxCount) {
         result.push(defaultValue);
@@ -367,7 +353,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract all items with metadata - FIXED: Consistent typing and error handling
+   * Extract all items with metadata
    */
   extractAllWithMetadata<T = any>(rootDesc: ActionDescriptor): {
     values: T[];
@@ -437,7 +423,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Round numeric values - FIXED: Proper type handling
+   * Round numeric values
    */
   round(decimals: number = 0): ListValueExtractor {
     var factor = Math.pow(10, decimals);
@@ -455,7 +441,6 @@ class ListValueExtractor {
 
   /**
    * Skip errors and continue processing
-   * FIXED: Consistent sentinel value usage
    */
   skipErrors(defaultValue?: any): ListValueExtractor {
     var sentinelValue = defaultValue !== undefined ? 
@@ -473,10 +458,10 @@ class ListValueExtractor {
     return new ListValueExtractor(this.basePath, this.subPath, this.valueType, newOptions);
   }
 
-  // === SEARCH METHODS FOR SAFER ACCESS ===
+  // === SEARCH METHODS ===
 
   /**
-   * NEW: Find items by property value instead of using indices
+   * Find items by property value instead of using indices
    */
   findWhere<T = any>(
     rootDesc: ActionDescriptor,
@@ -511,13 +496,12 @@ class ListValueExtractor {
   }
 
   /**
-   * NEW: Safe access by validating list structure first
+   * Safe access by validating list structure first
    */
   safeExtractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
       
-      // Validate list structure
       if (index < 0 || index >= list.count) {
         return this.getSentinelValue<T>(this.valueType);
       }
@@ -550,7 +534,6 @@ class ListValueExtractor {
   }
 
   private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
-    // Navigate through sub-path if specified
     var pathParts = subPath.split('.');
     var current = desc;
 
@@ -564,9 +547,7 @@ class ListValueExtractor {
           return this.getSentinelValue(valueType);
         }
 
-        // Check if this is the last part
         if (part === pathParts[pathParts.length - 1]) {
-          // Extract the final value
           switch (valueType) {
             case 'string': return current.getString(typeID);
             case 'integer': return current.getInteger(typeID);
@@ -576,7 +557,6 @@ class ListValueExtractor {
             default: return this.getSentinelValue(valueType);
           }
         } else {
-          // Navigate to nested object
           current = current.getObjectValue(typeID);
         }
       }
@@ -587,5 +567,3 @@ class ListValueExtractor {
     }
   }
 }
-
-// Ready for integration into existing frameworks

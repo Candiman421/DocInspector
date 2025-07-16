@@ -1,6 +1,7 @@
 /**
  * FIXED Sample Photoshop Test Scoring Script
  * Uses corrected ActionManager patterns and fixed PathAccessor methods
+ * All method calls updated to match main file signatures
  */
 
 // ExtendScript global function declarations
@@ -125,24 +126,26 @@ class PhotoshopTestScorer {
   }
 
   private extractCandidateAnswers(): CandidateAnswers {
-    // FIXED: Get document descriptor for document properties
+    // Get document descriptor for document properties
     var docRef = new ActionReference();
     docRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
     var docDesc = executeActionGet(docRef);
 
-    // FIXED: Get layer descriptor for current layer properties
+    // Get layer descriptor for current layer properties
     var layerRef = new ActionReference();
     layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
     var layerDesc = executeActionGet(layerRef);
 
-    // FIXED: Extract layer names using corrected method
+    // Extract layer names using corrected method
     var layerNames = ActionDescriptorPath.create().extractLayerTuple(3, "Unnamed Layer");
     var layer1Name = layerNames[0];
     var layer2Name = layerNames[1];
     var layer3Name = layerNames[2];
 
-    // Extract bullet styles from current text layer
-    var bulletStyles = this.extractBulletStyles(layerDesc);
+    // FIXED: Extract bullet styles from current text layer using corrected method signature
+    var bulletStyles = ActionDescriptorPath.create().extractTextStyleValues<string>(
+      layerDesc, "paragraphStyle.listStyleType", "enumerated", 4, "plain"
+    );
     var bullet1Style = bulletStyles[0];
     var bullet2Style = bulletStyles[1];
     var bullet3Style = bulletStyles[2];
@@ -164,7 +167,7 @@ class PhotoshopTestScorer {
     var opacity3 = opacityInfo[2];
 
     return {
-      // FIXED: Document properties using correct reference
+      // Document properties using correct reference
       documentWidth: ActionDescriptorPath.create()
         .value("width", "integer")
         .extract<number>(docDesc),
@@ -173,9 +176,9 @@ class PhotoshopTestScorer {
         .value("height", "integer")
         .extract<number>(docDesc),
 
-      // FIXED: Current layer text properties using textKey
+      // Current layer text properties using textKey
       textContent: ActionDescriptorPath.create()
-        .object("textKey")  // FIXED: Use textKey not text
+        .object("textKey")
         .value("textKey", "string")
         .defaultTo("No text found")
         .extract<string>(layerDesc),
@@ -227,34 +230,6 @@ class PhotoshopTestScorer {
     };
   }
 
-  private extractBulletStyles(layerDesc: ActionDescriptor): string[] {
-    try {
-      // FIXED: Use textKey navigation
-      var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
-      var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
-      var results: string[] = [];
-      
-      for (var i = 0; i < Math.min(4, paragraphStyleRanges.count); i++) {
-        try {
-          var range = paragraphStyleRanges.getObjectValue(i);
-          var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
-          var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
-          results.push(typeIDToStringID(listStyleType) || "plain");
-        } catch (error) {
-          results.push("plain");
-        }
-      }
-      
-      while (results.length < 4) {
-        results.push("plain");
-      }
-      
-      return results;
-    } catch (error) {
-      return ["plain", "plain", "plain", "plain"];
-    }
-  }
-
   private extractFontInformation(): { fonts: string[]; sizes: number[] } {
     var fonts: string[] = [];
     var sizes: number[] = [];
@@ -262,7 +237,7 @@ class PhotoshopTestScorer {
     
     for (var i = 1; i <= Math.min(3, layerCount); i++) {
       try {
-        // FIXED: Use correct layer reference pattern
+        // Use correct layer reference pattern
         var layerRef = new ActionReference();
         layerRef.putIndex(charIDToTypeID("Lyr "), i);
         var layerDesc = executeActionGet(layerRef);
@@ -298,7 +273,7 @@ class PhotoshopTestScorer {
     
     for (var i = 1; i <= Math.min(3, layerCount); i++) {
       try {
-        // FIXED: Use correct layer reference pattern
+        // Use correct layer reference pattern
         var layerRef = new ActionReference();
         layerRef.putIndex(charIDToTypeID("Lyr "), i);
         var layerDesc = executeActionGet(layerRef);

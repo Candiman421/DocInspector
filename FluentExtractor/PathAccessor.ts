@@ -1,7 +1,6 @@
 /**
- * FIXED Path-based accessor for extracting values from ActionDescriptors
+ * Path-based accessor for extracting values from ActionDescriptors
  * Returns actual values for assignment, with fluent transformation methods
- * CORRECTIONS: Fixed extractTextStyleValues, standardized sentinel values, improved error handling
  */
 
 // ExtendScript global function declarations
@@ -36,14 +35,14 @@ class ActionDescriptorPath {
   private defaultReturnValue?: any;
 
   /**
-   * Create new instance - static factory method
+   * Create new path instance
    */
   static create(): ActionDescriptorPath {
     return new ActionDescriptorPath();
   }
 
   constructor() {
-    // Empty constructor - use static create() method
+    // Use static create() method
   }
 
   /**
@@ -59,7 +58,7 @@ class ActionDescriptorPath {
   }
 
   /**
-   * FIXED: Get sentinel value based on type for testing scenarios - self-contained
+   * Get sentinel value based on type for missing/invalid data
    */
   private getSentinelValue<T>(type: string): T {
     switch (type) {
@@ -71,6 +70,24 @@ class ActionDescriptorPath {
         return -1 as T;        // -1 = invalid (no negative pixels/sizes/percentages in PS)
       case 'boolean':
         return false as T;     // false = not found/not enabled
+      default:
+        return null as T;
+    }
+  }
+
+  /**
+   * Get sentinel value - static version for utility methods
+   */
+  private static getSentinelValue<T>(type: string): T {
+    switch (type) {
+      case 'string':
+      case 'enumerated':
+        return "" as T;
+      case 'integer':
+      case 'double':
+        return -1 as T;
+      case 'boolean':
+        return false as T;
       default:
         return null as T;
     }
@@ -158,21 +175,21 @@ class ActionDescriptorPath {
   }
 
   /**
-   * Convert percentage (0.75 -> 75)
+   * Convert percentage (0.75 → 75)
    */
   toPercentage(): ActionDescriptorPath {
     return this.transform(function (val) { return val * 100; });
   }
 
   /**
-   * Convert from percentage (75 -> 0.75)
+   * Convert from percentage (75 → 0.75)
    */
   fromPercentage(): ActionDescriptorPath {
     return this.transform(function (val) { return val / 100; });
   }
 
   /**
-   * Set tolerance for numeric comparisons (used in validation contexts)
+   * Set tolerance for numeric comparisons
    */
   withTolerance(tolerance: number): ActionDescriptorPath {
     this.toleranceValue = tolerance;
@@ -181,7 +198,6 @@ class ActionDescriptorPath {
 
   /**
    * Set default value if path resolution fails
-   * FIXED: Sentinel values used if no explicit default provided
    */
   defaultTo<T>(value: T): ActionDescriptorPath {
     this.defaultReturnValue = value;
@@ -192,7 +208,6 @@ class ActionDescriptorPath {
 
   /**
    * Extract the value from the ActionDescriptor - returns actual value for assignment
-   * FIXED: Better error handling and sentinel values
    */
   extract<T = any>(rootDesc: ActionDescriptor): T {
     try {
@@ -203,7 +218,6 @@ class ActionDescriptorPath {
         return this.defaultReturnValue;
       }
       
-      // Determine appropriate sentinel based on the last segment type
       var lastSegment = this.segments[this.segments.length - 1];
       if (lastSegment && lastSegment.type === 'value' && lastSegment.valueType) {
         return this.getSentinelValue<T>(lastSegment.valueType);
@@ -236,7 +250,7 @@ class ActionDescriptorPath {
   }
 
   /**
-   * FIXED: Get count for document layers with proper error handling
+   * Get count for document layers
    */
   getLayerCount(): number {
     try {
@@ -245,17 +259,15 @@ class ActionDescriptorPath {
       ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
       return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
     } catch (error) {
-      return -1; // Sentinel value for failed layer count
+      return -1;
     }
   }
 
   /**
    * Get count of items in list (if path points to a list)
-   * FIXED: Better error handling
    */
   getCount(rootDesc: ActionDescriptor): number {
     try {
-      // Special case for document layers
       if (this.segments.length === 1 && this.segments[0].key === 'layers') {
         return this.getLayerCount();
       }
@@ -264,16 +276,16 @@ class ActionDescriptorPath {
       if (resolved && typeof resolved.count === 'number') {
         return resolved.count;
       }
-      return -1; // Sentinel for invalid count
+      return -1;
     } catch (error) {
-      return -1; // Sentinel for failed count
+      return -1;
     }
   }
 
-  // === FIXED LIST EXTRACTION METHODS ===
+  // === LIST EXTRACTION METHODS ===
 
   /**
-   * FIXED: Extract all layer names using correct ActionManager pattern with error handling
+   * Extract all layer names using ActionManager pattern
    */
   extractAllLayerNames(): string[] {
     var results: string[] = [];
@@ -281,7 +293,7 @@ class ActionDescriptorPath {
     try {
       var layerCount = this.getLayerCount();
       if (layerCount === -1) {
-        return []; // Empty array for failed layer count
+        return [];
       }
       
       for (var i = 1; i <= layerCount; i++) {
@@ -290,25 +302,25 @@ class ActionDescriptorPath {
           layerRef.putIndex(charIDToTypeID("Lyr "), i);
           var layerDesc = executeActionGet(layerRef);
           var name = layerDesc.getString(stringIDToTypeID("name"));
-          results.push(name || ""); // Empty string for missing name
+          results.push(name || "");
         } catch (error) {
-          results.push(""); // Empty string sentinel
+          results.push("");
         }
       }
     } catch (error) {
-      return []; // Empty array for complete failure
+      return [];
     }
     
     return results;
   }
 
   /**
-   * FIXED: Extract fixed number of layer names as tuple with proper error handling
+   * Extract fixed number of layer names as tuple
    */
   extractLayerTuple(count: number, defaultValue?: string): string[] {
     var allNames = this.extractAllLayerNames();
     var results: string[] = [];
-    var sentinel = defaultValue !== undefined ? defaultValue : ""; // Empty string default
+    var sentinel = defaultValue !== undefined ? defaultValue : "";
     
     for (var i = 0; i < count; i++) {
       if (i < allNames.length && allNames[i] !== "") {
@@ -321,9 +333,10 @@ class ActionDescriptorPath {
   }
 
   /**
-   * COMPLETELY FIXED: Extract text style values from current layer with proper error handling
+   * Extract text style values from text layer descriptor
+   * Static utility for specialized text style extraction
    */
-  extractTextStyleValues<T = any>(
+  static extractTextStyleValues<T = any>(
     desc: ActionDescriptor,
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
@@ -331,7 +344,7 @@ class ActionDescriptorPath {
     defaultValue?: T
   ): T[] {
     var results: T[] = [];
-    var sentinelValue = defaultValue !== undefined ? defaultValue : this.getSentinelValue<T>(valueType);
+    var sentinelValue = defaultValue !== undefined ? defaultValue : ActionDescriptorPath.getSentinelValue<T>(valueType);
     
     try {
       var textKey = desc.getObjectValue(stringIDToTypeID("textKey"));
@@ -341,7 +354,7 @@ class ActionDescriptorPath {
         if (i < textStyleRanges.count) {
           try {
             var range = textStyleRanges.getObjectValue(i);
-            var value = this.extractValueFromDescriptor(range, subPath, valueType);
+            var value = ActionDescriptorPath.extractValueFromDescriptor(range, subPath, valueType);
             results.push(value as T);
           } catch (error) {
             results.push(sentinelValue);
@@ -360,7 +373,7 @@ class ActionDescriptorPath {
   }
 
   /**
-   * FIXED: Extract all values from standard list with proper error handling
+   * Extract all values from standard list
    */
   extractAllFromList<T>(
     desc: ActionDescriptor,
@@ -408,10 +421,10 @@ class ActionDescriptorPath {
     }
   }
 
-  // === SEARCH METHODS FOR SAFER ACCESS ===
+  // === SEARCH METHODS ===
 
   /**
-   * FIXED: Find value in list by predicate instead of using hard-coded indices
+   * Find value in list by predicate
    */
   findInList<T>(
     desc: ActionDescriptor,
@@ -443,13 +456,12 @@ class ActionDescriptorPath {
   }
 
   /**
-   * IMPROVED: Safe index access with runtime validation
+   * Safe index access with runtime validation
    */
   safeAt(index: number): ActionDescriptorPath {
     var lastSegment = this.segments[this.segments.length - 1];
     if (lastSegment && lastSegment.type === 'list') {
       lastSegment.index = index;
-      // Mark this as a safe access for better error reporting
       lastSegment.isSafeAccess = true;
     } else {
       throw new Error('safeAt() can only be used after list()');
@@ -478,7 +490,6 @@ class ActionDescriptorPath {
         case 'list':
           var list = current.getList(typeID);
           if (segment.index !== undefined) {
-            // Enhanced validation for safe access
             if (segment.isSafeAccess) {
               if (segment.index >= list.count) {
                 throw new Error("Safe access failed: List index " + segment.index + " out of bounds (count: " + list.count + ")");
@@ -524,7 +535,7 @@ class ActionDescriptorPath {
   }
 
   /**
-   * FIXED: Extract value from sub-path within a descriptor with better error handling
+   * Extract value from sub-path within a descriptor
    */
   private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
     var pathParts = subPath.split('.');
@@ -549,6 +560,42 @@ class ActionDescriptorPath {
       throw new Error('Invalid sub-path: ' + subPath);
     } catch (error) {
       return this.getSentinelValue(valueType);
+    }
+  }
+
+  /**
+   * Static helper for extracting values from nested paths
+   */
+  private static extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
+    var pathParts = subPath.split('.');
+    var current = desc;
+
+    try {
+      for (var i = 0; i < pathParts.length; i++) {
+        var part = pathParts[i];
+        if (!part) continue;
+
+        var typeID = stringIDToTypeID(part);
+        
+        if (i === pathParts.length - 1) {
+          switch (valueType) {
+            case 'string': return current.getString(typeID);
+            case 'integer': return current.getInteger(typeID);
+            case 'double': return current.getDouble(typeID);
+            case 'boolean': return current.getBoolean(typeID);
+            case 'enumerated': return current.getEnumerationValue(typeID);
+            default: return ActionDescriptorPath.getSentinelValue(valueType);
+          }
+        } else {
+          if (!current.hasKey(typeID)) {
+            throw new Error("Property '" + part + "' not found in sub-path");
+          }
+          current = current.getObjectValue(typeID);
+        }
+      }
+      throw new Error('Invalid sub-path: ' + subPath);
+    } catch (error) {
+      return ActionDescriptorPath.getSentinelValue(valueType);
     }
   }
 
@@ -586,11 +633,8 @@ class ActionDescriptorPath {
   }
 }
 
-// === FIXED CONVENIENCE FACTORY FUNCTIONS ===
+// === FACTORY FUNCTIONS ===
 
-/**
- * Quick path creation for common patterns - FIXED with proper sentinel values
- */
 var P = {
   /**
    * Create object path
@@ -610,7 +654,7 @@ var P = {
   },
 
   /**
-   * FIXED: Create bounds value extractor with proper sentinel values
+   * Create bounds value extractor
    */
   bounds: function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
     return ActionDescriptorPath.create()
@@ -618,11 +662,11 @@ var P = {
       .value(property, 'double')
       .toPixels('pt')
       .floor()
-      .defaultTo(-1); // -1 signals missing/invalid bounds
+      .defaultTo(-1);
   },
 
   /**
-   * FIXED: Create text style extractor with proper sentinel values
+   * Create text style extractor
    */
   textStyle: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number = 0) {
     var path = ActionDescriptorPath.create()
@@ -632,23 +676,22 @@ var P = {
       .object('textStyle')
       .value(property, type);
     
-    // Set appropriate sentinel default based on type
     switch (type) {
       case 'string':
       case 'enumerated':
-        return path.defaultTo("");  // Empty string for missing text properties
+        return path.defaultTo("");
       case 'integer':
       case 'double':
-        return path.defaultTo(-1);  // -1 for missing numeric properties
+        return path.defaultTo(-1);
       case 'boolean':
-        return path.defaultTo(false); // false for missing boolean properties
+        return path.defaultTo(false);
       default:
         return path;
     }
   },
 
   /**
-   * NEW: Search for layer by name pattern instead of using index
+   * Search for layer by name pattern
    */
   findLayer: function (namePattern: string | RegExp) {
     return {
@@ -666,7 +709,7 @@ var P = {
           }
           
           if (matches) {
-            return ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
+            return ActionDescriptorNavigator.forLayerByIndex(i + 1);
           }
         }
         
@@ -676,32 +719,31 @@ var P = {
   },
 
   /**
-   * FIXED: Create filter effect extractor with proper sentinel values and correct path
+   * Create filter effect extractor
    */
   filter: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number = 0) {
     var path = ActionDescriptorPath.create()
       .object('smartObjectMore')
       .list('filterFXList')
       .at(filterIndex)
-      .value(property, type);  // FIXED: Removed incorrect .object('filter')
+      .value(property, type);
     
-    // Set appropriate sentinel default based on type
     switch (type) {
       case 'string':
       case 'enumerated':
-        return path.defaultTo("");  // Empty string for missing filter properties
+        return path.defaultTo("");
       case 'integer':
       case 'double':
-        return path.defaultTo(-1);  // -1 for missing numeric properties
+        return path.defaultTo(-1);
       case 'boolean':
-        return path.defaultTo(false); // false for missing boolean properties
+        return path.defaultTo(false);
       default:
         return path;
     }
   },
 
   /**
-   * NEW: Search for filter by property value instead of using hard-coded index
+   * Search for filter by property value
    */
   findFilter: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
     var basePath = ActionDescriptorPath.create()
@@ -713,7 +755,6 @@ var P = {
         if (predicate) {
           return basePath.findInList<T>(desc, property, type, predicate);
         } else {
-          // Find first non-sentinel value
           return basePath.findInList<T>(desc, property, type, function(value) {
             return value !== -1 && value !== "" && value !== false;
           });
@@ -723,7 +764,7 @@ var P = {
   },
 
   /**
-   * NEW: Search for text style by property value instead of using hard-coded index
+   * Search for text style by property value
    */
   findTextStyle: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
     var basePath = ActionDescriptorPath.create()
@@ -735,7 +776,6 @@ var P = {
         if (predicate) {
           return basePath.findInList<T>(desc, 'textStyle.' + property, type, predicate);
         } else {
-          // Find first non-sentinel value
           return basePath.findInList<T>(desc, 'textStyle.' + property, type, function(value) {
             return value !== -1 && value !== "" && value !== false;
           });
@@ -744,5 +784,3 @@ var P = {
     };
   }
 };
-
-// Ready for integration into existing frameworks
