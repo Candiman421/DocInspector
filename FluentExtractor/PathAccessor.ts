@@ -1,7 +1,7 @@
 /**
- * Path-based accessor for extracting values from ActionDescriptors
+ * FIXED Path-based accessor for extracting values from ActionDescriptors
  * Returns actual values for assignment, with fluent transformation methods
- * FIXED: Correct ActionManager patterns and removed circular dependencies
+ * CORRECTIONS: Fixed extractTextStyleValues, standardized sentinel values, improved error handling
  */
 
 // ExtendScript global function declarations
@@ -36,6 +36,13 @@ class ActionDescriptorPath {
 
   static create(): ActionDescriptorPath {
     return new ActionDescriptorPath();
+  }
+
+  /**
+   * FIXED: Get sentinel value based on type for testing scenarios
+   */
+  private getSentinelValue<T>(type: string): T {
+    return ActionDescriptorNavigator.getSentinelValue<T>(type);
   }
 
   /**
@@ -143,6 +150,7 @@ class ActionDescriptorPath {
 
   /**
    * Set default value if path resolution fails
+   * FIXED: Sentinel values used if no explicit default provided
    */
   defaultTo<T>(value: T): ActionDescriptorPath {
     this.defaultReturnValue = value;
@@ -153,6 +161,7 @@ class ActionDescriptorPath {
 
   /**
    * Extract the value from the ActionDescriptor - returns actual value for assignment
+   * FIXED: Better error handling and sentinel values
    */
   extract<T = any>(rootDesc: ActionDescriptor): T {
     try {
@@ -162,8 +171,14 @@ class ActionDescriptorPath {
       if (this.defaultReturnValue !== undefined) {
         return this.defaultReturnValue;
       }
-      var err = error as Error;
-      throw new Error("Path extraction failed: " + err.message + " (path: " + this.getPathString() + ")");
+      
+      // Determine appropriate sentinel based on the last segment type
+      var lastSegment = this.segments[this.segments.length - 1];
+      if (lastSegment && lastSegment.type === 'value' && lastSegment.valueType) {
+        return this.getSentinelValue<T>(lastSegment.valueType);
+      }
+      
+      return null as T;
     }
   }
 
@@ -190,17 +205,22 @@ class ActionDescriptorPath {
   }
 
   /**
-   * FIXED: Get count for document layers (special case)
+   * FIXED: Get count for document layers with proper error handling
    */
   getLayerCount(): number {
-    var ref = new ActionReference();
-    ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
-    ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
-    return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
+    try {
+      var ref = new ActionReference();
+      ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
+      ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+      return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
+    } catch (error) {
+      return -1; // Sentinel value for failed layer count
+    }
   }
 
   /**
    * Get count of items in list (if path points to a list)
+   * FIXED: Better error handling
    */
   getCount(rootDesc: ActionDescriptor): number {
     try {
@@ -213,112 +233,104 @@ class ActionDescriptorPath {
       if (resolved && typeof resolved.count === 'number') {
         return resolved.count;
       }
-      throw new Error('Path does not resolve to a list');
+      return -1; // Sentinel for invalid count
     } catch (error) {
-      var err = error as Error;
-      throw new Error("Failed to get count: " + err.message + " (path: " + this.getPathString() + ")");
+      return -1; // Sentinel for failed count
     }
   }
 
   // === FIXED LIST EXTRACTION METHODS ===
 
   /**
-   * FIXED: Extract all layer names using correct ActionManager pattern
+   * FIXED: Extract all layer names using correct ActionManager pattern with error handling
    */
   extractAllLayerNames(): string[] {
     var results: string[] = [];
-    var layerCount = this.getLayerCount();
     
-    for (var i = 1; i <= layerCount; i++) {
-      try {
-        var layerRef = new ActionReference();
-        layerRef.putIndex(charIDToTypeID("Lyr "), i);
-        var layerDesc = executeActionGet(layerRef);
-        var name = layerDesc.getString(stringIDToTypeID("name"));
-        results.push(name);
-      } catch (error) {
-        results.push(""); // Empty string signals missing data
+    try {
+      var layerCount = this.getLayerCount();
+      if (layerCount === -1) {
+        return []; // Empty array for failed layer count
       }
+      
+      for (var i = 1; i <= layerCount; i++) {
+        try {
+          var layerRef = new ActionReference();
+          layerRef.putIndex(charIDToTypeID("Lyr "), i);
+          var layerDesc = executeActionGet(layerRef);
+          var name = layerDesc.getString(stringIDToTypeID("name"));
+          results.push(name || ""); // Empty string for missing name
+        } catch (error) {
+          results.push(""); // Empty string sentinel
+        }
+      }
+    } catch (error) {
+      return []; // Empty array for complete failure
     }
+    
     return results;
   }
 
   /**
-   * FIXED: Extract fixed number of layer names as tuple
+   * FIXED: Extract fixed number of layer names as tuple with proper error handling
    */
   extractLayerTuple(count: number, defaultValue?: string): string[] {
     var allNames = this.extractAllLayerNames();
     var results: string[] = [];
+    var sentinel = defaultValue !== undefined ? defaultValue : ""; // Empty string default
     
     for (var i = 0; i < count; i++) {
       if (i < allNames.length && allNames[i] !== "") {
         results.push(allNames[i]);
       } else {
-        results.push(defaultValue !== undefined ? defaultValue : ""); // Empty string default
+        results.push(sentinel);
       }
     }
     return results;
   }
 
   /**
-   * FIXED: Extract text style values from current layer with sentinel values for missing data
+   * COMPLETELY FIXED: Extract text style values from current layer with proper error handling
    */
   extractTextStyleValues<T = any>(
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
     count: number,
     defaultValue?: T
-  ): T[] {
-    var results: T[] = [];
+  ): { extract: (desc: ActionDescriptor) => T[] } {
+    var self = this;
+    var sentinelValue = defaultValue !== undefined ? defaultValue : this.getSentinelValue<T>(valueType);
     
-    // Determine appropriate sentinel value based on type
-    var sentinelValue: T;
-    if (defaultValue !== undefined) {
-      sentinelValue = defaultValue;
-    } else {
-      switch (valueType) {
-        case 'string':
-        case 'enumerated':
-          sentinelValue = "" as T;
-          break;
-        case 'integer':
-        case 'double':
-          sentinelValue = -1 as T;
-          break;
-        case 'boolean':
-          sentinelValue = false as T;
-          break;
-        default:
-          sentinelValue = null as T;
-      }
-    }
-    
-    try {
-      // Navigate to textKey first
-      var current = this.resolvePath({ hasKey: function() { return true; }, getObjectValue: function() { return arguments[0]; } } as any);
-      var textKey = current.getObjectValue(stringIDToTypeID("textKey"));
-      var textStyleRanges = textKey.getList(stringIDToTypeID("textStyleRange"));
-      
-      for (var i = 0; i < count; i++) {
-        if (i < textStyleRanges.count) {
-          try {
-            var range = textStyleRanges.getObjectValue(i);
-            var value = this.extractValueFromDescriptor(range, subPath, valueType);
-            results.push(value as T);
-          } catch (error) {
+    return {
+      extract: function(desc: ActionDescriptor): T[] {
+        var results: T[] = [];
+        
+        try {
+          var textKey = desc.getObjectValue(stringIDToTypeID("textKey"));
+          var textStyleRanges = textKey.getList(stringIDToTypeID("textStyleRange"));
+          
+          for (var i = 0; i < count; i++) {
+            if (i < textStyleRanges.count) {
+              try {
+                var range = textStyleRanges.getObjectValue(i);
+                var value = self.extractValueFromDescriptor(range, subPath, valueType);
+                results.push(value as T);
+              } catch (error) {
+                results.push(sentinelValue);
+              }
+            } else {
+              results.push(sentinelValue);
+            }
+          }
+        } catch (error) {
+          for (var i = 0; i < count; i++) {
             results.push(sentinelValue);
           }
-        } else {
-          results.push(sentinelValue);
         }
+        
+        return results;
       }
-    } catch (error) {
-      for (var i = 0; i < count; i++) {
-        results.push(sentinelValue);
-      }
-    }
-    
-    return results;
+    };
   }
 
   /**
@@ -329,41 +341,111 @@ class ActionDescriptorPath {
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
     skipErrors?: boolean,
     defaultValue?: T
-  ): T[] {
-    var results: T[] = [];
+  ): { extract: (desc: ActionDescriptor) => T[] } {
+    var self = this;
+    var sentinelValue = defaultValue !== undefined ? defaultValue : this.getSentinelValue<T>(valueType);
 
-    try {
-      var list = this.resolvePath({} as ActionDescriptor) as ActionList;
-      
-      for (var i = 0; i < list.count; i++) {
+    return {
+      extract: function(desc: ActionDescriptor): T[] {
+        var results: T[] = [];
+
         try {
-          if (list.getType(i) !== DescValueType.OBJECTTYPE) {
-            throw new Error("Item at index " + i + " is not an object");
+          var list = self.resolvePath(desc) as ActionList;
+          
+          for (var i = 0; i < list.count; i++) {
+            try {
+              if (list.getType(i) !== DescValueType.OBJECTTYPE) {
+                if (skipErrors) {
+                  results.push(sentinelValue);
+                  continue;
+                } else {
+                  throw new Error("Item at index " + i + " is not an object");
+                }
+              }
+
+              var itemDesc = list.getObjectValue(i);
+              var value = self.extractValueFromDescriptor(itemDesc, subPath, valueType);
+              results.push(value);
+            } catch (error) {
+              if (skipErrors) {
+                results.push(sentinelValue);
+              } else {
+                throw error;
+              }
+            }
           }
 
-          var itemDesc = list.getObjectValue(i);
-          var value = this.extractValueFromDescriptor(itemDesc, subPath, valueType);
-
-          results.push(value);
+          return results;
         } catch (error) {
           if (skipErrors) {
-            if (defaultValue !== undefined) {
-              results.push(defaultValue);
-            }
-          } else {
-            throw error;
+            return [];
           }
+          var err = error as Error;
+          throw new Error("List extraction failed: " + err.message);
         }
       }
+    };
+  }
 
-      return results;
-    } catch (error) {
-      if (skipErrors) {
-        return [];
+  // === SEARCH METHODS FOR SAFER ACCESS ===
+
+  /**
+   * NEW: Find value in list by predicate instead of using hard-coded indices
+   */
+  findInList<T>(
+    subPath: string,
+    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    predicate: (value: T, index: number) => boolean
+  ): { extract: (desc: ActionDescriptor) => T | null } {
+    var self = this;
+    
+    return {
+      extract: function(desc: ActionDescriptor): T | null {
+        try {
+          var list = self.resolvePath(desc) as ActionList;
+          
+          for (var i = 0; i < list.count; i++) {
+            try {
+              if (list.getType(i) === DescValueType.OBJECTTYPE) {
+                var itemDesc = list.getObjectValue(i);
+                var value = self.extractValueFromDescriptor(itemDesc, subPath, valueType) as T;
+                if (predicate(value, i)) {
+                  return value;
+                }
+              }
+            } catch (error) {
+              // Continue searching
+            }
+          }
+          
+          return null;
+        } catch (error) {
+          return null;
+        }
       }
-      var err = error as Error;
-      throw new Error("List extraction failed: " + err.message);
-    }
+    };
+  }
+
+  /**
+   * NEW: Safe index access with validation
+   */
+  safeAt(index: number): { validateWith: (desc: ActionDescriptor) => ActionDescriptorPath } {
+    var self = this;
+    
+    return {
+      validateWith: function(desc: ActionDescriptor): ActionDescriptorPath {
+        try {
+          var list = self.resolvePath(desc) as ActionList;
+          if (index >= 0 && index < list.count && list.getType(index) === DescValueType.OBJECTTYPE) {
+            return self.at(index);
+          } else {
+            throw new Error("Safe index validation failed");
+          }
+        } catch (error) {
+          throw new Error("Cannot safely access index " + index);
+        }
+      }
+    };
   }
 
   // === UTILITY METHODS ===
@@ -408,39 +490,47 @@ class ActionDescriptorPath {
   }
 
   private extractFinalValue(desc: ActionDescriptor, typeID: number, valueType: string): any {
-    switch (valueType) {
-      case 'string': return desc.getString(typeID);
-      case 'integer': return desc.getInteger(typeID);
-      case 'double': return desc.getDouble(typeID);
-      case 'boolean': return desc.getBoolean(typeID);
-      case 'enumerated': return desc.getEnumerationValue(typeID);
-      default: throw new Error("Unsupported value type: " + valueType);
+    try {
+      switch (valueType) {
+        case 'string': return desc.getString(typeID);
+        case 'integer': return desc.getInteger(typeID);
+        case 'double': return desc.getDouble(typeID);
+        case 'boolean': return desc.getBoolean(typeID);
+        case 'enumerated': return desc.getEnumerationValue(typeID);
+        default: return this.getSentinelValue(valueType);
+      }
+    } catch (error) {
+      return this.getSentinelValue(valueType);
     }
   }
 
   /**
-   * FIXED: Extract value from sub-path within a descriptor
+   * FIXED: Extract value from sub-path within a descriptor with better error handling
    */
   private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
     var pathParts = subPath.split('.');
     var current = desc;
 
-    for (var i = 0; i < pathParts.length; i++) {
-      var part = pathParts[i];
-      if (!part) continue;
+    try {
+      for (var i = 0; i < pathParts.length; i++) {
+        var part = pathParts[i];
+        if (!part) continue;
 
-      var typeID = stringIDToTypeID(part);
-      
-      if (i === pathParts.length - 1) {
-        return this.extractFinalValue(current, typeID, valueType);
-      } else {
-        if (!current.hasKey(typeID)) {
-          throw new Error("Property '" + part + "' not found in sub-path");
+        var typeID = stringIDToTypeID(part);
+        
+        if (i === pathParts.length - 1) {
+          return this.extractFinalValue(current, typeID, valueType);
+        } else {
+          if (!current.hasKey(typeID)) {
+            throw new Error("Property '" + part + "' not found in sub-path");
+          }
+          current = current.getObjectValue(typeID);
         }
-        current = current.getObjectValue(typeID);
       }
+      throw new Error('Invalid sub-path: ' + subPath);
+    } catch (error) {
+      return this.getSentinelValue(valueType);
     }
-    throw new Error('Invalid sub-path: ' + subPath);
   }
 
   private applyTransformations(value: any): any {
@@ -480,7 +570,7 @@ class ActionDescriptorPath {
 // === FIXED CONVENIENCE FACTORY FUNCTIONS ===
 
 /**
- * Quick path creation for common patterns - FIXED with sentinel values for missing data
+ * Quick path creation for common patterns - FIXED with proper sentinel values
  */
 var P = {
   /**
@@ -494,14 +584,14 @@ var P = {
   list: function (key: string) { return ActionDescriptorPath.create().list(key); },
 
   /**
-   * Create value path - FIXED: Simplified generic
+   * Create value path
    */
   val: function (key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated') {
     return ActionDescriptorPath.create().value(key, type);
   },
 
   /**
-   * FIXED: Create bounds value extractor (bounds is layer property) with -1 for missing
+   * FIXED: Create bounds value extractor with proper sentinel values
    */
   bounds: function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
     return ActionDescriptorPath.create()
@@ -513,11 +603,11 @@ var P = {
   },
 
   /**
-   * FIXED: Create text style extractor using correct textKey navigation with sentinel defaults
+   * FIXED: Create text style extractor with proper sentinel values
    */
   textStyle: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number = 0) {
     var path = ActionDescriptorPath.create()
-      .object('textKey')  // FIXED: Use 'textKey' not 'text'
+      .object('textKey')
       .list('textStyleRange')
       .at(textIndex)
       .object('textStyle')
@@ -539,7 +629,7 @@ var P = {
   },
 
   /**
-   * FIXED: Create filter effect extractor using proper filter navigation with sentinel defaults
+   * FIXED: Create filter effect extractor with proper sentinel values
    */
   filter: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number = 0) {
     var path = ActionDescriptorPath.create()
@@ -556,11 +646,33 @@ var P = {
         return path.defaultTo("");  // Empty string for missing filter properties
       case 'integer':
       case 'double':
-        return path.defaultTo(-1);  // -1 for missing numeric properties (brightness, contrast, etc.)
+        return path.defaultTo(-1);  // -1 for missing numeric properties
       case 'boolean':
         return path.defaultTo(false); // false for missing boolean properties
       default:
         return path;
     }
+  },
+
+  /**
+   * NEW: Safe filter access by searching instead of using hard-coded index
+   */
+  findFilter: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
+    return {
+      extract: function<T>(desc: ActionDescriptor): T {
+        var path = ActionDescriptorPath.create()
+          .object('smartObjectMore')
+          .list('filterFXList');
+        
+        if (predicate) {
+          return path.findInList<T>(desc, property, type, predicate) as T;
+        } else {
+          // Find first non-sentinel value
+          return path.findInList<T>(desc, property, type, function(value) {
+            return value !== -1 && value !== "" && value !== false;
+          }) as T;
+        }
+      }
+    };
   }
 };

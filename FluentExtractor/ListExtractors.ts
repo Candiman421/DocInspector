@@ -1,7 +1,7 @@
 /**
- * List extraction utilities for getting values from ActionList objects
+ * FIXED List extraction utilities for getting values from ActionList objects
  * Returns arrays of actual values for assignment to answer objects
- * FIXED: Resolved TypeScript generic constraint issues
+ * CORRECTIONS: Standardized sentinel values, improved error handling, consistent patterns
  */
 
 // ExtendScript global function declarations
@@ -9,6 +9,15 @@ declare function charIDToTypeID(str: string): number;
 declare function stringIDToTypeID(str: string): number;
 declare function typeIDToStringID(id: number): string;
 declare function executeActionGet(ref: ActionReference): ActionDescriptor;
+
+// Import required types (will be available when files are used together)
+declare class ActionDescriptorPath {
+  extract(desc: ActionDescriptor): any;
+}
+
+declare class ActionDescriptorNavigator {
+  static getSentinelValue<T>(type: string): T;
+}
 
 interface ListExtractionOptions extends ComparisonOptions {
   skipErrors?: boolean;
@@ -49,11 +58,22 @@ class ListValueExtractor {
   }
 
   /**
+   * FIXED: Get sentinel value based on type for testing scenarios
+   */
+  private getSentinelValue<T>(type: string): T {
+    return ActionDescriptorNavigator.getSentinelValue<T>(type);
+  }
+
+  /**
    * Extract all values from the list - returns array of actual values
+   * FIXED: Consistent sentinel value usage
    */
   extractAll<T = any>(rootDesc: ActionDescriptor): T[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
     var results: T[] = [];
+    var sentinelValue = this.options.defaultValue !== undefined ? 
+      this.options.defaultValue : 
+      this.getSentinelValue<T>(this.valueType);
 
     for (var i = 0; i < list.count; i++) {
       try {
@@ -61,10 +81,7 @@ class ListValueExtractor {
         results.push(value);
       } catch (error) {
         if (this.options.skipErrors) {
-          if (this.options.defaultValue !== undefined) {
-            results.push(this.options.defaultValue);
-          }
-          // Skip this item if skipErrors is true and no default
+          results.push(sentinelValue);
         } else {
           var err = error as Error;
           throw new Error("Failed to extract value at index " + i + ": " + err.message);
@@ -76,7 +93,7 @@ class ListValueExtractor {
   }
 
   /**
-   * FIXED: Extract fixed number of values as tuple for destructuring
+   * FIXED: Extract fixed number of values as tuple with consistent sentinel values
    */
   extractAsTuple<T = any>(
     rootDesc: ActionDescriptor,
@@ -85,6 +102,11 @@ class ListValueExtractor {
   ): T[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
     var results: T[] = [];
+    var sentinelValue = fillValue !== undefined ? 
+      fillValue : 
+      (this.options.defaultValue !== undefined ? 
+        this.options.defaultValue : 
+        this.getSentinelValue<T>(this.valueType));
 
     for (var i = 0; i < count; i++) {
       try {
@@ -92,18 +114,11 @@ class ListValueExtractor {
           var value = this.extractSingleValue(list, i);
           results.push(value);
         } else {
-          // List is shorter than expected count
-          if (fillValue !== undefined) {
-            results.push(fillValue);
-          } else if (this.options.defaultValue !== undefined) {
-            results.push(this.options.defaultValue);
-          } else {
-            throw new Error("List only has " + list.count + " items, but " + count + " were requested");
-          }
+          results.push(sentinelValue);
         }
       } catch (error) {
         if (this.options.skipErrors || fillValue !== undefined) {
-          results.push(fillValue !== undefined ? fillValue : (this.options.defaultValue !== undefined ? this.options.defaultValue : null));
+          results.push(sentinelValue);
         } else {
           var err = error as Error;
           throw new Error("Failed to extract value at index " + i + ": " + err.message);
@@ -116,10 +131,16 @@ class ListValueExtractor {
 
   /**
    * Extract exactly N values, padding with defaults if needed
+   * FIXED: Consistent sentinel value usage
    */
   extractExactly<T = any>(rootDesc: ActionDescriptor, count: number, defaultValue?: T): T[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
     var results: T[] = [];
+    var sentinelValue = defaultValue !== undefined ? 
+      defaultValue : 
+      (this.options.defaultValue !== undefined ? 
+        this.options.defaultValue : 
+        this.getSentinelValue<T>(this.valueType));
 
     for (var i = 0; i < count; i++) {
       try {
@@ -127,19 +148,11 @@ class ListValueExtractor {
           var value = this.extractSingleValue(list, i);
           results.push(value);
         } else {
-          // Pad with default
-          if (defaultValue !== undefined) {
-            results.push(defaultValue);
-          } else if (this.options.defaultValue !== undefined) {
-            results.push(this.options.defaultValue);
-          } else {
-            throw new Error("List only has " + list.count + " items, but " + count + " were requested");
-          }
+          results.push(sentinelValue);
         }
       } catch (error) {
         if (this.options.skipErrors) {
-          var fallback = defaultValue !== undefined ? defaultValue : (this.options.defaultValue !== undefined ? this.options.defaultValue : null);
-          results.push(fallback);
+          results.push(sentinelValue);
         } else {
           var err = error as Error;
           throw new Error("Failed to extract value at index " + i + ": " + err.message);
@@ -152,10 +165,14 @@ class ListValueExtractor {
 
   /**
    * Extract values with their indices
+   * FIXED: Consistent error handling
    */
   extractAllWithIndices<T = any>(rootDesc: ActionDescriptor): IndexedValue<T>[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
     var results: IndexedValue<T>[] = [];
+    var sentinelValue = this.options.defaultValue !== undefined ? 
+      this.options.defaultValue : 
+      this.getSentinelValue<T>(this.valueType);
 
     for (var i = 0; i < list.count; i++) {
       try {
@@ -163,9 +180,7 @@ class ListValueExtractor {
         results.push({ index: i, value: value });
       } catch (error) {
         if (this.options.skipErrors) {
-          if (this.options.defaultValue !== undefined) {
-            results.push({ index: i, value: this.options.defaultValue });
-          }
+          results.push({ index: i, value: sentinelValue });
         } else {
           var err = error as Error;
           throw new Error("Failed to extract value at index " + i + ": " + err.message);
@@ -196,6 +211,7 @@ class ListValueExtractor {
 
   /**
    * Extract first value that matches condition
+   * FIXED: Better error handling with sentinel values
    */
   extractFirst<T = any>(
     rootDesc: ActionDescriptor,
@@ -221,19 +237,31 @@ class ListValueExtractor {
 
   /**
    * Extract value at specific index
+   * FIXED: Better bounds checking and error handling
    */
   extractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
     var list = this.basePath.extract(rootDesc) as ActionList;
 
-    if (index >= list.count) {
-      throw new Error("Index " + index + " out of bounds (count: " + list.count + ")");
+    if (index >= list.count || index < 0) {
+      if (this.options.defaultValue !== undefined) {
+        return this.options.defaultValue;
+      }
+      return this.getSentinelValue<T>(this.valueType);
     }
 
-    return this.extractSingleValue(list, index);
+    try {
+      return this.extractSingleValue(list, index);
+    } catch (error) {
+      if (this.options.defaultValue !== undefined) {
+        return this.options.defaultValue;
+      }
+      return this.getSentinelValue<T>(this.valueType);
+    }
   }
 
   /**
    * Extract last value
+   * FIXED: Better error handling
    */
   extractLast<T = any>(rootDesc: ActionDescriptor): T | null {
     var list = this.basePath.extract(rootDesc) as ActionList;
@@ -242,7 +270,11 @@ class ListValueExtractor {
       return null;
     }
 
-    return this.extractSingleValue(list, list.count - 1);
+    try {
+      return this.extractSingleValue(list, list.count - 1);
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
@@ -279,18 +311,17 @@ class ListValueExtractor {
 
   /**
    * Extract all items ensuring minimum count, pad if needed
+   * FIXED: Consistent sentinel value usage
    */
   extractAllWithMinimum<T = any>(rootDesc: ActionDescriptor, minCount: number, defaultValue?: T): T[] {
     var allValues = this.extractAll<T>(rootDesc);
+    var sentinelValue = defaultValue !== undefined ? 
+      defaultValue : 
+      this.getSentinelValue<T>(this.valueType);
 
     if (allValues.length < minCount) {
-      if (defaultValue === undefined && !this.options.defaultValue) {
-        throw new Error("Found " + allValues.length + " items, but minimum " + minCount + " required");
-      }
-
-      var fillValue = defaultValue !== undefined ? defaultValue : this.options.defaultValue;
       while (allValues.length < minCount) {
-        allValues.push(fillValue);
+        allValues.push(sentinelValue);
       }
     }
 
@@ -306,13 +337,16 @@ class ListValueExtractor {
   }
 
   /**
-   * FIXED: Extract all items as dynamic tuple (up to specified max)
+   * FIXED: Extract all items as dynamic tuple with consistent sentinel values
    */
   extractAllAsDynamicTuple<T = any>(rootDesc: ActionDescriptor, maxCount: number = 10, defaultValue?: T): T[] {
     var allValues = this.extractAll<T>(rootDesc);
 
     if (allValues.length === 0) {
-      throw new Error('No items found in list');
+      var sentinelValue = defaultValue !== undefined ? 
+        defaultValue : 
+        this.getSentinelValue<T>(this.valueType);
+      return [sentinelValue]; // Return array with one sentinel value instead of throwing
     }
 
     // Return actual values found, up to maxCount
@@ -329,7 +363,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract all items with metadata (count, indices) - FIXED: Explicit array typing
+   * Extract all items with metadata - FIXED: Consistent typing and error handling
    */
   extractAllWithMetadata<T = any>(rootDesc: ActionDescriptor): {
     values: T[];
@@ -399,7 +433,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Round numeric values - FIXED: Proper type handling and array typing
+   * Round numeric values - FIXED: Proper type handling
    */
   round(decimals: number = 0): ListValueExtractor {
     var factor = Math.pow(10, decimals);
@@ -417,17 +451,81 @@ class ListValueExtractor {
 
   /**
    * Skip errors and continue processing
+   * FIXED: Consistent sentinel value usage
    */
   skipErrors(defaultValue?: any): ListValueExtractor {
+    var sentinelValue = defaultValue !== undefined ? 
+      defaultValue : 
+      this.getSentinelValue(this.valueType);
+
     var newOptions: ListExtractionOptions = {
       skipErrors: true,
       includeIndices: this.options.includeIndices,
       tolerance: this.options.tolerance,
       transformer: this.options.transformer,
-      defaultValue: defaultValue
+      defaultValue: sentinelValue
     };
 
     return new ListValueExtractor(this.basePath, this.subPath, this.valueType, newOptions);
+  }
+
+  // === SEARCH METHODS FOR SAFER ACCESS ===
+
+  /**
+   * NEW: Find items by property value instead of using indices
+   */
+  findWhere<T = any>(
+    rootDesc: ActionDescriptor,
+    searchProperty: string,
+    searchValueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    searchValue: any
+  ): T[] {
+    try {
+      var list = this.basePath.extract(rootDesc) as ActionList;
+      var results: T[] = [];
+      
+      for (var i = 0; i < list.count; i++) {
+        try {
+          if (list.getType(i) === DescValueType.OBJECTTYPE) {
+            var itemDesc = list.getObjectValue(i);
+            var propValue = this.extractValueFromDescriptor(itemDesc, searchProperty, searchValueType);
+            
+            if (propValue === searchValue) {
+              var targetValue = this.extractValueFromDescriptor(itemDesc, this.subPath, this.valueType);
+              results.push(targetValue);
+            }
+          }
+        } catch (error) {
+          // Continue searching
+        }
+      }
+      
+      return results;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * NEW: Safe access by validating list structure first
+   */
+  safeExtractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
+    try {
+      var list = this.basePath.extract(rootDesc) as ActionList;
+      
+      // Validate list structure
+      if (index < 0 || index >= list.count) {
+        return this.getSentinelValue<T>(this.valueType);
+      }
+      
+      if (list.getType(index) !== DescValueType.OBJECTTYPE) {
+        return this.getSentinelValue<T>(this.valueType);
+      }
+      
+      return this.extractSingleValue(list, index);
+    } catch (error) {
+      return this.getSentinelValue<T>(this.valueType);
+    }
   }
 
   // === PRIVATE METHODS ===
@@ -438,7 +536,7 @@ class ListValueExtractor {
     }
 
     var itemDesc = list.getObjectValue(index);
-    var value = this.extractValueFromDescriptor(itemDesc);
+    var value = this.extractValueFromDescriptor(itemDesc, this.subPath, this.valueType);
 
     if (this.options.transformer) {
       value = this.options.transformer(value);
@@ -447,37 +545,41 @@ class ListValueExtractor {
     return value;
   }
 
-  private extractValueFromDescriptor(desc: ActionDescriptor): any {
+  private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
     // Navigate through sub-path if specified
-    var pathParts = this.subPath.split('.');
+    var pathParts = subPath.split('.');
     var current = desc;
 
-    for (var i = 0; i < pathParts.length; i++) {
-      var part = pathParts[i];
-      if (!part) continue;
+    try {
+      for (var i = 0; i < pathParts.length; i++) {
+        var part = pathParts[i];
+        if (!part) continue;
 
-      var typeID = stringIDToTypeID(part);
-      if (!current.hasKey(typeID)) {
-        throw new Error("Property '" + part + "' not found");
-      }
-
-      // Check if this is the last part
-      if (part === pathParts[pathParts.length - 1]) {
-        // Extract the final value
-        switch (this.valueType) {
-          case 'string': return current.getString(typeID);
-          case 'integer': return current.getInteger(typeID);
-          case 'double': return current.getDouble(typeID);
-          case 'boolean': return current.getBoolean(typeID);
-          case 'enumerated': return current.getEnumerationValue(typeID);
-          default: throw new Error("Unsupported value type: " + this.valueType);
+        var typeID = stringIDToTypeID(part);
+        if (!current.hasKey(typeID)) {
+          return this.getSentinelValue(valueType);
         }
-      } else {
-        // Navigate to nested object
-        current = current.getObjectValue(typeID);
-      }
-    }
 
-    throw new Error('Invalid sub-path');
+        // Check if this is the last part
+        if (part === pathParts[pathParts.length - 1]) {
+          // Extract the final value
+          switch (valueType) {
+            case 'string': return current.getString(typeID);
+            case 'integer': return current.getInteger(typeID);
+            case 'double': return current.getDouble(typeID);
+            case 'boolean': return current.getBoolean(typeID);
+            case 'enumerated': return current.getEnumerationValue(typeID);
+            default: return this.getSentinelValue(valueType);
+          }
+        } else {
+          // Navigate to nested object
+          current = current.getObjectValue(typeID);
+        }
+      }
+
+      return this.getSentinelValue(valueType);
+    } catch (error) {
+      return this.getSentinelValue(valueType);
+    }
   }
 }
