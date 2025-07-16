@@ -262,9 +262,9 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * FIXED: Extract bullet styles using corrected textKey navigation with proper typing
+   * FIXED: Extract bullet styles using corrected textKey navigation with sentinel values
    */
-  extractBulletStyles(count: number = 4, defaultValue: string = "plain"): string[] {
+  extractBulletStyles(count: number = 4, defaultValue: string = ""): string[] {
     try {
       var textKey = this.desc.getObjectValue(stringIDToTypeID("textKey"));
       var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
@@ -289,7 +289,7 @@ class ActionDescriptorNavigator {
     } catch (error) {
       var fallbackResults: string[] = [];
       for (var i = 0; i < count; i++) {
-        fallbackResults.push(defaultValue);
+        fallbackResults.push(defaultValue); // Empty string signals missing bullet style
       }
       return fallbackResults;
     }

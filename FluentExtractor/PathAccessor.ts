@@ -237,7 +237,7 @@ class ActionDescriptorPath {
         var name = layerDesc.getString(stringIDToTypeID("name"));
         results.push(name);
       } catch (error) {
-        results.push("Layer " + i);
+        results.push(""); // Empty string signals missing data
       }
     }
     return results;
@@ -251,17 +251,17 @@ class ActionDescriptorPath {
     var results: string[] = [];
     
     for (var i = 0; i < count; i++) {
-      if (i < allNames.length) {
+      if (i < allNames.length && allNames[i] !== "") {
         results.push(allNames[i]);
       } else {
-        results.push(defaultValue || "Missing Layer");
+        results.push(defaultValue !== undefined ? defaultValue : ""); // Empty string default
       }
     }
     return results;
   }
 
   /**
-   * FIXED: Extract text style values from current layer with proper type handling
+   * FIXED: Extract text style values from current layer with sentinel values for missing data
    */
   extractTextStyleValues<T = any>(
     subPath: string,
@@ -270,6 +270,28 @@ class ActionDescriptorPath {
     defaultValue?: T
   ): T[] {
     var results: T[] = [];
+    
+    // Determine appropriate sentinel value based on type
+    var sentinelValue: T;
+    if (defaultValue !== undefined) {
+      sentinelValue = defaultValue;
+    } else {
+      switch (valueType) {
+        case 'string':
+        case 'enumerated':
+          sentinelValue = "" as T;
+          break;
+        case 'integer':
+        case 'double':
+          sentinelValue = -1 as T;
+          break;
+        case 'boolean':
+          sentinelValue = false as T;
+          break;
+        default:
+          sentinelValue = null as T;
+      }
+    }
     
     try {
       // Navigate to textKey first
@@ -284,15 +306,15 @@ class ActionDescriptorPath {
             var value = this.extractValueFromDescriptor(range, subPath, valueType);
             results.push(value as T);
           } catch (error) {
-            results.push((defaultValue !== undefined ? defaultValue : null) as T);
+            results.push(sentinelValue);
           }
         } else {
-          results.push((defaultValue !== undefined ? defaultValue : null) as T);
+          results.push(sentinelValue);
         }
       }
     } catch (error) {
       for (var i = 0; i < count; i++) {
-        results.push((defaultValue !== undefined ? defaultValue : null) as T);
+        results.push(sentinelValue);
       }
     }
     
@@ -458,7 +480,7 @@ class ActionDescriptorPath {
 // === FIXED CONVENIENCE FACTORY FUNCTIONS ===
 
 /**
- * Quick path creation for common patterns - FIXED with correct ActionManager patterns
+ * Quick path creation for common patterns - FIXED with sentinel values for missing data
  */
 var P = {
   /**
@@ -479,37 +501,66 @@ var P = {
   },
 
   /**
-   * FIXED: Create bounds value extractor (bounds is layer property)
+   * FIXED: Create bounds value extractor (bounds is layer property) with -1 for missing
    */
   bounds: function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
     return ActionDescriptorPath.create()
       .object('bounds')
       .value(property, 'double')
       .toPixels('pt')
-      .floor();
+      .floor()
+      .defaultTo(-1); // -1 signals missing/invalid bounds
   },
 
   /**
-   * FIXED: Create text style extractor using correct textKey navigation
+   * FIXED: Create text style extractor using correct textKey navigation with sentinel defaults
    */
   textStyle: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number = 0) {
-    return ActionDescriptorPath.create()
+    var path = ActionDescriptorPath.create()
       .object('textKey')  // FIXED: Use 'textKey' not 'text'
       .list('textStyleRange')
       .at(textIndex)
       .object('textStyle')
       .value(property, type);
+    
+    // Set appropriate sentinel default based on type
+    switch (type) {
+      case 'string':
+      case 'enumerated':
+        return path.defaultTo("");  // Empty string for missing text properties
+      case 'integer':
+      case 'double':
+        return path.defaultTo(-1);  // -1 for missing numeric properties
+      case 'boolean':
+        return path.defaultTo(false); // false for missing boolean properties
+      default:
+        return path;
+    }
   },
 
   /**
-   * FIXED: Create filter effect extractor using proper filter navigation
+   * FIXED: Create filter effect extractor using proper filter navigation with sentinel defaults
    */
   filter: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number = 0) {
-    return ActionDescriptorPath.create()
+    var path = ActionDescriptorPath.create()
       .object('smartObjectMore')
       .list('filterFXList')
       .at(filterIndex)
       .object('filter')
       .value(property, type);
+    
+    // Set appropriate sentinel default based on type
+    switch (type) {
+      case 'string':
+      case 'enumerated':
+        return path.defaultTo("");  // Empty string for missing filter properties
+      case 'integer':
+      case 'double':
+        return path.defaultTo(-1);  // -1 for missing numeric properties (brightness, contrast, etc.)
+      case 'boolean':
+        return path.defaultTo(false); // false for missing boolean properties
+      default:
+        return path;
+    }
   }
 };
