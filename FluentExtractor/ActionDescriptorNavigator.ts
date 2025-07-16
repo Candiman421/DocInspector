@@ -1,0 +1,358 @@
+/**
+ * CORRECTED ActionDescriptor navigation utilities for Photoshop document analysis
+ * FIXES: Proper ActionReference patterns and navigation based on research
+ */
+
+interface ValueTransformer {
+  (value: any): any;
+}
+
+interface ComparisonOptions {
+  tolerance?: number;
+  transformer?: ValueTransformer;
+  defaultValue?: any;
+}
+
+class ActionDescriptorNavigator {
+  constructor(private desc: ActionDescriptor) { }
+
+  /**
+   * CORRECTED: Create navigator from ActionReference using proper patterns
+   */
+  static from(ref: ActionReference): ActionDescriptorNavigator {
+    return new ActionDescriptorNavigator(executeActionGet(ref));
+  }
+
+  /**
+   * CORRECTED: Create navigator for layer properties
+   */
+  static forCurrentLayer(): ActionDescriptorNavigator {
+    var ref = new ActionReference();
+    ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+    return new ActionDescriptorNavigator(executeActionGet(ref));
+  }
+
+  /**
+   * CORRECTED: Create navigator for document properties
+   */
+  static forCurrentDocument(): ActionDescriptorNavigator {
+    var ref = new ActionReference();
+    ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+    return new ActionDescriptorNavigator(executeActionGet(ref));
+  }
+
+  /**
+   * CORRECTED: Create navigator for specific layer by index
+   */
+  static forLayerByIndex(index: number): ActionDescriptorNavigator {
+    var ref = new ActionReference();
+    ref.putIndex(charIDToTypeID("Lyr "), index); // 1-based indexing
+    return new ActionDescriptorNavigator(executeActionGet(ref));
+  }
+
+  /**
+   * Navigate to nested object property
+   */
+  object(key: string): ActionDescriptorNavigator {
+    if (this.desc.hasKey(stringIDToTypeID(key))) {
+      return new ActionDescriptorNavigator(
+        this.desc.getObjectValue(stringIDToTypeID(key))
+      );
+    }
+    throw new Error("Object key '" + key + "' not found");
+  }
+
+  /**
+   * Navigate to list property
+   */
+  list(key: string): ActionListNavigator {
+    if (this.desc.hasKey(stringIDToTypeID(key))) {
+      return new ActionListNavigator(
+        this.desc.getList(stringIDToTypeID(key))
+      );
+    }
+    throw new Error("List key '" + key + "' not found");
+  }
+
+  /**
+   * Get value with optional transformation - returns actual value for assignment
+   */
+  getValue<T = any>(
+    key: string,
+    type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    options?: ComparisonOptions
+  ): T {
+    var typeID = stringIDToTypeID(key);
+
+    if (!this.desc.hasKey(typeID)) {
+      if (options && options.defaultValue !== undefined) {
+        return options.defaultValue;
+      }
+      throw new Error("Key '" + key + "' not found");
+    }
+
+    var value: any;
+
+    switch (type) {
+      case 'string':
+        value = this.desc.getString(typeID);
+        break;
+      case 'integer':
+        value = this.desc.getInteger(typeID);
+        break;
+      case 'double':
+        value = this.desc.getDouble(typeID);
+        break;
+      case 'boolean':
+        value = this.desc.getBoolean(typeID);
+        break;
+      case 'enumerated':
+        value = this.desc.getEnumerationValue(typeID);
+        break;
+      default:
+        throw new Error("Unsupported type: " + type);
+    }
+
+    // Apply transformation if specified
+    if (options && options.transformer) {
+      value = options.transformer(value);
+    }
+
+    return value as T;
+  }
+
+  /**
+   * Check if key exists
+   */
+  hasKey(key: string): boolean {
+    return this.desc.hasKey(stringIDToTypeID(key));
+  }
+
+  /**
+   * Get multiple values as tuple
+   */
+  getValues<T extends readonly any[]>(
+    specs: readonly [...{ [K in keyof T]: { key: string, type: string, options?: ComparisonOptions } }]
+  ): T {
+    var results = [];
+    for (var i = 0; i < specs.length; i++) {
+      var spec = specs[i];
+      results.push(this.getValue(spec.key, spec.type as any, spec.options));
+    }
+    return results as unknown as T;
+  }
+
+  /**
+   * Get multiple values as object
+   */
+  getValuesAsObject<T extends Record<string, any>>(
+    specs: { [K in keyof T]: { key: string, type: string, options?: ComparisonOptions } }
+  ): T {
+    var result = {} as T;
+
+    // Manual iteration instead of Object.entries for ES5 compatibility
+    for (var propName in specs) {
+      if (specs.hasOwnProperty(propName)) {
+        var spec = specs[propName];
+        result[propName as keyof T] = this.getValue(spec.key, spec.type as any, spec.options);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * CORRECTED: Get bounds object for layer (layer property only)
+   */
+  getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
+    if (!this.desc.hasKey(stringIDToTypeID('bounds'))) {
+      throw new Error('Bounds not available on this descriptor (layer property only)');
+    }
+
+    var boundsDesc = this.desc.getObjectValue(stringIDToTypeID('bounds'));
+    return {
+      left: boundsDesc.getDouble(stringIDToTypeID('left')),
+      top: boundsDesc.getDouble(stringIDToTypeID('top')),
+      right: boundsDesc.getDouble(stringIDToTypeID('right')),
+      bottom: boundsDesc.getDouble(stringIDToTypeID('bottom')),
+      width: boundsDesc.getDouble(stringIDToTypeID('width')),
+      height: boundsDesc.getDouble(stringIDToTypeID('height'))
+    };
+  }
+
+  /**
+   * CORRECTED: Get text properties from textKey (layer property only)
+   */
+  getTextProperties(): { content: string; fontName: string; fontSize: number } | null {
+    if (!this.desc.hasKey(stringIDToTypeID('textKey'))) {
+      return null; // Not a text layer
+    }
+
+    try {
+      var textKey = this.desc.getObjectValue(stringIDToTypeID('textKey'));
+      var textContent = textKey.getString(stringIDToTypeID('textKey'));
+      
+      var textStyleRanges = textKey.getList(stringIDToTypeID('textStyleRange'));
+      if (textStyleRanges.count > 0) {
+        var firstRange = textStyleRanges.getObjectValue(0);
+        var textStyle = firstRange.getObjectValue(stringIDToTypeID('textStyle'));
+        
+        return {
+          content: textContent,
+          fontName: textStyle.getString(stringIDToTypeID('fontName')),
+          fontSize: textStyle.getDouble(stringIDToTypeID('size'))
+        };
+      }
+      
+      return {
+        content: textContent,
+        fontName: 'Unknown',
+        fontSize: 12
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+}
+
+class ActionListNavigator {
+  constructor(private list: ActionList) { }
+
+  get count(): number {
+    return this.list.count;
+  }
+
+  /**
+   * Get object at specific index
+   */
+  getObject(index: number): ActionDescriptorNavigator {
+    if (index >= this.list.count) {
+      throw new Error("Index " + index + " out of bounds (count: " + this.list.count + ")");
+    }
+
+    if (this.list.getType(index) !== DescValueType.OBJECTTYPE) {
+      throw new Error("Item at index " + index + " is not an object");
+    }
+
+    return new ActionDescriptorNavigator(this.list.getObjectValue(index));
+  }
+
+  /**
+   * Get value from all objects in list - returns array of values
+   */
+  getAllValues<T = any>(
+    key: string,
+    type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    options?: ComparisonOptions
+  ): T[] {
+    var results: T[] = [];
+
+    for (var i = 0; i < this.list.count; i++) {
+      if (this.list.getType(i) === DescValueType.OBJECTTYPE) {
+        var obj = this.getObject(i);
+        try {
+          var value = obj.getValue<T>(key, type, options);
+          results.push(value);
+        } catch (error) {
+          if (options && options.defaultValue !== undefined) {
+            results.push(options.defaultValue);
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Get first matching value that meets condition
+   */
+  findValue<T = any>(
+    key: string,
+    type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    predicate: (value: T) => boolean,
+    options?: ComparisonOptions
+  ): T | null {
+    for (var i = 0; i < this.list.count; i++) {
+      if (this.list.getType(i) === DescValueType.OBJECTTYPE) {
+        var obj = this.getObject(i);
+        try {
+          var value = obj.getValue<T>(key, type, options);
+          if (predicate(value)) {
+            return value;
+          }
+        } catch (error) {
+          // Continue to next item
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Map over all objects and extract values
+   */
+  mapValues<T = any>(
+    extractor: (nav: ActionDescriptorNavigator, index: number) => T
+  ): T[] {
+    var results: T[] = [];
+
+    for (var i = 0; i < this.list.count; i++) {
+      if (this.list.getType(i) === DescValueType.OBJECTTYPE) {
+        var obj = this.getObject(i);
+        results.push(extractor(obj, i));
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * CORRECTED: Handle ActionReference lists (like document layers)
+   */
+  getAllReferences(): ActionReference[] {
+    var results: ActionReference[] = [];
+    
+    for (var i = 0; i < this.list.count; i++) {
+      if (this.list.getType(i) === DescValueType.REFERENCETYPE) {
+        results.push(this.list.getReference(i));
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * CORRECTED: Extract values from ActionReference list (like layer names)
+   */
+  getAllValuesFromReferences<T = any>(
+    key: string,
+    type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
+    options?: ComparisonOptions
+  ): T[] {
+    var results: T[] = [];
+    
+    for (var i = 0; i < this.list.count; i++) {
+      if (this.list.getType(i) === DescValueType.REFERENCETYPE) {
+        try {
+          var ref = this.list.getReference(i);
+          var desc = executeActionGet(ref);
+          var navigator = new ActionDescriptorNavigator(desc);
+          var value = navigator.getValue<T>(key, type, options);
+          results.push(value);
+        } catch (error) {
+          if (options && options.defaultValue !== undefined) {
+            results.push(options.defaultValue);
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+    
+    return results;
+  }
+}
