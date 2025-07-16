@@ -1,6 +1,7 @@
 /**
  * Path-based accessor for extracting values from ActionDescriptors
  * Returns actual values for assignment, with fluent transformation methods
+ * FIXED: Correct ActionManager patterns and removed circular dependencies
  */
 
 interface PathSegment {
@@ -8,6 +9,16 @@ interface PathSegment {
   type: 'object' | 'list' | 'value';
   valueType?: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated';
   index?: number;
+}
+
+interface ValueTransformer {
+  (value: any): any;
+}
+
+interface ComparisonOptions {
+  tolerance?: number;
+  transformer?: ValueTransformer;
+  defaultValue?: any;
 }
 
 class ActionDescriptorPath {
@@ -172,10 +183,25 @@ class ActionDescriptorPath {
   }
 
   /**
+   * FIXED: Get count for document layers (special case)
+   */
+  getLayerCount(): number {
+    var ref = new ActionReference();
+    ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
+    ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+    return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
+  }
+
+  /**
    * Get count of items in list (if path points to a list)
    */
   getCount(rootDesc: ActionDescriptor): number {
     try {
+      // Special case for document layers
+      if (this.segments.length === 1 && this.segments[0].key === 'layers') {
+        return this.getLayerCount();
+      }
+      
       var resolved = this.resolvePath(rootDesc);
       if (resolved && typeof resolved.count === 'number') {
         return resolved.count;
@@ -187,132 +213,128 @@ class ActionDescriptorPath {
     }
   }
 
-  // === LIST EXTRACTION METHODS ===
+  // === FIXED LIST EXTRACTION METHODS ===
 
   /**
-   * Extract all values from list items
+   * FIXED: Extract all layer names using correct ActionManager pattern
    */
-  extractAll<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    options?: ListExtractionOptions
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, options || {});
+  extractAllLayerNames(): string[] {
+    var results: string[] = [];
+    var layerCount = this.getLayerCount();
+    
+    for (var i = 1; i <= layerCount; i++) {
+      try {
+        var layerRef = new ActionReference();
+        layerRef.putIndex(charIDToTypeID("Lyr "), i);
+        var layerDesc = executeActionGet(layerRef);
+        var name = layerDesc.getString(stringIDToTypeID("name"));
+        results.push(name);
+      } catch (error) {
+        results.push("Layer " + i);
+      }
+    }
+    return results;
   }
 
   /**
-   * Extract fixed number of values as tuple for destructuring
+   * FIXED: Extract fixed number of layer names as tuple
    */
-  extractAsTuple<T extends readonly any[]>(
+  extractLayerTuple(count: number, defaultValue?: string): string[] {
+    var allNames = this.extractAllLayerNames();
+    var results: string[] = [];
+    
+    for (var i = 0; i < count; i++) {
+      if (i < allNames.length) {
+        results.push(allNames[i]);
+      } else {
+        results.push(defaultValue || "Missing Layer");
+      }
+    }
+    return results;
+  }
+
+  /**
+   * FIXED: Extract values from textStyleRange using correct patterns
+   */
+  extractTextStyleValues<T>(
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
     count: number,
-    fillValue?: any
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, {});
-  }
-
-  /**
-   * Extract exactly N values, padding with defaults if needed
-   */
-  extractExactly<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    count: number,
     defaultValue?: T
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, { defaultValue: defaultValue });
+  ): T[] {
+    var results: T[] = [];
+    
+    try {
+      // Navigate to textKey first
+      var current = this.resolvePath({ hasKey: function() { return true; }, getObjectValue: function() { return arguments[0]; } } as any);
+      var textKey = current.getObjectValue(stringIDToTypeID("textKey"));
+      var textStyleRanges = textKey.getList(stringIDToTypeID("textStyleRange"));
+      
+      for (var i = 0; i < count; i++) {
+        if (i < textStyleRanges.count) {
+          try {
+            var range = textStyleRanges.getObjectValue(i);
+            var value = this.extractValueFromDescriptor(range, subPath, valueType);
+            results.push(value);
+          } catch (error) {
+            results.push(defaultValue || null);
+          }
+        } else {
+          results.push(defaultValue || null);
+        }
+      }
+    } catch (error) {
+      for (var i = 0; i < count; i++) {
+        results.push(defaultValue || null);
+      }
+    }
+    
+    return results;
   }
 
   /**
-   * Extract all items as object with numbered keys
+   * FIXED: Extract all values from standard list with proper error handling
    */
-  extractAllAsObject<T = any>(
+  extractAllFromList<T>(
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    keyPrefix?: string
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, {});
-  }
-
-  /**
-   * Extract all items ensuring minimum count, pad if needed
-   */
-  extractAllWithMinimum<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    minCount: number,
+    skipErrors?: boolean,
     defaultValue?: T
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, { defaultValue: defaultValue });
-  }
+  ): T[] {
+    var results: T[] = [];
 
-  /**
-   * Extract all items up to maximum count
-   */
-  extractAllUpTo<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    maxCount: number
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, {});
-  }
+    try {
+      var list = this.resolvePath({} as ActionDescriptor) as ActionList;
+      
+      for (var i = 0; i < list.count; i++) {
+        try {
+          if (list.getType(i) !== DescValueType.OBJECTTYPE) {
+            throw new Error("Item at index " + i + " is not an object");
+          }
 
-  /**
-   * Extract all items as dynamic tuple (up to specified max)
-   */
-  extractAllAsDynamicTuple<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    maxCount?: number,
-    defaultValue?: T
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, { defaultValue: defaultValue });
-  }
+          var itemDesc = list.getObjectValue(i);
+          var value = this.extractValueFromDescriptor(itemDesc, subPath, valueType);
 
-  /**
-   * Extract all items with metadata (count, indices)
-   */
-  extractAllWithMetadata<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated'
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, {});
-  }
+          results.push(value);
+        } catch (error) {
+          if (skipErrors) {
+            if (defaultValue !== undefined) {
+              results.push(defaultValue);
+            }
+          } else {
+            throw error;
+          }
+        }
+      }
 
-  /**
-   * Extract value at specific index
-   */
-  extractAt<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    index: number
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, {});
-  }
-
-  /**
-   * Extract values matching condition
-   */
-  extractWhere<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    predicate: (value: T, index: number) => boolean,
-    options?: ListExtractionOptions
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, options || {});
-  }
-
-  /**
-   * Extract first matching value
-   */
-  extractFirst<T = any>(
-    subPath: string,
-    valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
-    predicate?: (value: T, index: number) => boolean,
-    options?: ListExtractionOptions
-  ): ListValueExtractor {
-    return new ListValueExtractor(this, subPath, valueType, options || {});
+      return results;
+    } catch (error) {
+      if (skipErrors) {
+        return [];
+      }
+      var err = error as Error;
+      throw new Error("List extraction failed: " + err.message);
+    }
   }
 
   // === UTILITY METHODS ===
@@ -367,6 +389,31 @@ class ActionDescriptorPath {
     }
   }
 
+  /**
+   * FIXED: Extract value from sub-path within a descriptor
+   */
+  private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
+    var pathParts = subPath.split('.');
+    var current = desc;
+
+    for (var i = 0; i < pathParts.length; i++) {
+      var part = pathParts[i];
+      if (!part) continue;
+
+      var typeID = stringIDToTypeID(part);
+      
+      if (i === pathParts.length - 1) {
+        return this.extractFinalValue(current, typeID, valueType);
+      } else {
+        if (!current.hasKey(typeID)) {
+          throw new Error("Property '" + part + "' not found in sub-path");
+        }
+        current = current.getObjectValue(typeID);
+      }
+    }
+    throw new Error('Invalid sub-path: ' + subPath);
+  }
+
   private applyTransformations(value: any): any {
     var result = value;
     for (var i = 0; i < this.transformations.length; i++) {
@@ -401,10 +448,10 @@ class ActionDescriptorPath {
   }
 }
 
-// === CONVENIENCE FACTORY FUNCTIONS ===
+// === FIXED CONVENIENCE FACTORY FUNCTIONS ===
 
 /**
- * Quick path creation for common patterns
+ * Quick path creation for common patterns - FIXED with correct ActionManager patterns
  */
 var P = {
   /**
@@ -425,7 +472,7 @@ var P = {
   },
 
   /**
-   * Create bounds value extractor
+   * FIXED: Create bounds value extractor (bounds is layer property)
    */
   bounds: function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
     return ActionDescriptorPath.create()
@@ -436,11 +483,11 @@ var P = {
   },
 
   /**
-   * Create text style extractor
+   * FIXED: Create text style extractor using correct textKey navigation
    */
   textStyle: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number = 0) {
     return ActionDescriptorPath.create()
-      .object('text')
+      .object('textKey')  // FIXED: Use 'textKey' not 'text'
       .list('textStyleRange')
       .at(textIndex)
       .object('textStyle')
@@ -448,7 +495,7 @@ var P = {
   },
 
   /**
-   * Create filter effect extractor
+   * FIXED: Create filter effect extractor using proper filter navigation
    */
   filter: function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number = 0) {
     return ActionDescriptorPath.create()

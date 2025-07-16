@@ -1,14 +1,15 @@
 /**
  * Usage examples for the Fluent Photoshop Document Scoring API
  * Shows how to extract values for assignment to answer objects
+ * FIXED: All ActionReference patterns and navigation corrected
  */
 
 // === BASIC USAGE EXAMPLES ===
 
 function basicValueExtraction() {
-  // Setup: Get the document descriptor
+  // FIXED: Setup using correct layer reference pattern
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("layer"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var d = executeActionGet(r);
 
   // Example 1: Extract simple values directly
@@ -28,9 +29,9 @@ function basicValueExtraction() {
       .value("contrast", "integer")
       .extract<number>(d),
 
-    // Extract with transformation
+    // FIXED: Extract with transformation using corrected textKey
     fontSize: ActionDescriptorPath.create()
-      .object("text")
+      .object("textKey")  // FIXED: Use textKey not text
       .list("textStyleRange")
       .at(0)
       .object("textStyle")
@@ -63,8 +64,9 @@ function basicValueExtraction() {
 // === TUPLE AND DESTRUCTURED VALUE EXAMPLES ===
 
 function tupleExtractions() {
+  // FIXED: Use correct layer reference
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("layer"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var d = executeActionGet(r);
 
   // Extract multiple values as tuple
@@ -95,8 +97,9 @@ function tupleExtractions() {
 // === CONVENIENT FACTORY FUNCTION USAGE ===
 
 function factoryFunctionExamples() {
+  // FIXED: Use correct layer reference
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("layer"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var d = executeActionGet(r);
 
   var answers = {
@@ -106,7 +109,7 @@ function factoryFunctionExamples() {
     rightBound: P.bounds('right').extract<number>(d),
     bottomBound: P.bounds('bottom').extract<number>(d),
 
-    // Using P.textStyle() factory  
+    // FIXED: Using P.textStyle() factory with corrected textKey navigation
     fontName: P.textStyle('fontName', 'string', 0).extract<string>(d),
     fontSize: P.textStyle('sizeKey', 'double', 0).round(1).extract<number>(d),
 
@@ -121,45 +124,74 @@ function factoryFunctionExamples() {
 // === TUPLE DESTRUCTURING FOR LISTS ===
 
 function tupleDestructuringExamples() {
+  // FIXED: Use correct document reference for document-level properties
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("document"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
   var d = executeActionGet(r);
 
-  // Extract exactly 4 bullet point styles as tuple
-  var bulletStyleExtractor = ActionDescriptorPath.create()
-    .object("text")
-    .list("paragraphStyleRange")
-    .extractAsTuple("paragraphStyle.listStyleType", "enumerated", 4, "none");
-  var bulletResults = bulletStyleExtractor.extractAsTuple<[string, string, string, string]>(d, 4, "none");
+  // FIXED: Extract bullet point styles using corrected layer reference
+  var layerRef = new ActionReference();
+  layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+  var layerDesc = executeActionGet(layerRef);
+
+  // FIXED: Extract exactly 4 bullet point styles using direct method
+  var bulletResults = ActionDescriptorPath.create().extractTextStyleValues<string>(
+    "paragraphStyle.listStyleType", "enumerated", 4, "none"
+  );
   var bullet1 = bulletResults[0];
   var bullet2 = bulletResults[1];
   var bullet3 = bulletResults[2];
   var bullet4 = bulletResults[3];
 
-  // Extract 3 layer names as tuple
-  var layerNameExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAsTuple("name", "string", 3, "Unnamed Layer");
-  var layerResults = layerNameExtractor.extractAsTuple<[string, string, string]>(d, 3, "Unnamed Layer");
+  // FIXED: Extract 3 layer names using corrected method
+  var layerResults = ActionDescriptorPath.create().extractLayerTuple(3, "Unnamed Layer");
   var layer1Name = layerResults[0];
   var layer2Name = layerResults[1];
   var layer3Name = layerResults[2];
 
-  // Extract font sizes for first 4 text layers
-  var fontSizeExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAsTuple("text.textStyleRange.0.textStyle.sizeKey", "double", 4, 12.0);
-  var fontSizeResults = fontSizeExtractor.round(1).extractAsTuple<[number, number, number, number]>(d, 4, 12.0);
+  // FIXED: Extract font sizes using proper layer iteration
+  var fontSizeResults = [];
+  var layerCount = ActionDescriptorPath.create().getLayerCount();
+  for (var i = 1; i <= Math.min(4, layerCount); i++) {
+    try {
+      var lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      var lDesc = executeActionGet(lRef);
+      var fontSize = P.textStyle('sizeKey', 'double', 0).round(1).defaultTo(12.0).extract<number>(lDesc);
+      fontSizeResults.push(fontSize);
+    } catch (error) {
+      fontSizeResults.push(12.0);
+    }
+  }
+  while (fontSizeResults.length < 4) {
+    fontSizeResults.push(12.0);
+  }
   var fontSize1 = fontSizeResults[0];
   var fontSize2 = fontSizeResults[1];
   var fontSize3 = fontSizeResults[2];
   var fontSize4 = fontSizeResults[3];
 
-  // Extract opacity values for exactly 5 layers
-  var opacityExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAsTuple("opacity", "double", 5, 1.0);
-  var opacityResults = opacityExtractor.toPercentage().round().extractAsTuple<[number, number, number, number, number]>(d, 5, 100);
+  // FIXED: Extract opacity values for exactly 5 layers
+  var opacityResults = [];
+  for (var i = 1; i <= Math.min(5, layerCount); i++) {
+    try {
+      var lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      var lDesc = executeActionGet(lRef);
+      var opacity = ActionDescriptorPath.create()
+        .value("opacity", "double")
+        .toPercentage()
+        .round()
+        .defaultTo(100)
+        .extract<number>(lDesc);
+      opacityResults.push(opacity);
+    } catch (error) {
+      opacityResults.push(100);
+    }
+  }
+  while (opacityResults.length < 5) {
+    opacityResults.push(100);
+  }
   var op1 = opacityResults[0];
   var op2 = opacityResults[1];
   var op3 = opacityResults[2];
@@ -177,45 +209,83 @@ function tupleDestructuringExamples() {
 // === DYNAMIC/UNKNOWN QUANTITY EXTRACTION ===
 
 function dynamicListExtraction() {
+  // FIXED: Use correct document reference
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("document"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
   var d = executeActionGet(r);
 
-  // SCENARIO 1: Extract all bullet points (unknown quantity) as object
-  var bulletStyleExtractor = ActionDescriptorPath.create()
-    .object("text")
-    .list("paragraphStyleRange")
-    .extractAllAsObject("paragraphStyle.listStyleType", "enumerated", "bullet");
-  var bulletStyles = bulletStyleExtractor.extractAllAsObject<Record<string, string>>(d, "bullet");
+  // FIXED: For text properties, use layer reference
+  var layerRef = new ActionReference();
+  layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+  var layerDesc = executeActionGet(layerRef);
 
-  // Result: { bullet1: "bullet", bullet2: "numbered", bullet3: "bullet" }
-  // Can destructure: const { bullet1, bullet2, bullet3 } = bulletStyles;
+  // SCENARIO 1: Extract all bullet points from current text layer
+  var bulletStyles = {};
+  try {
+    var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
+    var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
+    
+    for (var i = 0; i < paragraphStyleRanges.count; i++) {
+      try {
+        var range = paragraphStyleRanges.getObjectValue(i);
+        var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
+        var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
+        bulletStyles["bullet" + (i + 1)] = typeIDToStringID(listStyleType) || "plain";
+      } catch (error) {
+        bulletStyles["bullet" + (i + 1)] = "plain";
+      }
+    }
+  } catch (error) {
+    bulletStyles = { bullet1: "plain", bullet2: "plain" };
+  }
 
-  // SCENARIO 2: Extract all layer names (unknown quantity) as array but ensure minimum 3
-  var layerNameExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAllWithMinimum("name", "string", 3, "Missing Layer");
-  var layerNames = layerNameExtractor.extractAllWithMinimum<string>(d, 3, "Missing Layer");
+  // SCENARIO 2: Extract all layer names using corrected method
+  var layerNames = ActionDescriptorPath.create().extractAllLayerNames();
 
-  // If document has 2 layers, result: ["Layer 1", "Layer 2", "Missing Layer"]
-  // If document has 5 layers, result: ["Layer 1", "Layer 2", "Layer 3", "Layer 4", "Layer 5"]
+  // Ensure minimum 3 layers
+  while (layerNames.length < 3) {
+    layerNames.push("Missing Layer");
+  }
 
-  // SCENARIO 3: Extract all font names but limit to first 6
-  var fontExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAllUpTo("text.textStyleRange.0.textStyle.fontName", "string", 6);
-  var fontNames = fontExtractor.extractAllUpTo<string>(d, 6);
+  // SCENARIO 3: Extract font names from up to 6 layers
+  var fontNames = [];
+  var layerCount = ActionDescriptorPath.create().getLayerCount();
+  for (var i = 1; i <= Math.min(6, layerCount); i++) {
+    try {
+      var lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      var lDesc = executeActionGet(lRef);
+      var fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
+      fontNames.push(fontName);
+    } catch (error) {
+      fontNames.push("Unknown");
+    }
+  }
 
-  // Result: ["Arial", "Helvetica", "Times", "Courier", "Georgia", "Verdana"] (max 6)
+  // SCENARIO 4: Extract filter brightness values
+  var allBrightness = [];
+  try {
+    var smartObjectMore = layerDesc.getObjectValue(stringIDToTypeID("smartObjectMore"));
+    var filterFXList = smartObjectMore.getList(stringIDToTypeID("filterFXList"));
+    
+    for (var i = 0; i < Math.min(8, filterFXList.count); i++) {
+      try {
+        var filter = filterFXList.getObjectValue(i);
+        var brightness = filter.getInteger(stringIDToTypeID("brightness"));
+        allBrightness.push(brightness);
+      } catch (error) {
+        allBrightness.push(0);
+      }
+    }
+  } catch (error) {
+    // No filters found
+  }
 
-  // SCENARIO 4: Extract all filter brightness values as dynamic tuple
-  var brightnessExtractor = ActionDescriptorPath.create()
-    .object("smartObjectMore")
-    .list("filterFXList")
-    .extractAllAsDynamicTuple("filter.brightness", "integer", 8, 0);
-  var allBrightness = brightnessExtractor.extractAllAsDynamicTuple<number>(d, 8, 0);
+  // Pad to 8 elements
+  while (allBrightness.length < 8) {
+    allBrightness.push(0);
+  }
 
-  // Can destructure unknown quantity (padded to 8):
   var bright1 = allBrightness[0];
   var bright2 = allBrightness[1];
   var bright3 = allBrightness[2];
@@ -236,54 +306,85 @@ function dynamicListExtraction() {
 // === DESTRUCTURING UNKNOWN QUANTITIES ===
 
 function destructuringUnknownQuantities() {
+  // FIXED: Use correct document reference
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("document"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
   var d = executeActionGet(r);
 
+  // FIXED: Use layer reference for layer properties
+  var layerRef = new ActionReference();
+  layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+  var layerDesc = executeActionGet(layerRef);
+
   // Method 1: Object destructuring with dynamic keys
-  var bulletExtractor = ActionDescriptorPath.create()
-    .object("text")
-    .list("paragraphStyleRange")
-    .extractAllAsObject("paragraphStyle.listStyleType", "enumerated", "style");
-  var bulletObject = bulletExtractor.extractAllAsObject<Record<string, string>>(d, "style");
+  var bulletObject = {};
+  try {
+    var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
+    var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
+    
+    for (var i = 0; i < Math.min(5, paragraphStyleRanges.count); i++) {
+      try {
+        var range = paragraphStyleRanges.getObjectValue(i);
+        var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
+        var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
+        bulletObject["style" + (i + 1)] = typeIDToStringID(listStyleType) || "none";
+      } catch (error) {
+        bulletObject["style" + (i + 1)] = "none";
+      }
+    }
+  } catch (error) {
+    for (var i = 1; i <= 5; i++) {
+      bulletObject["style" + i] = "none";
+    }
+  }
 
-  // Destructure dynamically found items
-  var style1 = bulletObject.style1 || "none";
-  var style2 = bulletObject.style2 || "none";
-  var style3 = bulletObject.style3 || "none";
-  var style4 = bulletObject.style4 || "none";
-  var style5 = bulletObject.style5 || "none";
+  var style1 = bulletObject["style1"] || "none";
+  var style2 = bulletObject["style2"] || "none";
+  var style3 = bulletObject["style3"] || "none";
+  var style4 = bulletObject["style4"] || "none";
+  var style5 = bulletObject["style5"] || "none";
 
-  // Method 2: Array destructuring with rest operator
-  var fontSizeExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAllAsDynamicTuple("text.textStyleRange.0.textStyle.sizeKey", "double", 10, 12.0);
-  var allFontSizes = fontSizeExtractor.round(1).extractAllAsDynamicTuple<number>(d, 10, 12.0);
+  // Method 2: Array with rest operator simulation
+  var allFontSizes = [];
+  var layerCount = ActionDescriptorPath.create().getLayerCount();
+  for (var i = 1; i <= Math.min(10, layerCount); i++) {
+    try {
+      var lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      var lDesc = executeActionGet(lRef);
+      var fontSize = P.textStyle('sizeKey', 'double', 0).round(1).defaultTo(12.0).extract<number>(lDesc);
+      allFontSizes.push(fontSize);
+    } catch (error) {
+      allFontSizes.push(12.0);
+    }
+  }
+  while (allFontSizes.length < 10) {
+    allFontSizes.push(12.0);
+  }
 
-  // Extract first few, rest in array
   var firstSize = allFontSizes[0];
   var secondSize = allFontSizes[1];
   var thirdSize = allFontSizes[2];
   var restSizes = allFontSizes.slice(3);
 
   // Method 3: Metadata extraction for complex scenarios
-  var layerExtractor = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAllWithMetadata("name", "string");
-  var layerMetadata = layerExtractor.extractAllWithMetadata<string>(d);
-
-  // layerMetadata = {
-  //   values: ["Background", "Text", "Effects"],
-  //   count: 3,
-  //   indices: [0, 1, 2],
-  //   isEmpty: false,
-  //   hasMinimum: (min) => count >= min
-  // }
+  var layerNames = ActionDescriptorPath.create().extractAllLayerNames();
+  var layerMetadata = {
+    values: layerNames,
+    count: layerNames.length,
+    indices: [],
+    isEmpty: layerNames.length === 0,
+    hasMinimum: function (min) { return layerNames.length >= min; }
+  };
+  
+  for (var i = 0; i < layerNames.length; i++) {
+    layerMetadata.indices.push(i);
+  }
 
   var hasEnoughLayers = layerMetadata.hasMinimum(3);
-  var firstLayer = layerMetadata.values[0];
-  var secondLayer = layerMetadata.values[1];
-  var thirdLayer = layerMetadata.values[2];
+  var firstLayer = layerMetadata.values[0] || "Missing";
+  var secondLayer = layerMetadata.values[1] || "Missing";
+  var thirdLayer = layerMetadata.values[2] || "Missing";
 
   return {
     // Individual bullet styles (unknown quantity)
@@ -311,8 +412,9 @@ function destructuringUnknownQuantities() {
 // === SAFE EXTRACTION PATTERNS ===
 
 function safeExtractionPatterns() {
+  // FIXED: Use correct layer reference
   var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("layer"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
+  r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
   var d = executeActionGet(r);
 
   // Pattern 1: Try extraction with fallback
@@ -332,9 +434,9 @@ function safeExtractionPatterns() {
     .value("contrast", "integer")
     .extractOr(d, 0);
 
-  // Pattern 3: Extract with default defined in path
+  // Pattern 3: Extract with default defined in path using corrected textKey
   var fontSize = ActionDescriptorPath.create()
-    .object("text")
+    .object("textKey")  // FIXED: Use textKey
     .list("textStyleRange")
     .at(0)
     .object("textStyle")
@@ -342,12 +444,8 @@ function safeExtractionPatterns() {
     .defaultTo(12.0)
     .extract<number>(d);
 
-  // Pattern 4: Safe list extraction
-  var layerNames = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAll("name", "string")
-    .skipErrors("Unnamed")
-    .extractAll<string>(d);
+  // Pattern 4: Safe layer extraction using corrected method
+  var layerNames = ActionDescriptorPath.create().extractAllLayerNames();
 
   return { brightness: brightness, contrast: contrast, fontSize: fontSize, layerNames: layerNames };
 }
@@ -381,27 +479,43 @@ interface TestAnswers {
 }
 
 function comprehensiveScoring(): TestAnswers {
-  // Get document reference
-  var r = new ActionReference();
-  r.putEnumerated(stringIDToTypeID("document"), stringIDToTypeID("ordinal"), stringIDToTypeID("targetEnum"));
-  var d = executeActionGet(r);
+  // FIXED: Get document reference for document properties
+  var docRef = new ActionReference();
+  docRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+  var docDesc = executeActionGet(docRef);
+
+  // FIXED: Get layer reference for layer properties
+  var layerRef = new ActionReference();
+  layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+  var layerDesc = executeActionGet(layerRef);
 
   // Extract RGB color values as tuple - simplified for ES5
   var textColorResult = ActionDescriptorPath.create()
-    .object("text")
+    .object("textKey")  // FIXED: Use textKey
     .list("textStyleRange")
     .at(0)
     .object("textStyle")
     .object("color")
-    .extractOr(d, [0, 0, 0]);
+    .extractOr(layerDesc, [0, 0, 0]);
 
-  // Calculate average opacity - ES5 compatible
-  var opacities = ActionDescriptorPath.create()
-    .list("layers")
-    .extractAll("opacity", "double")
-    .toPercentage()
-    .skipErrors(100)
-    .extractAll<number>(d);
+  // Calculate average opacity - ES5 compatible using corrected layer iteration
+  var opacities = [];
+  var layerCount = ActionDescriptorPath.create().getLayerCount();
+  for (var i = 1; i <= layerCount; i++) {
+    try {
+      var lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      var lDesc = executeActionGet(lRef);
+      var opacity = ActionDescriptorPath.create()
+        .value("opacity", "double")
+        .toPercentage()
+        .defaultTo(100)
+        .extract<number>(lDesc);
+      opacities.push(opacity);
+    } catch (error) {
+      opacities.push(100);
+    }
+  }
 
   var averageOpacity = 100;
   if (opacities.length > 0) {
@@ -413,30 +527,74 @@ function comprehensiveScoring(): TestAnswers {
   }
 
   // Check for Arial font - ES5 compatible
-  var hasArialFont = ActionDescriptorPath.create()
-    .list("layers")
-    .extractFirst("text.textStyleRange.0.textStyle.fontName", "string", function (font: string) { return font === "Arial"; })
-    .extractFirst<string>(d) !== null;
+  var hasArialFont = false;
+  for (var i = 1; i <= layerCount; i++) {
+    try {
+      var lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      var lDesc = executeActionGet(lRef);
+      var fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
+      if (fontName === "Arial") {
+        hasArialFont = true;
+        break;
+      }
+    } catch (error) {
+      // Continue checking
+    }
+  }
+
+  // Extract bullet point styles
+  var bulletPointStyles = [];
+  try {
+    var textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
+    var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
+    
+    for (var i = 0; i < paragraphStyleRanges.count; i++) {
+      try {
+        var range = paragraphStyleRanges.getObjectValue(i);
+        var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
+        var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
+        var styleString = typeIDToStringID(listStyleType) || "plain";
+        if (styleString.indexOf("bullet") !== -1) {
+          bulletPointStyles.push(styleString);
+        }
+      } catch (error) {
+        // Skip this style
+      }
+    }
+  } catch (error) {
+    // No text layer
+  }
+
+  // Get filter count
+  var filterCount = 0;
+  try {
+    var smartObjectMore = layerDesc.getObjectValue(stringIDToTypeID("smartObjectMore"));
+    var filterFXList = smartObjectMore.getList(stringIDToTypeID("filterFXList"));
+    filterCount = filterFXList.count;
+  } catch (error) {
+    filterCount = 0;
+  }
 
   // Extract all values for comprehensive scoring
   var answers: TestAnswers = {
-    // Basic document dimensions (converted from points to pixels)
-    documentWidth: P.bounds('width').extract<number>(d),
-    documentHeight: P.bounds('height').extract<number>(d),
+    // FIXED: Basic document dimensions using document reference
+    documentWidth: P.bounds('width').extractOr(docDesc, 0),
+    documentHeight: P.bounds('height').extractOr(docDesc, 0),
 
-    // Text layer properties
+    // FIXED: Text layer properties using corrected textKey navigation
     textContent: P.textStyle('text', 'string', 0)
       .defaultTo("No text found")
-      .extract<string>(d),
+      .extract<string>(layerDesc),
 
     fontFamily: P.textStyle('fontName', 'string', 0)
       .defaultTo("Unknown")
-      .extract<string>(d),
+      .extract<string>(layerDesc),
 
     fontSize: P.textStyle('sizeKey', 'double', 0)
       .round(1)
       .defaultTo(12)
-      .extract<number>(d),
+      .extract<number>(layerDesc),
 
     // Extract RGB color values as tuple
     textColor: textColorResult as [number, number, number],
@@ -444,36 +602,23 @@ function comprehensiveScoring(): TestAnswers {
     // Filter effect values
     brightnessValue: P.filter('brightness', 'integer', 0)
       .defaultTo(0)
-      .extract<number>(d),
+      .extract<number>(layerDesc),
 
     contrastValue: P.filter('contrast', 'integer', 0)
       .defaultTo(0)
-      .extract<number>(d),
+      .extract<number>(layerDesc),
 
-    // List extractions
-    allLayerNames: ActionDescriptorPath.create()
-      .list("layers")
-      .extractAll("name", "string")
-      .skipErrors("Unnamed Layer")
-      .extractAll<string>(d),
+    // FIXED: List extractions using corrected methods
+    allLayerNames: ActionDescriptorPath.create().extractAllLayerNames(),
 
-    bulletPointStyles: ActionDescriptorPath.create()
-      .object("text")
-      .list("paragraphStyleRange")
-      .extractWhere("paragraphStyle.listStyleType", "enumerated", function (style: string) { return style.indexOf("bullet") !== -1; })
-      .extractAll<string>(d),
+    bulletPointStyles: bulletPointStyles,
 
-    layerCount: ActionDescriptorPath.create()
-      .list("layers")
-      .getCount(d),
+    layerCount: layerCount,
 
     // Advanced calculations
     averageOpacity: averageOpacity,
     hasArialFont: hasArialFont,
-    filterCount: ActionDescriptorPath.create()
-      .object("smartObjectMore")
-      .list("filterFXList")
-      .getCount(d)
+    filterCount: filterCount
   };
 
   return answers;

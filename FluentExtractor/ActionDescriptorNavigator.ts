@@ -1,7 +1,18 @@
 /**
  * CORRECTED ActionDescriptor navigation utilities for Photoshop document analysis
  * FIXES: Proper ActionReference patterns and navigation based on research
+ * FINAL VERSION: All patterns consistent with corrected PathAccessor
  */
+
+interface ValueTransformer {
+  (value: any): any;
+}
+
+interface ComparisonOptions {
+  tolerance?: number;
+  transformer?: ValueTransformer;
+  defaultValue?: any;
+}
 
 interface ValueTransformer {
   (value: any): any;
@@ -211,6 +222,71 @@ class ActionDescriptorNavigator {
       };
     } catch (error) {
       return null;
+    }
+  }
+
+  /**
+   * FIXED: Get layer count using proper document reference pattern
+   */
+  getLayerCount(): number {
+    var ref = new ActionReference();
+    ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
+    ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+    return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
+  }
+
+  /**
+   * FIXED: Extract all layer names using correct iteration pattern
+   */
+  extractAllLayerNames(): string[] {
+    var results: string[] = [];
+    var layerCount = this.getLayerCount();
+    
+    for (var i = 1; i <= layerCount; i++) {
+      try {
+        var layerRef = new ActionReference();
+        layerRef.putIndex(charIDToTypeID("Lyr "), i);
+        var layerDesc = executeActionGet(layerRef);
+        var name = layerDesc.getString(stringIDToTypeID("name"));
+        results.push(name);
+      } catch (error) {
+        results.push("Layer " + i);
+      }
+    }
+    return results;
+  }
+
+  /**
+   * FIXED: Extract bullet styles using corrected textKey navigation
+   */
+  extractBulletStyles(count: number = 4, defaultValue: string = "plain"): string[] {
+    try {
+      var textKey = this.desc.getObjectValue(stringIDToTypeID("textKey"));
+      var paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
+      var results: string[] = [];
+      
+      for (var i = 0; i < Math.min(count, paragraphStyleRanges.count); i++) {
+        try {
+          var range = paragraphStyleRanges.getObjectValue(i);
+          var paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
+          var listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
+          results.push(typeIDToStringID(listStyleType) || defaultValue);
+        } catch (error) {
+          results.push(defaultValue);
+        }
+      }
+      
+      while (results.length < count) {
+        results.push(defaultValue);
+      }
+      
+      return results;
+    } catch (error) {
+      var fallbackResults = [];
+      for (var i = 0; i < count; i++) {
+        fallbackResults.push(defaultValue);
+      }
+      return fallbackResults;
     }
   }
 }

@@ -39,13 +39,9 @@ import { ListValueExtractor } from "./ListExtractors";
 ### Basic Value Extraction
 
 ```typescript
-// Get document reference
+// FIXED: Get layer reference using correct pattern
 const r = new ActionReference();
-r.putEnumerated(
-  stringIDToTypeID("layer"),
-  stringIDToTypeID("ordinal"),
-  stringIDToTypeID("targetEnum")
-);
+r.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
 const d = executeActionGet(r);
 
 // Extract single values
@@ -58,7 +54,7 @@ const answers = {
     .extract<number>(d),
 
   fontSize: ActionDescriptorPath.create()
-    .object("text")
+    .object("textKey")  // FIXED: Use textKey not text
     .list("textStyleRange")
     .at(0)
     .object("textStyle")
@@ -127,12 +123,11 @@ The main fluent interface for navigating ActionDescriptor structures.
 Extract individual list items as tuples for precise testing:
 
 ```typescript
-// Extract exactly 4 bullet point styles as individual variables
-const [bullet1, bullet2, bullet3, bullet4] = ActionDescriptorPath.create()
-  .object("text")
-  .list("paragraphStyleRange")
-  .extractAsTuple("paragraphStyle.listStyleType", "enumerated", 4, "plain")
-  .extractAll<[string, string, string, string]>(d);
+// FIXED: Extract exactly 4 bullet point styles as individual variables
+const bulletResults = ActionDescriptorPath.create().extractTextStyleValues<string>(
+  "paragraphStyle.listStyleType", "enumerated", 4, "plain"
+);
+const [bullet1, bullet2, bullet3, bullet4] = bulletResults;
 
 // Now you can assign each to specific answer properties
 answers.firstBulletStyle = bullet1; // Did they make item 1 a bullet?
@@ -140,37 +135,42 @@ answers.secondBulletStyle = bullet2; // Did they make item 2 a bullet?
 answers.thirdBulletStyle = bullet3; // Did they make item 3 numbered?
 answers.fourthBulletStyle = bullet4; // Did they make item 4 numbered?
 
-// Extract 3 layer names as tuple
-const [layer1, layer2, layer3] = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAsTuple("name", "string", 3, "Unnamed")
-  .extractAll<[string, string, string]>(d);
+// FIXED: Extract 3 layer names as tuple using corrected method
+const layerNames = ActionDescriptorPath.create().extractLayerTuple(3, "Unnamed");
+const [layer1, layer2, layer3] = layerNames;
 
-// Extract font sizes with transformation
-const [fontSize1, fontSize2, fontSize3] = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAsTuple("text.textStyleRange.0.textStyle.sizeKey", "double", 3, 12.0)
-  .round(1)
-  .extractAll<[number, number, number]>(d);
+// FIXED: Extract font sizes with transformation using corrected patterns
+const fontSizes = [];
+const layerCount = ActionDescriptorPath.create().getLayerCount();
+for (let i = 1; i <= Math.min(3, layerCount); i++) {
+  try {
+    const lRef = new ActionReference();
+    lRef.putIndex(charIDToTypeID("Lyr "), i);
+    const lDesc = executeActionGet(lRef);
+    const fontSize = P.textStyle('sizeKey', 'double', 0).round(1).defaultTo(12).extract<number>(lDesc);
+    fontSizes.push(fontSize);
+  } catch (error) {
+    fontSizes.push(12);
+  }
+}
+const [fontSize1, fontSize2, fontSize3] = fontSizes;
 ```
 
 ### List Extraction Methods
 
 ```typescript
-// Extract fixed number as tuple
-.extractAsTuple<T>(subPath, valueType, count, fillValue?)
+// FIXED: Use direct extraction methods that return values immediately
+// Extract fixed number as tuple for layer names
+const layerNames = ActionDescriptorPath.create().extractLayerTuple(count, defaultValue);
 
-// Extract exactly N items with padding
-.extractExactly<T>(subPath, valueType, count, defaultValue?)
+// Extract all layer names
+const allLayerNames = ActionDescriptorPath.create().extractAllLayerNames();
 
-// Extract all items (variable length)
-.extractAll<T>(subPath, valueType, options?)
+// Extract text style values from current layer
+const textValues = ActionDescriptorPath.create().extractTextStyleValues(subPath, valueType, count, defaultValue);
 
-// Extract items matching condition
-.extractWhere<T>(subPath, valueType, predicate, options?)
-
-// Extract first matching item
-.extractFirst<T>(subPath, valueType, predicate?, options?)
+// Extract values from standard list with error handling
+const listValues = ActionDescriptorPath.create().extractAllFromList(subPath, valueType, skipErrors, defaultValue);
 ```
 
 ### Tuple and Object Extraction
@@ -201,232 +201,96 @@ const bounds = ActionDescriptorNavigator.from(r)
 
 Perfect for scenarios where you don't know how many items exist but want to extract all of them:
 
-### Extract All as Object (Dynamic Destructuring)
+### Extract All Layer Names
 
 ```typescript
-// Extract all bullet points (unknown quantity) as object
-const bulletStyles = ActionDescriptorPath.create()
-  .object("text")
-  .list("paragraphStyleRange")
-  .extractAllAsObject("paragraphStyle.listStyleType", "enumerated", "bullet")
-  .extractAll<Record<string, string>>(d);
+// FIXED: Extract all layer names using corrected method
+const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
 
+// Result: ["Background", "Text Layer", "Effects", "Adjustment Layer"]
+// Destructure with defaults:
+const [
+  backgroundLayer = "Missing",
+  textLayer = "Missing", 
+  effectsLayer = "Missing",
+  adjustmentLayer = "Missing",
+  ...extraLayers
+] = layerNames;
+
+// Or get exact count needed
+const layerTuple = ActionDescriptorPath.create().extractLayerTuple(4, "Missing Layer");
+const [layer1, layer2, layer3, layer4] = layerTuple;
+```
+
+### Extract All Bullet Styles
+
+```typescript
+// FIXED: Extract all bullet points using corrected textKey navigation
+function extractAllBulletStyles(layerDesc: ActionDescriptor): Record<string, string> {
+  const bulletStyles = {};
+  try {
+    const textKey = layerDesc.getObjectValue(stringIDToTypeID("textKey"));
+    const paragraphStyleRanges = textKey.getList(stringIDToTypeID("paragraphStyleRange"));
+    
+    for (let i = 0; i < paragraphStyleRanges.count; i++) {
+      try {
+        const range = paragraphStyleRanges.getObjectValue(i);
+        const paragraphStyle = range.getObjectValue(stringIDToTypeID("paragraphStyle"));
+        const listStyleType = paragraphStyle.getEnumerationValue(stringIDToTypeID("listStyleType"));
+        bulletStyles[`bullet${i + 1}`] = typeIDToStringID(listStyleType) || "plain";
+      } catch (error) {
+        bulletStyles[`bullet${i + 1}`] = "plain";
+      }
+    }
+  } catch (error) {
+    // No text content
+  }
+  return bulletStyles;
+}
+
+// Usage:
+const bulletObject = extractAllBulletStyles(layerDesc);
 // Result: { bullet1: "bullet", bullet2: "numbered", bullet3: "bullet" }
+
 // Destructure with defaults:
 const {
   bullet1 = "none",
   bullet2 = "none",
   bullet3 = "none",
   bullet4 = "none",
-} = bulletStyles;
-
-// Or spread into answer object:
-const answers = {
-  ...bulletStyles, // Adds bullet1, bullet2, bullet3, etc.
-  bulletCount: Object.keys(bulletStyles).length,
-};
+} = bulletObject;
 ```
 
-### Extract All with Minimum Guarantee
+### Extract Font Information from Multiple Layers
 
 ```typescript
-// Extract all layer names, ensure at least 3 exist
-const layerNames = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAllWithMinimum("name", "string", 3, "Missing Layer")
-  .extractAll<string>(d);
+// FIXED: Extract font information using corrected layer iteration
+function extractFontInformation(maxLayers: number = 6): string[] {
+  const fontNames = [];
+  const layerCount = ActionDescriptorPath.create().getLayerCount();
+  
+  for (let i = 1; i <= Math.min(maxLayers, layerCount); i++) {
+    try {
+      const lRef = new ActionReference();
+      lRef.putIndex(charIDToTypeID("Lyr "), i);
+      const lDesc = executeActionGet(lRef);
+      const fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
+      fontNames.push(fontName);
+    } catch (error) {
+      fontNames.push("Unknown");
+    }
+  }
+  
+  return fontNames;
+}
 
-// If document has 2 layers: ["Layer 1", "Layer 2", "Missing Layer"]
-// If document has 5 layers: ["Layer 1", "Layer 2", "Layer 3", "Layer 4", "Layer 5"]
+// Usage:
+const fontNames = extractFontInformation(5);
+// Result: ["Arial", "Helvetica", "Times", "Courier", "Georgia"]
 
-// Destructure with confidence:
-const [backgroundLayer, textLayer, effectsLayer, ...extraLayers] = layerNames;
+// Destructure:
+const [primaryFont, secondaryFont, tertiaryFont, ...otherFonts] = fontNames;
 ```
-
-### Extract All Up To Maximum
-
-```typescript
-// Extract font names, but limit to first 6 layers
-const fontNames = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAllUpTo("text.textStyleRange.0.textStyle.fontName", "string", 6)
-  .extractAll<string>(d);
-
-// Result: ["Arial", "Helvetica", "Times", "Courier", "Georgia", "Verdana"] (max 6)
-```
-
-### Extract All as Dynamic Tuple
-
-```typescript
-// Extract all filter brightness values as tuple (up to 8, pad with 0)
-const allBrightness = ActionDescriptorPath.create()
-  .object("smartObjectMore")
-  .list("filterFXList")
-  .extractAllAsDynamicTuple("filter.brightness", "integer", 8, 0)
-  .extractAll<number>(d);
-
-// Can destructure unknown quantity (padded to 8):
-const [bright1, bright2, bright3, bright4, bright5, bright6, bright7, bright8] =
-  allBrightness;
-
-// Or extract first few and rest:
-const [primaryBright, secondaryBright, ...otherBrightness] = allBrightness;
-```
-
-### Extract with Metadata
-
-```typescript
-// Extract all layer names with metadata
-const layerMetadata = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAll("name", "string")
-  .extractAllWithMetadata<string>(d);
-
-// Result: {
-//   values: ["Background", "Text", "Effects"],
-//   count: 3,
-//   indices: [0, 1, 2],
-//   isEmpty: false,
-//   hasMinimum: (min) => count >= min
-// }
-
-const hasEnoughLayers = layerMetadata.hasMinimum(3);
-const [firstLayer, secondLayer, thirdLayer] = layerMetadata.values;
-```
-
-## Mixed Known/Unknown Extraction
-
-Handle scenarios with both fixed requirements and variable elements:
-
-```typescript
-// Test requires exactly 3 main layers + any number of additional layers
-
-// Extract first 3 layers (known requirement)
-const [mainLayer1, mainLayer2, mainLayer3] = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAsTuple("name", "string", 3, "Missing Layer")
-  .extractAll<[string, string, string]>(d);
-
-// Extract all additional layers (unknown quantity)
-const additionalLayers = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAll("name", "string")
-  .extractAll<string>(d)
-  .slice(3); // Skip first 3
-
-// Extract all bullet points (unknown quantity) but ensure at least 2
-const allBulletPoints = ActionDescriptorPath.create()
-  .object("text")
-  .list("paragraphStyleRange")
-  .extractAllWithMinimum(
-    "paragraphStyle.listStyleType",
-    "enumerated",
-    2,
-    "plain"
-  )
-  .extractAll<string>(d);
-
-// Take first 2 as required, rest as bonus
-const [requiredBullet1, requiredBullet2, ...bonusBullets] = allBulletPoints;
-
-// Answer assignment
-const answers = {
-  // Fixed requirements
-  mainLayer1Name: mainLayer1,
-  mainLayer2Name: mainLayer2,
-  mainLayer3Name: mainLayer3,
-
-  // Variable elements
-  additionalLayerNames: additionalLayers,
-  additionalLayerCount: additionalLayers.length,
-
-  // Required + bonus
-  firstBulletPoint: requiredBullet1,
-  secondBulletPoint: requiredBullet2,
-  bonusBulletPoints: bonusBullets,
-  totalBulletPoints: allBulletPoints.length,
-};
-```
-
-## Dynamic List Methods
-
-```typescript
-// Extract all as object with numbered keys
-.extractAllAsObject<T>(subPath, valueType, keyPrefix?, options?)
-
-// Extract all with minimum count guarantee
-.extractAllWithMinimum<T>(subPath, valueType, minCount, defaultValue?, options?)
-
-// Extract all up to maximum count
-.extractAllUpTo<T>(subPath, valueType, maxCount, options?)
-
-// Extract all as dynamic tuple (padded to maxCount)
-.extractAllAsDynamicTuple<T>(subPath, valueType, maxCount?, defaultValue?, options?)
-
-// Extract with metadata (count, indices, validation methods)
-.extractAllWithMetadata<T>(subPath, valueType, options?)
-```
-
-## Real-World Testing Scenarios
-
-### Scenario 1: "At least 2 bullet points, don't care about total"
-
-```typescript
-const bulletStyles = ActionDescriptorPath.create()
-  .object("text")
-  .list("paragraphStyleRange")
-  .extractAllWithMinimum(
-    "paragraphStyle.listStyleType",
-    "enumerated",
-    2,
-    "plain"
-  )
-  .extractAll<string>(d);
-
-const [bullet1, bullet2, ...extraBullets] = bulletStyles;
-
-answers.firstBulletStyle = bullet1; // Required
-answers.secondBulletStyle = bullet2; // Required
-answers.extraBulletStyles = extraBullets; // Bonus points
-answers.totalBulletCount = bulletStyles.length;
-```
-
-### Scenario 2: "Extract all layer names, assign to dynamic properties"
-
-```typescript
-const layerObject = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAllAsObject("name", "string", "layer")
-  .extractAll<Record<string, string>>(d);
-
-// Spreads to: layer1, layer2, layer3, etc.
-const answers = {
-  ...layerObject,
-  layerCount: Object.keys(layerObject).length,
-  hasMinimumLayers: Object.keys(layerObject).length >= 3,
-};
-```
-
-### Scenario 3: "Up to 5 font sizes, but could be less"
-
-```typescript
-const fontSizes = ActionDescriptorPath.create()
-  .list("layers")
-  .extractAllUpTo("text.textStyleRange.0.textStyle.sizeKey", "double", 5)
-  .round(1)
-  .extractAll<number>(d);
-
-const answers = {
-  primaryFontSize: fontSizes[0] || 12,
-  secondaryFontSize: fontSizes[1] || 12,
-  tertiaryFontSize: fontSizes[2] || 12,
-  additionalFontSizes: fontSizes.slice(3),
-  fontSizeCount: fontSizes.length,
-  hasVariedSizes: fontSizes.length > 1,
-};
-```
-
-This approach gives you maximum flexibility for handling unknown quantities while still being able to destructure and assign to specific answer properties!
 
 ## Real-World Examples
 
@@ -447,62 +311,93 @@ interface TestAnswers {
 }
 
 function scoreCandidate(): TestAnswers {
-  const r = new ActionReference();
-  r.putEnumerated(
-    stringIDToTypeID("document"),
-    stringIDToTypeID("ordinal"),
-    stringIDToTypeID("targetEnum")
-  );
-  const d = executeActionGet(r);
+  // FIXED: Use correct references for different property types
+  const docRef = new ActionReference();
+  docRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+  const docDesc = executeActionGet(docRef);
+
+  const layerRef = new ActionReference();
+  layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+  const layerDesc = executeActionGet(layerRef);
 
   return {
-    // Document properties
-    documentWidth: P.bounds("width").extract<number>(d),
-    documentHeight: P.bounds("height").extract<number>(d),
+    // FIXED: Document properties from document descriptor
+    documentWidth: ActionDescriptorPath.create()
+      .value('width', 'integer')
+      .extract<number>(docDesc),
+    documentHeight: ActionDescriptorPath.create()
+      .value('height', 'integer')
+      .extract<number>(docDesc),
 
-    // Text properties
-    textContent: P.textStyle("text", "string", 0)
+    // FIXED: Text properties using corrected textKey navigation
+    textContent: ActionDescriptorPath.create()
+      .object("textKey")  // FIXED: Use textKey
+      .value("textKey", "string")
       .defaultTo("")
-      .extract<string>(d),
+      .extract<string>(layerDesc),
     fontFamily: P.textStyle("fontName", "string", 0)
       .defaultTo("Unknown")
-      .extract<string>(d),
+      .extract<string>(layerDesc),
     fontSize: P.textStyle("sizeKey", "double", 0)
       .round(1)
       .defaultTo(12)
-      .extract<number>(d),
+      .extract<number>(layerDesc),
 
     // Filter properties
     brightnessValue: P.filter("brightness", "integer", 0)
       .defaultTo(0)
-      .extract<number>(d),
+      .extract<number>(layerDesc),
     contrastValue: P.filter("contrast", "integer", 0)
       .defaultTo(0)
-      .extract<number>(d),
+      .extract<number>(layerDesc),
 
-    // List properties
-    allLayerNames: ActionDescriptorPath.create()
-      .list("layers")
-      .extractAll("name", "string")
-      .skipErrors("Unnamed")
-      .extractAll<string>(d),
+    // FIXED: List properties using corrected methods
+    allLayerNames: ActionDescriptorPath.create().extractAllLayerNames(),
 
-    // Calculated properties
+    // FIXED: Calculated properties using corrected layer iteration
     averageOpacity: (() => {
-      const opacities = ActionDescriptorPath.create()
-        .list("layers")
-        .extractAll("opacity", "double")
-        .toPercentage()
-        .skipErrors(100)
-        .extractAll<number>(d);
-      return opacities.reduce((sum, op) => sum + op, 0) / opacities.length;
+      const opacities = [];
+      const layerCount = ActionDescriptorPath.create().getLayerCount();
+      
+      for (let i = 1; i <= layerCount; i++) {
+        try {
+          const lRef = new ActionReference();
+          lRef.putIndex(charIDToTypeID("Lyr "), i);
+          const lDesc = executeActionGet(lRef);
+          const opacity = ActionDescriptorPath.create()
+            .value("opacity", "double")
+            .toPercentage()
+            .defaultTo(100)
+            .extract<number>(lDesc);
+          opacities.push(opacity);
+        } catch (error) {
+          opacities.push(100);
+        }
+      }
+      
+      return opacities.length > 0 
+        ? Math.round(opacities.reduce((sum, op) => sum + op, 0) / opacities.length)
+        : 100;
     })(),
 
-    hasArialFont:
-      ActionDescriptorPath.create()
-        .list("layers")
-        .extractFirst("text.textStyleRange.0.textStyle.fontName", "string")
-        .extractFirst<string>(d, (font) => font === "Arial") !== null,
+    hasArialFont: (() => {
+      const layerCount = ActionDescriptorPath.create().getLayerCount();
+      
+      for (let i = 1; i <= layerCount; i++) {
+        try {
+          const lRef = new ActionReference();
+          lRef.putIndex(charIDToTypeID("Lyr "), i);
+          const lDesc = executeActionGet(lRef);
+          const fontName = P.textStyle('fontName', 'string', 0).defaultTo("Unknown").extract<string>(lDesc);
+          if (fontName === "Arial") {
+            return true;
+          }
+        } catch (error) {
+          // Continue checking
+        }
+      }
+      return false;
+    })(),
   };
 }
 ```
@@ -521,7 +416,7 @@ const brightness =
 
 // Pattern 2: Extract with fallback
 const fontSize = ActionDescriptorPath.create()
-  .object("text")
+  .object("textKey")  // FIXED: Use textKey
   .list("textStyleRange")
   .at(0)
   .object("textStyle")
@@ -546,7 +441,7 @@ The library provides several error handling strategies:
 2. **Return Null**: `.tryExtract()` returns null on failure
 3. **Fallback Value**: `.extractOr(fallback)` returns fallback on failure
 4. **Default Value**: `.defaultTo(value)` sets default before extraction
-5. **Skip Errors**: `.skipErrors()` on lists continues processing
+5. **Skip Errors**: Use try-catch blocks around extraction calls
 
 ## Unit Conversion
 
@@ -562,7 +457,6 @@ const widthInPixels = ActionDescriptorPath.create()
 
 // Convert to percentage
 const opacityPercent = ActionDescriptorPath.create()
-  .object("layerEffects")
   .value("opacity", "double")
   .toPercentage()
   .extract<number>(d);
@@ -570,11 +464,21 @@ const opacityPercent = ActionDescriptorPath.create()
 
 ## Best Practices
 
-1. **Use Factory Functions** for common patterns (`P.bounds()`, `P.textStyle()`)
-2. **Chain Transformations** for complex value processing
-3. **Handle Errors Gracefully** with appropriate fallback strategies
-4. **Extract Lists Safely** with `.skipErrors()` when needed
-5. **Use TypeScript Generics** for type safety: `.extract<number>(d)`
+1. **Use Correct References** for different property types:
+   - Document properties: `charIDToTypeID('Dcmn')`
+   - Layer properties: `charIDToTypeID("Lyr ")`
+
+2. **Use Factory Functions** for common patterns (`P.bounds()`, `P.textStyle()`)
+
+3. **Use Correct Navigation Patterns**:
+   - Text properties: `.object("textKey").list("textStyleRange")`
+   - Layer extraction: Use `extractAllLayerNames()` and `extractLayerTuple()`
+
+4. **Chain Transformations** for complex value processing
+
+5. **Handle Errors Gracefully** with appropriate fallback strategies
+
+6. **Use TypeScript Generics** for type safety: `.extract<number>(d)`
 
 ## TypeScript Configuration
 
@@ -611,5 +515,45 @@ Extract metadata and properties from multiple documents for reporting.
 Evaluate candidate work against specific requirements with detailed feedback.
 
 ---
+
+## Fixed Patterns Summary
+
+### ✅ Correct ActionReference Patterns
+
+```typescript
+// For layer properties (bounds, textKey, filters, etc.)
+const layerRef = new ActionReference();
+layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
+const layerDesc = executeActionGet(layerRef);
+
+// For document properties (width, height, etc.)  
+const docRef = new ActionReference();
+docRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+const docDesc = executeActionGet(docRef);
+
+// For specific layer by index
+const layerRef = new ActionReference();
+layerRef.putIndex(charIDToTypeID("Lyr "), layerIndex);
+const layerDesc = executeActionGet(layerRef);
+```
+
+### ✅ Correct Text Navigation
+
+```typescript
+// FIXED: Use textKey for text properties
+P.textStyle('fontName', 'string', 0)  // Uses .object('textKey')
+
+// FIXED: Direct textKey access
+.object("textKey").list("textStyleRange").at(0).object("textStyle")
+```
+
+### ✅ Correct Layer Extraction
+
+```typescript
+// FIXED: Use specialized methods for layers
+const layerNames = ActionDescriptorPath.create().extractAllLayerNames();
+const layerTuple = ActionDescriptorPath.create().extractLayerTuple(3, "Missing");
+const layerCount = ActionDescriptorPath.create().getLayerCount();
+```
 
 This API is designed specifically for precise, all-or-nothing evaluation scenarios like testing, where exact values matter more than fuzzy validation.

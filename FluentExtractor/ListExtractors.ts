@@ -1,6 +1,7 @@
 /**
  * List extraction utilities for getting values from ActionList objects
  * Returns arrays of actual values for assignment to answer objects
+ * FIXED: Resolved TypeScript generic constraint issues
  */
 
 interface ListExtractionOptions extends ComparisonOptions {
@@ -59,15 +60,15 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract fixed number of values as tuple for destructuring
+   * FIXED: Extract fixed number of values as tuple for destructuring
    */
-  extractAsTuple<T extends readonly any[]>(
+  extractAsTuple<T = any>(
     rootDesc: ActionDescriptor,
     count: number,
-    fillValue?: any
-  ): T {
+    fillValue?: T
+  ): T[] {
     var list = this.basePath.extract(rootDesc) as ActionList;
-    var results: any[] = [];
+    var results: T[] = [];
 
     for (var i = 0; i < count; i++) {
       try {
@@ -94,7 +95,7 @@ class ListValueExtractor {
       }
     }
 
-    return results as unknown as T;
+    return results;
   }
 
   /**
@@ -289,7 +290,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract all items as dynamic tuple (up to specified max)
+   * FIXED: Extract all items as dynamic tuple (up to specified max)
    */
   extractAllAsDynamicTuple<T = any>(rootDesc: ActionDescriptor, maxCount: number = 10, defaultValue?: T): T[] {
     var allValues = this.extractAll<T>(rootDesc);
