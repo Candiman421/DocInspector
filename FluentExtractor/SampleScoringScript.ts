@@ -1,7 +1,7 @@
 /**
- * FIXED Sample Photoshop Test Scoring Script
- * Uses corrected ActionManager patterns and fixed PathAccessor methods
- * All method calls updated to match main file signatures
+ * Production-ready Photoshop Test Scoring Script
+ * Uses current ActionManager patterns with emphasis on robust, search-based extraction
+ * UPDATED: Reflects current method signatures and safer extraction patterns
  */
 
 // ExtendScript global function declarations
@@ -21,57 +21,55 @@ interface ExpectedAnswers {
   documentWidth: number;
   documentHeight: number;
   textContent: string;
-  fontFamily: string;
-  fontSize: number;
-  brightnessValue: number;
-  contrastValue: number;
-  bullet1Style: string;
-  bullet2Style: string;
-  bullet3Style: string;
-  bullet4Style: string;
-  layer1Name: string;
-  layer2Name: string;
-  layer3Name: string;
-  textLayer1Font: string;
-  textLayer2Font: string;
-  textLayer3Font: string;
-  fontSize1: number;
-  fontSize2: number;
-  fontSize3: number;
-  opacity1: number;
-  opacity2: number;
-  opacity3: number;
+  primaryFontFamily: string;
+  averageFontSize: number;
+  activeBrightnessFilters: number;
+  hasContrastFilter: boolean;
+  bulletPointsUsed: boolean;
+  numberedListsUsed: boolean;
+  backgroundLayerExists: boolean;
+  textLayerCount: number;
+  hasArialFont: boolean;
   minimumOpacity: number;
-  mustHaveArialFont: boolean;
+  layerNamingConvention: boolean;
 }
 
 interface CandidateAnswers {
   documentWidth: number;
   documentHeight: number;
   textContent: string;
-  fontFamily: string;
-  fontSize: number;
-  brightnessValue: number;
-  contrastValue: number;
-  bullet1Style: string;
-  bullet2Style: string;
-  bullet3Style: string;
-  bullet4Style: string;
-  layer1Name: string;
-  layer2Name: string;
-  layer3Name: string;
-  textLayer1Font: string;
-  textLayer2Font: string;
-  textLayer3Font: string;
-  fontSize1: number;
-  fontSize2: number;
-  fontSize3: number;
-  opacity1: number;
-  opacity2: number;
-  opacity3: number;
-  averageOpacity: number;
+  primaryFontFamily: string;
+  averageFontSize: number;
+  activeBrightnessFilters: number;
+  hasContrastFilter: boolean;
+  bulletPointsUsed: boolean;
+  numberedListsUsed: boolean;
+  backgroundLayerExists: boolean;
+  textLayerCount: number;
   hasArialFont: boolean;
+  averageOpacity: number;
+  layerNamingConvention: boolean;
   layerCount: number;
+  
+  // Detailed analysis
+  allLayerNames: string[];
+  fontAnalysis: FontAnalysis;
+  filterAnalysis: FilterAnalysis;
+}
+
+interface FontAnalysis {
+  fontsUsed: string[];
+  sizesUsed: number[];
+  primaryFont: string;
+  hasConsistentSizing: boolean;
+  hasArial: boolean;
+}
+
+interface FilterAnalysis {
+  brightnessValues: number[];
+  contrastValues: number[];
+  activeFilterCount: number;
+  filterTypes: string[];
 }
 
 interface ScoringResults {
@@ -136,184 +134,212 @@ class PhotoshopTestScorer {
     layerRef.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
     var layerDesc = executeActionGet(layerRef);
 
-    // Extract layer names using corrected method
-    var layerNames = ActionDescriptorPath.create().extractLayerTuple(3, "Unnamed Layer");
-    var layer1Name = layerNames[0];
-    var layer2Name = layerNames[1];
-    var layer3Name = layerNames[2];
+    // ROBUST: Extract layer names safely
+    var allLayerNames = ActionDescriptorPath.create().extractAllLayerNames();
+    
+    // SEARCH-BASED: Analyze layers by pattern instead of index
+    var layerAnalysis = this.analyzeLayerStructure(allLayerNames);
+    
+    // ADVANCED: Font analysis across all layers
+    var fontAnalysis = this.extractFontAnalysis();
+    
+    // ADVANCED: Filter analysis across all layers
+    var filterAnalysis = this.extractFilterAnalysis();
+    
+    // SAFE: Extract text properties from current layer
+    var textContent = ActionDescriptorPath.create()
+      .object("textKey")
+      .value("textKey", "string")
+      .defaultTo("No text found")
+      .extract<string>(layerDesc);
 
-    // FIXED: Extract bullet styles from current text layer using corrected method signature
-    var bulletStyles = ActionDescriptorPath.create().extractTextStyleValues<string>(
-      layerDesc, "paragraphStyle.listStyleType", "enumerated", 4, "plain"
+    // UPDATED: Use static method for bullet analysis
+    var bulletStyles = ActionDescriptorPath.extractTextStyleValues<string>(
+      layerDesc, "paragraphStyle.listStyleType", "enumerated", 10, "plain"
     );
-    var bullet1Style = bulletStyles[0];
-    var bullet2Style = bulletStyles[1];
-    var bullet3Style = bulletStyles[2];
-    var bullet4Style = bulletStyles[3];
+    
+    var bulletAnalysis = this.analyzeBulletStyles(bulletStyles);
 
-    // Extract font information from multiple layers
-    var fontInfo = this.extractFontInformation();
-    var textLayer1Font = fontInfo.fonts[0];
-    var textLayer2Font = fontInfo.fonts[1];
-    var textLayer3Font = fontInfo.fonts[2];
-    var fontSize1 = fontInfo.sizes[0];
-    var fontSize2 = fontInfo.sizes[1];
-    var fontSize3 = fontInfo.sizes[2];
-
-    // Extract opacity information
-    var opacityInfo = this.extractOpacityInformation();
-    var opacity1 = opacityInfo[0];
-    var opacity2 = opacityInfo[1];
-    var opacity3 = opacityInfo[2];
+    // ROBUST: Calculate average opacity across all layers
+    var averageOpacity = this.calculateAverageOpacity();
 
     return {
-      // Document properties using correct reference
-      documentWidth: ActionDescriptorPath.create()
-        .value("width", "integer")
-        .extract<number>(docDesc),
-      
-      documentHeight: ActionDescriptorPath.create()
-        .value("height", "integer")
-        .extract<number>(docDesc),
+      // Document properties
+      documentWidth: P.bounds('width').extractOr(docDesc, 0),
+      documentHeight: P.bounds('height').extractOr(docDesc, 0),
 
-      // Current layer text properties using textKey
-      textContent: ActionDescriptorPath.create()
-        .object("textKey")
-        .value("textKey", "string")
-        .defaultTo("No text found")
-        .extract<string>(layerDesc),
+      // Text properties
+      textContent: textContent,
+      primaryFontFamily: fontAnalysis.primaryFont,
+      averageFontSize: Math.round(fontAnalysis.sizesUsed.reduce(function(sum, size) { 
+        return sum + size; 
+      }, 0) / (fontAnalysis.sizesUsed.length || 1)),
 
-      fontFamily: P.textStyle('fontName', 'string', 0)
-        .defaultTo("Unknown")
-        .extract<string>(layerDesc),
+      // Filter properties (search-based)
+      activeBrightnessFilters: filterAnalysis.brightnessValues.filter(function(v) { return v > 0; }).length,
+      hasContrastFilter: filterAnalysis.contrastValues.some(function(v) { return v !== 0; }),
 
-      fontSize: P.textStyle('size', 'double', 0)
-        .round(1)
-        .defaultTo(12)
-        .extract<number>(layerDesc),
+      // Bullet analysis
+      bulletPointsUsed: bulletAnalysis.hasBullets,
+      numberedListsUsed: bulletAnalysis.hasNumbered,
 
-      // Filter effects
-      brightnessValue: P.filter('brightness', 'integer', 0)
-        .defaultTo(0)
-        .extract<number>(layerDesc),
+      // Layer analysis (search-based)
+      backgroundLayerExists: layerAnalysis.hasBackground,
+      textLayerCount: layerAnalysis.textLayerCount,
+      hasArialFont: fontAnalysis.hasArial,
+      layerNamingConvention: layerAnalysis.followsConvention,
 
-      contrastValue: P.filter('contrast', 'integer', 0)
-        .defaultTo(0)
-        .extract<number>(layerDesc),
+      // Calculated properties
+      averageOpacity: averageOpacity,
+      layerCount: allLayerNames.length,
 
-      // Individual extracted values
-      bullet1Style: bullet1Style,
-      bullet2Style: bullet2Style,
-      bullet3Style: bullet3Style,
-      bullet4Style: bullet4Style,
-
-      layer1Name: layer1Name,
-      layer2Name: layer2Name,
-      layer3Name: layer3Name,
-
-      textLayer1Font: textLayer1Font,
-      textLayer2Font: textLayer2Font,
-      textLayer3Font: textLayer3Font,
-
-      fontSize1: fontSize1,
-      fontSize2: fontSize2,
-      fontSize3: fontSize3,
-
-      opacity1: opacity1,
-      opacity2: opacity2,
-      opacity3: opacity3,
-
-      // Advanced calculations
-      averageOpacity: this.calculateAverageOpacity(),
-      hasArialFont: this.checkForArialFont(),
-      layerCount: ActionDescriptorPath.create().getLayerCount()
+      // Detailed analysis
+      allLayerNames: allLayerNames,
+      fontAnalysis: fontAnalysis,
+      filterAnalysis: filterAnalysis
     };
   }
 
-  private extractFontInformation(): { fonts: string[]; sizes: number[] } {
+  private analyzeLayerStructure(layerNames: string[]) {
+    return {
+      hasBackground: layerNames.some(function(name) { 
+        return /background/i.test(name); 
+      }),
+      textLayerCount: layerNames.filter(function(name) { 
+        return /text/i.test(name); 
+      }).length,
+      followsConvention: layerNames.every(function(name) { 
+        return name.trim().length > 0 && name !== "Layer 1"; 
+      })
+    };
+  }
+
+  private extractFontAnalysis(): FontAnalysis {
     var fonts: string[] = [];
     var sizes: number[] = [];
     var layerCount = ActionDescriptorPath.create().getLayerCount();
     
-    for (var i = 1; i <= Math.min(3, layerCount); i++) {
+    for (var i = 1; i <= layerCount; i++) {
       try {
-        // Use correct layer reference pattern
-        var layerRef = new ActionReference();
-        layerRef.putIndex(charIDToTypeID("Lyr "), i);
-        var layerDesc = executeActionGet(layerRef);
+        var lRef = new ActionReference();
+        lRef.putIndex(charIDToTypeID("Lyr "), i);
+        var lDesc = executeActionGet(lRef);
         
-        var fontName = P.textStyle('fontName', 'string', 0)
-          .defaultTo("Unknown")
-          .extract<string>(layerDesc);
+        // Use safe extraction methods
+        var fontName = P.textStyle('fontName', 'string', 0).tryExtract<string>(lDesc);
+        var fontSize = P.textStyle('sizeKey', 'double', 0).tryExtract<number>(lDesc);
         
-        var fontSize = P.textStyle('size', 'double', 0)
-          .round(1)
-          .defaultTo(12)
-          .extract<number>(layerDesc);
-        
-        fonts.push(fontName);
-        sizes.push(fontSize);
+        if (fontName && fontName !== "") {
+          fonts.push(fontName);
+        }
+        if (fontSize && fontSize > 0) {
+          sizes.push(fontSize);
+        }
       } catch (error) {
-        fonts.push("Unknown");
-        sizes.push(12);
+        // Continue processing other layers
       }
     }
     
-    while (fonts.length < 3) {
-      fonts.push("Unknown");
-      sizes.push(12);
-    }
+    // Analyze font consistency
+    var uniqueFonts = fonts.filter(function(font, index) {
+      return fonts.indexOf(font) === index;
+    });
     
-    return { fonts: fonts, sizes: sizes };
+    var sizeVariation = sizes.length > 1 ? 
+      Math.max.apply(Math, sizes) - Math.min.apply(Math, sizes) : 0;
+    
+    return {
+      fontsUsed: uniqueFonts,
+      sizesUsed: sizes,
+      primaryFont: fonts[0] || "Unknown",
+      hasConsistentSizing: sizeVariation <= 2,
+      hasArial: fonts.indexOf('Arial') !== -1
+    };
   }
 
-  private extractOpacityInformation(): number[] {
-    var results: number[] = [];
+  private extractFilterAnalysis(): FilterAnalysis {
+    var brightnessValues: number[] = [];
+    var contrastValues: number[] = [];
+    var filterTypes: string[] = [];
     var layerCount = ActionDescriptorPath.create().getLayerCount();
     
-    for (var i = 1; i <= Math.min(3, layerCount); i++) {
+    for (var i = 1; i <= layerCount; i++) {
       try {
-        // Use correct layer reference pattern
-        var layerRef = new ActionReference();
-        layerRef.putIndex(charIDToTypeID("Lyr "), i);
-        var layerDesc = executeActionGet(layerRef);
+        var lRef = new ActionReference();
+        lRef.putIndex(charIDToTypeID("Lyr "), i);
+        var lDesc = executeActionGet(lRef);
+        
+        // Use ListExtractor for robust filter analysis
+        var filterExtractor = new ListValueExtractor(
+          ActionDescriptorPath.create().object("smartObjectMore").list("filterFXList"),
+          "brightness",
+          "integer",
+          { skipErrors: true, defaultValue: 0 }
+        );
+        
+        var layerBrightness = filterExtractor.extractAll<number>(lDesc);
+        brightnessValues = brightnessValues.concat(layerBrightness);
+        
+        // Extract contrast values
+        var contrastExtractor = new ListValueExtractor(
+          ActionDescriptorPath.create().object("smartObjectMore").list("filterFXList"),
+          "contrast",
+          "integer",
+          { skipErrors: true, defaultValue: 0 }
+        );
+        
+        var layerContrast = contrastExtractor.extractAll<number>(lDesc);
+        contrastValues = contrastValues.concat(layerContrast);
+        
+      } catch (error) {
+        // Continue processing other layers
+      }
+    }
+    
+    return {
+      brightnessValues: brightnessValues,
+      contrastValues: contrastValues,
+      activeFilterCount: brightnessValues.filter(function(v) { return v !== 0; }).length + 
+                        contrastValues.filter(function(v) { return v !== 0; }).length,
+      filterTypes: [] // Could be extended to detect filter types
+    };
+  }
+
+  private analyzeBulletStyles(bulletStyles: string[]) {
+    return {
+      hasBullets: bulletStyles.indexOf("bullet") !== -1,
+      hasNumbered: bulletStyles.indexOf("numbered") !== -1,
+      bulletCount: bulletStyles.filter(function(style) { return style === "bullet"; }).length,
+      numberedCount: bulletStyles.filter(function(style) { return style === "numbered"; }).length
+    };
+  }
+
+  private calculateAverageOpacity(): number {
+    var opacities: number[] = [];
+    var layerCount = ActionDescriptorPath.create().getLayerCount();
+    
+    for (var i = 1; i <= layerCount; i++) {
+      try {
+        var lRef = new ActionReference();
+        lRef.putIndex(charIDToTypeID("Lyr "), i);
+        var lDesc = executeActionGet(lRef);
         
         var opacity = ActionDescriptorPath.create()
           .value("opacity", "double")
           .toPercentage()
           .round()
-          .extract<number>(layerDesc);
+          .defaultTo(100)
+          .extract<number>(lDesc);
         
-        results.push(opacity);
+        opacities.push(opacity);
       } catch (error) {
-        results.push(100);
+        opacities.push(100);
       }
     }
     
-    while (results.length < 3) {
-      results.push(100);
-    }
-    
-    return results;
-  }
-
-  private calculateAverageOpacity(): number {
-    var opacities = this.extractOpacityInformation();
-    var sum = 0;
-    for (var i = 0; i < opacities.length; i++) {
-      sum += opacities[i];
-    }
-    return Math.round(sum / opacities.length);
-  }
-
-  private checkForArialFont(): boolean {
-    var fontInfo = this.extractFontInformation();
-    for (var i = 0; i < fontInfo.fonts.length; i++) {
-      if (fontInfo.fonts[i] === "Arial") {
-        return true;
-      }
-    }
-    return false;
+    return opacities.length > 0 ? 
+      Math.round(opacities.reduce(function(sum, op) { return sum + op; }, 0) / opacities.length) : 
+      100;
   }
 
   private evaluateAnswers(candidate: CandidateAnswers): TestFeedback[] {
@@ -327,37 +353,25 @@ class PhotoshopTestScorer {
 
     // Text properties
     feedback.push(this.evaluateString("textContent", candidate.textContent, expected.textContent, 10));
-    feedback.push(this.evaluateString("fontFamily", candidate.fontFamily, expected.fontFamily, 10));
-    feedback.push(this.evaluateNumeric("fontSize", candidate.fontSize, expected.fontSize, tolerance, 10));
+    feedback.push(this.evaluateString("primaryFontFamily", candidate.primaryFontFamily, expected.primaryFontFamily, 10));
+    feedback.push(this.evaluateNumeric("averageFontSize", candidate.averageFontSize, expected.averageFontSize, tolerance, 10));
 
-    // Filter effects
-    feedback.push(this.evaluateNumeric("brightnessValue", candidate.brightnessValue, expected.brightnessValue, tolerance, 15));
-    feedback.push(this.evaluateNumeric("contrastValue", candidate.contrastValue, expected.contrastValue, tolerance, 15));
+    // Filter analysis (search-based evaluation)
+    feedback.push(this.evaluateNumeric("activeBrightnessFilters", candidate.activeBrightnessFilters, expected.activeBrightnessFilters, 0, 15));
+    feedback.push(this.evaluateBoolean("hasContrastFilter", candidate.hasContrastFilter, expected.hasContrastFilter, 15));
 
-    // Individual evaluations
-    feedback.push(this.evaluateString("bullet1Style", candidate.bullet1Style, expected.bullet1Style, 5));
-    feedback.push(this.evaluateString("bullet2Style", candidate.bullet2Style, expected.bullet2Style, 5));
-    feedback.push(this.evaluateString("bullet3Style", candidate.bullet3Style, expected.bullet3Style, 5));
-    feedback.push(this.evaluateString("bullet4Style", candidate.bullet4Style, expected.bullet4Style, 5));
+    // Formatting analysis
+    feedback.push(this.evaluateBoolean("bulletPointsUsed", candidate.bulletPointsUsed, expected.bulletPointsUsed, 10));
+    feedback.push(this.evaluateBoolean("numberedListsUsed", candidate.numberedListsUsed, expected.numberedListsUsed, 10));
 
-    feedback.push(this.evaluateString("layer1Name", candidate.layer1Name, expected.layer1Name, 5));
-    feedback.push(this.evaluateString("layer2Name", candidate.layer2Name, expected.layer2Name, 5));
-    feedback.push(this.evaluateString("layer3Name", candidate.layer3Name, expected.layer3Name, 5));
+    // Layer structure (search-based evaluation)
+    feedback.push(this.evaluateBoolean("backgroundLayerExists", candidate.backgroundLayerExists, expected.backgroundLayerExists, 10));
+    feedback.push(this.evaluateNumeric("textLayerCount", candidate.textLayerCount, expected.textLayerCount, 0, 10));
+    feedback.push(this.evaluateBoolean("hasArialFont", candidate.hasArialFont, expected.hasArialFont, 10));
+    feedback.push(this.evaluateBoolean("layerNamingConvention", candidate.layerNamingConvention, expected.layerNamingConvention, 5));
 
-    feedback.push(this.evaluateString("textLayer1Font", candidate.textLayer1Font, expected.textLayer1Font, 5));
-    feedback.push(this.evaluateString("textLayer2Font", candidate.textLayer2Font, expected.textLayer2Font, 5));
-    feedback.push(this.evaluateString("textLayer3Font", candidate.textLayer3Font, expected.textLayer3Font, 5));
-
-    feedback.push(this.evaluateNumeric("fontSize1", candidate.fontSize1, expected.fontSize1, tolerance, 5));
-    feedback.push(this.evaluateNumeric("fontSize2", candidate.fontSize2, expected.fontSize2, tolerance, 5));
-    feedback.push(this.evaluateNumeric("fontSize3", candidate.fontSize3, expected.fontSize3, tolerance, 5));
-
-    feedback.push(this.evaluateNumeric("opacity1", candidate.opacity1, expected.opacity1, tolerance, 3));
-    feedback.push(this.evaluateNumeric("opacity2", candidate.opacity2, expected.opacity2, tolerance, 3));
-    feedback.push(this.evaluateNumeric("opacity3", candidate.opacity3, expected.opacity3, tolerance, 3));
-
+    // Quality metrics
     feedback.push(this.evaluateMinimum("averageOpacity", candidate.averageOpacity, expected.minimumOpacity, 5));
-    feedback.push(this.evaluateBoolean("hasArialFont", candidate.hasArialFont, expected.mustHaveArialFont, 5));
 
     return feedback;
   }
@@ -431,48 +445,46 @@ class PhotoshopTestScorer {
   }
 }
 
-// Sample test configuration
+// Updated test configuration emphasizing search-based evaluation
 var sampleTest: TestSpecification = {
-  name: "Photoshop Layout Test - Individual Item Requirements",
-  description: "Create a 800x600px document with specific formatting requirements",
+  name: "Photoshop Professional Layout Test - Search-Based Evaluation",
+  description: "Create a document with proper structure, evaluated using robust pattern matching",
   expectedAnswers: {
     documentWidth: 800,
     documentHeight: 600,
-    textContent: "Hello World",
-    fontFamily: "Arial",
-    fontSize: 24,
-    brightnessValue: 25,
-    contrastValue: 15,
-    bullet1Style: "bullet",
-    bullet2Style: "bullet",
-    bullet3Style: "numbered",
-    bullet4Style: "numbered",
-    layer1Name: "Background",
-    layer2Name: "Text Layer",
-    layer3Name: "Effects Layer",
-    textLayer1Font: "Arial",
-    textLayer2Font: "Helvetica",
-    textLayer3Font: "Times",
-    fontSize1: 24,
-    fontSize2: 18,
-    fontSize3: 14,
-    opacity1: 100,
-    opacity2: 75,
-    opacity3: 50,
-    minimumOpacity: 25,
-    mustHaveArialFont: true
+    textContent: "Professional Design",
+    primaryFontFamily: "Arial",
+    averageFontSize: 24,
+    activeBrightnessFilters: 2,
+    hasContrastFilter: true,
+    bulletPointsUsed: true,
+    numberedListsUsed: true,
+    backgroundLayerExists: true,
+    textLayerCount: 3,
+    hasArialFont: true,
+    minimumOpacity: 75,
+    layerNamingConvention: true
   },
   tolerance: 2
 };
 
-// Usage function
-function runScoringExample() {
+// Usage function with enhanced error reporting
+function runAdvancedScoringExample() {
   try {
     var scorer = new PhotoshopTestScorer(sampleTest);
     var results = scorer.scoreDocument();
 
     console.log("\n=== " + sampleTest.name + " Results ===");
     console.log("Score: " + results.score + "% (" + (results.passed ? 'PASSED' : 'FAILED') + ")");
+    console.log("Layer Analysis: " + results.candidateAnswers.layerCount + " layers found");
+    console.log("Font Analysis: " + results.candidateAnswers.fontAnalysis.fontsUsed.join(", "));
+    console.log("Filter Analysis: " + results.candidateAnswers.filterAnalysis.activeFilterCount + " active filters");
+    
+    // Detailed feedback
+    console.log("\n=== Detailed Feedback ===");
+    for (var i = 0; i < results.feedback.length; i++) {
+      console.log(results.feedback[i].message);
+    }
     
     return results;
   } catch (error) {
