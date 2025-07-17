@@ -117,21 +117,143 @@ function searchFirstExamples() {
     console.log('- Find shadow distance: ActionDescriptorPath.findFilterByName(desc, "Drop Shadow", "distance", "double")');
     console.log('- Find glow size: ActionDescriptorPath.findFilterByName(desc, "Outer Glow", "blur", "double")');
     
-    // Document-level layer searching  
-    const docNav = ActionDescriptorNavigator.forCurrentDocument();
+// =============================================================================
+// LAYER TARGETING BY NAME EXAMPLES
+// =============================================================================
+
+function layerTargetingExamples() {
+    console.log('=== Layer Targeting by Name Examples ===');
+    
+    // Method 1: Get specific layer by exact name (recommended)
+    function getLayerByName(targetName: string): ActionDescriptorNavigator {
+        const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
+        
+        for (let i = 0; i < layerNames.length; i++) {
+            if (layerNames[i] === targetName) {
+                return ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
+            }
+        }
+        
+        return ActionDescriptorNavigator.createSentinel();
+    }
+    
+    // Method 2: Find layer by pattern matching
+    function findLayerByPattern(namePattern: string): ActionDescriptorNavigator {
+        const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
+        
+        for (let i = 0; i < layerNames.length; i++) {
+            const layerName = layerNames[i].toLowerCase();
+            if (layerName.indexOf(namePattern.toLowerCase()) >= 0) {
+                return ActionDescriptorNavigator.forLayerByIndex(i + 1);
+            }
+        }
+        
+        return ActionDescriptorNavigator.createSentinel();
+    }
+    
+    // Method 3: Find layer with regex
+    function findLayerByRegex(pattern: RegExp): ActionDescriptorNavigator {
+        const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
+        
+        for (let i = 0; i < layerNames.length; i++) {
+            if (pattern.test(layerNames[i])) {
+                return ActionDescriptorNavigator.forLayerByIndex(i + 1);
+            }
+        }
+        
+        return ActionDescriptorNavigator.createSentinel();
+    }
+    
+    // Usage examples:
+    const targetLayer = getLayerByName("TargetTest");
+    const headerLayer = findLayerByPattern("header");
+    const backgroundLayer = findLayerByRegex(/background/i);
+    
+    // Always check if layer was found (sentinel check)
+    const targetExists = targetLayer.getValue('Name', 'string') !== "";
+    const headerExists = headerLayer.getValue('Name', 'string') !== "";
+    
+    console.log('TargetTest layer found: ' + targetExists);
+    console.log('Header layer found: ' + headerExists);
+    
+    if (targetExists) {
+        const opacity = targetLayer.getValue('Opacity', 'integer');
+        const visible = targetLayer.getValue('Visible', 'boolean');
+        console.log('TargetTest - Opacity: ' + opacity + ', Visible: ' + visible);
+    }
+    
+    if (headerExists) {
+        const bounds = headerLayer.getBounds();
+        console.log('Header layer size: ' + bounds.width + 'x' + bounds.height);
+    }
+    
+    // Method 4: Get layer index by name (for when you need the index)
+    function getLayerIndexByName(targetName: string): number {
+        const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
+        
+        for (let i = 0; i < layerNames.length; i++) {
+            if (layerNames[i] === targetName) {
+                return i + 1; // Return 1-based index
+            }
+        }
+        
+        return -1; // Not found
+    }
+    
+    const targetIndex = getLayerIndexByName("TargetTest");
+    console.log('TargetTest layer index: ' + targetIndex); // 1-based index or -1
+}
+
+// =============================================================================
+// SEARCH-FIRST EXAMPLES (ROBUST APPROACH)
+// =============================================================================
+
+function searchFirstExamples() {
+    console.log('=== Search-First Examples ===');
+    
+    // Get current layer for search operations
+    const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+    
+    // Search for text properties by font name (robust against document variations)
+    console.log('Searching for font properties...');
+    
+    // Note: Search methods are static methods on ActionDescriptorPath
+    // They require an ActionDescriptor to search within
+    
+    // For real usage, you would typically search within specific layer descriptors
+    // Since desc property is private, we demonstrate the API patterns
+    
+    console.log('Search patterns available:');
+    console.log('- ActionDescriptorPath.findTextStyleByProperty(desc, "FontName", "Arial", "SizeKey", "double")');
+    console.log('- ActionDescriptorPath.findFilterByName(desc, "Gaussian Blur", "radius", "double")');
+    
+    // Note: To use these search methods, you need access to the ActionDescriptor
+    // Since navigator.desc is private, these are mainly useful when you have
+    // ActionDescriptor objects from other sources
+    
+    console.log('');
+    console.log('For layer targeting, use the direct approaches shown in layerTargetingExamples()');
+    
+    // Demonstrate layer enumeration
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
     console.log('All layer names: ' + layerNames.join(', '));
     
     // Find specific layers
     let headerFound = false;
     let backgroundFound = false;
+    let targetFound = false;
+    
     for (let i = 0; i < layerNames.length; i++) {
         const name = layerNames[i].toLowerCase();
         if (name.indexOf('header') >= 0) headerFound = true;
         if (name.indexOf('background') >= 0) backgroundFound = true;
+        if (name.indexOf('target') >= 0) targetFound = true;
     }
+    
     console.log('Header layer found: ' + headerFound);
     console.log('Background layer found: ' + backgroundFound);
+    console.log('Target layer found: ' + targetFound);
+}
 }
 
 // =============================================================================
@@ -505,6 +627,9 @@ function runAllExamples() {
         console.log('');
         
         fluentAPIExamples();
+        console.log('');
+        
+        layerTargetingExamples();
         console.log('');
         
         searchFirstExamples();
