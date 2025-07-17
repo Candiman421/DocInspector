@@ -157,38 +157,52 @@ function listProcessingExamples() {
     });
     console.log('Large font size found: ' + largeFontSize); // 24 or -1
     
-    // Using ListValueExtractor for more complex list processing
-    console.log('Using ListValueExtractor...');
+    // Note about ListValueExtractor for advanced list processing
+    console.log('About ListValueExtractor...');
+    console.log('ListValueExtractor is for advanced scenarios where you need to:');
+    console.log('- Extract values from nested list structures');
+    console.log('- Apply transformations to extracted values');
+    console.log('- Work with complex path-based extraction');
+    console.log('');
+    console.log('ListExtractor interface pattern:');
+    console.log('const extractor = {');
+    console.log('    extract: function(rootDesc) {');
+    console.log('        // Return raw ActionList or null');
+    console.log('        // Implementation depends on specific list location');
+    console.log('        return actionList;');
+    console.log('    }');
+    console.log('};');
+    console.log('');
+    console.log('Usage: new ListValueExtractor(extractor, "property.path", "double")');
+    console.log('');
     
-    // Create a list extractor for font names from text style ranges
-    // Note: This requires creating a ListExtractor implementation
-    const mockListExtractor = {
-        extract: function(rootDesc) {
-            // This would return the actual ActionList from the descriptor
-            // For demo purposes, we'll use the list navigator we already have
-            return styleList.list; // In real usage, you'd implement proper extraction
+    // Recommended approach: Use ActionListNavigator methods directly
+    console.log('Recommended approach for most scenarios:');
+    if (styleList.count > 0) {
+        // Process list items directly through the navigator - this is the recommended approach
+        const fontNames = styleList.getAllValues('fontName', 'string');
+        const fontSizes = styleList.getAllValues('size', 'double');
+        
+        console.log('Font names found: ' + fontNames.join(', '));
+        console.log('Font sizes found: ' + fontSizes.join(', '));
+        
+        // Find specific values using predicates
+        const largeFontSize = styleList.findValue('size', 'double', function(size) {
+            return size > 20;
+        });
+        console.log('Large font size found: ' + largeFontSize);
+        
+        // Process individual list items
+        for (let i = 0; i < Math.min(styleList.count, 3); i++) { // Limit for demo
+            const item = styleList.getObject(i);
+            const styleNav = item.object('textStyle');
+            const fontName = styleNav.getValue('fontName', 'string');
+            const fontSize = styleNav.getValue('size', 'double');
+            console.log('  Style ' + i + ': ' + fontName + ' ' + fontSize + 'pt');
         }
-    };
-    
-    const fontExtractor = new ListValueExtractor(
-        mockListExtractor,
-        'textStyle.fontName',  // Path to the font name property
-        'string'               // Value type
-    );
-    
-    // Transform to add rounding (for numeric values)
-    const sizeExtractor = new ListValueExtractor(
-        mockListExtractor,
-        'textStyle.size',
-        'double'
-    );
-    const roundedSizeExtractor = sizeExtractor.round(1);
-    
-    console.log('List extractors created for font names and sizes');
-    
-    // In real usage with actual ActionDescriptor:
-    // const allFonts = fontExtractor.extractAll(layerDesc);
-    // const roundedSizes = roundedSizeExtractor.extractAll(layerDesc);
+    } else {
+        console.log('No text styles found in current layer');
+    }
 }
 
 // =============================================================================

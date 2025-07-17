@@ -85,9 +85,10 @@ export interface ComparisonOptions {
 
 /**
  * Interface for objects that can extract ActionLists from ActionDescriptors
+ * Fixed: Allow null returns to match actual usage patterns
  */
 export interface ListExtractor {
-    extract(rootDesc: ActionDescriptor): ActionList;
+    extract(rootDesc: ActionDescriptor): ActionList | null;
 }
 
 /**
