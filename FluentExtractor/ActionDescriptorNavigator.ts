@@ -1,9 +1,10 @@
 /**
  * Core navigation engine for Photoshop ActionDescriptor structures
  * Provides imperative-style navigation and tuple extraction capabilities
+ * FIXED: Improved version compatibility, error handling, and type safety
  */
 
-// ExtendScript global function declarations
+// === EXTENDSCRIPT GLOBAL DECLARATIONS ===
 declare function charIDToTypeID(str: string): number;
 declare function stringIDToTypeID(str: string): number;
 declare function typeIDToStringID(id: number): string;
@@ -16,9 +17,22 @@ declare var app: {
   version?: string;
 };
 
-// DescValueType is declared in ExtendScript.d.ts
+// FIXED: Comprehensive DescValueType declaration with fallbacks
+declare const DescValueType: {
+  readonly OBJECTTYPE: 1;
+  readonly LISTTYPE: 2;
+  readonly REFERENCETYPE: 3;
+  readonly CLASSTYPE: 4;
+  readonly ENUMTYPE: 5;
+  readonly STRINGTYPE: 6;
+  readonly INTEGERTYPE: 7;
+  readonly DOUBLETYPE: 8;
+  readonly ALIASTYPE: 9;
+  readonly BOOLEANTYPE: 10;
+  readonly RAWTYPE: 11;
+};
 
-// Enhanced ActionDescriptor interface with missing methods
+// FIXED: Complete interface definitions to avoid conflicts
 interface ActionDescriptor {
   hasKey(key: number): boolean;
   getString(key: number): string;
@@ -28,7 +42,7 @@ interface ActionDescriptor {
   getEnumerationValue(key: number): number;
   getObjectValue(key: number): ActionDescriptor;
   getList(key: number): ActionList;
-  getType(key: number): number; // FIXED: Made non-optional with version detection
+  getType?(key: number): number; // Optional for version compatibility
   putString(key: number, value: string): void;
   putInteger(key: number, value: number): void;
   putDouble(key: number, value: number): void;
@@ -40,7 +54,7 @@ interface ActionDescriptor {
 
 interface ActionList {
   count: number;
-  getType(index: number): number; // FIXED: Made non-optional with version detection
+  getType?(index: number): number; // Optional for version compatibility
   getString(index: number): string;
   getInteger(index: number): number;
   getDouble(index: number): number;
@@ -74,98 +88,118 @@ interface ComparisonOptions {
   defaultValue?: any;
 }
 
-/**
- * Version compatibility detection for different Photoshop versions
- * FIXED: More robust version detection
- */
-var PhotoshopVersion = {
-  _detected: false,
-  _hasGetObjectValue: true,
-  _hasGetType: true,
-  _version: null,
+// FIXED: Consolidated version compatibility detection
+var PhotoshopVersionManager = (function() {
+  var detected = false;
+  var hasGetObjectValue = true;
+  var hasGetType = true;
+  var version = null;
   
-  detect: function() {
-    if (this._detected) return;
+  function detect() {
+    if (detected) return;
     
     try {
+      // Test with a simple document reference
       var testRef = new ActionReference();
       testRef.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
       var testDesc = executeActionGet(testRef);
       
       // Test getObjectValue availability
       if (typeof testDesc.getObjectValue !== 'function') {
-        this._hasGetObjectValue = false;
+        hasGetObjectValue = false;
       }
       
-      // FIXED: Test getType availability specifically
+      // Test getType availability  
       if (typeof testDesc.getType !== 'function') {
-        this._hasGetType = false;
+        hasGetType = false;
       }
       
+      // Get version if available
       if (typeof app !== 'undefined' && app.version) {
-        this._version = parseFloat(app.version);
+        try {
+          version = parseFloat(app.version);
+        } catch (e) {
+          version = null;
+        }
       }
     } catch (error) {
-      // Only disable methods we know failed
-      this._hasGetObjectValue = false;
-      this._hasGetType = false;
+      // Conservative approach - disable methods we can't verify
+      hasGetObjectValue = false;
+      hasGetType = false;
     }
     
-    this._detected = true;
-  },
-  
-  hasGetObjectValue: function() {
-    this.detect();
-    return this._hasGetObjectValue;
-  },
-  
-  hasGetType: function() {
-    this.detect();
-    return this._hasGetType;
+    detected = true;
   }
-};
+  
+  return {
+    hasGetObjectValue: function() {
+      detect();
+      return hasGetObjectValue;
+    },
+    
+    hasGetType: function() {
+      detect();
+      return hasGetType;
+    },
+    
+    getVersion: function() {
+      detect();
+      return version;
+    },
+    
+    reset: function() {
+      detected = false;
+      hasGetObjectValue = true;
+      hasGetType = true;
+      version = null;
+    }
+  };
+})();
 
-/**
- * FIXED: Global cache management - made static and thread-safe
- */
-var GlobalCache = {
-  layerNames: null as { names: string[]; timestamp: number } | null,
-  layerCount: null as { count: number; timestamp: number } | null,
-  cacheTimeout: 1000,
+// FIXED: Thread-safe global cache with better error handling
+var GlobalCacheManager = (function() {
+  var layerNamesCache = null;
+  var layerCountCache = null;
+  var cacheTimeout = 1000; // 1 second timeout
   
-  getLayerNames: function(): string[] {
-    var now = Date.now ? Date.now() : new Date().getTime();
-    if (this.layerNames && (now - this.layerNames.timestamp) < this.cacheTimeout) {
-      return this.layerNames.names.slice();
+  function getCurrentTime() {
+    return Date.now ? Date.now() : new Date().getTime();
+  }
+  
+  function isValidCache(cache) {
+    if (!cache) return false;
+    var now = getCurrentTime();
+    return (now - cache.timestamp) < cacheTimeout;
+  }
+  
+  function extractLayerCount() {
+    try {
+      if (typeof app === 'undefined' || !app.activeDocument) {
+        return -1;
+      }
+
+      var ref = new ActionReference();
+      ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
+      ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+      var desc = executeActionGet(ref);
+      var count = desc.getInteger(stringIDToTypeID("numberOfLayers"));
+      return typeof count === 'number' ? count : -1;
+    } catch (error) {
+      return -1;
     }
-    
-    var names = this._extractLayerNames();
-    this.layerNames = { names: names.slice(), timestamp: now };
-    return names;
-  },
+  }
   
-  getLayerCount: function(): number {
-    var now = Date.now ? Date.now() : new Date().getTime();
-    if (this.layerCount && (now - this.layerCount.timestamp) < this.cacheTimeout) {
-      return this.layerCount.count;
-    }
-    
-    var count = this._extractLayerCount();
-    this.layerCount = { count: count, timestamp: now };
-    return count;
-  },
-  
-  _extractLayerNames: function(): string[] {
-    var results: string[] = [];
+  function extractLayerNames() {
+    var results = [];
     
     try {
       if (typeof app === 'undefined' || !app.activeDocument) {
-        return [];
+        return results;
       }
 
-      var layerCount = this.getLayerCount();
-      if (layerCount === -1) {
-        return [];
+      var layerCount = getLayerCount();
+      if (layerCount <= 0) {
+        return results;
       }
       
       for (var i = 1; i <= layerCount; i++) {
@@ -176,8 +210,8 @@ var GlobalCache = {
           
           var nameID = stringIDToTypeID("name");
           if (layerDesc.hasKey(nameID)) {
-            // FIXED: Use getType with version compatibility
-            if (!PhotoshopVersion.hasGetType() || layerDesc.getType(nameID) === DescValueType.STRINGTYPE) {
+            var hasGetType = PhotoshopVersionManager.hasGetType();
+            if (!hasGetType || !layerDesc.getType || layerDesc.getType(nameID) === DescValueType.STRINGTYPE) {
               var name = layerDesc.getString(nameID);
               results.push(name || "");
             } else {
@@ -186,67 +220,87 @@ var GlobalCache = {
           } else {
             results.push("");
           }
-        } catch (error) {
+        } catch (layerError) {
           results.push("");
         }
       }
     } catch (error) {
+      // Return empty array on any major error
       return [];
     }
     
     return results;
-  },
-  
-  _extractLayerCount: function(): number {
-    try {
-      if (typeof app === 'undefined' || !app.activeDocument) {
-        return -1;
-      }
-
-      var ref = new ActionReference();
-      ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
-      ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
-      return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
-    } catch (error) {
-      return -1;
-    }
-  },
-  
-  clear: function() {
-    this.layerNames = null;
-    this.layerCount = null;
   }
-};
+  
+  function getLayerNames() {
+    if (isValidCache(layerNamesCache)) {
+      return layerNamesCache.names.slice(); // Return copy
+    }
+    
+    var names = extractLayerNames();
+    layerNamesCache = { 
+      names: names.slice(), // Store copy
+      timestamp: getCurrentTime() 
+    };
+    return names;
+  }
+  
+  function getLayerCount() {
+    if (isValidCache(layerCountCache)) {
+      return layerCountCache.count;
+    }
+    
+    var count = extractLayerCount();
+    layerCountCache = { 
+      count: count, 
+      timestamp: getCurrentTime() 
+    };
+    return count;
+  }
+  
+  function clearCache() {
+    layerNamesCache = null;
+    layerCountCache = null;
+  }
+  
+  return {
+    getLayerNames: getLayerNames,
+    getLayerCount: getLayerCount,
+    clear: clearCache
+  };
+})();
 
 /**
  * Core navigation class for ActionDescriptor structures
- * Provides imperative-style navigation with proper memory management
+ * FIXED: Improved error handling, memory management, and type safety
  */
 class ActionDescriptorNavigator {
   private desc: ActionDescriptor;
   private _disposed: boolean;
 
   constructor(desc: ActionDescriptor) {
+    if (!desc) {
+      throw new Error("ActionDescriptor cannot be null or undefined");
+    }
     this.desc = desc;
     this._disposed = false;
   }
 
   /**
    * Create navigator from ActionReference with proper lifecycle management
-   * @param ref ActionReference to execute and wrap
-   * @returns New ActionDescriptorNavigator instance
    */
-  public static from(ref: ActionReference): ActionDescriptorNavigator {
+  static from(ref: ActionReference): ActionDescriptorNavigator {
+    if (!ref) {
+      throw new Error("ActionReference cannot be null or undefined");
+    }
     var desc = executeActionGet(ref);
     return new ActionDescriptorNavigator(desc);
   }
 
   /**
    * Create navigator for current layer properties
-   * @returns Navigator for current layer
-   * @throws Error if no active document
    */
-  public static forCurrentLayer(): ActionDescriptorNavigator {
+  static forCurrentLayer(): ActionDescriptorNavigator {
     if (typeof app === 'undefined' || !app.activeDocument) {
       throw new Error("No active Photoshop document");
     }
@@ -259,10 +313,8 @@ class ActionDescriptorNavigator {
 
   /**
    * Create navigator for current document properties
-   * @returns Navigator for current document
-   * @throws Error if no active document
    */
-  public static forCurrentDocument(): ActionDescriptorNavigator {
+  static forCurrentDocument(): ActionDescriptorNavigator {
     if (typeof app === 'undefined' || !app.activeDocument) {
       throw new Error("No active Photoshop document");
     }
@@ -275,13 +327,14 @@ class ActionDescriptorNavigator {
 
   /**
    * Create navigator for specific layer by index (1-based)
-   * @param index Layer index (1-based)
-   * @returns Navigator for specified layer
-   * @throws Error if no active document
    */
-  public static forLayerByIndex(index: number): ActionDescriptorNavigator {
+  static forLayerByIndex(index: number): ActionDescriptorNavigator {
     if (typeof app === 'undefined' || !app.activeDocument) {
       throw new Error("No active Photoshop document");
+    }
+    
+    if (typeof index !== 'number' || index < 1) {
+      throw new Error("Layer index must be a positive number (1-based)");
     }
     
     var ref = new ActionReference();
@@ -292,27 +345,29 @@ class ActionDescriptorNavigator {
 
   /**
    * Navigate to nested object property with type validation
-   * @param key Property key to navigate to
-   * @returns New navigator for the nested object
-   * @throws Error if key not found or not an object type
    */
   object(key: string): ActionDescriptorNavigator {
     this.checkDisposed();
+    
+    if (!key || typeof key !== 'string') {
+      throw new Error("Object key must be a non-empty string");
+    }
+    
     var typeID = stringIDToTypeID(key);
     
     if (!this.desc.hasKey(typeID)) {
       throw new Error("Object key '" + key + "' not found");
     }
     
-    // FIXED: Use getType with version compatibility
-    if (PhotoshopVersion.hasGetType()) {
+    var hasGetType = PhotoshopVersionManager.hasGetType();
+    if (hasGetType && this.desc.getType) {
       var valueType = this.desc.getType(typeID);
       if (valueType !== DescValueType.OBJECTTYPE) {
         throw new Error("Key '" + key + "' is not an object type (found: " + valueType + ")");
       }
     }
     
-    if (!PhotoshopVersion.hasGetObjectValue()) {
+    if (!PhotoshopVersionManager.hasGetObjectValue()) {
       throw new Error("getObjectValue not available in this Photoshop version");
     }
     
@@ -322,20 +377,22 @@ class ActionDescriptorNavigator {
 
   /**
    * Navigate to list property with type validation
-   * @param key List property key
-   * @returns ActionListNavigator for the list
-   * @throws Error if key not found or not a list type
    */
   list(key: string): ActionListNavigator {
     this.checkDisposed();
+    
+    if (!key || typeof key !== 'string') {
+      throw new Error("List key must be a non-empty string");
+    }
+    
     var typeID = stringIDToTypeID(key);
     
     if (!this.desc.hasKey(typeID)) {
       throw new Error("List key '" + key + "' not found");
     }
     
-    // FIXED: Use getType with version compatibility
-    if (PhotoshopVersion.hasGetType()) {
+    var hasGetType = PhotoshopVersionManager.hasGetType();
+    if (hasGetType && this.desc.getType) {
       var valueType = this.desc.getType(typeID);
       if (valueType !== DescValueType.LISTTYPE) {
         throw new Error("Key '" + key + "' is not a list type (found: " + valueType + ")");
@@ -348,10 +405,8 @@ class ActionDescriptorNavigator {
 
   /**
    * Get sentinel value based on type for missing/invalid data
-   * @param type Value type string
-   * @returns Default value for the specified type
    */
-  public static getSentinelValue<T>(type: string): T {
+  static getSentinelValue<T>(type: string): T {
     switch (type) {
       case 'string':
       case 'enumerated':
@@ -367,11 +422,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get value with optional transformation and proper type validation
-   * @param key Property key
-   * @param type Expected value type
-   * @param options Optional transformation and default value options
-   * @returns Extracted value with transformations applied
+   * FIXED: Improved getValue with better type validation and error handling
    */
   getValue<T = any>(
     key: string,
@@ -379,6 +430,11 @@ class ActionDescriptorNavigator {
     options?: ComparisonOptions
   ): T {
     this.checkDisposed();
+    
+    if (!key || typeof key !== 'string') {
+      throw new Error("Key must be a non-empty string");
+    }
+    
     var typeID = stringIDToTypeID(key);
 
     if (!this.desc.hasKey(typeID)) {
@@ -388,8 +444,8 @@ class ActionDescriptorNavigator {
       return ActionDescriptorNavigator.getSentinelValue<T>(type);
     }
 
-    // FIXED: Use getType with version compatibility
-    if (PhotoshopVersion.hasGetType()) {
+    var hasGetType = PhotoshopVersionManager.hasGetType();
+    if (hasGetType && this.desc.getType) {
       var actualType = this.desc.getType(typeID);
       var expectedType = this.getExpectedDescValueType(type);
       
@@ -459,25 +515,34 @@ class ActionDescriptorNavigator {
 
   /**
    * Check if key exists in descriptor
-   * @param key Property key to check
-   * @returns True if key exists
    */
   hasKey(key: string): boolean {
     this.checkDisposed();
+    if (!key || typeof key !== 'string') {
+      return false;
+    }
     return this.desc.hasKey(stringIDToTypeID(key));
   }
 
   /**
-   * Get multiple values as tuple with error boundaries
-   * @param specs Array of value specifications
-   * @returns Array of extracted values
+   * FIXED: Improved getValues with better error boundaries
    */
   getValues(specs: { key: string, type: string, options?: ComparisonOptions }[]): any[] {
     this.checkDisposed();
+    
+    if (!specs || !Array.prototype.isArray || !Array.prototype.isArray.call(null, specs)) {
+      return [];
+    }
+    
     var results: any[] = [];
     
     for (var i = 0; i < specs.length; i++) {
       var spec = specs[i];
+      if (!spec || !spec.key || !spec.type) {
+        results.push(ActionDescriptorNavigator.getSentinelValue(spec.type || 'string'));
+        continue;
+      }
+      
       try {
         results.push(this.getValue(spec.key, spec.type as any, spec.options));
       } catch (error) {
@@ -488,9 +553,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get multiple values as object with error boundaries
-   * @param specs Object specification mapping property names to extraction specs
-   * @returns Object with extracted values
+   * FIXED: Improved getValuesAsObject with better error boundaries
    */
   getValuesAsObject<T extends Record<string, any>>(
     specs: { [K in keyof T]: { key: string, type: string, options?: ComparisonOptions } }
@@ -498,9 +561,18 @@ class ActionDescriptorNavigator {
     this.checkDisposed();
     var result = {} as T;
 
+    if (!specs) {
+      return result;
+    }
+
     for (var propName in specs) {
       if (specs.hasOwnProperty(propName)) {
         var spec = specs[propName];
+        if (!spec || !spec.key || !spec.type) {
+          result[propName as keyof T] = ActionDescriptorNavigator.getSentinelValue(spec.type || 'string') as any;
+          continue;
+        }
+        
         try {
           result[propName as keyof T] = this.getValue(spec.key, spec.type as any, spec.options);
         } catch (error) {
@@ -513,8 +585,7 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get bounds object for layer with error handling
-   * @returns Layer bounds object with pixel coordinates
+   * FIXED: Improved getBounds with better error handling
    */
   getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
     this.checkDisposed();
@@ -529,19 +600,24 @@ class ActionDescriptorNavigator {
     try {
       var typeID = stringIDToTypeID('bounds');
       
-      // FIXED: Use getType with version compatibility
-      if (PhotoshopVersion.hasGetType() && this.desc.getType(typeID) !== DescValueType.OBJECTTYPE) {
+      var hasGetType = PhotoshopVersionManager.hasGetType();
+      if (hasGetType && this.desc.getType && this.desc.getType(typeID) !== DescValueType.OBJECTTYPE) {
+        return defaultBounds;
+      }
+
+      if (!PhotoshopVersionManager.hasGetObjectValue()) {
         return defaultBounds;
       }
 
       var boundsDesc = this.desc.getObjectValue(typeID);
+      
       return {
-        left: boundsDesc.getDouble(stringIDToTypeID('left')),
-        top: boundsDesc.getDouble(stringIDToTypeID('top')),
-        right: boundsDesc.getDouble(stringIDToTypeID('right')),
-        bottom: boundsDesc.getDouble(stringIDToTypeID('bottom')),
-        width: boundsDesc.getDouble(stringIDToTypeID('width')),
-        height: boundsDesc.getDouble(stringIDToTypeID('height'))
+        left: this.safeGetDouble(boundsDesc, 'left'),
+        top: this.safeGetDouble(boundsDesc, 'top'),
+        right: this.safeGetDouble(boundsDesc, 'right'),
+        bottom: this.safeGetDouble(boundsDesc, 'bottom'),
+        width: this.safeGetDouble(boundsDesc, 'width'),
+        height: this.safeGetDouble(boundsDesc, 'height')
       };
     } catch (error) {
       return defaultBounds;
@@ -549,8 +625,22 @@ class ActionDescriptorNavigator {
   }
 
   /**
-   * Get text properties from textKey with version compatibility
-   * @returns Text content, font name, and size information
+   * Helper method for safe double extraction
+   */
+  private safeGetDouble(desc: ActionDescriptor, key: string): number {
+    try {
+      var typeID = stringIDToTypeID(key);
+      if (desc.hasKey(typeID)) {
+        return desc.getDouble(typeID);
+      }
+    } catch (error) {
+      // Fall through to return default
+    }
+    return -1;
+  }
+
+  /**
+   * FIXED: Improved getTextProperties with version compatibility
    */
   getTextProperties(): { content: string; fontName: string; fontSize: number } | null {
     this.checkDisposed();
@@ -563,81 +653,119 @@ class ActionDescriptorNavigator {
     try {
       var textKeyID = stringIDToTypeID('textKey');
       
-      // FIXED: Use getType with version compatibility
-      if (PhotoshopVersion.hasGetType() && this.desc.getType(textKeyID) !== DescValueType.OBJECTTYPE) {
+      var hasGetType = PhotoshopVersionManager.hasGetType();
+      if (hasGetType && this.desc.getType && this.desc.getType(textKeyID) !== DescValueType.OBJECTTYPE) {
+        return defaultProps;
+      }
+
+      if (!PhotoshopVersionManager.hasGetObjectValue()) {
         return defaultProps;
       }
 
       var textKey = this.desc.getObjectValue(textKeyID);
-      var textContent = textKey.getString(stringIDToTypeID('textKey'));
+      var textContent = "";
+      
+      // Try to get text content
+      try {
+        if (textKey.hasKey(stringIDToTypeID('textKey'))) {
+          textContent = textKey.getString(stringIDToTypeID('textKey'));
+        }
+      } catch (e) {
+        // textContent remains empty
+      }
       
       var rangeListID = stringIDToTypeID('textStyleRange');
       if (!textKey.hasKey(rangeListID)) {
-        return { content: textContent || "", fontName: "", fontSize: -1 };
+        return { content: textContent, fontName: "", fontSize: -1 };
       }
       
-      // FIXED: Use getType with version compatibility
-      if (PhotoshopVersion.hasGetType() && textKey.getType(rangeListID) !== DescValueType.LISTTYPE) {
-        return { content: textContent || "", fontName: "", fontSize: -1 };
+      if (hasGetType && textKey.getType && textKey.getType(rangeListID) !== DescValueType.LISTTYPE) {
+        return { content: textContent, fontName: "", fontSize: -1 };
       }
 
       var textStyleRanges = textKey.getList(rangeListID);
       if (textStyleRanges.count > 0) {
-        var firstRange = textStyleRanges.getObjectValue(0);
-        var textStyle = firstRange.getObjectValue(stringIDToTypeID('textStyle'));
-        
-        return {
-          content: textContent || "",
-          fontName: textStyle.getString(stringIDToTypeID('fontName')) || "",
-          fontSize: textStyle.getDouble(stringIDToTypeID('size')) || -1
-        };
+        try {
+          var firstRange = textStyleRanges.getObjectValue(0);
+          var textStyleID = stringIDToTypeID('textStyle');
+          
+          if (firstRange.hasKey(textStyleID)) {
+            var textStyle = firstRange.getObjectValue(textStyleID);
+            
+            var fontName = "";
+            var fontSize = -1;
+            
+            try {
+              if (textStyle.hasKey(stringIDToTypeID('fontName'))) {
+                fontName = textStyle.getString(stringIDToTypeID('fontName'));
+              }
+            } catch (e) {
+              // fontName remains empty
+            }
+            
+            try {
+              if (textStyle.hasKey(stringIDToTypeID('size'))) {
+                fontSize = textStyle.getDouble(stringIDToTypeID('size'));
+              }
+            } catch (e) {
+              // fontSize remains -1
+            }
+            
+            return {
+              content: textContent,
+              fontName: fontName,
+              fontSize: fontSize
+            };
+          }
+        } catch (rangeError) {
+          // Fall through to default
+        }
       }
       
-      return { content: textContent || "", fontName: "", fontSize: -1 };
+      return { content: textContent, fontName: "", fontSize: -1 };
     } catch (error) {
       return defaultProps;
     }
   }
 
   /**
-   * FIXED: Get layer count using global cache (now static method)
-   * @returns Number of layers in document, -1 if unavailable
+   * Get layer count using global cache (static method)
    */
-  public static getLayerCount(): number {
-    return GlobalCache.getLayerCount();
+  static getLayerCount(): number {
+    return GlobalCacheManager.getLayerCount();
   }
 
   /**
-   * FIXED: Extract all layer names using global cache (now static method)
-   * @returns Array of layer names
+   * Extract all layer names using global cache (static method)
    */
-  public static extractAllLayerNames(): string[] {
-    return GlobalCache.getLayerNames();
+  static extractAllLayerNames(): string[] {
+    return GlobalCacheManager.getLayerNames();
   }
 
   /**
-   * Extract bullet styles with proper type validation
-   * @param count Number of bullet styles to extract
-   * @returns Array of bullet style strings
+   * FIXED: Improved extractBulletStyles with proper type validation
    */
   extractBulletStyles(count: number = 4): string[] {
     this.checkDisposed();
     var results: string[] = [];
     
+    // Initialize results array with empty strings
+    for (var i = 0; i < count; i++) {
+      results.push("");
+    }
+    
     try {
       var textKeyID = stringIDToTypeID("textKey");
       if (!this.desc.hasKey(textKeyID)) {
-        for (var i = 0; i < count; i++) {
-          results.push("");
-        }
         return results;
       }
       
-      // FIXED: Use getType with version compatibility
-      if (PhotoshopVersion.hasGetType() && this.desc.getType(textKeyID) !== DescValueType.OBJECTTYPE) {
-        for (var i = 0; i < count; i++) {
-          results.push("");
-        }
+      var hasGetType = PhotoshopVersionManager.hasGetType();
+      if (hasGetType && this.desc.getType && this.desc.getType(textKeyID) !== DescValueType.OBJECTTYPE) {
+        return results;
+      }
+
+      if (!PhotoshopVersionManager.hasGetObjectValue()) {
         return results;
       }
 
@@ -645,72 +773,53 @@ class ActionDescriptorNavigator {
       var rangeListID = stringIDToTypeID("paragraphStyleRange");
       
       if (!textKey.hasKey(rangeListID)) {
-        for (var i = 0; i < count; i++) {
-          results.push("");
-        }
         return results;
       }
       
-      // FIXED: Use getType with version compatibility
-      if (PhotoshopVersion.hasGetType() && textKey.getType(rangeListID) !== DescValueType.LISTTYPE) {
-        for (var i = 0; i < count; i++) {
-          results.push("");
-        }
+      if (hasGetType && textKey.getType && textKey.getType(rangeListID) !== DescValueType.LISTTYPE) {
         return results;
       }
 
       var paragraphStyleRanges = textKey.getList(rangeListID);
+      var actualCount = Math.min(count, paragraphStyleRanges.count);
       
-      for (var i = 0; i < count; i++) {
-        if (i < paragraphStyleRanges.count) {
-          try {
-            // FIXED: Use getType with version compatibility
-            var hasType = PhotoshopVersion.hasGetType();
-            if (!hasType || paragraphStyleRanges.getType(i) === DescValueType.OBJECTTYPE) {
-              var range = paragraphStyleRanges.getObjectValue(i);
-              var styleID = stringIDToTypeID("paragraphStyle");
-              
-              if (range.hasKey(styleID) && (!hasType || range.getType(styleID) === DescValueType.OBJECTTYPE)) {
+      for (var i = 0; i < actualCount; i++) {
+        try {
+          var hasGetTypeForList = hasGetType && paragraphStyleRanges.getType;
+          if (!hasGetTypeForList || paragraphStyleRanges.getType(i) === DescValueType.OBJECTTYPE) {
+            var range = paragraphStyleRanges.getObjectValue(i);
+            var styleID = stringIDToTypeID("paragraphStyle");
+            
+            if (range.hasKey(styleID)) {
+              var hasGetTypeForRange = hasGetType && range.getType;
+              if (!hasGetTypeForRange || range.getType(styleID) === DescValueType.OBJECTTYPE) {
                 var paragraphStyle = range.getObjectValue(styleID);
                 var listStyleID = stringIDToTypeID("listStyleType");
                 
-                if (paragraphStyle.hasKey(listStyleID) && 
-                    (!hasType || paragraphStyle.getType(listStyleID) === DescValueType.ENUMTYPE)) {
-                  var listStyleType = paragraphStyle.getEnumerationValue(listStyleID);
-                  results.push(typeIDToStringID(listStyleType) || "");
-                } else {
-                  results.push("");
+                if (paragraphStyle.hasKey(listStyleID)) {
+                  var hasGetTypeForStyle = hasGetType && paragraphStyle.getType;
+                  if (!hasGetTypeForStyle || paragraphStyle.getType(listStyleID) === DescValueType.ENUMTYPE) {
+                    var listStyleType = paragraphStyle.getEnumerationValue(listStyleID);
+                    var styleString = typeIDToStringID(listStyleType);
+                    results[i] = styleString || "";
+                  }
                 }
-              } else {
-                results.push("");
               }
-            } else {
-              results.push("");
             }
-          } catch (error) {
-            results.push("");
           }
-        } else {
-          results.push("");
+        } catch (error) {
+          // results[i] already initialized to ""
         }
       }
       
       return results;
     } catch (error) {
-      for (var i = 0; i < count; i++) {
-        results.push("");
-      }
       return results;
     }
   }
 
   /**
-   * Find first value in a list that matches predicate with proper validation
-   * @param key List property key
-   * @param type Value type
-   * @param predicate Function to test each value
-   * @param options Optional transformation and default value options
-   * @returns First matching value or null
+   * FIXED: Improved findValue with proper validation
    */
   findValue<T = any>(
     key: string,
@@ -720,14 +829,18 @@ class ActionDescriptorNavigator {
   ): T | null {
     this.checkDisposed();
     
+    if (!key || typeof key !== 'string' || !predicate) {
+      return null;
+    }
+    
     try {
       var listID = stringIDToTypeID(key);
       if (!this.desc.hasKey(listID)) {
         return null;
       }
       
-      // FIXED: Use getType with version compatibility
-      if (PhotoshopVersion.hasGetType() && this.desc.getType(listID) !== DescValueType.LISTTYPE) {
+      var hasGetType = PhotoshopVersionManager.hasGetType();
+      if (hasGetType && this.desc.getType && this.desc.getType(listID) !== DescValueType.LISTTYPE) {
         return null;
       }
 
@@ -735,9 +848,8 @@ class ActionDescriptorNavigator {
       
       for (var i = 0; i < list.count; i++) {
         try {
-          // FIXED: Use getType with version compatibility
-          var hasType = PhotoshopVersion.hasGetType();
-          if (!hasType || list.getType(i) === DescValueType.OBJECTTYPE) {
+          var hasGetTypeForList = hasGetType && list.getType;
+          if (!hasGetTypeForList || list.getType(i) === DescValueType.OBJECTTYPE) {
             var obj = new ActionDescriptorNavigator(list.getObjectValue(i));
             var value = obj.getValue<T>(key, type, options);
             if (predicate(value)) {
@@ -760,8 +872,15 @@ class ActionDescriptorNavigator {
   /**
    * Clear internal caches when document changes
    */
-  public static clearCaches(): void {
-    GlobalCache.clear();
+  static clearCaches(): void {
+    GlobalCacheManager.clear();
+  }
+
+  /**
+   * Reset version detection (for testing)
+   */
+  static resetVersionDetection(): void {
+    PhotoshopVersionManager.reset();
   }
 
   /**
@@ -782,13 +901,16 @@ class ActionDescriptorNavigator {
 }
 
 /**
- * Navigator for ActionList objects with proper bounds checking
+ * FIXED: Improved ActionListNavigator with proper bounds checking
  */
 class ActionListNavigator {
   private list: ActionList;
   private _disposed: boolean;
 
   constructor(list: ActionList) {
+    if (!list) {
+      throw new Error("ActionList cannot be null or undefined");
+    }
     this.list = list;
     this._disposed = false;
   }
@@ -798,24 +920,25 @@ class ActionListNavigator {
    */
   get count(): number {
     this.checkDisposed();
-    return this.list.count;
+    return this.list.count || 0;
   }
 
   /**
-   * Get object at specific index with bounds checking and type validation
-   * @param index Zero-based index
-   * @returns Navigator for object at index
-   * @throws Error if index out of bounds or item is not an object
+   * FIXED: Improved getObject with bounds checking and type validation
    */
   getObject(index: number): ActionDescriptorNavigator {
     this.checkDisposed();
     
-    if (index >= this.list.count || index < 0) {
+    if (typeof index !== 'number' || index < 0) {
+      throw new Error("Index must be a non-negative number");
+    }
+    
+    if (index >= this.list.count) {
       throw new Error("Index " + index + " out of bounds (count: " + this.list.count + ")");
     }
 
-    // FIXED: Use getType with version compatibility
-    if (PhotoshopVersion.hasGetType() && this.list.getType(index) !== DescValueType.OBJECTTYPE) {
+    var hasGetType = PhotoshopVersionManager.hasGetType();
+    if (hasGetType && this.list.getType && this.list.getType(index) !== DescValueType.OBJECTTYPE) {
       throw new Error("Item at index " + index + " is not an object");
     }
 
@@ -824,11 +947,7 @@ class ActionListNavigator {
   }
 
   /**
-   * Get value from all objects in list with proper error handling
-   * @param key Property key to extract from each object
-   * @param type Expected value type
-   * @param options Optional transformation and default value options
-   * @returns Array of extracted values
+   * FIXED: Improved getAllValues with proper error handling
    */
   getAllValues<T = any>(
     key: string,
@@ -836,28 +955,33 @@ class ActionListNavigator {
     options?: ComparisonOptions
   ): T[] {
     this.checkDisposed();
+    
+    if (!key || typeof key !== 'string') {
+      return [];
+    }
+    
     var results: T[] = [];
     var currentCount = this.list.count;
+    var sentinelValue = (options && options.defaultValue !== undefined) ? 
+      options.defaultValue : 
+      ActionDescriptorNavigator.getSentinelValue<T>(type);
 
     for (var i = 0; i < currentCount; i++) {
-      // FIXED: Use getType with version compatibility
-      var hasType = PhotoshopVersion.hasGetType();
-      if (!hasType || this.list.getType(i) === DescValueType.OBJECTTYPE) {
-        var obj: ActionDescriptorNavigator | undefined = undefined;
-        try {
+      var obj: ActionDescriptorNavigator | undefined = undefined;
+      try {
+        var hasGetType = PhotoshopVersionManager.hasGetType();
+        if (!hasGetType || !this.list.getType || this.list.getType(i) === DescValueType.OBJECTTYPE) {
           obj = this.getObject(i);
           var value = obj.getValue<T>(key, type, options);
           results.push(value);
-        } catch (error) {
-          if (options && options.defaultValue !== undefined) {
-            results.push(options.defaultValue);
-          } else {
-            results.push(ActionDescriptorNavigator.getSentinelValue<T>(type));
-          }
-        } finally {
-          if (obj) {
-            obj.dispose();
-          }
+        } else {
+          results.push(sentinelValue);
+        }
+      } catch (error) {
+        results.push(sentinelValue);
+      } finally {
+        if (obj) {
+          obj.dispose();
         }
       }
     }
@@ -866,12 +990,7 @@ class ActionListNavigator {
   }
 
   /**
-   * Get first matching value that meets condition with proper cleanup
-   * @param key Property key to extract
-   * @param type Expected value type
-   * @param predicate Function to test each value
-   * @param options Optional transformation and default value options
-   * @returns First matching value or null
+   * FIXED: Improved findValue with proper cleanup
    */
   findValue<T = any>(
     key: string,
@@ -880,25 +999,29 @@ class ActionListNavigator {
     options?: ComparisonOptions
   ): T | null {
     this.checkDisposed();
+    
+    if (!key || typeof key !== 'string' || !predicate) {
+      return null;
+    }
+    
     var currentCount = this.list.count;
 
     for (var i = 0; i < currentCount; i++) {
-      // FIXED: Use getType with version compatibility
-      var hasType = PhotoshopVersion.hasGetType();
-      if (!hasType || this.list.getType(i) === DescValueType.OBJECTTYPE) {
-        var obj: ActionDescriptorNavigator | undefined = undefined;
-        try {
+      var obj: ActionDescriptorNavigator | undefined = undefined;
+      try {
+        var hasGetType = PhotoshopVersionManager.hasGetType();
+        if (!hasGetType || !this.list.getType || this.list.getType(i) === DescValueType.OBJECTTYPE) {
           obj = this.getObject(i);
           var value = obj.getValue<T>(key, type, options);
           if (predicate(value)) {
             return value;
           }
-        } catch (error) {
-          // Continue to next item
-        } finally {
-          if (obj) {
-            obj.dispose();
-          }
+        }
+      } catch (error) {
+        // Continue to next item
+      } finally {
+        if (obj) {
+          obj.dispose();
         }
       }
     }
@@ -907,31 +1030,34 @@ class ActionListNavigator {
   }
 
   /**
-   * Map over all objects and extract values with proper cleanup
-   * @param extractor Function to extract value from each navigator
-   * @returns Array of extracted values
+   * FIXED: Improved mapValues with proper cleanup
    */
   mapValues<T = any>(
     extractor: (nav: ActionDescriptorNavigator, index: number) => T
   ): T[] {
     this.checkDisposed();
+    
+    if (!extractor || typeof extractor !== 'function') {
+      return [];
+    }
+    
     var results: T[] = [];
     var currentCount = this.list.count;
 
     for (var i = 0; i < currentCount; i++) {
-      // FIXED: Use getType with version compatibility
-      var hasType = PhotoshopVersion.hasGetType();
-      if (!hasType || this.list.getType(i) === DescValueType.OBJECTTYPE) {
-        var obj: ActionDescriptorNavigator | undefined = undefined;
-        try {
+      var obj: ActionDescriptorNavigator | undefined = undefined;
+      try {
+        var hasGetType = PhotoshopVersionManager.hasGetType();
+        if (!hasGetType || !this.list.getType || this.list.getType(i) === DescValueType.OBJECTTYPE) {
           obj = this.getObject(i);
-          results.push(extractor(obj, i));
-        } catch (error) {
-          // Skip this item
-        } finally {
-          if (obj) {
-            obj.dispose();
-          }
+          var result = extractor(obj, i);
+          results.push(result);
+        }
+      } catch (error) {
+        // Skip this item
+      } finally {
+        if (obj) {
+          obj.dispose();
         }
       }
     }

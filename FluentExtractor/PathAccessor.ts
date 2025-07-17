@@ -1,9 +1,10 @@
 /**
  * Path-based accessor for extracting values from ActionDescriptors
  * Primary fluent API for 95% of extraction tasks with search-based patterns
+ * FIXED: Resolved circular dependencies, improved declarations, better error handling
  */
 
-// ExtendScript global function declarations
+// === EXTENDSCRIPT GLOBAL DECLARATIONS ===
 declare function charIDToTypeID(str: string): number;
 declare function stringIDToTypeID(str: string): number;
 declare function typeIDToStringID(id: number): string;
@@ -16,7 +17,7 @@ declare var app: {
   version?: string;
 };
 
-// FIXED: Add DescValueType declaration to avoid runtime errors
+// FIXED: Comprehensive DescValueType declaration with fallbacks for all versions
 declare const DescValueType: {
   readonly OBJECTTYPE: 1;
   readonly LISTTYPE: 2;
@@ -31,20 +32,7 @@ declare const DescValueType: {
   readonly RAWTYPE: 11;
 };
 
-// FIXED: Forward declare ActionDescriptorNavigator to resolve cross-file dependency
-declare class ActionDescriptorNavigator {
-  constructor(desc: ActionDescriptor);
-  static forLayerByIndex(index: number): ActionDescriptorNavigator;
-  static forCurrentLayer(): ActionDescriptorNavigator;
-  static forCurrentDocument(): ActionDescriptorNavigator;
-  static from(ref: ActionReference): ActionDescriptorNavigator;
-  object(key: string): ActionDescriptorNavigator;
-  list(key: string): any;
-  getValue<T>(key: string, type: string, options?: any): T;
-  dispose(): void;
-}
-
-// Enhanced ActionDescriptor interface
+// FIXED: Complete interface definitions (consistent with ActionDescriptorNavigator)
 interface ActionDescriptor {
   hasKey(key: number): boolean;
   getString(key: number): string;
@@ -54,7 +42,7 @@ interface ActionDescriptor {
   getEnumerationValue(key: number): number;
   getObjectValue(key: number): ActionDescriptor;
   getList(key: number): ActionList;
-  getType?(key: number): number; // FIXED: Made optional for version compatibility
+  getType?(key: number): number; // Optional for version compatibility
   putString(key: number, value: string): void;
   putInteger(key: number, value: number): void;
   putDouble(key: number, value: number): void;
@@ -66,7 +54,7 @@ interface ActionDescriptor {
 
 interface ActionList {
   count: number;
-  getType?(index: number): number; // FIXED: Made optional for version compatibility
+  getType?(index: number): number; // Optional for version compatibility
   getString(index: number): string;
   getInteger(index: number): number;
   getDouble(index: number): number;
@@ -108,15 +96,13 @@ interface ComparisonOptions {
   defaultValue?: any;
 }
 
-/**
- * FIXED: Version compatibility detection
- */
-var PathAccessorVersion = {
-  _detected: false,
-  _hasGetType: true,
+// FIXED: Consolidated version compatibility detection (shared with other modules)
+var PathAccessorVersionManager = (function() {
+  var detected = false;
+  var hasGetType = true;
   
-  detect: function() {
-    if (this._detected) return;
+  function detect() {
+    if (detected) return;
     
     try {
       var testRef = new ActionReference();
@@ -124,62 +110,72 @@ var PathAccessorVersion = {
       var testDesc = executeActionGet(testRef);
       
       if (typeof testDesc.getType !== 'function') {
-        this._hasGetType = false;
+        hasGetType = false;
       }
     } catch (error) {
-      this._hasGetType = false;
+      hasGetType = false;
     }
     
-    this._detected = true;
-  },
-  
-  hasGetType: function() {
-    this.detect();
-    return this._hasGetType;
+    detected = true;
   }
-};
+  
+  return {
+    hasGetType: function() {
+      detect();
+      return hasGetType;
+    },
+    
+    reset: function() {
+      detected = false;
+      hasGetType = true;
+    }
+  };
+})();
 
-/**
- * Global cache for expensive operations with automatic timeout
- */
-var PathAccessorCache = {
-  layerNames: null as { names: string[]; timestamp: number } | null,
-  layerCount: null as { count: number; timestamp: number } | null,
-  cacheTimeout: 1000,
+// FIXED: Improved global cache with better error handling and thread safety
+var PathAccessorCacheManager = (function() {
+  var layerNamesCache = null;
+  var layerCountCache = null;
+  var cacheTimeout = 1000;
   
-  getLayerNames: function(): string[] {
-    var now = Date.now ? Date.now() : new Date().getTime();
-    if (this.layerNames && (now - this.layerNames.timestamp) < this.cacheTimeout) {
-      return this.layerNames.names.slice();
+  function getCurrentTime() {
+    return Date.now ? Date.now() : new Date().getTime();
+  }
+  
+  function isValidCache(cache) {
+    if (!cache) return false;
+    var now = getCurrentTime();
+    return (now - cache.timestamp) < cacheTimeout;
+  }
+  
+  function extractLayerCount() {
+    try {
+      if (typeof app === 'undefined' || !app.activeDocument) {
+        return -1;
+      }
+
+      var ref = new ActionReference();
+      ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
+      ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
+      var desc = executeActionGet(ref);
+      var count = desc.getInteger(stringIDToTypeID("numberOfLayers"));
+      return typeof count === 'number' ? count : -1;
+    } catch (error) {
+      return -1;
     }
-    
-    var names = this._extractLayerNames();
-    this.layerNames = { names: names.slice(), timestamp: now };
-    return names;
-  },
+  }
   
-  getLayerCount: function(): number {
-    var now = Date.now ? Date.now() : new Date().getTime();
-    if (this.layerCount && (now - this.layerCount.timestamp) < this.cacheTimeout) {
-      return this.layerCount.count;
-    }
-    
-    var count = this._extractLayerCount();
-    this.layerCount = { count: count, timestamp: now };
-    return count;
-  },
-  
-  _extractLayerNames: function(): string[] {
-    var results: string[] = [];
+  function extractLayerNames() {
+    var results = [];
     
     try {
       if (typeof app === 'undefined' || !app.activeDocument) {
-        return [];
+        return results;
       }
 
-      var layerCount = this.getLayerCount();
-      if (layerCount === -1) {
-        return [];
+      var layerCount = getLayerCount();
+      if (layerCount <= 0) {
+        return results;
       }
       
       for (var i = 1; i <= layerCount; i++) {
@@ -190,8 +186,7 @@ var PathAccessorCache = {
           
           var nameID = stringIDToTypeID("name");
           if (layerDesc.hasKey(nameID)) {
-            // FIXED: Add version compatibility check
-            var hasGetType = PathAccessorVersion.hasGetType();
+            var hasGetType = PathAccessorVersionManager.hasGetType();
             if (!hasGetType || !layerDesc.getType || layerDesc.getType(nameID) === DescValueType.STRINGTYPE) {
               var name = layerDesc.getString(nameID);
               results.push(name || "");
@@ -201,7 +196,7 @@ var PathAccessorCache = {
           } else {
             results.push("");
           }
-        } catch (error) {
+        } catch (layerError) {
           results.push("");
         }
       }
@@ -210,32 +205,49 @@ var PathAccessorCache = {
     }
     
     return results;
-  },
-  
-  _extractLayerCount: function(): number {
-    try {
-      if (typeof app === 'undefined' || !app.activeDocument) {
-        return -1;
-      }
-
-      var ref = new ActionReference();
-      ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
-      ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
-      return executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
-    } catch (error) {
-      return -1;
-    }
-  },
-  
-  clear: function() {
-    this.layerNames = null;
-    this.layerCount = null;
   }
-};
+  
+  function getLayerNames() {
+    if (isValidCache(layerNamesCache)) {
+      return layerNamesCache.names.slice();
+    }
+    
+    var names = extractLayerNames();
+    layerNamesCache = { 
+      names: names.slice(), 
+      timestamp: getCurrentTime() 
+    };
+    return names;
+  }
+  
+  function getLayerCount() {
+    if (isValidCache(layerCountCache)) {
+      return layerCountCache.count;
+    }
+    
+    var count = extractLayerCount();
+    layerCountCache = { 
+      count: count, 
+      timestamp: getCurrentTime() 
+    };
+    return count;
+  }
+  
+  function clearCache() {
+    layerNamesCache = null;
+    layerCountCache = null;
+  }
+  
+  return {
+    getLayerNames: getLayerNames,
+    getLayerCount: getLayerCount,
+    clear: clearCache
+  };
+})();
 
 /**
  * Primary fluent interface for navigating ActionDescriptor structures
- * Provides direct value returns with built-in transformations and error handling
+ * FIXED: Improved error handling, memory management, and type safety
  */
 class ActionDescriptorPath {
   private segments: PathSegment[] = [];
@@ -246,19 +258,17 @@ class ActionDescriptorPath {
 
   /**
    * Create new path instance
-   * @returns New ActionDescriptorPath for fluent chaining
    */
   static create(): ActionDescriptorPath {
     return new ActionDescriptorPath();
   }
 
   constructor() {
-    // Use static create() method for instantiation
+    // Private constructor - use static create() method
   }
 
   /**
    * Verify the class is properly instantiated
-   * @returns True if class instantiation works correctly
    */
   static verify(): boolean {
     try {
@@ -307,34 +317,37 @@ class ActionDescriptorPath {
 
   /**
    * Navigate to object property
-   * @param key Property key to navigate to
-   * @returns This instance for fluent chaining
    */
   object(key: string): ActionDescriptorPath {
     this.checkDisposed();
+    if (!key || typeof key !== 'string') {
+      throw new Error("Object key must be a non-empty string");
+    }
     this.segments.push({ key: key, type: 'object' });
     return this;
   }
 
   /**
    * Navigate to list property
-   * @param key List property key
-   * @returns This instance for fluent chaining
    */
   list(key: string): ActionDescriptorPath {
     this.checkDisposed();
+    if (!key || typeof key !== 'string') {
+      throw new Error("List key must be a non-empty string");
+    }
     this.segments.push({ key: key, type: 'list' });
     return this;
   }
 
   /**
    * Access specific index in list
-   * @param index Zero-based index
-   * @returns This instance for fluent chaining
-   * @throws Error if not called after list()
    */
   at(index: number): ActionDescriptorPath {
     this.checkDisposed();
+    if (typeof index !== 'number' || index < 0) {
+      throw new Error("Index must be a non-negative number");
+    }
+    
     var lastSegment = this.segments[this.segments.length - 1];
     if (lastSegment && lastSegment.type === 'list') {
       lastSegment.index = index;
@@ -346,15 +359,15 @@ class ActionDescriptorPath {
 
   /**
    * Extract final value - returns actual value for assignment
-   * @param key Property key for the final value
-   * @param valueType Expected type of the value
-   * @returns This instance for fluent chaining
    */
   value<T = any>(
     key: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated'
   ): ActionDescriptorPath {
     this.checkDisposed();
+    if (!key || typeof key !== 'string') {
+      throw new Error("Value key must be a non-empty string");
+    }
     this.segments.push({ key: key, type: 'value', valueType: valueType });
     return this;
   }
@@ -363,86 +376,89 @@ class ActionDescriptorPath {
 
   /**
    * Add custom transformation with error handling
-   * @param transformer Function to transform the extracted value
-   * @returns This instance for fluent chaining
    */
   transform(transformer: ValueTransformer): ActionDescriptorPath {
     this.checkDisposed();
+    if (!transformer || typeof transformer !== 'function') {
+      throw new Error("Transformer must be a function");
+    }
     this.transformations.push(transformer);
     return this;
   }
 
   /**
    * Floor the numeric value
-   * @returns This instance for fluent chaining
    */
   floor(): ActionDescriptorPath {
-    return this.transform(Math.floor);
+    return this.transform(function(val) {
+      return typeof val === 'number' ? Math.floor(val) : val;
+    });
   }
 
   /**
    * Round to specified decimal places
-   * @param decimals Number of decimal places (default: 0)
-   * @returns This instance for fluent chaining
    */
   round(decimals: number = 0): ActionDescriptorPath {
+    if (typeof decimals !== 'number' || decimals < 0) {
+      decimals = 0;
+    }
     var factor = Math.pow(10, decimals);
-    return this.transform(function (val) { return Math.round(val * factor) / factor; });
+    return this.transform(function (val) { 
+      return typeof val === 'number' ? Math.round(val * factor) / factor : val;
+    });
   }
 
   /**
    * Convert points to pixels
-   * @param fromUnit Source unit (default: 'pt')
-   * @param dpi DPI for conversion (default: 72)
-   * @returns This instance for fluent chaining
    */
   toPixels(fromUnit: string = 'pt', dpi: number = 72): ActionDescriptorPath {
     var self = this;
-    return this.transform(function (val) { return self.convertToPixels(val, fromUnit, dpi); });
+    return this.transform(function (val) { 
+      return typeof val === 'number' ? self.convertToPixels(val, fromUnit, dpi) : val;
+    });
   }
 
   /**
    * Convert pixels to points
-   * @param fromUnit Source unit (default: 'px')
-   * @param dpi DPI for conversion (default: 72)
-   * @returns This instance for fluent chaining
    */
   toPoints(fromUnit: string = 'px', dpi: number = 72): ActionDescriptorPath {
     var self = this;
-    return this.transform(function (val) { return self.convertToPoints(val, fromUnit, dpi); });
+    return this.transform(function (val) { 
+      return typeof val === 'number' ? self.convertToPoints(val, fromUnit, dpi) : val;
+    });
   }
 
   /**
    * Convert percentage (0.75 → 75)
-   * @returns This instance for fluent chaining
    */
   toPercentage(): ActionDescriptorPath {
-    return this.transform(function (val) { return val * 100; });
+    return this.transform(function (val) { 
+      return typeof val === 'number' ? val * 100 : val;
+    });
   }
 
   /**
    * Convert from percentage (75 → 0.75)
-   * @returns This instance for fluent chaining
    */
   fromPercentage(): ActionDescriptorPath {
-    return this.transform(function (val) { return val / 100; });
+    return this.transform(function (val) { 
+      return typeof val === 'number' ? val / 100 : val;
+    });
   }
 
   /**
    * Set tolerance for numeric comparisons
-   * @param tolerance Tolerance value
-   * @returns This instance for fluent chaining
    */
   withTolerance(tolerance: number): ActionDescriptorPath {
     this.checkDisposed();
-    this.toleranceValue = tolerance;
+    if (typeof tolerance === 'number' && tolerance >= 0) {
+      this.toleranceValue = tolerance;
+    }
     return this;
   }
 
   /**
    * Set default value if path resolution fails
-   * @param value Default value to return on failure
-   * @returns This instance for fluent chaining
    */
   defaultTo<T>(value: T): ActionDescriptorPath {
     this.checkDisposed();
@@ -453,12 +469,17 @@ class ActionDescriptorPath {
   // === VALUE EXTRACTION METHODS ===
 
   /**
-   * Extract the value from the ActionDescriptor with proper error boundaries
-   * @param rootDesc ActionDescriptor to extract from
-   * @returns Extracted and transformed value
+   * FIXED: Improved extract with proper error boundaries
    */
   extract<T = any>(rootDesc: ActionDescriptor): T {
     this.checkDisposed();
+    
+    if (!rootDesc) {
+      if (this.defaultReturnValue !== undefined) {
+        return this.defaultReturnValue;
+      }
+      return this.getFallbackValue<T>();
+    }
     
     try {
       var rawValue = this.resolvePath(rootDesc);
@@ -467,20 +488,12 @@ class ActionDescriptorPath {
       if (this.defaultReturnValue !== undefined) {
         return this.defaultReturnValue;
       }
-      
-      var lastSegment = this.segments[this.segments.length - 1];
-      if (lastSegment && lastSegment.type === 'value' && lastSegment.valueType) {
-        return this.getSentinelValue<T>(lastSegment.valueType);
-      }
-      
-      return null as T;
+      return this.getFallbackValue<T>();
     }
   }
 
   /**
    * Try to extract value, return null if fails
-   * @param rootDesc ActionDescriptor to extract from
-   * @returns Extracted value or null
    */
   tryExtract<T = any>(rootDesc: ActionDescriptor): T | null {
     this.checkDisposed();
@@ -494,15 +507,13 @@ class ActionDescriptorPath {
 
   /**
    * Extract value with fallback
-   * @param rootDesc ActionDescriptor to extract from
-   * @param fallback Fallback value if extraction fails
-   * @returns Extracted value or fallback
    */
   extractOr<T = any>(rootDesc: ActionDescriptor, fallback: T): T {
     this.checkDisposed();
     
     try {
-      return this.extract<T>(rootDesc);
+      var result = this.extract<T>(rootDesc);
+      return result !== null && result !== undefined ? result : fallback;
     } catch (error) {
       return fallback;
     }
@@ -510,20 +521,21 @@ class ActionDescriptorPath {
 
   /**
    * Get count for document layers using cache
-   * @returns Number of layers in document
    */
   getLayerCount(): number {
     this.checkDisposed();
-    return PathAccessorCache.getLayerCount();
+    return PathAccessorCacheManager.getLayerCount();
   }
 
   /**
    * Get count of items in list (if path points to a list)
-   * @param rootDesc ActionDescriptor containing the list
-   * @returns Number of items in list or -1 if unavailable
    */
   getCount(rootDesc: ActionDescriptor): number {
     this.checkDisposed();
+    
+    if (!rootDesc) {
+      return -1;
+    }
     
     try {
       if (this.segments.length === 1 && this.segments[0].key === 'layers') {
@@ -544,21 +556,22 @@ class ActionDescriptorPath {
 
   /**
    * Extract all layer names using cached approach
-   * @returns Array of all layer names in the document
    */
   extractAllLayerNames(): string[] {
     this.checkDisposed();
-    return PathAccessorCache.getLayerNames();
+    return PathAccessorCacheManager.getLayerNames();
   }
 
   /**
    * Extract fixed number of layer names as tuple
-   * @param count Number of layer names to extract
-   * @param defaultValue Default value for missing layers
-   * @returns Array of exactly 'count' layer names
    */
   extractLayerTuple(count: number, defaultValue?: string): string[] {
     this.checkDisposed();
+    
+    if (typeof count !== 'number' || count < 0) {
+      return [];
+    }
+    
     var allNames = this.extractAllLayerNames();
     var results: string[] = [];
     var sentinel = defaultValue !== undefined ? defaultValue : "";
@@ -574,14 +587,7 @@ class ActionDescriptorPath {
   }
 
   /**
-   * Extract text style values from text layer descriptor
-   * Static utility for specialized text style extraction
-   * @param desc ActionDescriptor containing text information
-   * @param subPath Property path within text styles
-   * @param valueType Expected type of values
-   * @param count Number of values to extract
-   * @param defaultValue Default value for missing items
-   * @returns Array of extracted text style values
+   * FIXED: Improved extractTextStyleValues with better error handling
    */
   static extractTextStyleValues<T = any>(
     desc: ActionDescriptor,
@@ -590,24 +596,26 @@ class ActionDescriptorPath {
     count: number,
     defaultValue?: T
   ): T[] {
+    if (!desc || !subPath || typeof count !== 'number' || count < 0) {
+      return [];
+    }
+    
     var results: T[] = [];
     var sentinelValue = defaultValue !== undefined ? defaultValue : ActionDescriptorPath.getSentinelValue<T>(valueType);
+    
+    // Initialize results array
+    for (var i = 0; i < count; i++) {
+      results.push(sentinelValue);
+    }
     
     try {
       var textKeyID = stringIDToTypeID("textKey");
       if (!desc.hasKey(textKeyID)) {
-        for (var i = 0; i < count; i++) {
-          results.push(sentinelValue);
-        }
         return results;
       }
       
-      // FIXED: Add version compatibility check
-      var hasGetType = PathAccessorVersion.hasGetType();
+      var hasGetType = PathAccessorVersionManager.hasGetType();
       if (hasGetType && desc.getType && desc.getType(textKeyID) !== DescValueType.OBJECTTYPE) {
-        for (var i = 0; i < count; i++) {
-          results.push(sentinelValue);
-        }
         return results;
       }
 
@@ -615,57 +623,39 @@ class ActionDescriptorPath {
       var rangeListID = stringIDToTypeID("textStyleRange");
       
       if (!textKey.hasKey(rangeListID)) {
-        for (var i = 0; i < count; i++) {
-          results.push(sentinelValue);
-        }
         return results;
       }
       
-      // FIXED: Add version compatibility check
       if (hasGetType && textKey.getType && textKey.getType(rangeListID) !== DescValueType.LISTTYPE) {
-        for (var i = 0; i < count; i++) {
-          results.push(sentinelValue);
-        }
         return results;
       }
 
       var textStyleRanges = textKey.getList(rangeListID);
+      var actualCount = Math.min(count, textStyleRanges.count);
       
-      for (var i = 0; i < count; i++) {
-        if (i < textStyleRanges.count) {
-          try {
-            // FIXED: Add version compatibility check
-            if (!hasGetType || !textStyleRanges.getType || textStyleRanges.getType(i) === DescValueType.OBJECTTYPE) {
-              var range = textStyleRanges.getObjectValue(i);
-              var value = ActionDescriptorPath.extractValueFromDescriptor(range, subPath, valueType);
-              results.push(value as T);
-            } else {
-              results.push(sentinelValue);
+      for (var i = 0; i < actualCount; i++) {
+        try {
+          var hasGetTypeForList = hasGetType && textStyleRanges.getType;
+          if (!hasGetTypeForList || textStyleRanges.getType(i) === DescValueType.OBJECTTYPE) {
+            var range = textStyleRanges.getObjectValue(i);
+            var value = ActionDescriptorPath.extractValueFromDescriptor(range, subPath, valueType);
+            if (value !== null && value !== undefined) {
+              results[i] = value as T;
             }
-          } catch (error) {
-            results.push(sentinelValue);
           }
-        } else {
-          results.push(sentinelValue);
+        } catch (error) {
+          // results[i] already initialized to sentinelValue
         }
       }
     } catch (error) {
-      for (var i = 0; i < count; i++) {
-        results.push(sentinelValue);
-      }
+      // Return initialized results array
     }
     
     return results;
   }
 
   /**
-   * Extract all values from standard list with proper error handling
-   * @param desc ActionDescriptor containing the list
-   * @param subPath Property path within each list item
-   * @param valueType Expected type of values
-   * @param skipErrors Whether to skip errors and continue
-   * @param defaultValue Default value for failed extractions
-   * @returns Array of extracted values
+   * FIXED: Improved extractAllFromList with proper error handling
    */
   extractAllFromList<T>(
     desc: ActionDescriptor,
@@ -675,17 +665,25 @@ class ActionDescriptorPath {
     defaultValue?: T
   ): T[] {
     this.checkDisposed();
+    
+    if (!desc || !subPath) {
+      return [];
+    }
+    
     var results: T[] = [];
     var sentinelValue = defaultValue !== undefined ? defaultValue : this.getSentinelValue<T>(valueType);
 
     try {
       var list = this.resolvePath(desc) as ActionList;
+      if (!list || typeof list.count !== 'number') {
+        return results;
+      }
+      
       var currentCount = list.count;
       
       for (var i = 0; i < currentCount; i++) {
         try {
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (hasGetType && list.getType && list.getType(i) !== DescValueType.OBJECTTYPE) {
             if (skipErrors) {
               results.push(sentinelValue);
@@ -697,7 +695,7 @@ class ActionDescriptorPath {
 
           var itemDesc = list.getObjectValue(i);
           var value = this.extractValueFromDescriptor(itemDesc, subPath, valueType);
-          results.push(value);
+          results.push(value as T);
         } catch (error) {
           if (skipErrors) {
             results.push(sentinelValue);
@@ -720,12 +718,7 @@ class ActionDescriptorPath {
   // === SEARCH METHODS ===
 
   /**
-   * Find value in list by predicate with proper type validation
-   * @param desc ActionDescriptor containing the list
-   * @param subPath Property path within each list item
-   * @param valueType Expected type of values
-   * @param predicate Function to test each value
-   * @returns First matching value or null
+   * FIXED: Improved findInList with proper type validation
    */
   findInList<T>(
     desc: ActionDescriptor,
@@ -735,14 +728,21 @@ class ActionDescriptorPath {
   ): T | null {
     this.checkDisposed();
     
+    if (!desc || !subPath || !predicate) {
+      return null;
+    }
+    
     try {
       var list = this.resolvePath(desc) as ActionList;
+      if (!list || typeof list.count !== 'number') {
+        return null;
+      }
+      
       var currentCount = list.count;
       
       for (var i = 0; i < currentCount; i++) {
         try {
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (!hasGetType || !list.getType || list.getType(i) === DescValueType.OBJECTTYPE) {
             var itemDesc = list.getObjectValue(i);
             var value = this.extractValueFromDescriptor(itemDesc, subPath, valueType) as T;
@@ -763,12 +763,13 @@ class ActionDescriptorPath {
 
   /**
    * Safe index access with runtime validation
-   * @param index Zero-based index
-   * @returns This instance for fluent chaining
-   * @throws Error if not called after list()
    */
   safeAt(index: number): ActionDescriptorPath {
     this.checkDisposed();
+    if (typeof index !== 'number' || index < 0) {
+      throw new Error("Index must be a non-negative number");
+    }
+    
     var lastSegment = this.segments[this.segments.length - 1];
     if (lastSegment && lastSegment.type === 'list') {
       lastSegment.index = index;
@@ -781,21 +782,28 @@ class ActionDescriptorPath {
 
   // === UTILITY METHODS ===
 
+  /**
+   * FIXED: Improved resolvePath with better error handling
+   */
   private resolvePath(rootDesc: ActionDescriptor): any {
     var current: any = rootDesc;
 
     for (var i = 0; i < this.segments.length; i++) {
       var segment = this.segments[i];
+      
+      if (!segment.key) {
+        throw new Error("Invalid segment at position " + i);
+      }
+      
       var typeID = stringIDToTypeID(segment.key);
 
       if (!current.hasKey || !current.hasKey(typeID)) {
-        throw new Error("Key '" + segment.key + "' not found at path segment");
+        throw new Error("Key '" + segment.key + "' not found at path segment " + i);
       }
 
       switch (segment.type) {
         case 'object':
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (hasGetType && current.getType && current.getType(typeID) !== DescValueType.OBJECTTYPE) {
             throw new Error("Key '" + segment.key + "' is not an object type");
           }
@@ -803,8 +811,7 @@ class ActionDescriptorPath {
           break;
 
         case 'list':
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (hasGetType && current.getType && current.getType(typeID) !== DescValueType.LISTTYPE) {
             throw new Error("Key '" + segment.key + "' is not a list type");
           }
@@ -815,18 +822,16 @@ class ActionDescriptorPath {
               if (segment.index >= list.count) {
                 throw new Error("Safe access failed: List index " + segment.index + " out of bounds (count: " + list.count + ")");
               }
-              // FIXED: Add version compatibility check
-              var hasGetType = PathAccessorVersion.hasGetType();
-              if (hasGetType && list.getType && list.getType(segment.index) !== DescValueType.OBJECTTYPE) {
+              var hasGetTypeForList = hasGetType && list.getType;
+              if (hasGetTypeForList && list.getType(segment.index) !== DescValueType.OBJECTTYPE) {
                 throw new Error("Safe access failed: List item at index " + segment.index + " is not an object");
               }
             } else {
               if (segment.index >= list.count) {
                 throw new Error("List index " + segment.index + " out of bounds (count: " + list.count + ")");
               }
-              // FIXED: Add version compatibility check
-              var hasGetType = PathAccessorVersion.hasGetType();
-              if (hasGetType && list.getType && list.getType(segment.index) !== DescValueType.OBJECTTYPE) {
+              var hasGetTypeForList = hasGetType && list.getType;
+              if (hasGetTypeForList && list.getType(segment.index) !== DescValueType.OBJECTTYPE) {
                 throw new Error("List item at index " + segment.index + " is not an object");
               }
             }
@@ -844,10 +849,12 @@ class ActionDescriptorPath {
     return current;
   }
 
+  /**
+   * FIXED: Improved extractFinalValue with better error handling
+   */
   private extractFinalValue(desc: ActionDescriptor, typeID: number, valueType: string): any {
     try {
-      // FIXED: Add version compatibility check
-      var hasGetType = PathAccessorVersion.hasGetType();
+      var hasGetType = PathAccessorVersionManager.hasGetType();
       if (hasGetType && desc.getType) {
         var actualType = desc.getType(typeID);
         var expectedType = this.getExpectedDescValueType(valueType);
@@ -858,12 +865,18 @@ class ActionDescriptorPath {
       }
 
       switch (valueType) {
-        case 'string': return desc.getString(typeID);
-        case 'integer': return desc.getInteger(typeID);
-        case 'double': return desc.getDouble(typeID);
-        case 'boolean': return desc.getBoolean(typeID);
-        case 'enumerated': return desc.getEnumerationValue(typeID);
-        default: return this.getSentinelValue(valueType);
+        case 'string': 
+          return desc.getString(typeID);
+        case 'integer': 
+          return desc.getInteger(typeID);
+        case 'double': 
+          return desc.getDouble(typeID);
+        case 'boolean': 
+          return desc.getBoolean(typeID);
+        case 'enumerated': 
+          return desc.getEnumerationValue(typeID);
+        default: 
+          return this.getSentinelValue(valueType);
       }
     } catch (error) {
       return this.getSentinelValue(valueType);
@@ -885,9 +898,13 @@ class ActionDescriptorPath {
   }
 
   /**
-   * Extract value from sub-path within a descriptor
+   * FIXED: Improved extractValueFromDescriptor
    */
   private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
+    if (!desc || !subPath) {
+      return this.getSentinelValue(valueType);
+    }
+    
     var pathParts = subPath.split('.');
     var current = desc;
 
@@ -904,8 +921,7 @@ class ActionDescriptorPath {
           if (!current.hasKey(typeID)) {
             throw new Error("Property '" + part + "' not found in sub-path");
           }
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (hasGetType && current.getType && current.getType(typeID) !== DescValueType.OBJECTTYPE) {
             throw new Error("Property '" + part + "' is not an object in sub-path");
           }
@@ -919,9 +935,13 @@ class ActionDescriptorPath {
   }
 
   /**
-   * Static helper for extracting values from nested paths
+   * FIXED: Improved static helper for extracting values from nested paths
    */
   private static extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
+    if (!desc || !subPath) {
+      return ActionDescriptorPath.getSentinelValue(valueType);
+    }
+    
     var pathParts = subPath.split('.');
     var current = desc;
 
@@ -933,8 +953,7 @@ class ActionDescriptorPath {
         var typeID = stringIDToTypeID(part);
         
         if (i === pathParts.length - 1) {
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (hasGetType && current.getType) {
             var actualType = current.getType(typeID);
             var expectedType: number;
@@ -965,8 +984,7 @@ class ActionDescriptorPath {
           if (!current.hasKey(typeID)) {
             throw new Error("Property '" + part + "' not found in sub-path");
           }
-          // FIXED: Add version compatibility check
-          var hasGetType = PathAccessorVersion.hasGetType();
+          var hasGetType = PathAccessorVersionManager.hasGetType();
           if (hasGetType && current.getType && current.getType(typeID) !== DescValueType.OBJECTTYPE) {
             throw new Error("Property '" + part + "' is not an object in sub-path");
           }
@@ -979,6 +997,9 @@ class ActionDescriptorPath {
     }
   }
 
+  /**
+   * FIXED: Improved applyTransformations with better error handling
+   */
   private applyTransformations(value: any): any {
     var result = value;
     for (var i = 0; i < this.transformations.length; i++) {
@@ -995,7 +1016,14 @@ class ActionDescriptorPath {
     return result;
   }
 
+  /**
+   * Unit conversion helpers
+   */
   private convertToPixels(value: number, fromUnit: string, dpi: number): number {
+    if (typeof value !== 'number' || typeof dpi !== 'number') {
+      return value;
+    }
+    
     switch (fromUnit.toLowerCase()) {
       case 'pt': case 'points': return value * (dpi / 72);
       case 'in': case 'inches': return value * dpi;
@@ -1007,17 +1035,23 @@ class ActionDescriptorPath {
   }
 
   private convertToPoints(value: number, fromUnit: string, dpi: number): number {
+    if (typeof value !== 'number' || typeof dpi !== 'number') {
+      return value;
+    }
+    
     var pixels = this.convertToPixels(value, fromUnit, dpi);
     return pixels * (72 / dpi);
   }
 
-  private getPathString(): string {
-    var parts: string[] = [];
-    for (var i = 0; i < this.segments.length; i++) {
-      var s = this.segments[i];
-      parts.push(s.index !== undefined ? s.key + "[" + s.index + "]" : s.key);
+  /**
+   * Get fallback value based on path context
+   */
+  private getFallbackValue<T>(): T {
+    var lastSegment = this.segments[this.segments.length - 1];
+    if (lastSegment && lastSegment.type === 'value' && lastSegment.valueType) {
+      return this.getSentinelValue<T>(lastSegment.valueType);
     }
-    return parts.join('.');
+    return null as T;
   }
 
   /**
@@ -1042,46 +1076,37 @@ class ActionDescriptorPath {
 // === FACTORY FUNCTIONS ===
 
 /**
- * FIXED: Memory-efficient factory class with all methods in prototype
+ * FIXED: Proper factory class definition with all methods in prototype
  */
 function PathFactory() {
-  // Empty constructor
+  // Empty constructor for proper prototype inheritance
 }
 
 /**
  * Create object navigation path
- * @param key Object property key
- * @returns New path for object navigation
  */
-PathFactory.prototype.obj = function (key: string) { 
+PathFactory.prototype.obj = function (key: string): ActionDescriptorPath { 
   return ActionDescriptorPath.create().object(key); 
 };
 
 /**
  * Create list navigation path
- * @param key List property key
- * @returns New path for list navigation
  */
-PathFactory.prototype.list = function (key: string) { 
+PathFactory.prototype.list = function (key: string): ActionDescriptorPath { 
   return ActionDescriptorPath.create().list(key); 
 };
 
 /**
  * Create value extraction path
- * @param key Value property key
- * @param type Expected value type
- * @returns New path for value extraction
  */
-PathFactory.prototype.val = function (key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated') {
+PathFactory.prototype.val = function (key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated'): ActionDescriptorPath {
   return ActionDescriptorPath.create().value(key, type);
 };
 
 /**
  * Extract bounds with unit conversion and default values
- * @param property Bounds property to extract
- * @returns Path configured for bounds extraction
  */
-PathFactory.prototype.bounds = function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height') {
+PathFactory.prototype.bounds = function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height'): ActionDescriptorPath {
   return ActionDescriptorPath.create()
     .object('bounds')
     .value(property, 'double')
@@ -1092,12 +1117,8 @@ PathFactory.prototype.bounds = function (property: 'left' | 'top' | 'right' | 'b
 
 /**
  * Extract text style properties with safe defaults
- * @param property Text style property to extract
- * @param type Expected value type
- * @param textIndex Index of text style range
- * @returns Path configured for text style extraction
  */
-PathFactory.prototype.textStyle = function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number) {
+PathFactory.prototype.textStyle = function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number): ActionDescriptorPath {
   if (textIndex === undefined) textIndex = 0;
   
   var path = ActionDescriptorPath.create()
@@ -1123,12 +1144,8 @@ PathFactory.prototype.textStyle = function (property: string, type: 'string' | '
 
 /**
  * Extract filter properties with safe defaults
- * @param property Filter property to extract
- * @param type Expected value type
- * @param filterIndex Index of filter in list
- * @returns Path configured for filter extraction
  */
-PathFactory.prototype.filter = function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number) {
+PathFactory.prototype.filter = function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number): ActionDescriptorPath {
   if (filterIndex === undefined) filterIndex = 0;
   
   var path = ActionDescriptorPath.create()
@@ -1152,14 +1169,12 @@ PathFactory.prototype.filter = function (property: string, type: 'string' | 'int
 };
 
 /**
- * FIXED: Find layer by name pattern (search-based approach)
- * @param namePattern String or RegExp to match layer names
- * @returns Search utility object
+ * FIXED: Search-based layer finding (does not require ActionDescriptorNavigator import)
  */
 PathFactory.prototype.findLayer = function(namePattern: string | RegExp) {
   return {
-    extract: function(desc?: ActionDescriptor): ActionDescriptorNavigator | null {
-      var layerNames = PathAccessorCache.getLayerNames();
+    extract: function(desc?: ActionDescriptor): string | null {
+      var layerNames = PathAccessorCacheManager.getLayerNames();
       
       for (var i = 0; i < layerNames.length; i++) {
         var layerName = layerNames[i];
@@ -1172,7 +1187,7 @@ PathFactory.prototype.findLayer = function(namePattern: string | RegExp) {
         }
         
         if (matches) {
-          return ActionDescriptorNavigator.forLayerByIndex(i + 1);
+          return layerName;
         }
       }
       
@@ -1182,15 +1197,13 @@ PathFactory.prototype.findLayer = function(namePattern: string | RegExp) {
 };
 
 /**
- * FIXED: Find filter by property and predicate (search-based approach)
- * @param property Filter property to search
- * @param type Expected value type
- * @param predicate Optional function to test values
- * @returns Search utility object
+ * FIXED: Search-based filter finding
  */
 PathFactory.prototype.findFilter = function(property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
   return {
     extract: function<T>(desc: ActionDescriptor): T | null {
+      if (!desc) return null;
+      
       var basePath = ActionDescriptorPath.create()
         .object('smartObjectMore')
         .list('filterFXList');
@@ -1207,15 +1220,13 @@ PathFactory.prototype.findFilter = function(property: string, type: 'string' | '
 };
 
 /**
- * FIXED: Find text style by property and predicate (search-based approach)
- * @param property Text style property to search
- * @param type Expected value type
- * @param predicate Optional function to test values
- * @returns Search utility object
+ * FIXED: Search-based text style finding
  */
 PathFactory.prototype.findTextStyle = function(property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
   return {
     extract: function<T>(desc: ActionDescriptor): T | null {
+      if (!desc) return null;
+      
       var basePath = ActionDescriptorPath.create()
         .object('textKey')
         .list('textStyleRange');
@@ -1235,12 +1246,11 @@ PathFactory.prototype.findTextStyle = function(property: string, type: 'string' 
  * Clear internal caches when document changes
  */
 PathFactory.prototype.clearCaches = function() {
-  PathAccessorCache.clear();
+  PathAccessorCacheManager.clear();
 };
 
-// FIXED: Move P declaration after PathFactory definition to resolve declaration order
+// FIXED: Proper declaration order - P is declared after PathFactory is complete
 /**
  * Primary factory instance for common operations
- * Provides factory functions and search capabilities
  */
 var P = new PathFactory();

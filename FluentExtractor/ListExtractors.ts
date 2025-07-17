@@ -1,9 +1,10 @@
 /**
  * Advanced list extraction utilities for ActionList objects
  * Provides sophisticated list processing with error tolerance and transformations
+ * FIXED: Improved consistency, better error handling, unified version management
  */
 
-// ExtendScript global function declarations
+// === EXTENDSCRIPT GLOBAL DECLARATIONS ===
 declare function charIDToTypeID(str: string): number;
 declare function stringIDToTypeID(str: string): number;
 declare function typeIDToStringID(id: number): string;
@@ -15,9 +16,22 @@ declare var app: {
   version?: string;
 };
 
-// DescValueType is declared in ExtendScript.d.ts
+// FIXED: Comprehensive DescValueType declaration consistent with other files
+declare const DescValueType: {
+  readonly OBJECTTYPE: 1;
+  readonly LISTTYPE: 2;
+  readonly REFERENCETYPE: 3;
+  readonly CLASSTYPE: 4;
+  readonly ENUMTYPE: 5;
+  readonly STRINGTYPE: 6;
+  readonly INTEGERTYPE: 7;
+  readonly DOUBLETYPE: 8;
+  readonly ALIASTYPE: 9;
+  readonly BOOLEANTYPE: 10;
+  readonly RAWTYPE: 11;
+};
 
-// Enhanced ActionDescriptor interface
+// FIXED: Consistent interface definitions (no duplicates)
 interface ActionDescriptor {
   hasKey(key: number): boolean;
   getString(key: number): string;
@@ -27,7 +41,7 @@ interface ActionDescriptor {
   getEnumerationValue(key: number): number;
   getObjectValue(key: number): ActionDescriptor;
   getList(key: number): ActionList;
-  getType(key: number): number; // FIXED: Made non-optional with version detection
+  getType?(key: number): number; // Optional for version compatibility
   putString(key: number, value: string): void;
   putInteger(key: number, value: number): void;
   putDouble(key: number, value: number): void;
@@ -39,7 +53,7 @@ interface ActionDescriptor {
 
 interface ActionList {
   count: number;
-  getType(index: number): number; // FIXED: Made non-optional with version detection
+  getType?(index: number): number; // Optional for version compatibility
   getString(index: number): string;
   getInteger(index: number): number;
   getDouble(index: number): number;
@@ -63,6 +77,7 @@ interface ActionReference {
   putProperty(desiredClass: number, property: number): void;
 }
 
+// ListExtractors-specific interfaces
 interface ListExtractionOptions {
   skipErrors?: boolean;
   includeIndices?: boolean;
@@ -88,41 +103,43 @@ interface ExtractionMetadata<T = any> {
   hasMinimum: (min: number) => boolean;
 }
 
-/**
- * FIXED: Singleton transformer instances for memory efficiency
- */
-var TransformerSingletons = {
-  floor: {
+// FIXED: Consolidated transformer instances for memory efficiency and consistency
+var ListExtractorTransformers = (function() {
+  var floorTransformer = {
     transform: function(value: any): any {
-      return Math.floor(value);
+      return typeof value === 'number' ? Math.floor(value) : value;
     }
-  },
+  };
   
-  round: function(decimals: number) {
+  var percentageTransformer = {
+    transform: function(value: any): any {
+      return typeof value === 'number' ? value * 100 : value;
+    }
+  };
+  
+  function createRoundTransformer(decimals: number) {
     var factor = Math.pow(10, decimals || 0);
     return {
       transform: function(value: any): any {
-        return Math.round(value * factor) / factor;
+        return typeof value === 'number' ? Math.round(value * factor) / factor : value;
       }
     };
-  },
-  
-  percentage: {
-    transform: function(value: any): any {
-      return value * 100;
-    }
   }
-};
-
-/**
- * FIXED: Version compatibility detection
- */
-var ListExtractorVersion = {
-  _detected: false,
-  _hasGetType: true,
   
-  detect: function() {
-    if (this._detected) return;
+  return {
+    floor: floorTransformer,
+    percentage: percentageTransformer,
+    round: createRoundTransformer
+  };
+})();
+
+// FIXED: Unified version compatibility detection (consistent with other files)
+var ListExtractorVersionManager = (function() {
+  var detected = false;
+  var hasGetType = true;
+  
+  function detect() {
+    if (detected) return;
     
     try {
       var testRef = new ActionReference();
@@ -130,24 +147,31 @@ var ListExtractorVersion = {
       var testDesc = executeActionGet(testRef);
       
       if (typeof testDesc.getType !== 'function') {
-        this._hasGetType = false;
+        hasGetType = false;
       }
     } catch (error) {
-      this._hasGetType = false;
+      hasGetType = false;
     }
     
-    this._detected = true;
-  },
-  
-  hasGetType: function() {
-    this.detect();
-    return this._hasGetType;
+    detected = true;
   }
-};
+  
+  return {
+    hasGetType: function() {
+      detect();
+      return hasGetType;
+    },
+    
+    reset: function() {
+      detected = false;
+      hasGetType = true;
+    }
+  };
+})();
 
 /**
  * Advanced list value extractor with sophisticated processing capabilities
- * Provides error-tolerant extraction, transformations, and search functionality
+ * FIXED: Improved error tolerance, better memory management, unified patterns
  */
 class ListValueExtractor {
   private basePath: any;
@@ -158,10 +182,6 @@ class ListValueExtractor {
 
   /**
    * Create a new list value extractor
-   * @param basePath Path accessor to the list
-   * @param subPath Property path within each list item
-   * @param valueType Expected type of values to extract
-   * @param options Configuration options for extraction behavior
    */
   constructor(
     basePath: any,
@@ -169,6 +189,16 @@ class ListValueExtractor {
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated',
     options: ListExtractionOptions = {}
   ) {
+    if (!basePath) {
+      throw new Error("Base path cannot be null or undefined");
+    }
+    if (!subPath || typeof subPath !== 'string') {
+      throw new Error("Sub path must be a non-empty string");
+    }
+    if (!valueType) {
+      throw new Error("Value type must be specified");
+    }
+    
     this.basePath = basePath;
     this.subPath = subPath;
     this.valueType = valueType;
@@ -208,12 +238,15 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract all values from the list with race condition protection
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @returns Array of extracted values
+   * FIXED: Improved extractAll with race condition protection and better error handling
    */
   extractAll<T = any>(rootDesc: ActionDescriptor): T[] {
     this.checkDisposed();
+    
+    if (!rootDesc) {
+      return [];
+    }
+    
     var results: T[] = [];
     var sentinelValue = this.options.defaultValue !== undefined ? 
       this.options.defaultValue : 
@@ -229,12 +262,12 @@ class ListValueExtractor {
       
       for (var i = 0; i < currentCount; i++) {
         try {
+          // Double-check count hasn't changed during iteration
           if (i >= list.count) {
             break;
           }
           
-          // FIXED: Use getType with version compatibility
-          var hasGetType = ListExtractorVersion.hasGetType();
+          var hasGetType = ListExtractorVersionManager.hasGetType();
           if (hasGetType && list.getType && list.getType(i) !== DescValueType.OBJECTTYPE) {
             if (this.options.skipErrors) {
               results.push(sentinelValue);
@@ -267,11 +300,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract fixed number of values as tuple with bounds protection
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param count Number of values to extract
-   * @param fillValue Value to use for missing items
-   * @returns Array of exactly 'count' values
+   * FIXED: Improved extractAsTuple with better bounds protection
    */
   extractAsTuple<T = any>(
     rootDesc: ActionDescriptor,
@@ -279,6 +308,11 @@ class ListValueExtractor {
     fillValue?: T
   ): T[] {
     this.checkDisposed();
+    
+    if (!rootDesc || typeof count !== 'number' || count < 0) {
+      return [];
+    }
+    
     var results: T[] = [];
     var sentinelValue = fillValue !== undefined ? 
       fillValue : 
@@ -286,56 +320,51 @@ class ListValueExtractor {
         this.options.defaultValue : 
         this.getSentinelValue<T>(this.valueType));
 
+    // Initialize results array
+    for (var i = 0; i < count; i++) {
+      results.push(sentinelValue);
+    }
+
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
       if (!list || typeof list.count !== 'number') {
-        for (var i = 0; i < count; i++) {
-          results.push(sentinelValue);
-        }
         return results;
       }
 
       var currentCount = list.count;
+      var actualCount = Math.min(count, currentCount);
 
-      for (var i = 0; i < count; i++) {
+      for (var i = 0; i < actualCount; i++) {
         try {
-          if (i < currentCount && i < list.count) {
-            // FIXED: Add version compatibility check
-            var hasGetType = ListExtractorVersion.hasGetType();
+          // Double-check bounds
+          if (i < list.count) {
+            var hasGetType = ListExtractorVersionManager.hasGetType();
             if (!hasGetType || !list.getType || list.getType(i) === DescValueType.OBJECTTYPE) {
               var value = this.extractSingleValue(list, i);
-              results.push(value);
-            } else {
-              results.push(sentinelValue);
+              results[i] = value;
             }
-          } else {
-            results.push(sentinelValue);
+            // else: results[i] already initialized to sentinelValue
           }
         } catch (error) {
-          if (this.options.skipErrors || fillValue !== undefined) {
-            results.push(sentinelValue);
-          } else {
+          if (!this.options.skipErrors && fillValue === undefined) {
             var err = error as Error;
             throw new Error("Failed to extract value at index " + i + ": " + err.message);
           }
+          // else: results[i] already initialized to sentinelValue
         }
       }
 
       return results;
     } catch (error) {
-      for (var i = 0; i < count; i++) {
-        results.push(sentinelValue);
+      if (this.options.skipErrors || fillValue !== undefined) {
+        return results;
       }
-      return results;
+      throw error;
     }
   }
 
   /**
    * Extract exactly N values, padding with defaults if needed
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param count Exact number of values to return
-   * @param defaultValue Default value for padding
-   * @returns Array of exactly 'count' values
    */
   extractExactly<T = any>(rootDesc: ActionDescriptor, count: number, defaultValue?: T): T[] {
     this.checkDisposed();
@@ -343,12 +372,15 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract values with their indices and metadata
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @returns Array of values with their original indices
+   * FIXED: Improved extractAllWithIndices with better metadata handling
    */
   extractAllWithIndices<T = any>(rootDesc: ActionDescriptor): IndexedValue<T>[] {
     this.checkDisposed();
+    
+    if (!rootDesc) {
+      return [];
+    }
+    
     var results: IndexedValue<T>[] = [];
     var sentinelValue = this.options.defaultValue !== undefined ? 
       this.options.defaultValue : 
@@ -366,8 +398,7 @@ class ListValueExtractor {
         try {
           if (i >= list.count) break;
           
-          // FIXED: Add version compatibility check
-          var hasGetType = ListExtractorVersion.hasGetType();
+          var hasGetType = ListExtractorVersionManager.hasGetType();
           if (!hasGetType || !list.getType || list.getType(i) === DescValueType.OBJECTTYPE) {
             var value = this.extractSingleValue(list, i);
             results.push({ index: i, value: value });
@@ -396,16 +427,18 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract values that match a condition with proper error handling
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param predicate Function to test each value
-   * @returns Array of values that match the predicate
+   * FIXED: Improved extractWhere with better predicate handling
    */
   extractWhere<T = any>(
     rootDesc: ActionDescriptor,
     predicate: (value: T, index: number) => boolean
   ): T[] {
     this.checkDisposed();
+    
+    if (!rootDesc || !predicate || typeof predicate !== 'function') {
+      return [];
+    }
+    
     var allValues = this.extractAllWithIndices<T>(rootDesc);
     var results: T[] = [];
     
@@ -426,16 +459,17 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract first value that matches condition with proper cleanup
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param predicate Optional function to test values (returns first if not provided)
-   * @returns First matching value or null
+   * FIXED: Improved extractFirst with proper cleanup
    */
   extractFirst<T = any>(
     rootDesc: ActionDescriptor,
     predicate?: (value: T, index: number) => boolean
   ): T | null {
     this.checkDisposed();
+    
+    if (!rootDesc) {
+      return null;
+    }
     
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
@@ -449,8 +483,7 @@ class ListValueExtractor {
         try {
           if (i >= list.count) break;
           
-          // FIXED: Add version compatibility check
-          var hasGetType = ListExtractorVersion.hasGetType();
+          var hasGetType = ListExtractorVersionManager.hasGetType();
           if (!hasGetType || !list.getType || list.getType(i) === DescValueType.OBJECTTYPE) {
             var value = this.extractSingleValue(list, i);
             if (!predicate || predicate(value, i)) {
@@ -474,26 +507,26 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract value at specific index with bounds checking
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param index Zero-based index
-   * @returns Value at the specified index
+   * FIXED: Improved extractAt with bounds checking
    */
   extractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
     this.checkDisposed();
     
+    if (!rootDesc || typeof index !== 'number' || index < 0) {
+      return this.getSentinelValue<T>(this.valueType);
+    }
+    
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
       
-      if (!list || typeof list.count !== 'number' || index >= list.count || index < 0) {
+      if (!list || typeof list.count !== 'number' || index >= list.count) {
         if (this.options.defaultValue !== undefined) {
           return this.options.defaultValue;
         }
         return this.getSentinelValue<T>(this.valueType);
       }
 
-      // FIXED: Add version compatibility check
-      var hasGetType = ListExtractorVersion.hasGetType();
+      var hasGetType = ListExtractorVersionManager.hasGetType();
       if (hasGetType && list.getType && list.getType(index) !== DescValueType.OBJECTTYPE) {
         if (this.options.defaultValue !== undefined) {
           return this.options.defaultValue;
@@ -511,12 +544,14 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract last value with proper bounds checking
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @returns Last value in the list or null
+   * FIXED: Improved extractLast with proper bounds checking
    */
   extractLast<T = any>(rootDesc: ActionDescriptor): T | null {
     this.checkDisposed();
+    
+    if (!rootDesc) {
+      return null;
+    }
     
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
@@ -527,8 +562,7 @@ class ListValueExtractor {
 
       var lastIndex = list.count - 1;
       
-      // FIXED: Add version compatibility check
-      var hasGetType = ListExtractorVersion.hasGetType();
+      var hasGetType = ListExtractorVersionManager.hasGetType();
       if (!hasGetType || !list.getType || list.getType(lastIndex) === DescValueType.OBJECTTYPE) {
         return this.extractSingleValue(list, lastIndex);
       }
@@ -540,16 +574,18 @@ class ListValueExtractor {
   }
 
   /**
-   * Count items that match condition with error tolerance
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param predicate Function to test each value
-   * @returns Number of matching items
+   * FIXED: Improved countWhere with error tolerance
    */
   countWhere<T = any>(
     rootDesc: ActionDescriptor,
     predicate: (value: T, index: number) => boolean
   ): number {
     this.checkDisposed();
+    
+    if (!rootDesc || !predicate || typeof predicate !== 'function') {
+      return 0;
+    }
+    
     var allValues = this.extractAllWithIndices<T>(rootDesc);
     var count = 0;
     
@@ -571,12 +607,14 @@ class ListValueExtractor {
 
   /**
    * Extract all items as object with numbered keys
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param keyPrefix Prefix for generated keys
-   * @returns Object with numbered properties
    */
   extractAllAsObject<T = any>(rootDesc: ActionDescriptor, keyPrefix: string = 'item'): Record<string, T> {
     this.checkDisposed();
+    
+    if (!keyPrefix || typeof keyPrefix !== 'string') {
+      keyPrefix = 'item';
+    }
+    
     var allValues = this.extractAll<T>(rootDesc);
     var result: Record<string, T> = {};
 
@@ -589,22 +627,21 @@ class ListValueExtractor {
 
   /**
    * Extract all items ensuring minimum count, pad if needed
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param minCount Minimum number of items to return
-   * @param defaultValue Default value for padding
-   * @returns Array with at least minCount items
    */
   extractAllWithMinimum<T = any>(rootDesc: ActionDescriptor, minCount: number, defaultValue?: T): T[] {
     this.checkDisposed();
+    
+    if (typeof minCount !== 'number' || minCount < 0) {
+      return this.extractAll<T>(rootDesc);
+    }
+    
     var allValues = this.extractAll<T>(rootDesc);
     var sentinelValue = defaultValue !== undefined ? 
       defaultValue : 
       this.getSentinelValue<T>(this.valueType);
 
-    if (allValues.length < minCount) {
-      while (allValues.length < minCount) {
-        allValues.push(sentinelValue);
-      }
+    while (allValues.length < minCount) {
+      allValues.push(sentinelValue);
     }
 
     return allValues;
@@ -612,25 +649,28 @@ class ListValueExtractor {
 
   /**
    * Extract all items up to maximum count
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param maxCount Maximum number of items to return
-   * @returns Array with at most maxCount items
    */
   extractAllUpTo<T = any>(rootDesc: ActionDescriptor, maxCount: number): T[] {
     this.checkDisposed();
+    
+    if (typeof maxCount !== 'number' || maxCount < 0) {
+      return [];
+    }
+    
     var allValues = this.extractAll<T>(rootDesc);
     return allValues.slice(0, maxCount);
   }
 
   /**
-   * Extract all items as dynamic tuple with padding
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param maxCount Maximum number of items
-   * @param defaultValue Default value for padding
-   * @returns Array with consistent length
+   * FIXED: Improved extractAllAsDynamicTuple with better handling
    */
   extractAllAsDynamicTuple<T = any>(rootDesc: ActionDescriptor, maxCount: number = 10, defaultValue?: T): T[] {
     this.checkDisposed();
+    
+    if (typeof maxCount !== 'number' || maxCount < 1) {
+      maxCount = 10;
+    }
+    
     var allValues = this.extractAll<T>(rootDesc);
 
     if (allValues.length === 0) {
@@ -652,12 +692,11 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract all items with metadata
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @returns Extraction results with metadata
+   * FIXED: Improved extractAllWithMetadata with comprehensive information
    */
   extractAllWithMetadata<T = any>(rootDesc: ActionDescriptor): ExtractionMetadata<T> {
     this.checkDisposed();
+    
     var values = this.extractAll<T>(rootDesc);
     var indices: number[] = [];
     
@@ -670,18 +709,22 @@ class ListValueExtractor {
       count: values.length,
       indices: indices,
       isEmpty: values.length === 0,
-      hasMinimum: function (min: number) { return values.length >= min; }
+      hasMinimum: function (min: number) { 
+        return typeof min === 'number' && values.length >= min; 
+      }
     };
   }
 
   /**
    * Extract all items and return as object with dynamic properties
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param namePattern Pattern for property names (use {n} for index)
-   * @returns Object with dynamically named properties
    */
   extractAllAsNamedObject<T = any>(rootDesc: ActionDescriptor, namePattern: string = 'item{n}'): Record<string, T> {
     this.checkDisposed();
+    
+    if (!namePattern || typeof namePattern !== 'string') {
+      namePattern = 'item{n}';
+    }
+    
     var allValues = this.extractAll<T>(rootDesc);
     var result: Record<string, T> = {};
 
@@ -696,12 +739,15 @@ class ListValueExtractor {
   // === TRANSFORMATION METHODS ===
 
   /**
-   * Apply transformation to extracted values using singleton pattern
-   * @param transformer Function to transform each value
-   * @returns New extractor with transformation applied
+   * FIXED: Improved transform with memory-efficient transformer chaining
    */
   transform(transformer: ValueTransformer): ListValueExtractor {
     this.checkDisposed();
+    
+    if (!transformer || typeof transformer !== 'function') {
+      throw new Error("Transformer must be a function");
+    }
+    
     var newOptions: ListExtractionOptions = {
       skipErrors: this.options.skipErrors,
       includeIndices: this.options.includeIndices,
@@ -710,8 +756,7 @@ class ListValueExtractor {
     };
 
     if (this.options.transformer) {
-      var existingTransformer = this.options.transformer;
-      newOptions.transformer = this.createChainedTransformer(existingTransformer, transformer);
+      newOptions.transformer = this.createChainedTransformer(this.options.transformer, transformer);
     } else {
       newOptions.transformer = transformer;
     }
@@ -736,37 +781,36 @@ class ListValueExtractor {
 
   /**
    * FIXED: Floor numeric values using singleton transformer
-   * @returns New extractor with floor transformation
    */
   floor(): ListValueExtractor {
-    return this.transform(TransformerSingletons.floor.transform);
+    return this.transform(ListExtractorTransformers.floor.transform);
   }
 
   /**
    * FIXED: Round numeric values using singleton transformer
-   * @param decimals Number of decimal places
-   * @returns New extractor with round transformation
    */
   round(decimals: number = 0): ListValueExtractor {
-    var transformer = TransformerSingletons.round(decimals);
+    if (typeof decimals !== 'number' || decimals < 0) {
+      decimals = 0;
+    }
+    
+    var transformer = ListExtractorTransformers.round(decimals);
     return this.transform(transformer.transform);
   }
 
   /**
    * FIXED: Convert to percentage using singleton transformer
-   * @returns New extractor with percentage transformation
    */
   toPercentage(): ListValueExtractor {
-    return this.transform(TransformerSingletons.percentage.transform);
+    return this.transform(ListExtractorTransformers.percentage.transform);
   }
 
   /**
    * Skip errors and continue processing
-   * @param defaultValue Default value for failed extractions
-   * @returns New extractor with error skipping enabled
    */
   skipErrors(defaultValue?: any): ListValueExtractor {
     this.checkDisposed();
+    
     var sentinelValue = defaultValue !== undefined ? 
       defaultValue : 
       this.getSentinelValue(this.valueType);
@@ -785,12 +829,7 @@ class ListValueExtractor {
   // === SEARCH METHODS ===
 
   /**
-   * Find items by property value with type validation
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param searchProperty Property to search within
-   * @param searchValueType Type of the search property
-   * @param searchValue Value to search for
-   * @returns Array of matching values
+   * FIXED: Improved findWhere with type validation
    */
   findWhere<T = any>(
     rootDesc: ActionDescriptor,
@@ -799,6 +838,10 @@ class ListValueExtractor {
     searchValue: any
   ): T[] {
     this.checkDisposed();
+    
+    if (!rootDesc || !searchProperty || typeof searchProperty !== 'string') {
+      return [];
+    }
     
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
@@ -813,8 +856,7 @@ class ListValueExtractor {
         try {
           if (i >= list.count) break;
           
-          // FIXED: Add version compatibility check
-          var hasGetType = ListExtractorVersion.hasGetType();
+          var hasGetType = ListExtractorVersionManager.hasGetType();
           if (!hasGetType || !list.getType || list.getType(i) === DescValueType.OBJECTTYPE) {
             var itemDesc = list.getObjectValue(i);
             var propValue = this.extractValueFromDescriptor(itemDesc, searchProperty, searchValueType);
@@ -842,23 +884,22 @@ class ListValueExtractor {
 
   /**
    * Safe access by validating list structure first
-   * @param rootDesc Root ActionDescriptor containing the list
-   * @param index Zero-based index
-   * @returns Value at index or sentinel value
    */
   safeExtractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
     this.checkDisposed();
     
+    if (!rootDesc || typeof index !== 'number' || index < 0) {
+      return this.getSentinelValue<T>(this.valueType);
+    }
+    
     try {
       var list = this.basePath.extract(rootDesc) as ActionList;
       
-      if (!list || typeof list.count !== 'number' || 
-          index < 0 || index >= list.count) {
+      if (!list || typeof list.count !== 'number' || index >= list.count) {
         return this.getSentinelValue<T>(this.valueType);
       }
       
-      // FIXED: Add version compatibility check
-      var hasGetType = ListExtractorVersion.hasGetType();
+      var hasGetType = ListExtractorVersionManager.hasGetType();
       if (hasGetType && list.getType && list.getType(index) !== DescValueType.OBJECTTYPE) {
         return this.getSentinelValue<T>(this.valueType);
       }
@@ -871,9 +912,15 @@ class ListValueExtractor {
 
   // === PRIVATE METHODS ===
 
+  /**
+   * FIXED: Improved extractSingleValue with better error handling
+   */
   private extractSingleValue(list: ActionList, index: number): any {
-    // FIXED: Add version compatibility check
-    var hasGetType = ListExtractorVersion.hasGetType();
+    if (!list || typeof index !== 'number' || index < 0 || index >= list.count) {
+      throw new Error("Invalid list or index");
+    }
+    
+    var hasGetType = ListExtractorVersionManager.hasGetType();
     if (hasGetType && list.getType && list.getType(index) !== DescValueType.OBJECTTYPE) {
       throw new Error("Item at index " + index + " is not an object");
     }
@@ -896,7 +943,14 @@ class ListValueExtractor {
     return value;
   }
 
+  /**
+   * FIXED: Improved extractValueFromDescriptor with better path handling
+   */
   private extractValueFromDescriptor(desc: ActionDescriptor, subPath: string, valueType: string): any {
+    if (!desc || !subPath) {
+      return this.getSentinelValue(valueType);
+    }
+    
     var pathParts = subPath.split('.');
     var current = desc;
 
@@ -906,13 +960,14 @@ class ListValueExtractor {
         if (!part) continue;
 
         var typeID = stringIDToTypeID(part);
-        if (!current.hasKey(typeID)) {
-          return this.getSentinelValue(valueType);
-        }
-
-        if (part === pathParts[pathParts.length - 1]) {
-          // FIXED: Add version compatibility check for getType
-          var hasGetType = ListExtractorVersion.hasGetType();
+        
+        if (i === pathParts.length - 1) {
+          // Final value extraction
+          if (!current.hasKey(typeID)) {
+            return this.getSentinelValue(valueType);
+          }
+          
+          var hasGetType = ListExtractorVersionManager.hasGetType();
           if (hasGetType && current.getType) {
             var actualType = current.getType(typeID);
             var expectedType = this.getExpectedDescValueType(valueType);
@@ -931,11 +986,16 @@ class ListValueExtractor {
             default: return this.getSentinelValue(valueType);
           }
         } else {
-          // FIXED: Add version compatibility check for getType
-          var hasGetType = ListExtractorVersion.hasGetType();
+          // Navigate deeper
+          if (!current.hasKey(typeID)) {
+            return this.getSentinelValue(valueType);
+          }
+          
+          var hasGetType = ListExtractorVersionManager.hasGetType();
           if (hasGetType && current.getType && current.getType(typeID) !== DescValueType.OBJECTTYPE) {
             return this.getSentinelValue(valueType);
           }
+          
           current = current.getObjectValue(typeID);
         }
       }
