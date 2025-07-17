@@ -14,23 +14,31 @@ interface ValueTransformer {
 }
 
 /**
+ * Interface for objects that can extract ActionLists from ActionDescriptors
+ * FIXED: Proper typing instead of 'any'
+ */
+interface ListExtractor {
+  extract(rootDesc: ActionDescriptor): ActionList;
+}
+
+/**
  * Simple list value extractor for test assessment needs
  * Focuses on core operations: get all, get at index, find first
  */
 class ListValueExtractor {
-  private basePath: any;
+  private basePath: ListExtractor;
   private subPath: string;
   private valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated';
   private _disposed: boolean = false;
 
   /**
    * Create a simple list value extractor
-   * @param basePath ActionDescriptorPath pointing to the list
+   * @param basePath Object with extract method that returns ActionList
    * @param subPath Property path within each list item (e.g., "brightness" or "textStyle.fontName")
    * @param valueType Expected type of values to extract
    */
   constructor(
-    basePath: any,
+    basePath: ListExtractor,
     subPath: string,
     valueType: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated'
   ) {
@@ -67,7 +75,7 @@ class ListValueExtractor {
     var results: T[] = [];
 
     try {
-      var list = this.basePath.extract(rootDesc) as ActionList;
+      var list = this.basePath.extract(rootDesc);
       if (!list || typeof list.count !== 'number') {
         return results;
       }
@@ -78,7 +86,7 @@ class ListValueExtractor {
           var value = this.extractValueFromDescriptor(itemDesc, this.subPath, this.valueType);
           results.push(value as T);
         } catch (error) {
-          // For test assessment, skip errors and continue
+          // For test assessment, use sentinel values for errors
           results.push(this.getSentinelValue<T>(this.valueType));
         }
       }
@@ -99,7 +107,7 @@ class ListValueExtractor {
     this.checkDisposed();
     
     try {
-      var list = this.basePath.extract(rootDesc) as ActionList;
+      var list = this.basePath.extract(rootDesc);
       
       if (!list || typeof list.count !== 'number' || index < 0 || index >= list.count) {
         return null;
@@ -126,7 +134,7 @@ class ListValueExtractor {
     this.checkDisposed();
     
     try {
-      var list = this.basePath.extract(rootDesc) as ActionList;
+      var list = this.basePath.extract(rootDesc);
       if (!list || typeof list.count !== 'number') {
         return null;
       }
@@ -150,7 +158,7 @@ class ListValueExtractor {
   }
 
   /**
-   * Extract exactly N values, padding with defaults if needed
+   * Extract exactly N values, padding with sentinel values if needed
    * Useful for test assessment when you expect specific counts
    * @param rootDesc Root ActionDescriptor containing the list
    * @param count Exact number of values to return
@@ -162,7 +170,7 @@ class ListValueExtractor {
     var sentinelValue = this.getSentinelValue<T>(this.valueType);
 
     try {
-      var list = this.basePath.extract(rootDesc) as ActionList;
+      var list = this.basePath.extract(rootDesc);
       
       for (var i = 0; i < count; i++) {
         if (list && i < list.count) {
@@ -245,7 +253,8 @@ class ListValueExtractor {
             try {
               value = this._transformer(value);
             } catch (transformError) {
-              // Return original value if transformation fails
+              // Return sentinel value if transformation fails
+              return this.getSentinelValue(valueType);
             }
           }
           return value;

@@ -79,31 +79,39 @@ class ActionDescriptorNavigator {
   /**
    * Navigate to nested object property
    */
-  object(key: string): ActionDescriptorNavigator {
+  object(key: string): ActionDescriptorNavigator | null {
     this.checkDisposed();
     var typeID = stringIDToTypeID(key);
     
     if (!this.desc.hasKey(typeID)) {
-      throw new Error("Object key '" + key + "' not found");
+      return null;
     }
     
-    var nestedDesc = this.desc.getObjectValue(typeID);
-    return new ActionDescriptorNavigator(nestedDesc);
+    try {
+      var nestedDesc = this.desc.getObjectValue(typeID);
+      return new ActionDescriptorNavigator(nestedDesc);
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
    * Navigate to list property
    */
-  list(key: string): ActionListNavigator {
+  list(key: string): ActionListNavigator | null {
     this.checkDisposed();
     var typeID = stringIDToTypeID(key);
     
     if (!this.desc.hasKey(typeID)) {
-      throw new Error("List key '" + key + "' not found");
+      return null;
     }
     
-    var list = this.desc.getList(typeID);
-    return new ActionListNavigator(list);
+    try {
+      var list = this.desc.getList(typeID);
+      return new ActionListNavigator(list);
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
@@ -236,11 +244,8 @@ class ActionDescriptorNavigator {
   /**
    * Get bounds object
    */
-  getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
+  getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } | null {
     this.checkDisposed();
-    var defaultBounds = {
-      left: -1, top: -1, right: -1, bottom: -1, width: -1, height: -1
-    };
 
     try {
       var boundsDesc = this.desc.getObjectValue(stringIDToTypeID('bounds'));
@@ -253,7 +258,7 @@ class ActionDescriptorNavigator {
         height: boundsDesc.getDouble(stringIDToTypeID('height'))
       };
     } catch (error) {
-      return defaultBounds;
+      return null;
     }
   }
 
@@ -262,7 +267,6 @@ class ActionDescriptorNavigator {
    */
   getTextProperties(): { content: string; fontName: string; fontSize: number } | null {
     this.checkDisposed();
-    var defaultProps = { content: "", fontName: "", fontSize: -1 };
 
     try {
       var textKey = this.desc.getObjectValue(stringIDToTypeID('textKey'));
@@ -282,7 +286,7 @@ class ActionDescriptorNavigator {
       
       return { content: textContent || "", fontName: "", fontSize: -1 };
     } catch (error) {
-      return defaultProps;
+      return null;
     }
   }
 
@@ -360,19 +364,23 @@ class ActionListNavigator {
   /**
    * Get object at specific index
    */
-  getObject(index: number): ActionDescriptorNavigator {
+  getObject(index: number): ActionDescriptorNavigator | null {
     this.checkDisposed();
     
     if (index >= this.list.count || index < 0) {
-      throw new Error("Index " + index + " out of bounds (count: " + this.list.count + ")");
+      return null;
     }
 
-    var obj = this.list.getObjectValue(index);
-    return new ActionDescriptorNavigator(obj);
+    try {
+      var obj = this.list.getObjectValue(index);
+      return new ActionDescriptorNavigator(obj);
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
-   * Get all values from list
+   * Get all values from list - FIXED: Proper resource management
    */
   getAllValues<T = any>(
     key: string,
@@ -383,11 +391,19 @@ class ActionListNavigator {
     var results: T[] = [];
 
     for (var i = 0; i < this.list.count; i++) {
-      var obj: ActionDescriptorNavigator | undefined = undefined;
+      var obj: ActionDescriptorNavigator | null = null;
       try {
         obj = this.getObject(i);
-        var value = obj.getValue<T>(key, type, options);
-        results.push(value);
+        if (obj) {
+          var value = obj.getValue<T>(key, type, options);
+          results.push(value);
+        } else {
+          if (options && options.defaultValue !== undefined) {
+            results.push(options.defaultValue);
+          } else {
+            results.push(ActionDescriptorNavigator.getSentinelValue<T>(type));
+          }
+        }
       } catch (error) {
         if (options && options.defaultValue !== undefined) {
           results.push(options.defaultValue);
@@ -405,7 +421,7 @@ class ActionListNavigator {
   }
 
   /**
-   * Find first matching value
+   * Find first matching value - FIXED: Proper resource management
    */
   findValue<T = any>(
     key: string,
@@ -416,12 +432,14 @@ class ActionListNavigator {
     this.checkDisposed();
 
     for (var i = 0; i < this.list.count; i++) {
-      var obj: ActionDescriptorNavigator | undefined = undefined;
+      var obj: ActionDescriptorNavigator | null = null;
       try {
         obj = this.getObject(i);
-        var value = obj.getValue<T>(key, type, options);
-        if (predicate(value)) {
-          return value;
+        if (obj) {
+          var value = obj.getValue<T>(key, type, options);
+          if (predicate(value)) {
+            return value;
+          }
         }
       } catch (error) {
         // Continue to next item

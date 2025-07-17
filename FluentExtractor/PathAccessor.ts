@@ -193,6 +193,7 @@ class ActionDescriptorPath {
 
   /**
    * Extract the value from the ActionDescriptor
+   * UPDATED: Consistent error handling - returns sentinel values for primitive types, null for complex types
    */
   extract<T = any>(rootDesc: ActionDescriptor): T {
     this.checkDisposed();
@@ -231,7 +232,11 @@ class ActionDescriptorPath {
   extractOr<T = any>(rootDesc: ActionDescriptor, fallback: T): T {
     try {
       var result = this.extract<T>(rootDesc);
-      return result !== null && result !== undefined ? result : fallback;
+      // Check for sentinel values and treat them as missing
+      if (result === null || result === undefined || result === -1 || result === "" || result === false) {
+        return fallback;
+      }
+      return result;
     } catch (error) {
       return fallback;
     }
@@ -388,12 +393,12 @@ class ActionDescriptorPath {
           return this.extractFinalValue(current, typeID, valueType);
         } else {
           if (!current.hasKey(typeID)) {
-            throw new Error("Property '" + part + "' not found");
+            return this.getSentinelValue(valueType);
           }
           current = current.getObjectValue(typeID);
         }
       }
-      throw new Error('Invalid sub-path: ' + subPath);
+      return this.getSentinelValue(valueType);
     } catch (error) {
       return this.getSentinelValue(valueType);
     }
@@ -421,12 +426,12 @@ class ActionDescriptorPath {
           }
         } else {
           if (!current.hasKey(typeID)) {
-            throw new Error("Property '" + part + "' not found");
+            return ActionDescriptorPath.getSentinelValue(valueType);
           }
           current = current.getObjectValue(typeID);
         }
       }
-      throw new Error('Invalid sub-path: ' + subPath);
+      return ActionDescriptorPath.getSentinelValue(valueType);
     } catch (error) {
       return ActionDescriptorPath.getSentinelValue(valueType);
     }
@@ -473,145 +478,148 @@ class ActionDescriptorPath {
 
 /**
  * Factory class for common operations
+ * UPDATED: Consistent default value handling across all factory methods
  */
-function PathFactory() {}
-
-/**
- * Create object navigation path
- */
-PathFactory.prototype.obj = function (key: string): ActionDescriptorPath { 
-  return ActionDescriptorPath.create().object(key); 
-};
-
-/**
- * Create list navigation path
- */
-PathFactory.prototype.list = function (key: string): ActionDescriptorPath { 
-  return ActionDescriptorPath.create().list(key); 
-};
-
-/**
- * Create value extraction path
- */
-PathFactory.prototype.val = function (key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated'): ActionDescriptorPath {
-  return ActionDescriptorPath.create().value(key, type);
-};
-
-/**
- * Extract bounds with unit conversion
- */
-PathFactory.prototype.bounds = function (property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height'): ActionDescriptorPath {
-  return ActionDescriptorPath.create()
-    .object('bounds')
-    .value(property, 'double')
-    .toPixels('pt')
-    .floor()
-    .defaultTo(-1);
-};
-
-/**
- * Extract text style properties
- */
-PathFactory.prototype.textStyle = function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex: number): ActionDescriptorPath {
-  if (textIndex === undefined) textIndex = 0;
-  
-  var path = ActionDescriptorPath.create()
-    .object('textKey')
-    .list('textStyleRange')
-    .at(textIndex)
-    .object('textStyle')
-    .value(property, type);
-  
-  switch (type) {
-    case 'string':
-    case 'enumerated':
-      return path.defaultTo("");
-    case 'integer':
-    case 'double':
-      return path.defaultTo(-1);
-    case 'boolean':
-      return path.defaultTo(false);
-    default:
-      return path;
+class PathFactory {
+  /**
+   * Create object navigation path
+   */
+  obj(key: string): ActionDescriptorPath { 
+    return ActionDescriptorPath.create().object(key); 
   }
-};
 
-/**
- * Extract filter properties
- */
-PathFactory.prototype.filter = function (property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex: number): ActionDescriptorPath {
-  if (filterIndex === undefined) filterIndex = 0;
-  
-  var path = ActionDescriptorPath.create()
-    .object('smartObjectMore')
-    .list('filterFXList')
-    .at(filterIndex)
-    .value(property, type);
-  
-  switch (type) {
-    case 'string':
-    case 'enumerated':
-      return path.defaultTo("");
-    case 'integer':
-    case 'double':
-      return path.defaultTo(-1);
-    case 'boolean':
-      return path.defaultTo(false);
-    default:
-      return path;
+  /**
+   * Create list navigation path
+   */
+  list(key: string): ActionDescriptorPath { 
+    return ActionDescriptorPath.create().list(key); 
   }
-};
 
-/**
- * Find layer by name pattern
- */
-PathFactory.prototype.findLayer = function(namePattern: string | RegExp) {
-  return {
-    extract: function(): string | null {
-      var layerNames = ActionDescriptorNavigator.extractAllLayerNames();
-      
-      for (var i = 0; i < layerNames.length; i++) {
-        var layerName = layerNames[i];
-        var matches = false;
+  /**
+   * Create value extraction path
+   */
+  val(key: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated'): ActionDescriptorPath {
+    return ActionDescriptorPath.create().value(key, type).defaultTo(this.getDefaultForType(type));
+  }
+
+  /**
+   * Extract bounds with unit conversion
+   */
+  bounds(property: 'left' | 'top' | 'right' | 'bottom' | 'width' | 'height'): ActionDescriptorPath {
+    return ActionDescriptorPath.create()
+      .object('bounds')
+      .value(property, 'double')
+      .toPixels('pt')
+      .floor()
+      .defaultTo(-1);
+  }
+
+  /**
+   * Extract text style properties
+   */
+  textStyle(property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', textIndex?: number): ActionDescriptorPath {
+    if (textIndex === undefined) textIndex = 0;
+    
+    return ActionDescriptorPath.create()
+      .object('textKey')
+      .list('textStyleRange')
+      .at(textIndex)
+      .object('textStyle')
+      .value(property, type)
+      .defaultTo(this.getDefaultForType(type));
+  }
+
+  /**
+   * Extract filter properties
+   */
+  filter(property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', filterIndex?: number): ActionDescriptorPath {
+    if (filterIndex === undefined) filterIndex = 0;
+    
+    return ActionDescriptorPath.create()
+      .object('smartObjectMore')
+      .list('filterFXList')
+      .at(filterIndex)
+      .value(property, type)
+      .defaultTo(this.getDefaultForType(type));
+  }
+
+  /**
+   * Find layer by name pattern
+   */
+  findLayer(namePattern: string | RegExp) {
+    return {
+      extract: function(): string | null {
+        var layerNames = ActionDescriptorNavigator.extractAllLayerNames();
         
-        if (typeof namePattern === 'string') {
-          matches = layerName.toLowerCase().indexOf(namePattern.toLowerCase()) !== -1;
-        } else if (namePattern instanceof RegExp) {
-          matches = namePattern.test(layerName);
+        for (var i = 0; i < layerNames.length; i++) {
+          var layerName = layerNames[i];
+          var matches = false;
+          
+          if (typeof namePattern === 'string') {
+            matches = layerName.toLowerCase().indexOf(namePattern.toLowerCase()) !== -1;
+          } else if (namePattern instanceof RegExp) {
+            matches = namePattern.test(layerName);
+          }
+          
+          if (matches) {
+            return layerName;
+          }
         }
         
-        if (matches) {
-          return layerName;
+        return null;
+      }
+    };
+  }
+
+  /**
+   * Find filter by property and predicate
+   */
+  findFilter(property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
+    var self = this;
+    return {
+      extract: function<T>(desc: ActionDescriptor): T | null {
+        var basePath = ActionDescriptorPath.create()
+          .object('smartObjectMore')
+          .list('filterFXList');
+        
+        if (predicate) {
+          return basePath.findInList<T>(desc, property, type, predicate);
+        } else {
+          return basePath.findInList<T>(desc, property, type, function(value) {
+            var defaultVal = self.getDefaultForType(type);
+            return value !== defaultVal && value !== null && value !== undefined;
+          });
         }
       }
-      
-      return null;
+    };
+  }
+
+  /**
+   * Get consistent default value for type
+   * ADDED: Centralized default value logic for consistency
+   */
+  private getDefaultForType(type: string): any {
+    switch (type) {
+      case 'string':
+      case 'enumerated':
+        return "";
+      case 'integer':
+      case 'double':
+        return -1;
+      case 'boolean':
+        return false;
+      default:
+        return null;
     }
-  };
-};
+  }
+}
 
 /**
- * Find filter by property and predicate
+ * FIXED: Namespaced factory instance instead of global variable
  */
-PathFactory.prototype.findFilter = function(property: string, type: 'string' | 'integer' | 'double' | 'boolean' | 'enumerated', predicate?: (value: any) => boolean) {
-  return {
-    extract: function<T>(desc: ActionDescriptor): T | null {
-      var basePath = ActionDescriptorPath.create()
-        .object('smartObjectMore')
-        .list('filterFXList');
-      
-      if (predicate) {
-        return basePath.findInList<T>(desc, property, type, predicate);
-      } else {
-        return basePath.findInList<T>(desc, property, type, function(value) {
-          return value !== -1 && value !== "" && value !== false;
-        });
-      }
-    }
-  };
-};
+namespace PathFactories {
+  export var P = new PathFactory();
+}
 
-/**
- * Primary factory instance
- */
-var P = new PathFactory();
+// For backward compatibility, expose P globally if needed
+var P = PathFactories.P;
