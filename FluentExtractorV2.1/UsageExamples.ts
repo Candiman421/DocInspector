@@ -1,6 +1,6 @@
 /**
  * Comprehensive Usage Examples for ActionDescriptor Navigation Framework
- * Shows practical patterns and assessment workflows
+ * Shows practical patterns for scoring and assessment workflows
  * All examples verified against final API implementation with ES3 transpilation compatibility
  */
 
@@ -388,12 +388,12 @@ function errorHandlingExamples() {
 }
 
 // =============================================================================
-// PRACTICAL SCENARIOS  
+// PRACTICAL SCORING SCENARIOS  
 // =============================================================================
 
 /**
- * Demonstrates practical scenarios for assessment workflows
- * Shows property validation, text analysis, bounds checking, and organization 
+ * Demonstrates practical scoring scenarios for assessment workflows
+ * Shows property validation, text analysis, bounds checking, and organization scoring
  * Fixed: ES3 transpilation compatibility for styleList operations
  * 
  * @example
@@ -402,16 +402,16 @@ function errorHandlingExamples() {
  * ```
  */
 function practicalScoringScenarios() {
-    console.log('=== Practical Scenarios ===');
+    console.log('=== Practical Scoring Scenarios ===');
     
     const layerNav = ActionDescriptorNavigator.forCurrentLayer();
     
-    // Scenario 1: Check layer properties
+    // Scenario 1: Check layer properties for scoring
     const opacity = layerNav.getValue('opacity', 'double');
     const visible = layerNav.getValue('visible', 'boolean');
     const name = layerNav.getValue('name', 'string');
     
-    console.log('Layer:');
+    console.log('Layer scoring:');
     console.log('  Opacity correct (>=50): ' + (opacity >= 50));
     console.log('  Is visible: ' + visible);
     console.log('  Has proper name: ' + (name.length > 0 && name !== "Layer 1"));
@@ -421,23 +421,23 @@ function practicalScoringScenarios() {
     const hasTextKey = textNav.hasKey('text');
     const textContent = textNav.getValue('text', 'string');
     
-    console.log('Text:');
+    console.log('Text scoring:');
     console.log('  Has text content: ' + hasTextKey);
     console.log('  Content length: ' + textContent.length);
     console.log('  Non-empty text: ' + (textContent.length > 0));
     
-    // Scenario 3: Check bounds for layout
+    // Scenario 3: Check bounds for layout scoring
     const bounds = layerNav.getBounds();
     const hasValidBounds = bounds.left !== -1 && bounds.top !== -1;
     const correctSize = bounds.width >= 200 && bounds.height >= 100;
     const correctPosition = bounds.left >= 50 && bounds.top >= 50;
     
-    console.log('Layout:');
+    console.log('Layout scoring:');
     console.log('  Has valid bounds: ' + hasValidBounds);
     console.log('  Correct size (>=200x100): ' + correctSize);
     console.log('  Correct position (>=50,50): ' + correctPosition);
     
-    // Scenario 4: Layer organization
+    // Scenario 4: Layer organization scoring
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
     const layerCount = layerNames.length;
     let hasBackground = false;
@@ -449,12 +449,12 @@ function practicalScoringScenarios() {
         }
     }
     
-    console.log('Organization:');
+    console.log('Organization scoring:');
     console.log('  Layer count: ' + layerCount);
     console.log('  Sufficient layers (>=3): ' + (layerCount >= 3));
     console.log('  Has background layer: ' + hasBackground);
     
-    // Scenario 5: Text style analysis for comprehensive
+    // Scenario 5: Text style analysis for comprehensive scoring
     const styleList = layerNav.object('textKey').list('textStyleRange');
     const styleCount = styleList.getCount(); // Fixed: ES3 compatibility
     
@@ -490,7 +490,7 @@ function practicalScoringScenarios() {
         console.log('  Has large font (>20pt): ' + hasLargeFont);
         console.log('  Font sizes found: [' + fontSizes.join(', ') + ']');
         
-        // Calculate average font size
+        // Calculate average font size for scoring
         const validSizes = fontSizes.filter(function(size) { return size > 0; });
         const averageSize = validSizes.length > 0 
             ? validSizes.reduce(function(sum, size) { return sum + size; }, 0) / validSizes.length
@@ -647,11 +647,11 @@ function listExtractorPatterns() {
 }
 
 // =============================================================================
-// ADVANCED PATTERNS
+// ADVANCED SCORING PATTERNS
 // =============================================================================
 
 /**
- * Demonstrates advanced patterns for complex assessments
+ * Demonstrates advanced scoring patterns for complex assessments
  * Shows comprehensive layer analysis, text style validation, and effect detection
  * Fixed: ES3 transpilation compatibility throughout
  * 
@@ -661,7 +661,7 @@ function listExtractorPatterns() {
  * ```
  */
 function advancedScoringPatterns() {
-    console.log('=== Advanced Patterns ===');
+    console.log('=== Advanced Scoring Patterns ===');
     
     // Document-level analysis
     const docNav = ActionDescriptorNavigator.forCurrentDocument();
@@ -775,8 +775,8 @@ function advancedScoringPatterns() {
         console.log('  Readable sizes (>=12pt): ' + readableSizes.length + '/' + uniqueSizes.length);
     }
     
-    // Document structure 
-    console.log('Document Structure:');
+    // Document structure scoring
+    console.log('Document Structure Scoring:');
     
     const structureScore = {
         hasBackground: backgroundLayerCount > 0,
@@ -790,12 +790,13 @@ function advancedScoringPatterns() {
     let scorePoints = 0;
     const maxPoints = Object.keys(structureScore).length;
     
-    for (const criterion in structureScore) {
-        if (structureScore.hasOwnProperty(criterion)) {
-            const passed = structureScore[criterion];
-            console.log('  ' + criterion + ': ' + (passed ? 'PASS' : 'FAIL'));
-            if (passed) scorePoints++;
-        }
+    // Use Object.keys() for ES3 transpilation compatibility and type safety
+    const criteria = Object.keys(structureScore);
+    for (let i = 0; i < criteria.length; i++) {
+        const criterion = criteria[i];
+        const passed = structureScore[criterion as keyof typeof structureScore];
+        console.log('  ' + criterion + ': ' + (passed ? 'PASS' : 'FAIL'));
+        if (passed) scorePoints++;
     }
     
     const finalScore = Math.round((scorePoints / maxPoints) * 100);
