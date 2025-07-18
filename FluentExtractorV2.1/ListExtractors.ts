@@ -1,7 +1,7 @@
 /**
  * Simple list extraction utilities for test assessment
  * Provides basic list processing for ActionManager patterns
- * Optimized for scoring with consistent error handling, performance, and ES3 transpilation compatibility
+ * Optimized with consistent error handling, performance, and ES3 transpilation compatibility
  */
 
 import { stringIDToTypeID } from "./ps";
@@ -108,7 +108,7 @@ class ListValueExtractor {
 
     /**
      * Extract all values from the list
-     * Optimized for scoring with consistent error handling
+     * Optimized with consistent error handling
      * 
      * @param rootDesc - Root ActionDescriptor to extract from
      * @returns Array of extracted values or empty array
@@ -284,7 +284,7 @@ class ListValueExtractor {
      * const threeSizes = fontSizeExtractor.extractExactly(layerDesc, 3);
      * console.log('Three sizes:', threeSizes); // [12, 14, -1] if only 2 exist
      * 
-     * // Useful for fixed-size scoring arrays
+     * // Useful for fixed-size arrays
      * const [size1, size2, size3] = fontSizeExtractor.extractExactly(layerDesc, 3);
      * 
      * // Check which values are valid

@@ -1,11 +1,11 @@
 # ActionDescriptor Navigation Framework
 
-A robust, scoring-optimized framework for navigating Adobe Photoshop's ActionDescriptor structures in ExtendScript. Designed for automated assessment and grading workflows with consistent error handling, predictable return values, and ES3 transpilation compatibility.
+A robust, optimized framework for navigating Adobe Photoshop's ActionDescriptor structures in ExtendScript. Designed for automated assessment and grading workflows with consistent error handling, predictable return values, and ES3 transpilation compatibility.
 
 ## Features
 
 - **Search-First Navigation**: Robust pattern matching instead of brittle index-based access
-- **Scoring Optimized**: Consistent sentinel values (-1, "", false) for reliable answer assignment
+- **Optimized**: Consistent sentinel values (-1, "", false) for reliable answer assignment
 - **ExtendScript Compatible**: No modern JavaScript features, proper memory management
 - **ES3 Transpilation Compatible**: Works with webpack-es3-plugin for proper transpilation
 - **Fluent API**: Chainable methods for readable code
@@ -202,7 +202,7 @@ The framework returns predictable values for missing or invalid data:
 **No exceptions are thrown** during navigation or extraction. All methods gracefully degrade:
 
 ```typescript
-// These patterns never crash, always return predictable values for scoring
+// These patterns never crash, always return predictable values
 const fontSize = P.val('missingProperty', 'double').extract(layerDesc);    // -1
 const badFilter = P.filterByName('NonExistent', 'radius', 'double').extract(layerDesc); // -1
 const deepMissing = P.obj('missing').obj('deep').val('prop', 'string').extract(layerDesc); // ""

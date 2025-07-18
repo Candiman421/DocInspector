@@ -1,7 +1,7 @@
 /**
  * Path-based accessor for extracting values from ActionDescriptors
  * Primary fluent API for 95% of extraction tasks with search-based patterns
- * Optimized for scoring with consistent error handling, performance, and ES3 transpilation compatibility
+ * Optimized with consistent error handling, performance, and ES3 transpilation compatibility
  */
 
 import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
@@ -385,7 +385,7 @@ class ActionDescriptorPath {
 
     /**
      * Extract the value from the ActionDescriptor
-     * Consistent error handling for scoring context
+     * Consistent error handling 
      * 
      * @param rootDesc - ActionDescriptor to extract from
      * @returns Extracted and transformed value
@@ -1286,7 +1286,7 @@ class PathFactory {
 }
 
 /**
- * Primary factory instance for scoring operations
+ * Primary factory instance operations
  * 
  * @example
  * ```typescript

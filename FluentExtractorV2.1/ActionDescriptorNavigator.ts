@@ -1,7 +1,7 @@
 /**
  * Core navigation engine for Photoshop ActionDescriptor structures
  * Provides imperative-style navigation and tuple extraction capabilities
- * Optimized for test scoring with consistent error handling and ES3 transpilation compatibility
+ * Optimized with consistent error handling and ES3 transpilation compatibility
  */
 
 import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
@@ -276,7 +276,7 @@ class ActionDescriptorNavigator {
 
     /**
      * Get value with optional transformation
-     * Consistent sentinel value returns for scoring
+     * Consistent sentinel value returns
      * 
      * @param key - Property key to extract
      * @param type - Expected value type
