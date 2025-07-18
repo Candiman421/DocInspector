@@ -1,7 +1,7 @@
 /**
  * Comprehensive Usage Examples for ActionDescriptor Navigation Framework
  * Shows practical patterns for scoring and assessment workflows
- * All examples verified against final API implementation
+ * All examples verified against final API implementation with ES3 transpilation compatibility
  */
 
 import { stringIDToTypeID } from "./ps";
@@ -14,7 +14,18 @@ import { ValueType } from './types';
 // BASIC NAVIGATION EXAMPLES
 // =============================================================================
 
+/**
+ * Demonstrates basic navigation patterns using ActionDescriptorNavigator
+ * Shows factory methods, safe navigation, and value extraction
+ * 
+ * @example
+ * ```typescript
+ * basicNavigationExamples();
+ * ```
+ */
 function basicNavigationExamples() {
+    console.log('=== Basic Navigation Examples ===');
+    
     // Get navigators using factory methods (ActionReference cleanup handled automatically)
     const layerNav = ActionDescriptorNavigator.forCurrentLayer();
     const docNav = ActionDescriptorNavigator.forCurrentDocument();
@@ -49,7 +60,18 @@ function basicNavigationExamples() {
 // FLUENT API EXAMPLES (RECOMMENDED APPROACH)
 // =============================================================================
 
+/**
+ * Demonstrates fluent API patterns using ActionDescriptorNavigator
+ * Shows property extraction, bounds calculation, and text navigation
+ * 
+ * @example
+ * ```typescript
+ * fluentAPIExamples();
+ * ```
+ */
 function fluentAPIExamples() {
+    console.log('=== Fluent API Examples ===');
+    
     const layerNav = ActionDescriptorNavigator.forCurrentLayer();
     
     // Note: P.extract() works directly with ActionDescriptor from layerNav internal state
@@ -86,6 +108,15 @@ function fluentAPIExamples() {
 // SEARCH-FIRST EXAMPLES (ROBUST APPROACH)
 // =============================================================================
 
+/**
+ * Demonstrates search-first patterns for robust document analysis
+ * Shows text style searching, filter searching, and layer enumeration
+ * 
+ * @example
+ * ```typescript
+ * searchFirstExamples();
+ * ```
+ */
 function searchFirstExamples() {
     console.log('=== Search-First Examples ===');
     
@@ -139,6 +170,16 @@ function searchFirstExamples() {
 // LIST PROCESSING EXAMPLES
 // =============================================================================
 
+/**
+ * Demonstrates list processing using ActionListNavigator
+ * Shows count retrieval, item access, and value extraction from lists
+ * Fixed: ES3 transpilation compatibility - uses getCount() method instead of count getter
+ * 
+ * @example
+ * ```typescript
+ * listProcessingExamples();
+ * ```
+ */
 function listProcessingExamples() {
     console.log('=== List Processing Examples ===');
     
@@ -179,7 +220,8 @@ function listProcessingExamples() {
     
     // Recommended approach: Use ActionListNavigator methods directly
     console.log('Recommended approach for most scenarios:');
-    if (styleList.count > 0) {
+    const listCount = styleList.getCount(); // Fixed: ES3 compatibility
+    if (listCount > 0) {
         // Process list items directly through the navigator - this is the recommended approach
         const fontNames = styleList.getAllValues('fontName', 'string');
         const fontSizes = styleList.getAllValues('size', 'double');
@@ -194,7 +236,7 @@ function listProcessingExamples() {
         console.log('Large font size found: ' + largeFontSize);
         
         // Process individual list items
-        for (let i = 0; i < Math.min(styleList.count, 3); i++) { // Limit for demo
+        for (let i = 0; i < Math.min(styleList.getCount(), 3); i++) { // Fixed: ES3 compatibility - Limit for demo
             const item = styleList.getObject(i);
             const styleNav = item.object('textStyle');
             const fontName = styleNav.getValue('fontName', 'string');
@@ -210,6 +252,15 @@ function listProcessingExamples() {
 // BATCH EXTRACTION EXAMPLES
 // =============================================================================
 
+/**
+ * Demonstrates batch value extraction for efficient property retrieval
+ * Shows object-based and array-based batch extraction patterns
+ * 
+ * @example
+ * ```typescript
+ * batchExtractionExamples();
+ * ```
+ */
 function batchExtractionExamples() {
     console.log('=== Batch Extraction Examples ===');
     
@@ -246,6 +297,15 @@ function batchExtractionExamples() {
 // SPECIALIZED EXTRACTION EXAMPLES
 // =============================================================================
 
+/**
+ * Demonstrates specialized extraction methods for bounds and text
+ * Shows getBounds() with calculated dimensions and getTextProperties()
+ * 
+ * @example
+ * ```typescript
+ * specializedExtractionExamples();
+ * ```
+ */
 function specializedExtractionExamples() {
     console.log('=== Specialized Extraction Examples ===');
     
@@ -282,6 +342,15 @@ function specializedExtractionExamples() {
 // ERROR HANDLING AND EDGE CASES
 // =============================================================================
 
+/**
+ * Demonstrates error handling and edge case scenarios
+ * Shows graceful degradation and sentinel value patterns
+ * 
+ * @example
+ * ```typescript
+ * errorHandlingExamples();
+ * ```
+ */
 function errorHandlingExamples() {
     console.log('=== Error Handling Examples ===');
     
@@ -322,6 +391,16 @@ function errorHandlingExamples() {
 // PRACTICAL SCORING SCENARIOS  
 // =============================================================================
 
+/**
+ * Demonstrates practical scoring scenarios for assessment workflows
+ * Shows property validation, text analysis, bounds checking, and organization scoring
+ * Fixed: ES3 transpilation compatibility for styleList operations
+ * 
+ * @example
+ * ```typescript
+ * practicalScoringScenarios();
+ * ```
+ */
 function practicalScoringScenarios() {
     console.log('=== Practical Scoring Scenarios ===');
     
@@ -361,11 +440,11 @@ function practicalScoringScenarios() {
     // Scenario 4: Layer organization scoring
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
     const layerCount = layerNames.length;
-    const hasBackground = false;
+    let hasBackground = false;
     
     for (let i = 0; i < layerNames.length; i++) {
         if (layerNames[i].toLowerCase().indexOf('background') >= 0) {
-            // hasBackground = true;
+            hasBackground = true;
             break;
         }
     }
@@ -374,12 +453,67 @@ function practicalScoringScenarios() {
     console.log('  Layer count: ' + layerCount);
     console.log('  Sufficient layers (>=3): ' + (layerCount >= 3));
     console.log('  Has background layer: ' + hasBackground);
+    
+    // Scenario 5: Text style analysis for comprehensive scoring
+    const styleList = layerNav.object('textKey').list('textStyleRange');
+    const styleCount = styleList.getCount(); // Fixed: ES3 compatibility
+    
+    console.log('Text style analysis:');
+    console.log('  Style count: ' + styleCount);
+    
+    if (styleCount > 0) {
+        // Check for specific font requirements
+        let hasArial = false;
+        let hasLargeFont = false;
+        let fontSizes = [];
+        
+        // Fixed: ES3 compatibility - use getCount() method
+        for (let styleIndex = 0; styleIndex < styleList.getCount() && styleIndex < 10; styleIndex++) {
+            const style = styleList.getObject(styleIndex);
+            const textStyleNav = style.object('textStyle');
+            
+            const fontName = textStyleNav.getValue('fontName', 'string');
+            const fontSize = textStyleNav.getValue('size', 'double');
+            
+            if (fontName.indexOf('Arial') >= 0) {
+                hasArial = true;
+            }
+            
+            if (fontSize > 20) {
+                hasLargeFont = true;
+            }
+            
+            fontSizes.push(fontSize);
+        }
+        
+        console.log('  Has Arial font: ' + hasArial);
+        console.log('  Has large font (>20pt): ' + hasLargeFont);
+        console.log('  Font sizes found: [' + fontSizes.join(', ') + ']');
+        
+        // Calculate average font size for scoring
+        const validSizes = fontSizes.filter(function(size) { return size > 0; });
+        const averageSize = validSizes.length > 0 
+            ? validSizes.reduce(function(sum, size) { return sum + size; }, 0) / validSizes.length
+            : 0;
+        
+        console.log('  Average font size: ' + Math.round(averageSize * 10) / 10 + 'pt');
+        console.log('  Appropriate sizing (12-18pt avg): ' + (averageSize >= 12 && averageSize <= 18));
+    }
 }
 
 // =============================================================================
 // MEMORY MANAGEMENT EXAMPLES
 // =============================================================================
 
+/**
+ * Demonstrates memory management best practices
+ * Shows factory method usage and ActionReference cleanup patterns
+ * 
+ * @example
+ * ```typescript
+ * memoryManagementExamples();
+ * ```
+ */
 function memoryManagementExamples() {
     console.log('=== Memory Management Examples ===');
     
@@ -419,9 +553,18 @@ function memoryManagementExamples() {
 }
 
 // =============================================================================
-// PATHaccessor FLUENT API PATTERNS
+// PATHACCESSOR FLUENT API PATTERNS
 // =============================================================================
 
+/**
+ * Demonstrates PathAccessor fluent API patterns for advanced navigation
+ * Shows basic patterns, search-first approaches, and transformation chains
+ * 
+ * @example
+ * ```typescript
+ * pathAccessorPatterns();
+ * ```
+ */
 function pathAccessorPatterns() {
     console.log('=== PathAccessor Fluent API Patterns ===');
     
@@ -459,6 +602,16 @@ function pathAccessorPatterns() {
 // LISTEXTRACTOR PATTERNS
 // =============================================================================
 
+/**
+ * Demonstrates ListExtractor patterns for advanced list processing
+ * Shows creation, transformation, and extraction methods
+ * Fixed: ES3 transpilation compatibility for styleList operations
+ * 
+ * @example
+ * ```typescript
+ * listExtractorPatterns();
+ * ```
+ */
 function listExtractorPatterns() {
     console.log('=== ListExtractor Patterns ===');
     
@@ -480,7 +633,7 @@ function listExtractorPatterns() {
     // Demonstrate actual usage pattern
     const layerNav = ActionDescriptorNavigator.forCurrentLayer();
     const styleList = layerNav.object('textKey').list('textStyleRange');
-    const listCount = styleList.count;
+    const listCount = styleList.getCount(); // Fixed: ES3 compatibility
     
     console.log('Current layer text styles count: ' + listCount);
     if (listCount > 0) {
@@ -494,9 +647,174 @@ function listExtractorPatterns() {
 }
 
 // =============================================================================
+// ADVANCED SCORING PATTERNS
+// =============================================================================
+
+/**
+ * Demonstrates advanced scoring patterns for complex assessments
+ * Shows comprehensive layer analysis, text style validation, and effect detection
+ * Fixed: ES3 transpilation compatibility throughout
+ * 
+ * @example
+ * ```typescript
+ * advancedScoringPatterns();
+ * ```
+ */
+function advancedScoringPatterns() {
+    console.log('=== Advanced Scoring Patterns ===');
+    
+    // Document-level analysis
+    const docNav = ActionDescriptorNavigator.forCurrentDocument();
+    const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
+    
+    // Comprehensive layer analysis
+    console.log('Document Analysis:');
+    console.log('  Total layers: ' + layerNames.length);
+    
+    // Categorize layers by type
+    let textLayerCount = 0;
+    let imageLayerCount = 0;
+    let backgroundLayerCount = 0;
+    let effectLayerCount = 0;
+    
+    for (let i = 0; i < layerNames.length; i++) {
+        const layerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based
+        const name = layerNames[i].toLowerCase();
+        
+        // Check if layer has text
+        const hasText = layerNav.hasKey('textKey');
+        if (hasText) {
+            textLayerCount++;
+        }
+        
+        // Check for background layers
+        if (name.indexOf('background') >= 0 || name === 'bg') {
+            backgroundLayerCount++;
+        }
+        
+        // Check for image layers (has bounds but no text)
+        const bounds = layerNav.getBounds();
+        const hasValidBounds = bounds.width > 0 && bounds.height > 0;
+        if (hasValidBounds && !hasText && name.indexOf('background') === -1) {
+            imageLayerCount++;
+        }
+        
+        // Check for effects (placeholder - would need actual effect detection)
+        const hasEffects = layerNav.hasKey('layerEffects');
+        if (hasEffects) {
+            effectLayerCount++;
+        }
+    }
+    
+    console.log('  Text layers: ' + textLayerCount);
+    console.log('  Image layers: ' + imageLayerCount);
+    console.log('  Background layers: ' + backgroundLayerCount);
+    console.log('  Layers with effects: ' + effectLayerCount);
+    
+    // Text style consistency analysis
+    console.log('Text Style Analysis:');
+    
+    let totalTextLayers = 0;
+    let consistentFontUsage = true;
+    const fontFamilies = [];
+    const fontSizes = [];
+    
+    for (let i = 0; i < layerNames.length; i++) {
+        const layerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based
+        
+        if (layerNav.hasKey('textKey')) {
+            totalTextLayers++;
+            const styleList = layerNav.object('textKey').list('textStyleRange');
+            const styleCount = styleList.getCount(); // Fixed: ES3 compatibility
+            
+            // Fixed: ES3 compatibility - use getCount() method
+            for (let styleIndex = 0; styleIndex < styleList.getCount() && styleIndex < 5; styleIndex++) {
+                const style = styleList.getObject(styleIndex);
+                const textStyleNav = style.object('textStyle');
+                
+                const fontName = textStyleNav.getValue('fontName', 'string');
+                const fontSize = textStyleNav.getValue('size', 'double');
+                
+                if (fontName !== "") {
+                    // Extract font family (remove weight/style info)
+                    const fontFamily = fontName.split('-')[0];
+                    if (fontFamilies.indexOf(fontFamily) === -1) {
+                        fontFamilies.push(fontFamily);
+                    }
+                }
+                
+                if (fontSize > 0) {
+                    fontSizes.push(fontSize);
+                }
+            }
+        }
+    }
+    
+    // Analyze font consistency
+    console.log('  Total text layers: ' + totalTextLayers);
+    console.log('  Font families used: ' + fontFamilies.length + ' (' + fontFamilies.join(', ') + ')');
+    console.log('  Font family consistency: ' + (fontFamilies.length <= 2 ? 'Good' : 'Poor'));
+    
+    // Analyze font size hierarchy
+    if (fontSizes.length > 0) {
+        const uniqueSizes = [];
+        for (let i = 0; i < fontSizes.length; i++) {
+            const size = Math.round(fontSizes[i]);
+            if (uniqueSizes.indexOf(size) === -1) {
+                uniqueSizes.push(size);
+            }
+        }
+        
+        uniqueSizes.sort(function(a, b) { return b - a; }); // Sort descending
+        
+        console.log('  Font sizes used: ' + uniqueSizes.join(', ') + 'pt');
+        console.log('  Font hierarchy: ' + (uniqueSizes.length >= 2 && uniqueSizes.length <= 4 ? 'Good' : 'Needs improvement'));
+        
+        // Check for readable sizes
+        const readableSizes = uniqueSizes.filter(function(size) { return size >= 12; });
+        console.log('  Readable sizes (>=12pt): ' + readableSizes.length + '/' + uniqueSizes.length);
+    }
+    
+    // Document structure scoring
+    console.log('Document Structure Scoring:');
+    
+    const structureScore = {
+        hasBackground: backgroundLayerCount > 0,
+        sufficientLayers: layerNames.length >= 3,
+        hasTextContent: textLayerCount > 0,
+        hasImageContent: imageLayerCount > 0,
+        appropriateComplexity: layerNames.length >= 3 && layerNames.length <= 15,
+        goodFontConsistency: fontFamilies.length <= 2 && fontFamilies.length > 0
+    };
+    
+    let scorePoints = 0;
+    const maxPoints = Object.keys(structureScore).length;
+    
+    for (const criterion in structureScore) {
+        if (structureScore.hasOwnProperty(criterion)) {
+            const passed = structureScore[criterion];
+            console.log('  ' + criterion + ': ' + (passed ? 'PASS' : 'FAIL'));
+            if (passed) scorePoints++;
+        }
+    }
+    
+    const finalScore = Math.round((scorePoints / maxPoints) * 100);
+    console.log('Overall Structure Score: ' + finalScore + '% (' + scorePoints + '/' + maxPoints + ')');
+}
+
+// =============================================================================
 // MAIN EXECUTION FUNCTION
 // =============================================================================
 
+/**
+ * Runs all usage examples demonstrating the ActionDescriptor Navigation Framework
+ * Comprehensive demonstration of API capabilities with ES3 transpilation compatibility
+ * 
+ * @example
+ * ```typescript
+ * runAllExamples();
+ * ```
+ */
 function runAllExamples() {
     console.log('ActionDescriptor Navigation Framework - Usage Examples');
     console.log('=======================================================');
@@ -535,6 +853,9 @@ function runAllExamples() {
         listExtractorPatterns();
         console.log('');
         
+        advancedScoringPatterns();
+        console.log('');
+        
         console.log('All examples completed successfully!');
         
     } catch (error) {
@@ -554,6 +875,7 @@ ExtendScript Compatibility Notes:
 - Proper ActionReference cleanup patterns shown
 - Compatible with Photoshop CS6+ ActionManager
 - All examples use ExtendScript-safe patterns
+- Fixed: ES3 transpilation compatibility - styleList.count changed to styleList.getCount()
 */
 
 // Uncomment to run examples:

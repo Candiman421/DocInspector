@@ -1,7 +1,7 @@
 /**
  * Simple list extraction utilities for test assessment
  * Provides basic list processing for ActionManager patterns
- * Optimized for scoring with consistent error handling and performance
+ * Optimized for scoring with consistent error handling, performance, and ES3 transpilation compatibility
  */
 
 import { stringIDToTypeID } from "./ps";
@@ -11,6 +11,20 @@ import { ActionDescriptorNavigator } from "./ActionDescriptorNavigator";
 /**
  * Interface for objects that can extract ActionLists from ActionDescriptors
  * Defined here to avoid circular dependencies in types.ts
+ * 
+ * @example
+ * ```typescript
+ * const textStyleExtractor: ListExtractor = {
+ *   extract: function(rootDesc: ActionDescriptor): ActionList | null {
+ *     try {
+ *       const textKey = rootDesc.getObjectValue(stringIDToTypeID('textKey'));
+ *       return textKey.getList(stringIDToTypeID('textStyleRange'));
+ *     } catch {
+ *       return null;
+ *     }
+ *   }
+ * };
+ * ```
  */
 export interface ListExtractor {
     extract(rootDesc: ActionDescriptor): ActionList | null;
@@ -19,6 +33,24 @@ export interface ListExtractor {
 /**
  * Simple list value extractor for test assessment needs
  * Fixed: Constructor consistency, path traversal, transformer handling
+ * 
+ * @example
+ * ```typescript
+ * // Create extractor for text style font sizes
+ * const fontSizeExtractor = new ListValueExtractor(
+ *   textStyleExtractor,
+ *   'textStyle.size',
+ *   'double'
+ * );
+ * 
+ * // Extract all font sizes
+ * const sizes = fontSizeExtractor.extractAll(layerDesc);
+ * console.log('Font sizes:', sizes); // [12, 14, 16] or []
+ * 
+ * // Extract with rounding
+ * const roundedExtractor = fontSizeExtractor.round(1);
+ * const roundedSizes = roundedExtractor.extractAll(layerDesc);
+ * ```
  */
 class ListValueExtractor {
     private readonly basePath: ListExtractor;
@@ -30,6 +62,36 @@ class ListValueExtractor {
     /**
      * Create a simple list value extractor
      * Fixed: Single transformer pattern for consistency
+     * 
+     * @param basePath - ListExtractor that provides the ActionList
+     * @param subPath - Dot-separated path to the value within each list item
+     * @param valueType - Type of value to extract
+     * @param transformer - Optional transformation function
+     * 
+     * @example
+     * ```typescript
+     * // Basic extractor
+     * const sizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'size',
+     *   'double'
+     * );
+     * 
+     * // Extractor with nested path
+     * const fontExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.fontName',
+     *   'string'
+     * );
+     * 
+     * // Extractor with transformation
+     * const roundedExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'size',
+     *   'double',
+     *   size => Math.round(size)
+     * );
+     * ```
      */
     constructor(
         basePath: ListExtractor,
@@ -47,6 +109,26 @@ class ListValueExtractor {
     /**
      * Extract all values from the list
      * Optimized for scoring with consistent error handling
+     * 
+     * @param rootDesc - Root ActionDescriptor to extract from
+     * @returns Array of extracted values or empty array
+     * 
+     * @example
+     * ```typescript
+     * const fontSizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.size',
+     *   'double'
+     * );
+     * 
+     * const allSizes = fontSizeExtractor.extractAll(layerDesc);
+     * console.log('All font sizes:', allSizes); // [12, 14, 16] or []
+     * 
+     * // Process results
+     * const averageSize = allSizes.length > 0 
+     *   ? allSizes.reduce((sum, size) => sum + size, 0) / allSizes.length
+     *   : 0;
+     * ```
      */
     extractAll<T = any>(rootDesc: ActionDescriptor): readonly T[] {
         if (!rootDesc) {
@@ -77,6 +159,28 @@ class ListValueExtractor {
 
     /**
      * Extract value at specific index with bounds checking
+     * 
+     * @param rootDesc - Root ActionDescriptor to extract from
+     * @param index - Zero-based index of the item to extract
+     * @returns Extracted value or sentinel
+     * 
+     * @example
+     * ```typescript
+     * const fontSizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.size',
+     *   'double'
+     * );
+     * 
+     * const firstSize = fontSizeExtractor.extractAt(layerDesc, 0);  // 12 or -1
+     * const secondSize = fontSizeExtractor.extractAt(layerDesc, 1); // 14 or -1
+     * const invalidSize = fontSizeExtractor.extractAt(layerDesc, 99); // -1
+     * 
+     * // Check if extraction was successful
+     * if (firstSize !== -1) {
+     *   console.log('First font size:', firstSize);
+     * }
+     * ```
      */
     extractAt<T = any>(rootDesc: ActionDescriptor, index: number): T {
         if (!rootDesc || index < 0) {
@@ -99,6 +203,35 @@ class ListValueExtractor {
 
     /**
      * Find first value that matches condition
+     * 
+     * @param rootDesc - Root ActionDescriptor to extract from
+     * @param predicate - Function to test each value and its index
+     * @returns First matching value or sentinel
+     * 
+     * @example
+     * ```typescript
+     * const fontSizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.size',
+     *   'double'
+     * );
+     * 
+     * // Find first large font
+     * const largeFont = fontSizeExtractor.findFirst(layerDesc, 
+     *   (size, index) => size > 20
+     * );
+     * console.log('Large font size:', largeFont); // 24 or -1
+     * 
+     * // Find first font at specific position
+     * const thirdFont = fontSizeExtractor.findFirst(layerDesc,
+     *   (size, index) => index === 2
+     * );
+     * 
+     * // Find font within range
+     * const mediumFont = fontSizeExtractor.findFirst(layerDesc,
+     *   size => size >= 14 && size <= 18
+     * );
+     * ```
      */
     findFirst<T = any>(
         rootDesc: ActionDescriptor,
@@ -134,6 +267,30 @@ class ListValueExtractor {
 
     /**
      * Extract exactly N values, padding with sentinel values if needed
+     * 
+     * @param rootDesc - Root ActionDescriptor to extract from
+     * @param count - Exact number of values to return
+     * @returns Array with exactly N values, padded with sentinels if needed
+     * 
+     * @example
+     * ```typescript
+     * const fontSizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.size',
+     *   'double'
+     * );
+     * 
+     * // Always get exactly 3 values
+     * const threeSizes = fontSizeExtractor.extractExactly(layerDesc, 3);
+     * console.log('Three sizes:', threeSizes); // [12, 14, -1] if only 2 exist
+     * 
+     * // Useful for fixed-size scoring arrays
+     * const [size1, size2, size3] = fontSizeExtractor.extractExactly(layerDesc, 3);
+     * 
+     * // Check which values are valid
+     * const validSizes = threeSizes.filter(size => size !== -1);
+     * console.log('Valid sizes:', validSizes);
+     * ```
      */
     extractExactly<T = any>(rootDesc: ActionDescriptor, count: number): readonly T[] {
         if (!rootDesc || count <= 0) {
@@ -172,6 +329,33 @@ class ListValueExtractor {
 
     /**
      * Apply transformation to extracted values
+     * 
+     * @param transformer - Function to transform extracted values
+     * @returns New extractor with the transformation applied
+     * 
+     * @example
+     * ```typescript
+     * const fontSizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.size',
+     *   'double'
+     * );
+     * 
+     * // Convert points to pixels (72 DPI)
+     * const pixelExtractor = fontSizeExtractor.transform(
+     *   points => points * (96 / 72)
+     * );
+     * 
+     * // Round to nearest integer
+     * const roundedExtractor = fontSizeExtractor.transform(
+     *   size => Math.round(size)
+     * );
+     * 
+     * // Chain transformations
+     * const roundedPixelExtractor = fontSizeExtractor
+     *   .transform(points => points * (96 / 72))
+     *   .transform(pixels => Math.round(pixels));
+     * ```
      */
     transform(transformer: ValueTransformer): ListValueExtractor {
         if (!transformer || typeof transformer !== 'function') {
@@ -188,6 +372,29 @@ class ListValueExtractor {
 
     /**
      * Round numeric values to specified decimal places
+     * 
+     * @param decimals - Number of decimal places (default: 0)
+     * @returns New extractor with rounding applied
+     * 
+     * @example
+     * ```typescript
+     * const fontSizeExtractor = new ListValueExtractor(
+     *   textStyleExtractor,
+     *   'textStyle.size',
+     *   'double'
+     * );
+     * 
+     * // Round to integers
+     * const integerExtractor = fontSizeExtractor.round();
+     * const sizes = integerExtractor.extractAll(layerDesc); // [12, 14, 16]
+     * 
+     * // Round to 1 decimal place
+     * const preciseExtractor = fontSizeExtractor.round(1);
+     * const preciseSizes = preciseExtractor.extractAll(layerDesc); // [12.5, 14.2, 16.0]
+     * 
+     * // Round to 2 decimal places
+     * const veryPreciseExtractor = fontSizeExtractor.round(2);
+     * ```
      */
     round(decimals = 0): ListValueExtractor {
         const factor = Math.pow(10, decimals);

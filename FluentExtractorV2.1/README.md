@@ -1,20 +1,22 @@
 # ActionDescriptor Navigation Framework
 
-A robust, scoring-optimized framework for navigating Adobe Photoshop's ActionDescriptor structures in ExtendScript. Designed for automated assessment and grading workflows with consistent error handling and predictable return values.
+A robust, scoring-optimized framework for navigating Adobe Photoshop's ActionDescriptor structures in ExtendScript. Designed for automated assessment and grading workflows with consistent error handling, predictable return values, and ES3 transpilation compatibility.
 
 ## Features
 
 - **Search-First Navigation**: Robust pattern matching instead of brittle index-based access
 - **Scoring Optimized**: Consistent sentinel values (-1, "", false) for reliable answer assignment
 - **ExtendScript Compatible**: No modern JavaScript features, proper memory management
+- **ES3 Transpilation Compatible**: Works with webpack-es3-plugin for proper transpilation
 - **Fluent API**: Chainable methods for readable code
 - **Type Safe**: Full TypeScript support with exhaustive error checking
 - **Memory Safe**: Proper ActionReference cleanup, no shared mutable state
+- **Comprehensive JSDoc**: Rich IntelliSense support with examples and usage patterns
 
 ## Core Components
 
 ### ActionDescriptorNavigator
-Core navigation engine for ActionDescriptor objects with proper memory management.
+Core navigation engine for ActionDescriptor objects with proper memory management and ES3 transpilation compatibility.
 
 ```typescript
 // Factory methods (handle ActionReference cleanup automatically)
@@ -28,8 +30,23 @@ const styleList = textNav.list('textStyleRange');             // New list naviga
 
 // Value extraction with guaranteed types
 const layerName = layerNav.getValue('name', 'string');         // "" if missing
-const opacity = layerNav.getValue('opacity', 'double');        // -1 if missing
+const opacity = layerNav.getValue('opacity', 'double');        // -1 if missing  
 const visible = layerNav.getValue('visible', 'boolean');       // false if missing
+```
+
+### ActionListNavigator
+**ES3 Transpilation Compatibility**: Uses `getCount()` method instead of `count` getter property.
+
+```typescript
+const styleList = textNav.list('textStyleRange');
+const count = styleList.getCount(); // Fixed: ES3 transpilation compatible
+
+if (count > 0) {
+    for (let i = 0; i < count; i++) {
+        const style = styleList.getObject(i);
+        const fontSize = style.getValue('size', 'double');
+    }
+}
 ```
 
 ### PathAccessor (P Factory)
@@ -132,6 +149,21 @@ const properties = layerNav.getValuesAsObject({
 // Guaranteed to return object with all properties set to values or sentinels
 ```
 
+### List Processing with ES3 Transpilation Compatibility
+```typescript
+// ✅ CORRECT: Use getCount() method
+const styleList = textNav.list('textStyleRange');
+const count = styleList.getCount();
+
+for (let i = 0; i < count; i++) {
+    const style = styleList.getObject(i);
+    const fontSize = style.getValue('size', 'double');
+}
+
+// ❌ INCORRECT: count getter breaks ES3 transpilation
+// const count = styleList.count; // Don't use this
+```
+
 ### Transformations
 ```typescript
 // Numeric transformations
@@ -206,29 +238,34 @@ const sentinel2 = ActionDescriptorNavigator.createSentinel();
 // sentinel1 and sentinel2 are separate objects
 ```
 
-## ExtendScript Compatibility
+## ES3 Transpilation Compatibility
 
-### Type Declarations
-The framework includes proper ExtendScript type declarations:
+### Key Changes for webpack-es3-plugin
+The framework is fully compatible with ES3 transpilation via webpack-es3-plugin:
 
 ```typescript
-// ActionReference declared as constructable class
-var ActionReference: {
-    new(): ActionReference;
-    prototype: ActionReference;
-};
+// ✅ CORRECT: Method calls (transpiles properly)
+const count = styleList.getCount();
+for (let i = 0; i < count; i++) {
+    // Process items
+}
 
-// Global ActionManager functions available
-stringIDToTypeID(stringID: string): number;
-charIDToTypeID(charID: string): number;
-executeActionGet(ref: ActionReference): ActionDescriptor;
+// ❌ INCORRECT: Property getters (break ES3 transpilation)
+// const count = styleList.count; // This would break webpack-es3-plugin
 ```
 
-### No Modern JavaScript
-- No arrow functions (`function() {}` instead of `=>`)
-- No `Array.from()` (manual array building)
-- No `const`/`let` in loops that might cause issues
-- Compatible with Photoshop CS6+ ActionManager
+### ES3 Transpilation Compatible Features
+- ✅ All method calls and function declarations
+- ✅ TypeScript interfaces and type annotations (compile away)
+- ✅ Const/let declarations (transpiled to var)
+- ✅ Arrow functions (transpiled to function expressions)
+- ✅ Template literals (transpiled to string concatenation)
+
+### ExtendScript Compatibility
+- ✅ No modern JavaScript features that can't be transpiled
+- ✅ Proper ActionReference cleanup patterns
+- ✅ Compatible with Photoshop CS6+ ActionManager
+- ✅ Memory-safe patterns for long-running scripts
 
 ## Performance Optimizations
 
@@ -296,10 +333,34 @@ for (let i = 0; i < layerNames.length; i++) {
 }
 ```
 
+### List Processing with ES3 Transpilation Compatibility
+```typescript
+// ✅ CORRECT: ES3 transpilation compatible patterns
+const styleList = textNav.list('textStyleRange');
+const count = styleList.getCount();
+
+if (count > 0) {
+    for (let i = 0; i < count; i++) {
+        const style = styleList.getObject(i);
+        const fontSize = style.getValue('size', 'double');
+        console.log('Font size: ' + fontSize);
+    }
+}
+
+// Extract all values from list
+const allSizes = styleList.getAllValues('size', 'double');
+console.log('All sizes: ' + allSizes.join(', '));
+
+// Find specific values
+const largeSize = styleList.findValue('size', 'double', function(size) {
+    return size > 20;
+});
+```
+
 ## File Structure & Dependencies
 
 ```
-├── types.ts                    # Type definitions and ExtendScript globals
+├── types.ts                    # Type definitions and core interfaces
 ├── ActionDescriptorNavigator.ts # Core navigation engine  
 ├── ListExtractors.ts           # List processing utilities
 ├── PathAccessor.ts             # Fluent API and search methods
@@ -312,6 +373,31 @@ for (let i = 0; i < layerNames.length; i++) {
 - Global type declarations in `types.ts`
 - Standard ExtendScript object model
 
+## JSDoc Documentation & IntelliSense
+
+All methods include comprehensive JSDoc documentation with:
+- **Parameter descriptions** with types and examples
+- **Return value documentation** with expected formats
+- **Usage examples** for IntelliSense previews
+- **Cross-references** to related methods
+- **Error handling patterns** and sentinel value explanations
+
+```typescript
+/**
+ * Extract all font sizes from text ranges
+ * @param key - Property key to extract from each list item
+ * @param type - Value type to extract  
+ * @param options - Optional transformation and default value options
+ * @returns Array of extracted values
+ * 
+ * @example
+ * ```typescript
+ * const fontSizes = styleList.getAllValues('size', 'double');
+ * console.log('Font sizes:', fontSizes); // [12, 14, 16] or []
+ * ```
+ */
+```
+
 ## Migration Notes
 
 When integrating into existing frameworks:
@@ -320,10 +406,48 @@ When integrating into existing frameworks:
 2. **Keep from `types.ts`**: ValueType, interfaces, and core type definitions  
 3. **Import mapping**: Framework should provide ActionManager functions globally
 4. **Memory management**: ActionReference cleanup patterns are already optimized
+5. **ES3 Transpilation**: Use `getCount()` method instead of `count` getter
 
 ## Version Compatibility
 
 - **Photoshop**: CS6+ (ActionManager API)
 - **ExtendScript**: All versions with ActionDescriptor support
+- **Webpack**: Compatible with webpack-es3-plugin for ES3 transpilation
 - **Localization**: Compatible with non-English Photoshop versions
 - **TypeScript**: 3.0+ for development (compiles to ES3-compatible ExtendScript)
+
+## ES3 Transpilation Compatibility Summary
+
+| Feature | Status | Notes |
+|---------|---------|--------|
+| **ActionListNavigator.getCount()** | ✅ Compatible | Changed from getter to method |
+| **Native ActionList.count** | ✅ Compatible | Property access is fine |
+| **All other methods** | ✅ Compatible | No changes needed |
+| **TypeScript interfaces** | ✅ Compatible | Compile away |
+| **Modern syntax** | ✅ Compatible | Transpiled by webpack-es3-plugin |
+
+## Quick Start
+
+```typescript
+// Import the framework
+import { ActionDescriptorNavigator, P } from './ActionDescriptorNavigator';
+
+// Basic usage
+const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+const name = layerNav.getValue('name', 'string');
+const opacity = layerNav.getValue('opacity', 'double');
+
+// Search-based extraction (recommended)
+const arialSize = P.textStyleByFont('Arial', 'size', 'double').extract(layerDesc);
+const blurRadius = P.filterByName('Gaussian Blur', 'radius', 'double').extract(layerDesc);
+
+// List processing (ES3 transpilation compatible)
+const styleList = layerNav.object('textKey').list('textStyleRange');
+const count = styleList.getCount(); // Use getCount() method
+for (let i = 0; i < count; i++) {
+    const style = styleList.getObject(i);
+    const fontSize = style.getValue('size', 'double');
+}
+```
+
+**Ready for production use with webpack-es3-plugin transpilation!** 🚀

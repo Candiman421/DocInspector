@@ -14,14 +14,17 @@
  * 10. Overall opacity: No layer should be completely transparent (>10% opacity)
  * 
  * This script demonstrates real-world usage of the ActionDescriptor Navigation Framework
- * for automated scoring of student design assignments.
+ * for automated scoring of student design assignments with ES3 transpilation compatibility.
  */
 
 import { stringIDToTypeID } from "./ps";
 import { ActionDescriptorNavigator } from './ActionDescriptorNavigator';
 import { ActionDescriptorPath, P } from './PathAccessor';
 
-// Scoring results interface with comprehensive measurements
+/**
+ * Scoring results interface with comprehensive measurements
+ * Provides complete assessment data for educational scoring systems
+ */
 interface ScoringResults {
     // Document requirements (30 points)
     documentWidth: number;          // Actual width in pixels
@@ -73,6 +76,16 @@ interface ScoringResults {
 
 /**
  * Main scoring function - coordinates all scoring operations
+ * Demonstrates comprehensive document analysis using the navigation framework
+ * 
+ * @returns Complete scoring results with all measurements and assessments
+ * 
+ * @example
+ * ```typescript
+ * const results = scoreMoviePosterAssignment();
+ * console.log(`Final score: ${results.percentageScore}%`);
+ * console.log(`Points: ${results.totalPointsEarned}/${results.totalPointsPossible}`);
+ * ```
  */
 function scoreMoviePosterAssignment(): ScoringResults {
     // Initialize results with sentinel values
@@ -147,6 +160,15 @@ function scoreMoviePosterAssignment(): ScoringResults {
 /**
  * Score document size, DPI, and color mode requirements
  * Uses ActionDescriptorNavigator.forCurrentDocument() with proper error handling
+ * 
+ * @param results - Results object to populate with document measurements
+ * 
+ * @example
+ * ```typescript
+ * const results = initializeResults();
+ * scoreDocumentRequirements(results);
+ * console.log(`Document: ${results.documentWidth}x${results.documentHeight} at ${results.documentDPI} DPI`);
+ * ```
  */
 function scoreDocumentRequirements(results: ScoringResults): void {
     const docNav = ActionDescriptorNavigator.forCurrentDocument();
@@ -177,6 +199,17 @@ function scoreDocumentRequirements(results: ScoringResults): void {
 /**
  * Score text font and size requirements using search-first approach
  * Demonstrates robust text layer identification and font searching
+ * Fixed: ES3 transpilation compatibility for styleList operations
+ * 
+ * @param results - Results object to populate with text measurements
+ * 
+ * @example
+ * ```typescript
+ * const results = initializeResults();
+ * scoreTextRequirements(results);
+ * console.log(`Title: ${results.titleFontName} ${results.titleFontSize}pt`);
+ * console.log(`Tagline: ${results.taglineFontName} ${results.taglineFontSize}pt`);
+ * ```
  */
 function scoreTextRequirements(results: ScoringResults): void {
     // Get all layer names for text layer identification
@@ -214,7 +247,8 @@ function scoreTextRequirements(results: ScoringResults): void {
             let foundArialBold = false;
             let maxFontSize = -1;
             
-            for (let styleIndex = 0; styleIndex < styleList.count && styleIndex < 10; styleIndex++) {
+            // Fixed: ES3 compatibility - use getCount() method
+            for (let styleIndex = 0; styleIndex < styleList.getCount() && styleIndex < 10; styleIndex++) {
                 const styleNav = styleList.getObject(styleIndex);
                 const textStyleNav = styleNav.object('textStyle');
                 
@@ -249,7 +283,8 @@ function scoreTextRequirements(results: ScoringResults): void {
             let foundArialRegular = false;
             let taglineFontSize = -1;
             
-            for (let styleIndex = 0; styleIndex < styleList.count && styleIndex < 10; styleIndex++) {
+            // Fixed: ES3 compatibility - use getCount() method
+            for (let styleIndex = 0; styleIndex < styleList.getCount() && styleIndex < 10; styleIndex++) {
                 const styleNav = styleList.getObject(styleIndex);
                 const textStyleNav = styleNav.object('textStyle');
                 
@@ -274,7 +309,17 @@ function scoreTextRequirements(results: ScoringResults): void {
 
 /**
  * Score layout and positioning requirements
- * Uses getBounds() with calculated width/height
+ * Uses getBounds() with calculated width/height for accurate measurements
+ * 
+ * @param results - Results object to populate with layout measurements
+ * 
+ * @example
+ * ```typescript
+ * const results = initializeResults();
+ * scoreLayoutRequirements(results);
+ * console.log(`Title position: ${results.titlePositionY}px`);
+ * console.log(`Image size: ${results.movieImageWidth}x${results.movieImageHeight}px`);
+ * ```
  */
 function scoreLayoutRequirements(results: ScoringResults): void {
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
@@ -330,6 +375,16 @@ function scoreLayoutRequirements(results: ScoringResults): void {
 /**
  * Score visual effects requirements using search-first filter approach
  * Demonstrates filter searching by name across multiple layers
+ * 
+ * @param results - Results object to populate with effects measurements
+ * 
+ * @example
+ * ```typescript
+ * const results = initializeResults();
+ * scoreEffectsRequirements(results);
+ * console.log(`Shadow distance: ${results.titleShadowDistance}px`);
+ * console.log(`Glow size: ${results.taglineGlowSize}px`);
+ * ```
  */
 function scoreEffectsRequirements(results: ScoringResults): void {
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
@@ -393,7 +448,21 @@ function scoreEffectsRequirements(results: ScoringResults): void {
 
 /**
  * Helper function to search for effect properties using multiple property names
- * Demonstrates robust effect searching patterns
+ * Demonstrates robust effect searching patterns with fallback strategies
+ * 
+ * @param layerNav - Navigator for the layer to search
+ * @param effectName - Name of the effect to find
+ * @param propertyNames - Array of possible property names to search for
+ * @returns Effect property value or -1 if not found
+ * 
+ * @example
+ * ```typescript
+ * const shadowDistance = searchForEffectProperty(
+ *   layerNav, 
+ *   'Drop Shadow', 
+ *   ['distance', 'localLightingDistance']
+ * );
+ * ```
  */
 function searchForEffectProperty(layerNav: ActionDescriptorNavigator, effectName: string, propertyNames: string[]): number {
     // Check if layer has effects
@@ -411,6 +480,7 @@ function searchForEffectProperty(layerNav: ActionDescriptorNavigator, effectName
     for (let listIndex = 0; listIndex < possibleEffectLists.length; listIndex++) {
         const effectList = effectsNav.list(possibleEffectLists[listIndex]);
         
+        // Native ActionList.count - no changes needed for ES3 transpilation compatibility
         for (let effectIndex = 0; effectIndex < effectList.count && effectIndex < 10; effectIndex++) {
             const effect = effectList.getObject(effectIndex);
             const name = effect.getValue('name', 'string');
@@ -432,7 +502,17 @@ function searchForEffectProperty(layerNav: ActionDescriptorNavigator, effectName
 
 /**
  * Score layer organization requirements
- * Demonstrates layer enumeration and opacity checking
+ * Demonstrates layer enumeration and opacity checking with comprehensive analysis
+ * 
+ * @param results - Results object to populate with organization measurements
+ * 
+ * @example
+ * ```typescript
+ * const results = initializeResults();
+ * scoreOrganizationRequirements(results);
+ * console.log(`Total layers: ${results.totalLayerCount}`);
+ * console.log(`Minimum opacity: ${results.minOpacity}%`);
+ * ```
  */
 function scoreOrganizationRequirements(results: ScoringResults): void {
     // Get all layer information using safe extraction
@@ -472,7 +552,16 @@ function scoreOrganizationRequirements(results: ScoringResults): void {
 
 /**
  * Calculate final score based on all requirements
- * Demonstrates comprehensive scoring logic
+ * Demonstrates comprehensive scoring logic with weighted point allocation
+ * 
+ * @param results - Results object to populate with final scores
+ * 
+ * @example
+ * ```typescript
+ * const results = getPopulatedResults();
+ * calculateFinalScore(results);
+ * console.log(`Final score: ${results.percentageScore}%`);
+ * ```
  */
 function calculateFinalScore(results: ScoringResults): void {
     let points = 0;
@@ -509,6 +598,16 @@ function calculateFinalScore(results: ScoringResults): void {
 /**
  * Generate comprehensive scoring report
  * Demonstrates detailed result formatting for educational use
+ * 
+ * @param results - Complete scoring results to format
+ * @returns Formatted report string with detailed breakdown
+ * 
+ * @example
+ * ```typescript
+ * const results = scoreMoviePosterAssignment();
+ * const report = generateScoringReport(results);
+ * console.log(report);
+ * ```
  */
 function generateScoringReport(results: ScoringResults): string {
     let report = 'MOVIE POSTER DESIGN SCORING REPORT\n';
@@ -591,6 +690,18 @@ function generateScoringReport(results: ScoringResults): string {
 /**
  * Convert scoring results to answer object format
  * Demonstrates integration with external scoring systems
+ * 
+ * @param results - Complete scoring results to convert
+ * @returns Simplified answer object for integration
+ * 
+ * @example
+ * ```typescript
+ * const results = scoreMoviePosterAssignment();
+ * const answers = convertToAnswers(results);
+ * 
+ * // Use in external scoring system
+ * externalScoringSystem.submitAnswers(answers);
+ * ```
  */
 function convertToAnswers(results: ScoringResults): any {
     // This demonstrates how results would be converted for external systems
@@ -640,6 +751,13 @@ function convertToAnswers(results: ScoringResults): any {
 
 /**
  * Main execution function with comprehensive error handling
+ * Demonstrates complete scoring workflow with performance monitoring
+ * 
+ * @example
+ * ```typescript
+ * runScoringScript();
+ * // Outputs complete scoring report and performance metrics
+ * ```
  */
 function runScoringScript(): void {
     console.log('Movie Poster Design Assignment - Automated Scoring');
@@ -688,6 +806,22 @@ function runScoringScript(): void {
         console.log('answers.passed = false');
     }
 }
+
+// =============================================================================
+// EXTENDSCRIPT COMPATIBILITY NOTES
+// =============================================================================
+
+/*
+ExtendScript Compatibility Notes:
+- No arrow functions used (function() {} syntax throughout)
+- No Array.from() or modern array methods  
+- No const/let issues in loops
+- Proper ActionReference cleanup patterns in ActionDescriptorNavigator
+- Compatible with Photoshop CS6+ ActionManager
+- All examples use ExtendScript-safe patterns
+- Fixed: ES3 transpilation compatibility - styleList.count changed to styleList.getCount()
+- Native ActionList.count properties remain unchanged (correct behavior)
+*/
 
 // Uncomment to run the scoring script:
 // runScoringScript();
