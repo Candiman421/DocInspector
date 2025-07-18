@@ -4,6 +4,7 @@
  * Optimized for test scoring with consistent error handling
  */
 
+import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
 import { ValueType, SentinelValue, SentinelValueMap, ValueTransformer, ComparisonOptions } from "./types";
 
 /**
@@ -53,7 +54,7 @@ class ActionDescriptorNavigator {
         } catch {
             return ActionDescriptorNavigator.createSentinel();
         } finally {
-            // ActionReference cleanup handled by ExtendScript runtime
+            // ActionReference cleanup - important for memory management
             ref = null;
         }
     }
@@ -71,7 +72,7 @@ class ActionDescriptorNavigator {
         } catch {
             return ActionDescriptorNavigator.createSentinel();
         } finally {
-            // ActionReference cleanup handled by ExtendScript runtime
+            // ActionReference cleanup - important for memory management
             ref = null;
         }
     }
@@ -93,7 +94,7 @@ class ActionDescriptorNavigator {
         } catch {
             return ActionDescriptorNavigator.createSentinel();
         } finally {
-            // ActionReference cleanup handled by ExtendScript runtime
+            // ActionReference cleanup - important for memory management
             ref = null;
         }
     }
@@ -306,26 +307,30 @@ class ActionDescriptorNavigator {
      * Get bounds object - returns sentinel bounds instead of null
      * Fixed: Calculate width/height from left/top/right/bottom
      */
-getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
-    if (this.isSentinel || !this.desc) {
-        return { left: -1, top: -1, right: -1, bottom: -1, width: -1, height: -1 };
-    }
+    getBounds(): { left: number; top: number; right: number; bottom: number; width: number; height: number } {
+        if (this.isSentinel || !this.desc) {
+            return { left: -1, top: -1, right: -1, bottom: -1, width: -1, height: -1 };
+        }
 
-    try {
-        const boundsDesc = this.desc.getObjectValue(stringIDToTypeID('bounds'));
+        try {
+            const boundsDesc = this.desc.getObjectValue(stringIDToTypeID('bounds'));
+            const left = boundsDesc.getDouble(stringIDToTypeID('left'));
+            const top = boundsDesc.getDouble(stringIDToTypeID('top'));
+            const right = boundsDesc.getDouble(stringIDToTypeID('right'));
+            const bottom = boundsDesc.getDouble(stringIDToTypeID('bottom'));
 
-        return {
-            left: boundsDesc.getDouble(stringIDToTypeID('left')),
-            top: boundsDesc.getDouble(stringIDToTypeID('top')),
-            right: boundsDesc.getDouble(stringIDToTypeID('right')),
-            bottom: boundsDesc.getDouble(stringIDToTypeID('bottom')),
-            width: boundsDesc.getDouble(stringIDToTypeID('width')),    // ✅ Extract directly
-            height: boundsDesc.getDouble(stringIDToTypeID('height'))   // ✅ Extract directly
-        };
-    } catch {
-        return { left: -1, top: -1, right: -1, bottom: -1, width: -1, height: -1 };
+            return {
+                left: left,
+                top: top,
+                right: right,
+                bottom: bottom,
+                width: right - left,
+                height: bottom - top
+            };
+        } catch {
+            return { left: -1, top: -1, right: -1, bottom: -1, width: -1, height: -1 };
+        }
     }
-}
 
     /**
      * Get text properties - returns sentinel properties instead of null
@@ -376,7 +381,7 @@ getBounds(): { left: number; top: number; right: number; bottom: number; width: 
         } catch {
             return -1;
         } finally {
-            // ActionReference cleanup handled by ExtendScript runtime
+            // ActionReference cleanup - important for memory management
             ref = null;
         }
     }

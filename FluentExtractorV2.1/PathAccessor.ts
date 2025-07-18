@@ -4,6 +4,7 @@
  * Optimized for scoring with consistent error handling and performance
  */
 
+import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
 import { ValueType, ValueTransformer, ComparisonOptions, BoundsProperty, PathSegment } from "./types";
 import { ActionDescriptorNavigator } from "./ActionDescriptorNavigator";
 

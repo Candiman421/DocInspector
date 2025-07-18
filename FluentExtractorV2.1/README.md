@@ -38,19 +38,19 @@ Fluent interface for complex navigation patterns with search-first methods.
 ```typescript
 import { P } from './PathAccessor';
 
-// Basic property access (requires ActionDescriptor from navigator)
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-// Note: For P.extract(), you need the actual ActionDescriptor, but navigator.desc is private
-// Most P methods work best with specific layer descriptors
+// Basic property access
+const layerName = P.val('name', 'string').extract(layerDesc);
+const layerOpacity = P.val('opacity', 'double').extract(layerDesc);
 
-// Search-based access (some methods work independently)
-const layerName = P.findLayerByName('TargetTest').extract(null as any); // Works independently
-const headerLayer = P.findLayerByName(/header/i).extract(null as any);  // Uses internal layer search
+// Search-based access (recommended - robust against document variations)
+const arialSize = P.textStyleByFont('Arial', 'size', 'double').extract(layerDesc);
+const blurRadius = P.filterByName('Gaussian Blur', 'radius', 'double').extract(layerDesc);
+const headerLayer = P.findLayerByName('header').extract(docDesc);
 
 // Bounds with automatic width/height calculation and unit conversion
-// (Requires actual ActionDescriptor from layer)
-const bounds = layerNav.getBounds(); // Use navigator method directly
-// Width/height calculated: right - left, bottom - top
+const widthPixels = P.bounds('width').extract(layerDesc);      // Calculated: right - left
+const heightPixels = P.bounds('height').extract(layerDesc);    // Calculated: bottom - top
+const leftPosition = P.bounds('left').extract(layerDesc);
 ```
 
 ### ListExtractors
@@ -71,59 +71,6 @@ const largeSize = sizeExtractor.findFirst(layerDesc, function(size) {
 });                                                             // 24 or -1
 ```
 
-## Targeting Layers by Name
-
-### Method 1: Direct Layer Search (Recommended)
-```typescript
-// Search for layer by exact name
-function getLayerByName(targetName: string): ActionDescriptorNavigator {
-    const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
-    
-    for (let i = 0; i < layerNames.length; i++) {
-        if (layerNames[i] === targetName) {
-            return ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
-        }
-    }
-    
-    return ActionDescriptorNavigator.createSentinel(); // Returns sentinel if not found
-}
-
-// Usage:
-const targetLayer = getLayerByName("TargetTest");
-const layerExists = targetLayer.getValue('name', 'string') !== ""; // Check if found
-const opacity = targetLayer.getValue('opacity', 'double'); // -1 if not found
-```
-
-### Method 2: Pattern Matching
-```typescript
-// Find layer by partial name match (case-insensitive)
-function findLayerByPattern(namePattern: string): ActionDescriptorNavigator {
-    const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
-    
-    for (let i = 0; i < layerNames.length; i++) {
-        const layerName = layerNames[i].toLowerCase();
-        if (layerName.indexOf(namePattern.toLowerCase()) >= 0) {
-            return ActionDescriptorNavigator.forLayerByIndex(i + 1);
-        }
-    }
-    
-    return ActionDescriptorNavigator.createSentinel();
-}
-
-// Usage:
-const headerLayer = findLayerByPattern("header");    // Finds "Header", "header_bg", etc.
-const targetLayer = findLayerByPattern("target");    // Finds "TargetTest", "Target Layer", etc.
-```
-
-### Method 3: Using Built-in Search
-```typescript
-// The P.findLayerByName() method works independently of descriptors
-const layerName = P.findLayerByName("TargetTest").extract(null as any); // "TargetTest" or ""
-const headerLayerName = P.findLayerByName(/header/i).extract(null as any); // First match or ""
-
-// Note: This only returns the layer name, not a navigator to the layer
-```
-
 ## API Reference
 
 ### Search-First Methods (Recommended)
@@ -132,32 +79,35 @@ All search methods are static methods on `ActionDescriptorPath` and return appro
 
 #### Text Style Search
 ```typescript
-// Requires actual ActionDescriptor from layer
-const layerNav = ActionDescriptorNavigator.forLayerByIndex(1);
-// For these methods, you'd need access to the layer's ActionDescriptor
-// Currently the navigator's desc property is private
+// Search by font name (case-sensitive, exact match)
+P.textStyleByFont('Arial', 'size', 'double').extract(layerDesc);           // Font size or -1
+P.textStyleByFont('Arial-BoldMT', 'tracking', 'double').extract(layerDesc); // Tracking or -1
+P.textStyleByFont('Helvetica', 'color', 'string').extract(layerDesc);      // Color or ""
 
-// Alternative: Use navigator methods directly
-const textNav = layerNav.object('textKey');
-const styleList = textNav.list('textStyleRange');
-const firstStyle = styleList.getObject(0).object('textStyle');
-const fontName = firstStyle.getValue('fontName', 'string');     // Font name or ""
-const fontSize = firstStyle.getValue('size', 'double');         // Font size or -1
+// Search by font size
+P.textStyleBySize(24, 'fontName', 'string').extract(layerDesc);            // Font name or ""
+P.textStyleBySize(12, 'tracking', 'double').extract(layerDesc);            // Tracking or -1
 ```
 
 #### Filter Search
 ```typescript
-// Search for effects in layer (requires proper effect navigation)
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-// Effects searching requires navigating to layer effects structures
-// Implementation depends on specific layer effect organization
+// Search by exact filter name
+P.filterByName('Gaussian Blur', 'radius', 'double').extract(layerDesc);    // Blur radius or -1
+P.filterByName('Drop Shadow', 'distance', 'double').extract(layerDesc);    // Shadow distance or -1
+P.filterByName('Outer Glow', 'blur', 'double').extract(layerDesc);         // Glow size or -1
+```
+
+#### Layer Search
+```typescript
+// Search by name pattern (returns layer name, not navigator)
+P.findLayerByName('header').extract(docDesc);                              // "header" or ""
+P.findLayerByName(/background/i).extract(docDesc);                         // "Background" or ""
 ```
 
 ### Specialized Extraction Methods
 
 #### Bounds with Calculated Dimensions
 ```typescript
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
 const bounds = layerNav.getBounds();
 // Returns: { left: 100, top: 50, right: 300, bottom: 200, width: 200, height: 150 }
 // Width/height calculated from right-left, bottom-top
@@ -166,7 +116,6 @@ const bounds = layerNav.getBounds();
 
 #### Text Properties (Corrected Property Access)
 ```typescript
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
 const textProps = layerNav.getTextProperties();
 // Returns: { content: "Hello World", fontName: "Arial", fontSize: 12 }
 // Uses correct 'text' property for content (not 'textKey')
@@ -175,7 +124,6 @@ const textProps = layerNav.getTextProperties();
 
 #### Batch Value Extraction
 ```typescript
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
 const properties = layerNav.getValuesAsObject({
     name: { key: 'name', type: 'string' },
     opacity: { key: 'opacity', type: 'double' },
@@ -186,27 +134,21 @@ const properties = layerNav.getValuesAsObject({
 
 ### Transformations
 ```typescript
-// Note: Transformations work with P factory methods when you have ActionDescriptor access
-// For most scoring scenarios, use navigator methods directly:
+// Numeric transformations
+P.val('size', 'double').round(1).extract(layerDesc);                       // Round to 1 decimal
+P.val('opacity', 'double').floor().extract(layerDesc);                     // Floor value
+P.bounds('width').toPixels('pt', 72).extract(layerDesc);                   // Convert points to pixels
+P.val('ratio', 'double').toPercentage().extract(layerDesc);                // Multiply by 100
 
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-const opacity = layerNav.getValue('opacity', 'double');
-const opacityPercent = opacity >= 0 ? opacity : -1; // Manual percentage conversion
-
-// For unit conversions, use the navigator's specialized methods:
-const bounds = layerNav.getBounds(); // Already calculated in pixels
+// Chained transformations
+P.val('size', 'double').toPixels('pt', 72).round(2).extract(layerDesc);
 ```
 
 ### Legacy Index-Based Access
 ```typescript
-// Still available through navigator methods
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-const textNav = layerNav.object('textKey');
-const styleList = textNav.list('textStyleRange');
-const firstStyle = styleList.getObject(0); // First text style (brittle)
-const secondStyle = styleList.getObject(1); // Second text style (brittle)
-
-// Prefer search methods when possible
+// Still available but brittle - prefer search methods above
+P.textStyle('size', 'double', 0).extract(layerDesc);                       // First text style
+P.filter('radius', 'double', 1).extract(layerDesc);                        // Second filter
 ```
 
 ## Sentinel Value System
@@ -229,11 +171,10 @@ The framework returns predictable values for missing or invalid data:
 
 ```typescript
 // These patterns never crash, always return predictable values for scoring
-const layerNav = getLayerByName("NonExistentLayer");
-const name = layerNav.getValue('name', 'string');              // ""
-const opacity = layerNav.getValue('opacity', 'double');        // -1
-const deepMissing = layerNav.object('missing').object('deep').getValue('prop', 'string'); // ""
-const outOfBounds = layerNav.object('textKey').list('textStyleRange').getObject(999).getValue('size', 'double'); // -1
+const fontSize = P.val('missingProperty', 'double').extract(layerDesc);    // -1
+const badFilter = P.filterByName('NonExistent', 'radius', 'double').extract(layerDesc); // -1
+const deepMissing = P.obj('missing').obj('deep').val('prop', 'string').extract(layerDesc); // ""
+const outOfBounds = P.list('items').at(999).val('prop', 'string').extract(layerDesc); // ""
 ```
 
 ## Memory Management
@@ -294,21 +235,16 @@ executeActionGet(ref: ActionReference): ActionDescriptor;
 ### Efficient Patterns
 ```typescript
 // ✅ Good: Single extraction
-const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-const name = layerNav.getValue('name', 'string');
+const name = P.val('name', 'string').extract(layerDesc);
 
 // ✅ Better: Batch extraction for multiple values
-const props = layerNav.getValuesAsObject({
+const props = nav.getValuesAsObject({
     name: { key: 'name', type: 'string' },
     opacity: { key: 'opacity', type: 'double' }
 });
 
-// ✅ Best: Target specific layers efficiently
-const targetLayer = getLayerByName("TargetTest");
-const properties = targetLayer.getValuesAsObject({
-    opacity: { key: 'opacity', type: 'double' },
-    visible: { key: 'visible', type: 'boolean' }
-});
+// ✅ Best: Search-first for unknown structures
+const fontSize = P.textStyleByFont('Arial', 'size', 'double').extract(layerDesc);
 ```
 
 ### Input Validation
@@ -316,9 +252,9 @@ All methods validate inputs before processing:
 
 ```typescript
 // These calls return sentinels immediately without processing
-const badLayer = ActionDescriptorNavigator.forLayerByIndex(0);  // Invalid: returns sentinel
-const emptyName = getLayerByName("");                           // Returns sentinel
-const nullNav = layerNav.object("");                           // Returns sentinel
+P.val('', 'string').extract(layerDesc);              // "" (empty key)
+P.obj(null).val('prop', 'string').extract(layerDesc); // "" (null key)
+P.textStyleByFont('', 'size', 'double').extract(layerDesc); // -1 (empty font name)
 ```
 
 ## Common Patterns
@@ -326,41 +262,26 @@ const nullNav = layerNav.object("");                           // Returns sentin
 ### Scoring Script Pattern
 ```typescript
 // Reliable pattern for answer assignment - no null checks needed
-function scoreLayer(layerName: string) {
-    const layer = getLayerByName(layerName);
-    
-    // Always returns values - use sentinel checks for existence
-    const layerExists = layer.getValue('name', 'string') !== "";
-    
-    if (layerExists) {
-        answers.layerName = layer.getValue('name', 'string');
-        answers.layerOpacity = layer.getValue('opacity', 'double');
-        answers.layerVisible = layer.getValue('visible', 'boolean');
-        answers.layerExists = true;
-    } else {
-        answers.layerName = "";
-        answers.layerOpacity = -1;
-        answers.layerVisible = false;
-        answers.layerExists = false;
-    }
-}
+answers.layerName = P.val('name', 'string').extract(layerDesc);
+answers.fontSizePoints = P.textStyleByFont('Arial', 'size', 'double').extract(layerDesc);
+answers.hasDropShadow = P.filterByName('Drop Shadow', 'enabled', 'boolean').extract(layerDesc);
+answers.layerWidthPixels = P.bounds('width').extract(layerDesc);
 
 // Boolean checks with sentinel awareness
-const targetLayer = getLayerByName("TargetTest");
-answers.hasTargetLayer = targetLayer.getValue('name', 'string') !== "";
-answers.targetLayerVisible = targetLayer.getValue('visible', 'boolean');
-answers.targetLayerOpacity = targetLayer.getValue('opacity', 'double');
+answers.usedArial = P.textStyleByFont('Arial', 'size', 'double').extract(layerDesc) > 0;
+answers.hasCorrectOpacity = P.val('opacity', 'double').extract(layerDesc) >= 50;
 ```
 
 ### Safe Deep Navigation
 ```typescript
 // Chain safely without null checks
-const layerNav = getLayerByName("TextLayer");
-const textNav = layerNav.object('textKey');
-const styleList = textNav.list('textStyleRange');
-const firstStyle = styleList.getObject(0);
-const textStyle = firstStyle.object('textStyle');
-const fontName = textStyle.getValue('fontName', 'string'); // "" if any step fails
+const textTracking = P.obj('textKey')
+    .list('textStyleRange')
+    .at(0)
+    .obj('textStyle')
+    .val('tracking', 'double')
+    .defaultTo(0)
+    .extract(layerDesc);
 ```
 
 ### Layer Iteration
@@ -372,39 +293,6 @@ for (let i = 0; i < layerNames.length; i++) {
     const name = layerNav.getValue('name', 'string');
     const opacity = layerNav.getValue('opacity', 'double');
     console.log('Layer: ' + name + ', Opacity: ' + opacity);
-    
-    // Process specific layer types
-    if (name.toLowerCase().indexOf('text') >= 0) {
-        const textProps = layerNav.getTextProperties();
-        console.log('  Text content: "' + textProps.content + '"');
-        console.log('  Font: ' + textProps.fontName + ' ' + textProps.fontSize + 'pt');
-    }
-}
-```
-
-### Text Style Processing
-```typescript
-// Process all text styles in a layer
-function analyzeTextLayer(layerName: string) {
-    const layer = getLayerByName(layerName);
-    
-    if (layer.hasKey('textKey')) {
-        const textNav = layer.object('textKey');
-        const styleList = textNav.list('textStyleRange');
-        
-        console.log('Text styles found:', styleList.count);
-        
-        for (let i = 0; i < styleList.count; i++) {
-            const style = styleList.getObject(i);
-            const textStyle = style.object('textStyle');
-            
-            const fontName = textStyle.getValue('fontName', 'string');
-            const fontSize = textStyle.getValue('size', 'double');
-            const tracking = textStyle.getValue('tracking', 'double');
-            
-            console.log(`  Style ${i}: ${fontName} ${fontSize}pt, tracking: ${tracking}`);
-        }
-    }
 }
 ```
 
@@ -433,53 +321,9 @@ When integrating into existing frameworks:
 3. **Import mapping**: Framework should provide ActionManager functions globally
 4. **Memory management**: ActionReference cleanup patterns are already optimized
 
-## Quick Start Guide
-
-```typescript
-// Essential imports
-import { ActionDescriptorNavigator } from './ActionDescriptorNavigator';
-
-// Basic usage
-function analyzeCurrentLayer() {
-    const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-    
-    const name = layerNav.getValue('name', 'string');
-    const opacity = layerNav.getValue('opacity', 'double');
-    const visible = layerNav.getValue('visible', 'boolean');
-    
-    console.log(`Layer: ${name}, Opacity: ${opacity}, Visible: ${visible}`);
-}
-
-// Target specific layer
-function analyzeSpecificLayer() {
-    const targetLayer = getLayerByName("TargetTest");
-    const layerExists = targetLayer.getValue('name', 'string') !== "";
-    
-    if (layerExists) {
-        const bounds = targetLayer.getBounds();
-        console.log(`TargetTest found: ${bounds.width}x${bounds.height} at ${bounds.left},${bounds.top}`);
-    } else {
-        console.log("TargetTest layer not found");
-    }
-}
-
-// Helper function for layer targeting
-function getLayerByName(targetName: string): ActionDescriptorNavigator {
-    const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
-    
-    for (let i = 0; i < layerNames.length; i++) {
-        if (layerNames[i] === targetName) {
-            return ActionDescriptorNavigator.forLayerByIndex(i + 1);
-        }
-    }
-    
-    return ActionDescriptorNavigator.createSentinel();
-}
-```
-
 ## Version Compatibility
 
 - **Photoshop**: CS6+ (ActionManager API)
 - **ExtendScript**: All versions with ActionDescriptor support
 - **Localization**: Compatible with non-English Photoshop versions
-- **TypeScript**: 4.0+ for development (framework transpiles to ES3-compatible ExtendScript)
+- **TypeScript**: 3.0+ for development (compiles to ES3-compatible ExtendScript)

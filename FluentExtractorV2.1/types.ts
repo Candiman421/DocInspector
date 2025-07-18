@@ -1,44 +1,7 @@
 /**
  * Shared type definitions for ActionDescriptor navigation system
- * Centralizes all common types to eliminate duplication
+ * Centralizes all common types - framework integration ready
  */
-
-// ActionManager functions - REMOVE when migrating to framework
-declare function stringIDToTypeID(stringID: string): number;
-declare function charIDToTypeID(charID: string): number;
-declare function executeActionGet(ref: ActionReference): ActionDescriptor;
-declare function executeAction(eventID: number, desc?: ActionDescriptor, mode?: any): ActionDescriptor;
-
-// Global interfaces - REMOVE when migrating to framework
-declare global {
-    interface ActionDescriptor {
-        hasKey(typeID: number): boolean;
-        getString(typeID: number): string;
-        getInteger(typeID: number): number;
-        getDouble(typeID: number): number;
-        getBoolean(typeID: number): boolean;
-        getEnumerationValue(typeID: number): number;
-        getObjectValue(typeID: number): ActionDescriptor;
-        getList(typeID: number): ActionList;
-    }
-
-    interface ActionList {
-        count: number;
-        getObjectValue(index: number): ActionDescriptor;
-    }
-
-    // Fixed: Declare as constructable class, not interface
-    var ActionReference: {
-        new(): ActionReference;
-        prototype: ActionReference;
-    };
-
-    interface ActionReference {
-        putEnumerated(classID: number, typeID: number, enumValue: number): void;
-        putIndex(classID: number, index: number): void;
-        putProperty(classID: number, propertyID: number): void;
-    }
-}
 
 // Core types - KEEP when migrating to framework
 
@@ -83,13 +46,7 @@ export interface ComparisonOptions {
     readonly defaultValue?: any;
 }
 
-/**
- * Interface for objects that can extract ActionLists from ActionDescriptors
- * Fixed: Allow null returns to match actual usage patterns
- */
-export interface ListExtractor {
-    extract(rootDesc: ActionDescriptor): ActionList | null;
-}
+// Removed ListExtractor interface - moved to ListExtractors.ts to avoid circular dependencies
 
 /**
  * Bounds property identifiers

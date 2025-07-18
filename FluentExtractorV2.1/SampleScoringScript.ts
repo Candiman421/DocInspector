@@ -17,6 +17,7 @@
  * for automated scoring of student design assignments.
  */
 
+import { stringIDToTypeID } from "./ps";
 import { ActionDescriptorNavigator } from './ActionDescriptorNavigator';
 import { ActionDescriptorPath, P } from './PathAccessor';
 
@@ -181,45 +182,27 @@ function scoreTextRequirements(results: ScoringResults): void {
     // Get all layer names for text layer identification
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
     
-    // Helper function to get layer by name
-    function getLayerByName(targetName: string): ActionDescriptorNavigator {
-        for (let i = 0; i < layerNames.length; i++) {
-            if (layerNames[i].toLowerCase() === targetName.toLowerCase()) {
-                return ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
-            }
-        }
-        return ActionDescriptorNavigator.createSentinel();
-    }
-    
-    // Helper function to find layer by pattern
-    function findLayerByPattern(namePattern: string): ActionDescriptorNavigator {
-        for (let i = 0; i < layerNames.length; i++) {
-            const layerName = layerNames[i].toLowerCase();
-            if (layerName.indexOf(namePattern.toLowerCase()) >= 0) {
-                return ActionDescriptorNavigator.forLayerByIndex(i + 1);
-            }
-        }
-        return ActionDescriptorNavigator.createSentinel();
-    }
-    
     // Search for title and tagline layers using name-based identification
-    let titleLayerNav: ActionDescriptorNavigator = findLayerByPattern('title');
-    let taglineLayerNav: ActionDescriptorNavigator = findLayerByPattern('tagline');
+    let titleLayerNav: ActionDescriptorNavigator | null = null;
+    let taglineLayerNav: ActionDescriptorNavigator | null = null;
     
-    // Try alternative names if not found
-    if (titleLayerNav.getValue('Name', 'string') === "") {
-        titleLayerNav = findLayerByPattern('heading');
-    }
-    if (taglineLayerNav.getValue('Name', 'string') === "") {
-        taglineLayerNav = findLayerByPattern('subtitle');
-    }
-    if (taglineLayerNav.getValue('Name', 'string') === "") {
-        taglineLayerNav = findLayerByPattern('subtext');
+    for (let i = 0; i < layerNames.length; i++) {
+        const layerName = layerNames[i].toLowerCase();
+        
+        // Look for title layer (various naming patterns)
+        if ((layerName.indexOf('title') >= 0 || layerName.indexOf('heading') >= 0) && !titleLayerNav) {
+            titleLayerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
+        }
+        
+        // Look for tagline layer (various naming patterns)
+        if ((layerName.indexOf('tagline') >= 0 || layerName.indexOf('subtitle') >= 0 || 
+             layerName.indexOf('subtext') >= 0) && !taglineLayerNav) {
+            taglineLayerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
+        }
     }
     
     // Score title text requirements using search-first approach
-    const titleExists = titleLayerNav.getValue('Name', 'string') !== "";
-    if (titleExists) {
+    if (titleLayerNav) {
         // Check for text layer type
         const hasTextKey = titleLayerNav.hasKey('textKey');
         if (hasTextKey) {
@@ -256,8 +239,7 @@ function scoreTextRequirements(results: ScoringResults): void {
     }
     
     // Score tagline text requirements using similar approach
-    const taglineExists = taglineLayerNav.getValue('Name', 'string') !== "";
-    if (taglineExists) {
+    if (taglineLayerNav) {
         const hasTextKey = taglineLayerNav.hasKey('textKey');
         if (hasTextKey) {
             const textNav = taglineLayerNav.object('textKey');
@@ -292,59 +274,35 @@ function scoreTextRequirements(results: ScoringResults): void {
 
 /**
  * Score layout and positioning requirements
- * Uses getBounds() with calculated width/height and proper layer targeting
+ * Uses getBounds() with calculated width/height
  */
 function scoreLayoutRequirements(results: ScoringResults): void {
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
     const docNav = ActionDescriptorNavigator.forCurrentDocument();
     const docHeight = docNav.getValue('height', 'double');
     
-    // Helper function to find layer by pattern
-    function findLayerByPattern(namePattern: string): ActionDescriptorNavigator {
-        for (let i = 0; i < layerNames.length; i++) {
-            const layerName = layerNames[i].toLowerCase();
-            if (layerName.indexOf(namePattern.toLowerCase()) >= 0) {
-                return ActionDescriptorNavigator.forLayerByIndex(i + 1);
-            }
-        }
-        return ActionDescriptorNavigator.createSentinel();
-    }
-    
-    // Search for title layer
-    let titleLayer = findLayerByPattern('title');
-    if (titleLayer.getValue('Name', 'string') === "") {
-        titleLayer = findLayerByPattern('heading');
-    }
-    
-    // Search for tagline layer
-    let taglineLayer = findLayerByPattern('tagline');
-    if (taglineLayer.getValue('Name', 'string') === "") {
-        taglineLayer = findLayerByPattern('subtitle');
-    }
-    
-    // Get title positioning
-    if (titleLayer.getValue('Name', 'string') !== "") {
-        const bounds = titleLayer.getBounds();
-        results.titlePositionY = bounds.top;
-    }
-    
-    // Get tagline positioning  
-    if (taglineLayer.getValue('Name', 'string') !== "") {
-        const bounds = taglineLayer.getBounds();
-        results.taglinePositionY = bounds.top;
-    }
-    
-    // Search for movie image layer - look through all layers for largest image
+    // Search through layers for title, tagline, and movie image
     for (let i = 0; i < layerNames.length; i++) {
         const layerName = layerNames[i].toLowerCase();
+        const layerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
+        
+        // Get bounds using corrected getBounds() method (calculates width/height)
+        const bounds = layerNav.getBounds();
+        
+        // Check for title layer positioning
+        if (layerName.indexOf('title') >= 0 && results.titlePositionY === -1) {
+            results.titlePositionY = bounds.top;
+        }
+        
+        // Check for tagline layer positioning
+        if (layerName.indexOf('tagline') >= 0 && results.taglinePositionY === -1) {
+            results.taglinePositionY = bounds.top;
+        }
         
         // Look for movie image layer (largest content layer, excluding background)
         if ((layerName.indexOf('movie') >= 0 || layerName.indexOf('image') >= 0 || 
              layerName.indexOf('photo') >= 0 || layerName.indexOf('picture') >= 0) &&
             layerName.indexOf('background') === -1) {
-            
-            const layerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1);
-            const bounds = layerNav.getBounds();
             
             // Use the largest qualifying image found
             if (bounds.width > results.movieImageWidth && bounds.height > results.movieImageHeight) {
@@ -371,68 +329,45 @@ function scoreLayoutRequirements(results: ScoringResults): void {
 
 /**
  * Score visual effects requirements using search-first filter approach
- * Demonstrates filter searching by name across multiple layers with proper layer targeting
+ * Demonstrates filter searching by name across multiple layers
  */
 function scoreEffectsRequirements(results: ScoringResults): void {
     const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
     
-    // Helper function to find layer by pattern
-    function findLayerByPattern(namePattern: string): ActionDescriptorNavigator {
-        for (let i = 0; i < layerNames.length; i++) {
-            const layerName = layerNames[i].toLowerCase();
-            if (layerName.indexOf(namePattern.toLowerCase()) >= 0) {
-                return ActionDescriptorNavigator.forLayerByIndex(i + 1);
-            }
-        }
-        return ActionDescriptorNavigator.createSentinel();
-    }
-    
-    // Find title layer for drop shadow check
-    let titleLayer = findLayerByPattern('title');
-    if (titleLayer.getValue('Name', 'string') === "") {
-        titleLayer = findLayerByPattern('heading');
-    }
-    
-    // Check title layer for drop shadow effect
-    if (titleLayer.getValue('Name', 'string') !== "") {
-        // Search for Drop Shadow effect using multiple property names
-        let shadowDistance = searchForEffectProperty(titleLayer, 'Drop Shadow', [
-            'distance', 'localLightingDistance', 'shadowDistance'
-        ]);
-        
-        if (shadowDistance !== -1) {
-            results.titleShadowDistance = shadowDistance;
-            results.correctTitleShadow = shadowDistance >= 5 && shadowDistance <= 10;
-        }
-    }
-    
-    // Find tagline layer for outer glow check
-    let taglineLayer = findLayerByPattern('tagline');
-    if (taglineLayer.getValue('Name', 'string') === "") {
-        taglineLayer = findLayerByPattern('subtitle');
-    }
-    
-    // Check tagline layer for outer glow effect
-    if (taglineLayer.getValue('Name', 'string') !== "") {
-        // Search for Outer Glow effect using multiple property names
-        let glowSize = searchForEffectProperty(taglineLayer, 'Outer Glow', [
-            'blur', 'chokeMatte', 'glowSize', 'size'
-        ]);
-        
-        if (glowSize !== -1) {
-            results.taglineGlowSize = glowSize;
-            results.correctTaglineGlow = glowSize >= 3 && glowSize <= 8;
-        }
-    }
-    
-    // Search for movie image layer for color overlay check
+    // Search each layer for required effects
     for (let i = 0; i < layerNames.length; i++) {
         const layerName = layerNames[i].toLowerCase();
+        const layerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
         
+        // Check title layer for drop shadow effect
+        if (layerName.indexOf('title') >= 0) {
+            // Search for Drop Shadow effect using multiple property names
+            let shadowDistance = searchForEffectProperty(layerNav, 'Drop Shadow', [
+                'distance', 'localLightingDistance', 'shadowDistance'
+            ]);
+            
+            if (shadowDistance !== -1) {
+                results.titleShadowDistance = shadowDistance;
+                results.correctTitleShadow = shadowDistance >= 5 && shadowDistance <= 10;
+            }
+        }
+        
+        // Check tagline layer for outer glow effect
+        if (layerName.indexOf('tagline') >= 0) {
+            // Search for Outer Glow effect using multiple property names
+            let glowSize = searchForEffectProperty(layerNav, 'Outer Glow', [
+                'blur', 'chokeMatte', 'glowSize', 'size'
+            ]);
+            
+            if (glowSize !== -1) {
+                results.taglineGlowSize = glowSize;
+                results.correctTaglineGlow = glowSize >= 3 && glowSize <= 8;
+            }
+        }
+        
+        // Check movie image layer for color overlay
         if ((layerName.indexOf('movie') >= 0 || layerName.indexOf('image') >= 0) &&
             layerName.indexOf('background') === -1) {
-            
-            const layerNav = ActionDescriptorNavigator.forLayerByIndex(i + 1);
             
             // Search for Color Overlay effect
             let overlayOpacity = searchForEffectProperty(layerNav, 'Color Overlay', [
@@ -451,7 +386,6 @@ function scoreEffectsRequirements(results: ScoringResults): void {
             if (overlayOpacity !== -1) {
                 results.imageOverlayOpacity = overlayOpacity;
                 results.correctImageOverlay = overlayOpacity >= 20 && overlayOpacity <= 40;
-                break; // Use first matching image layer
             }
         }
     }
@@ -498,7 +432,7 @@ function searchForEffectProperty(layerNav: ActionDescriptorNavigator, effectName
 
 /**
  * Score layer organization requirements
- * Demonstrates layer enumeration and opacity checking with proper layer targeting
+ * Demonstrates layer enumeration and opacity checking
  */
 function scoreOrganizationRequirements(results: ScoringResults): void {
     // Get all layer information using safe extraction

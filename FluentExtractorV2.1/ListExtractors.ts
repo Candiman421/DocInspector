@@ -1,14 +1,23 @@
 /**
- * Simple list extraction utilities 
+ * Simple list extraction utilities for test assessment
  * Provides basic list processing for ActionManager patterns
  * Optimized for scoring with consistent error handling and performance
  */
 
-import { ValueType, ValueTransformer, ListExtractor } from "./types";
+import { stringIDToTypeID } from "./ps";
+import { ValueType, ValueTransformer } from "./types";
 import { ActionDescriptorNavigator } from "./ActionDescriptorNavigator";
 
 /**
- * Simple list value extractor  needs
+ * Interface for objects that can extract ActionLists from ActionDescriptors
+ * Defined here to avoid circular dependencies in types.ts
+ */
+export interface ListExtractor {
+    extract(rootDesc: ActionDescriptor): ActionList | null;
+}
+
+/**
+ * Simple list value extractor for test assessment needs
  * Fixed: Constructor consistency, path traversal, transformer handling
  */
 class ListValueExtractor {
