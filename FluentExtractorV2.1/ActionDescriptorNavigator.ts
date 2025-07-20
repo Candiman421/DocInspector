@@ -7,6 +7,11 @@
 import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
 import { ValueType, SentinelValue, SentinelValueMap, ValueTransformer, ComparisonOptions } from "./types";
 
+// ExtendScript .trim() polyfill
+if (!String.prototype.trim) {
+    String.prototype.trim = function() { return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, ""); };
+}
+
 /**
  * Core navigation class for ActionDescriptor structures
  * Fixed: ExtendScript compatibility, memory management, sentinel handling, ES3 transpilation compatibility
