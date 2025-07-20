@@ -26,7 +26,7 @@ export type SentinelValueMap = {
     readonly string: "";
     readonly enumerated: "";
     readonly integer: -1;
-    readonly double: -1;
+    readonly "double": -1;
     readonly boolean: false;
 };
 

@@ -28,7 +28,7 @@ class ActionDescriptorNavigator {
         string: "",
         enumerated: "",
         integer: -1,
-        double: -1,
+        "double": -1,
         boolean: false
     } as const;
 
