@@ -25,11 +25,11 @@ class ActionDescriptorNavigator {
 
     // Static sentinel constants for performance
     private static readonly SENTINELS: SentinelValueMap = {
-        string: "",
-        enumerated: "",
-        integer: -1,
+        "string": "",
+        "enumerated": "",
+        "integer": -1,
         "double": -1,
-        boolean: false
+        "boolean": false
     } as const;
 
     constructor(desc: ActionDescriptor | null) {

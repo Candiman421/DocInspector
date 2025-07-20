@@ -965,11 +965,11 @@ class ActionDescriptorPath {
 class PathFactory {
     // Static default values for consistency and performance
     private static readonly DEFAULT_VALUES = {
-        string: "",
-        enumerated: "",
-        integer: -1,
-        double: -1,
-        boolean: false
+        "string": "",
+        "enumerated": "",
+        "integer": -1,
+        "double": -1,
+        "boolean": false
     } as const;
 
     /**
