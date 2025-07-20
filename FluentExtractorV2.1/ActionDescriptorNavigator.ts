@@ -147,6 +147,67 @@ class ActionDescriptorNavigator {
     }
 
     /**
+     * Create navigator for layer by exact name (case-insensitive, leading/trailing spaces ignored)
+     * 
+     * @param layerName - Layer name to find (exact match after case/trim normalization)
+     * @returns Navigator for the matching layer or sentinel if not found
+     * 
+     * @example
+     * ```typescript
+     * // Find layer with exact name match
+     * const targetLayer = ActionDescriptorNavigator.forLayerByName("TargetTest");
+     * const name = targetLayer.getValue('name', 'string');
+     * 
+     * // Case-insensitive matching
+     * const headerLayer = ActionDescriptorNavigator.forLayerByName("HEADER"); // Finds "header"
+     * const bgLayer = ActionDescriptorNavigator.forLayerByName("background"); // Finds "Background"
+     * 
+     * // Leading/trailing spaces ignored
+     * const trimLayer = ActionDescriptorNavigator.forLayerByName("  MyLayer  "); // Finds "MyLayer"
+     * 
+     * // Internal spaces must match exactly
+     * const spaceLayer = ActionDescriptorNavigator.forLayerByName("My Layer"); // Only finds "My Layer", not "MyLayer"
+     * 
+     * // Exact match required - no partial matching
+     * const exactOnly = ActionDescriptorNavigator.forLayerByName("Target"); // Will NOT find "TargetTest"
+     * 
+     * // Safe - returns sentinel if layer not found
+     * const missingLayer = ActionDescriptorNavigator.forLayerByName("NonExistent");
+     * const safeName = missingLayer.getValue('name', 'string'); // Returns ""
+     * 
+     * // Use in scoring scripts
+     * const textLayer = ActionDescriptorNavigator.forLayerByName("MyTextLayer");
+     * const textNav = textLayer.object('textKey');
+     * const styleList = textNav.list('textStyleRange');
+     * const arialIndex = styleList.findIndex('fontName', 'Arial');
+     * ```
+     */
+    static forLayerByName(layerName: string): ActionDescriptorNavigator {
+        if (!layerName || layerName.trim().length === 0) {
+            return ActionDescriptorNavigator.createSentinel();
+        }
+
+        try {
+            const layerNames = ActionDescriptorNavigator.extractAllLayerNames();
+            const searchName = layerName.toLowerCase().trim();
+
+            for (let i = 0; i < layerNames.length; i++) {
+                const currentName = layerNames[i].toLowerCase().trim();
+
+                // Exact match after (case + trim)
+                if (currentName === searchName) {
+                    return ActionDescriptorNavigator.forLayerByIndex(i + 1); // 1-based indexing
+                }
+            }
+
+            // Layer not found
+            return ActionDescriptorNavigator.createSentinel();
+        } catch {
+            return ActionDescriptorNavigator.createSentinel();
+        }
+    }
+
+    /**
      * Create sentinel navigator that always returns sentinel values
      * Fixed: No shared mutable state
      * 
@@ -193,23 +254,6 @@ class ActionDescriptorNavigator {
         } catch {
             return ActionDescriptorNavigator.createSentinel();
         }
-    }
-
-    /**
-     * Safe navigation to nested object property
-     * Alias for object() with explicit sentinel handling
-     * 
-     * @param key - Property key to navigate to
-     * @returns New navigator for the nested object or sentinel
-     * 
-     * @example
-     * ```typescript
-     * const textNav = layerNav.safeObject('textKey');
-     * const content = textNav.getValue('text', 'string');
-     * ```
-     */
-    safeObject(key: string): ActionDescriptorNavigator {
-        return this.object(key);
     }
 
     /**
@@ -909,6 +953,153 @@ class ActionListNavigator {
         }
 
         return ActionDescriptorNavigator.getSentinelValue(type) as T;
+    }
+
+    /**
+         * Find index of first item where property matches value
+         * ES3 transpilation compatible with case-insensitive string matching
+         * 
+         * @param key - Property key to search in each list item
+         * @param value - Value to find (supports partial string matching)
+         * @returns Zero-based index of matching item or -1 if not found
+         * 
+         * @example
+         * ```typescript
+         * const styleList = textNav.list('textStyleRange');
+         * 
+         * // Find Arial font index
+         * const arialIndex = styleList.findIndex('fontName', 'Arial');
+         * console.log('Arial at index:', arialIndex); // 0 or -1
+         * 
+         * // Find by exact match
+         * const boldIndex = styleList.findIndex('fontName', 'Arial-BoldMT');
+         * 
+         * // Find by partial match (case-insensitive)
+         * const anyArialIndex = styleList.findIndex('fontName', 'arial'); // Finds "Arial", "ArialMT", etc.
+         * 
+         * // Find by numeric value
+         * const size24Index = styleList.findIndex('sizeKey', 24);
+         * ```
+         */
+    findIndex(key: string, value: any): number {
+        if (this.isSentinel || !this.list || !key) {
+            return -1;
+        }
+
+        const listCount = this.getCount();
+        if (listCount <= 0) {
+            return -1;
+        }
+
+        for (let i = 0; i < listCount; i++) {
+            try {
+                const obj = this.getObject(i);
+                const itemValue = obj.getValue(key, typeof value === 'string' ? 'string' : 'double');
+
+                // Handle string matching (case-insensitive, partial match)
+                if (typeof value === 'string' && typeof itemValue === 'string') {
+                    if (itemValue.toLowerCase().indexOf(value.toLowerCase()) >= 0) {
+                        return i;
+                    }
+                } else if (itemValue === value) {
+                    // Exact match for numbers, booleans, etc.
+                    return i;
+                }
+            } catch {
+                // Continue searching on errors
+            }
+        }
+
+        return -1; // Not found
+    }
+
+    /**
+     * Find object navigator for first item where property matches value
+     * Returns sentinel navigator if not found - no null checks needed
+     * 
+     * @param key - Property key to search in each list item
+     * @param value - Value to find (supports partial string matching)
+     * @returns Navigator for matching object or sentinel navigator
+     * 
+     * @example
+     * ```typescript
+     * const styleList = textNav.list('textStyleRange');
+     * 
+     * // Find Arial text style object
+     * const arialStyleRange = styleList.findObjectBy('fontName', 'Arial');
+     * const textStyle = arialStyleRange.object('textStyle');
+     * const fontSize = textStyle.getValue('sizeKey', 'double');
+     * 
+     * // Chain directly for cleaner syntax
+     * const boldFont = styleList.findObjectBy('fontName', 'Bold')
+     *                           .object('textStyle')
+     *                           .getValue('fontName', 'string');
+     * 
+     * // Safe - returns sentinel if not found
+     * const missingStyle = styleList.findObjectBy('fontName', 'NonExistent');
+     * const safeName = missingStyle.getValue('fontName', 'string'); // Returns ""
+     * 
+     * // Find by numeric property
+     * const largeTextStyle = styleList.findObjectBy('sizeKey', 24);
+     * ```
+     */
+    findObjectBy(key: string, value: any): ActionDescriptorNavigator {
+        const index = this.findIndex(key, value);
+        if (index >= 0) {
+            return this.getObject(index);
+        }
+        return ActionDescriptorNavigator.createSentinel();
+    }
+
+    /**
+     * Get value at specific index without navigating to object first
+     * Combines getObject(index) + getValue() in one call
+     * 
+     * @param index - Zero-based index in the list
+     * @param key - Property key to extract from the object at index
+     * @param type - Value type to extract
+     * @returns Extracted value or sentinel value if index/key invalid
+     * 
+     * @example
+     * ```typescript
+     * const styleList = textNav.list('textStyleRange');
+     * 
+     * // Get font name at specific index
+     * const firstFont = styleList.getValueAt(0, 'fontName', 'string');
+     * const secondFont = styleList.getValueAt(1, 'fontName', 'string');
+     * 
+     * // Combine with findIndex for peer values
+     * const arialIndex = styleList.findIndex('fontName', 'Arial');
+     * const arialSize = styleList.getValueAt(arialIndex, 'sizeKey', 'double');
+     * const arialColor = styleList.getValueAt(arialIndex, 'color.red', 'double');
+     * 
+     * // Safe - returns sentinel if index out of bounds
+     * const safeFont = styleList.getValueAt(999, 'fontName', 'string'); // Returns ""
+     * const safeSize = styleList.getValueAt(-1, 'sizeKey', 'double');    // Returns -1
+     * 
+     * // Extract multiple peer values efficiently
+     * const targetIndex = styleList.findIndex('fontName', 'Arial');
+     * const font = styleList.getValueAt(targetIndex, 'fontName', 'string');
+     * const size = styleList.getValueAt(targetIndex, 'sizeKey', 'double');
+     * const scale = styleList.getValueAt(targetIndex, 'horizontalScale', 'double');
+     * ```
+     */
+    getValueAt<T = any>(index: number, key: string, type: ValueType): T {
+        if (this.isSentinel || !this.list || index < 0 || !key) {
+            return ActionDescriptorNavigator.getSentinelValue(type) as T;
+        }
+
+        const listCount = this.getCount();
+        if (listCount <= 0 || index >= listCount) {
+            return ActionDescriptorNavigator.getSentinelValue(type) as T;
+        }
+
+        try {
+            const obj = this.getObject(index);
+            return obj.getValue<T>(key, type);
+        } catch {
+            return ActionDescriptorNavigator.getSentinelValue(type) as T;
+        }
     }
 }
 
