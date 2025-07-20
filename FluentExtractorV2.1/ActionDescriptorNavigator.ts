@@ -3,90 +3,9 @@
  * Provides imperative-style navigation and tuple extraction capabilities
  * Optimized with consistent error handling and ES3 transpilation compatibility
  */
-
+import "./extendscript-polyfills.js";
 import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
 import { ValueType, SentinelValue, SentinelValueMap, ValueTransformer, ComparisonOptions } from "./types";
-
-// =============================================================================
-// ExtendScript ECMA-3 Compatibility Polyfills (TypeScript Safe)
-// =============================================================================
-
-// String methods
-if (!String.prototype.trim) {
-    String.prototype.trim = function() {
-        return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
-    };
-}
-
-if (!String.prototype.includes) {
-    String.prototype.includes = function(search: string, start?: number) {
-        if (typeof start !== 'number') start = 0;
-        return this.indexOf(search, start) !== -1;
-    };
-}
-
-// Array methods with proper TypeScript typing
-if (!Array.prototype.map) {
-    Array.prototype.map = function<T, U>(this: T[], callback: (value: T, index: number, array: T[]) => U, thisArg?: any): U[] {
-        const result: U[] = [];
-        for (let i = 0; i < this.length; i++) {
-            if (i in this) {
-                result[i] = callback.call(thisArg, this[i], i, this);
-            }
-        }
-        return result;
-    };
-}
-
-if (!Array.prototype.filter) {
-    Array.prototype.filter = function<T>(this: T[], callback: (value: T, index: number, array: T[]) => boolean, thisArg?: any): T[] {
-        const result: T[] = [];
-        for (let i = 0; i < this.length; i++) {
-            if (i in this && callback.call(thisArg, this[i], i, this)) {
-                result.push(this[i]);
-            }
-        }
-        return result;
-    };
-}
-
-if (!Array.prototype.some) {
-    Array.prototype.some = function<T>(this: T[], callback: (value: T, index: number, array: T[]) => boolean, thisArg?: any): boolean {
-        for (let i = 0; i < this.length; i++) {
-            if (i in this && callback.call(thisArg, this[i], i, this)) {
-                return true;
-            }
-        }
-        return false;
-    };
-}
-
-if (!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function<T>(this: T[], searchElement: T, fromIndex?: number): number {
-        const start = fromIndex || 0;
-        const startIndex = start < 0 ? Math.max(0, this.length + start) : start;
-        
-        for (let i = startIndex; i < this.length; i++) {
-            if (i in this && this[i] === searchElement) {
-                return i;
-            }
-        }
-        return -1;
-    };
-}
-
-// Object methods
-if (!Object.keys) {
-    Object.keys = function(obj: any): string[] {
-        const keys: string[] = [];
-        for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                keys.push(key);
-            }
-        }
-        return keys;
-    };
-}
 
 /**
  * Core navigation class for ActionDescriptor structures
