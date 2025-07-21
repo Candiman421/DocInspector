@@ -381,6 +381,262 @@ class ActionDescriptorNavigator {
     }
 
     /**
+ * Get string value with consistent error handling
+ * Wrapper for getValue with string type, allows for future string-specific logic
+ * 
+ * @param key - Property key to extract
+ * @returns String value or empty string if missing/error
+ * 
+ * @example
+ * ```typescript
+ * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+ * 
+ * // Layer properties
+ * const layerName = layerNav.getStringValue('name');           // "Background" or ""
+ * const blendMode = layerNav.getStringValue('mode');           // "normal" or ""
+ * 
+ * // Text properties
+ * const fontName = textStyle.getStringValue('fontName');       // "Arial" or ""
+ * const textContent = textNav.getStringValue('text');         // "Hello World" or ""
+ * 
+ * // Safe usage - always returns string
+ * const safeName = layerNav.getStringValue('missingProp');     // "" (never null/undefined)
+ * 
+ * // Future custom logic potential:
+ * // - String trimming, case normalization
+ * // - Character encoding handling
+ * // - Localization support
+ * ```
+ */
+    getStringValue(key: string): string {
+        return this.getValue(key, 'string');
+    }
+
+    /**
+     * Get numeric double value with consistent error handling
+     * Wrapper for getValue with double type, allows for future numeric-specific logic
+     * 
+     * @param key - Property key to extract
+     * @returns Double value or -1 if missing/error
+     * 
+     * @example
+     * ```typescript
+     * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+     * 
+     * // Layer properties
+     * const opacity = layerNav.getDoubleValue('opacity');          // 75.5 or -1
+     * const rotation = layerNav.getDoubleValue('rotation');        // 45.0 or -1
+     * 
+     * // Text style properties
+     * const tracking = textStyle.getDoubleValue('tracking');       // 100.0 or -1
+     * const leading = textStyle.getDoubleValue('leading');         // 14.4 or -1
+     * const scale = textStyle.getDoubleValue('horizontalScale');   // 120.0 or -1
+     * 
+     * // Color properties
+     * const redValue = colorObj.getDoubleValue('red');             // 255.0 or -1
+     * 
+     * // Safe usage - always returns number
+     * const safeOpacity = layerNav.getDoubleValue('missingProp');  // -1 (never null/undefined)
+     * 
+     * // Future custom logic potential:
+     * // - Value range validation (0-100 for opacity)
+     * // - Precision rounding
+     * // - Unit-aware calculations
+     * ```
+     */
+    getDoubleValue(key: string): number {
+        return this.getValue(key, 'double');
+    }
+
+    /**
+     * Get integer value with consistent error handling
+     * Wrapper for getValue with integer type, allows for future integer-specific logic
+     * 
+     * @param key - Property key to extract
+     * @returns Integer value or -1 if missing/error
+     * 
+     * @example
+     * ```typescript
+     * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+     * const docNav = ActionDescriptorNavigator.forCurrentDocument();
+     * 
+     * // Layer properties
+     * const layerID = layerNav.getIntegerValue('layerID');         // 142 or -1
+     * const itemIndex = layerNav.getIntegerValue('itemIndex');     // 33 or -1
+     * const globalAngle = layerNav.getIntegerValue('globalAngle'); // 90 or -1
+     * 
+     * // Document properties
+     * const layerCount = docNav.getIntegerValue('numberOfLayers'); // 15 or -1
+     * const resolution = docNav.getIntegerValue('resolution');     // 300 or -1
+     * 
+     * // Text properties
+     * const fontScript = textStyle.getIntegerValue('fontScript');  // 0 or -1
+     * const tracking = textStyle.getIntegerValue('tracking');      // 50 or -1
+     * 
+     * // Safe usage - always returns number
+     * const safeID = layerNav.getIntegerValue('missingProp');      // -1 (never null/undefined)
+     * 
+     * // Future custom logic potential:
+     * // - Range validation (layer indices, counts)
+     * // - Type coercion from doubles
+     * // - ID validation and formatting
+     * ```
+     */
+    getIntegerValue(key: string): number {
+        return this.getValue(key, 'integer');
+    }
+
+    /**
+     * Get boolean value with consistent error handling
+     * Wrapper for getValue with boolean type, allows for future boolean-specific logic
+     * 
+     * @param key - Property key to extract
+     * @returns Boolean value or false if missing/error
+     * 
+     * @example
+     * ```typescript
+     * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+     * 
+     * // Layer state properties
+     * const isVisible = layerNav.getBooleanValue('visible');       // true or false
+     * const isLocked = layerNav.getBooleanValue('preserveTransparency'); // true or false
+     * const isBackground = layerNav.getBooleanValue('background'); // true or false
+     * const hasEffects = layerNav.getBooleanValue('layerFXVisible'); // true or false
+     * 
+     * // Text style properties
+     * const isBold = textStyle.getBooleanValue('syntheticBold');   // true or false
+     * const isItalic = textStyle.getBooleanValue('syntheticItalic'); // true or false
+     * const autoLeading = textStyle.getBooleanValue('autoLeading'); // true or false
+     * const hasStroke = textStyle.getBooleanValue('stroke');       // true or false
+     * 
+     * // Safe usage - always returns boolean
+     * const safeBool = layerNav.getBooleanValue('missingProp');    // false (never null/undefined)
+     * 
+     * // Usage in conditions
+     * if (layerNav.getBooleanValue('visible')) {
+     *     // Process visible layer
+     * }
+     * 
+     * // Future custom logic potential:
+     * // - String-to-boolean conversion ("true"/"false" strings)
+     * // - Numeric-to-boolean conversion (0/1 values)
+     * // - Default value customization
+     * ```
+     */
+    getBooleanValue(key: string): boolean {
+        return this.getValue(key, 'boolean');
+    }
+
+    /**
+     * Get unit double value with consistent error handling and future unit conversion support
+     * Wrapper for getValue with double type, specifically for UnitDouble properties
+     * 
+     * @param key - Property key to extract (typically size, distance, or measurement properties)
+     * @returns Unit double value or -1 if missing/error
+     * 
+     * @example
+     * ```typescript
+     * const textStyle = arialTextStyleObj;
+     * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+     * 
+     * // Text size properties (typically in points)
+     * const fontSize = textStyle.getUnitDoubleValue('sizeKey');         // 217.8 or -1
+     * const impliedSize = textStyle.getUnitDoubleValue('impliedFontSize'); // 114.9 or -1
+     * const baselineShift = textStyle.getUnitDoubleValue('baselineShift'); // 0.0 or -1
+     * const leading = textStyle.getUnitDoubleValue('autoLeading');      // 26.1 or -1
+     * 
+     * // Document measurements (typically in pixels or points)
+     * const docWidth = docNav.getUnitDoubleValue('width');              // 3300.0 or -1
+     * const docHeight = docNav.getUnitDoubleValue('height');            // 5100.0 or -1
+     * const resolution = docNav.getUnitDoubleValue('resolution');       // 300.0 or -1
+     * 
+     * // Layer bounds (typically in pixels)
+     * const bounds = layerNav.object('bounds');
+     * const left = bounds.getUnitDoubleValue('left');                   // 68.0 or -1
+     * const top = bounds.getUnitDoubleValue('top');                     // 300.0 or -1
+     * const width = bounds.getUnitDoubleValue('width');                 // 772.0 or -1
+     * const height = bounds.getUnitDoubleValue('height');               // 148.0 or -1
+     * 
+     * // Safe usage - always returns number
+     * const safeSize = textStyle.getUnitDoubleValue('missingProp');     // -1 (never null/undefined)
+     * 
+     * // Future custom logic potential:
+     * // - Unit conversion (points to pixels, mm to inches)
+     * // - DPI-aware scaling
+     * // - Precision rounding for UI display
+     * // - Unit detection and labeling
+     * ```
+     */
+    getUnitDoubleValue(key: string): number {
+        return this.getValue(key, 'double');
+    }
+
+    /**
+     * Get enumerated value as numeric ID with consistent error handling
+     * Wrapper for getValue with enumerated type, returns numeric enumeration ID
+     * Complement to getEnumeratedString() for cases where numeric ID is needed
+     * 
+     * @param key - Property key to extract
+     * @returns Enumerated numeric ID or -1 if missing/error
+     * 
+     * @example
+     * ```typescript
+     * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+     * const textStyle = arialTextStyleObj;
+     * 
+     * // Layer enumerated properties (as numeric IDs)
+     * const blendModeID = layerNav.getEnumeratedNumeric('mode');        // 0 (normal) or -1
+     * const colorModeID = docNav.getEnumeratedNumeric('mode');          // 1 (RGB) or -1
+     * 
+     * // Text style enumerated properties (as numeric IDs)
+     * const fontCapsID = textStyle.getEnumeratedNumeric('fontCaps');    // 1 (smallCaps) or -1
+     * const autoKernID = textStyle.getEnumeratedNumeric('autoKern');    // 0 (metricsKern) or -1
+     * const figureStyleID = textStyle.getEnumeratedNumeric('figureStyle'); // 0 (normal) or -1
+     * 
+     * // Warp enumerated properties (as numeric IDs)
+     * const warpStyleID = warpObj.getEnumeratedNumeric('warpStyle');    // 1 (warpArc) or -1
+     * const orientationID = warpObj.getEnumeratedNumeric('warpRotate'); // 0 (horizontal) or -1
+     * 
+     * // Safe usage - always returns number
+     * const safeID = layerNav.getEnumeratedNumeric('missingProp');      // -1 (never null/undefined)
+     * 
+     * // Use cases for numeric IDs:
+     * // - Performance: Numeric comparison faster than string
+     * // - Compatibility: Some APIs expect numeric enumeration values
+     * // - Mapping: Create custom ID-to-string mappings
+     * 
+     * // Comparison with string version:
+     * const warpStyleString = warpObj.getEnumeratedString('warpStyle'); // "warpArc" or ""
+     * const warpStyleNumeric = warpObj.getEnumeratedNumeric('warpStyle'); // 1 or -1
+     * 
+     * // Future custom logic potential:
+     * // - Custom ID-to-string mapping tables
+     * // - Enumeration validation
+     * // - Fallback ID handling
+     * // - Performance optimization for numeric operations
+     * ```
+     */
+    getEnumeratedNumeric(key: string): number {
+        // Note: This will use the original enumerated extraction which returns numbers
+        // We bypass our custom string-focused extractByType logic for this method
+        if (this.isSentinel || !this.validateKey(key) || !this.desc) {
+            return -1;
+        }
+
+        const typeID = stringIDToTypeID(key);
+
+        if (!this.desc.hasKey(typeID)) {
+            return -1;
+        }
+
+        try {
+            return this.desc.getEnumerationValue(typeID);
+        } catch {
+            return -1;
+        }
+    }
+
+    /**
      * Extract value by type using direct switch
      * For enumerated types, returns empty string if string extraction fails
      * 
