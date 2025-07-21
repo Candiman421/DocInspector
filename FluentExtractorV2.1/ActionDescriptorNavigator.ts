@@ -4,7 +4,7 @@
  * Optimized with consistent error handling and ES3 transpilation compatibility
  */
 import "./extendscript-polyfills.js";
-import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID } from "./ps";
+import { executeAction, executeActionGet, stringIDToTypeID, charIDToTypeID, typeIDToStringID } from "./ps";
 import { ValueType, SentinelValue, SentinelValueMap, ValueTransformer, ComparisonOptions } from "./types";
 
 /**
@@ -990,49 +990,56 @@ class ActionDescriptorNavigator {
         }
     }
 
-    /**
-    * Extract enumerated value as human-readable string
-    * Returns empty string if enumerated string cannot be extracted
-    * 
-    * @param key - Property key to extract enumerated value from
-    * @returns Human-readable enumerated string or empty string if not found
-    * 
-    * @example
-    * ```typescript
-    * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
-    * const warpObj = layerNav.object('textKey').object('warp');
-    * 
-    * // Get enumerated string - returns "" if not available as string
-    * const warpStyle = warpObj.getEnumeratedString('warpStyle'); // "warpArc" or ""
-    * const fontCaps = textStyleObj.getEnumeratedString('fontCaps'); // "smallCaps" or ""
-    * const blendMode = layerNav.getEnumeratedString('mode'); // "normal" or ""
-    * 
-    * // Check if enumerated extraction succeeded
-    * if (warpStyle !== "") {
-    *     console.log('Warp style found:', warpStyle);
-    * }
-    * ```
-    */
-    getEnumeratedString(key: string): string {
-        if (this.isSentinel || !this.validateKey(key) || !this.desc) {
-            return "";
-        }
-
-        const typeID = stringIDToTypeID(key);
-
-        if (!this.desc.hasKey(typeID)) {
-            return "";
-        }
-
-        try {
-            // Attempt to get enumerated string directly
-            // This may not work in all ExtendScript environments
-            // If it fails, return empty string (no fallbacks)
-            return this.desc.getString(typeID);
-        } catch {
-            return "";
-        }
+/**
+ * Extract enumerated value as human-readable string using proper ActionManager method
+ * Converts numeric enumeration ID back to string using typeIDToStringID
+ * 
+ * @param key - Property key to extract enumerated value from
+ * @returns Human-readable enumerated string or sentinel value if not found
+ * 
+ * @example
+ * ```typescript
+ * const textStyle = arialTextStyleObj;
+ * const paragraphStyle = textNav.object('paragraphStyle');
+ * 
+ * // Get enumerated strings from actual XML Dump values
+ * const autoKern = textStyle.getEnumeratedString('autoKern'); // "metricsKern" or ""
+ * const baseline = textStyle.getEnumeratedString('baseline'); // "Normal" or ""
+ * const underline = textStyle.getEnumeratedString('underline'); // "underlineOff" or ""
+ * const figureStyle = textStyle.getEnumeratedString('figureStyle'); // "Normal" or ""
+ * const textLanguage = textStyle.getEnumeratedString('textLanguage'); // "englishLanguage" or ""
+ * const alignment = paragraphStyle.getEnumeratedString('alignment'); // "Left" or ""
+ * const baselineDirection = textStyle.getEnumeratedString('baselineDirection'); // "withStream" or ""
+ * 
+ * // Check if enumerated extraction succeeded
+ * if (autoKern !== "") {
+ *     console.log('Auto kern setting:', autoKern);
+ * }
+ * ```
+ */
+getEnumeratedString(key: string): string {
+    if (this.isSentinel || !this.validateKey(key) || !this.desc) {
+        return ActionDescriptorNavigator.getSentinelValue('enumerated');
     }
+
+    const typeID = stringIDToTypeID(key);
+
+    if (!this.desc.hasKey(typeID)) {
+        return ActionDescriptorNavigator.getSentinelValue('enumerated');
+    }
+
+    try {
+        // Get the numeric enumeration value
+        const enumValue = this.desc.getEnumerationValue(typeID);
+        
+        // Convert numeric ID back to string using ActionManager function
+        const enumString = typeIDToStringID(enumValue);
+        
+        return enumString || ActionDescriptorNavigator.getSentinelValue('enumerated');
+    } catch {
+        return ActionDescriptorNavigator.getSentinelValue('enumerated');
+    }
+}
 
     /**
      * Validate key input
