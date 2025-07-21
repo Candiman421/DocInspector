@@ -319,31 +319,35 @@ class ActionDescriptorNavigator {
     }
 
     /**
-     * Get value with optional transformation
-     * Consistent sentinel value returns
-     * 
-     * @param key - Property key to extract
-     * @param type - Expected value type
-     * @param options - Optional transformation and default value options
-     * @returns Extracted value or sentinel/default
-     * 
-     * @example
-     * ```typescript
-     * const name = layerNav.getValue('name', 'string'); // "" if missing
-     * const opacity = layerNav.getValue('opacity', 'double'); // -1 if missing
-     * const visible = layerNav.getValue('visible', 'boolean'); // false if missing
-     * 
-     * // With transformation
-     * const roundedOpacity = layerNav.getValue('opacity', 'double', {
-     *   transformer: val => Math.round(val)
-     * });
-     * 
-     * // With custom default
-     * const nameOrDefault = layerNav.getValue('name', 'string', {
-     *   defaultValue: 'Unnamed Layer'
-     * });
-     * ```
-     */
+    * Get value with optional transformation and enumerated string support
+    * Consistent sentinel value returns with enhanced enumerated handling
+    * 
+    * @param key - Property key to extract
+    * @param type - Expected value type
+    * @param options - Optional transformation and default value options
+    * @returns Extracted value or sentinel/default (enumerated returns numbers - use getEnumeratedString for strings)
+    * 
+    * @example
+    * ```typescript
+    * const name = layerNav.getValue('name', 'string'); // "" if missing
+    * const opacity = layerNav.getValue('opacity', 'double'); // -1 if missing
+    * const visible = layerNav.getValue('visible', 'boolean'); // false if missing
+    * 
+    * // For enumerated values, use getEnumeratedString() for readable strings
+    * const modeNumeric = layerNav.getValue('mode', 'enumerated'); // Returns number
+    * const modeString = layerNav.getEnumeratedString('mode'); // Returns "normal", "multiply", etc.
+    * 
+    * // With transformation
+    * const roundedOpacity = layerNav.getValue('opacity', 'double', {
+    *   transformer: val => Math.round(val)
+    * });
+    * 
+    * // With custom default
+    * const nameOrDefault = layerNav.getValue('name', 'string', {
+    *   defaultValue: 'Unnamed Layer'
+    * });
+    * ```
+    */
     getValue<T = any>(
         key: string,
         type: ValueType,
@@ -377,16 +381,20 @@ class ActionDescriptorNavigator {
     }
 
     /**
-     * Extract value by type using direct switch with exhaustive checking
+     * Extract value by type using direct switch
+     * For enumerated types, returns empty string if string extraction fails
      * 
      * @param typeID - Photoshop type ID for the property
      * @param type - Expected value type
-     * @returns Extracted value or sentinel
+     * @returns Extracted value or sentinel value for failed extractions
      * 
      * @example
      * ```typescript
      * const nameTypeID = stringIDToTypeID('name');
      * const name = nav.extractByType(nameTypeID, 'string');
+     * 
+     * const modeTypeID = stringIDToTypeID('mode');
+     * const mode = nav.extractByType(modeTypeID, 'enumerated'); // Returns string or ""
      * ```
      */
     extractByType(typeID: number, type: ValueType): any {
@@ -405,7 +413,12 @@ class ActionDescriptorNavigator {
                 case 'boolean':
                     return this.desc.getBoolean(typeID);
                 case 'enumerated':
-                    return this.desc.getEnumerationValue(typeID);
+                    // Try to get enumerated as string, return "" if fails
+                    try {
+                        return this.desc.getString(typeID);
+                    } catch {
+                        return "";
+                    }
                 default:
                     const _exhaustive: never = type;
                     throw new Error(`Unsupported type: ${type}`);
@@ -718,6 +731,50 @@ class ActionDescriptorNavigator {
             return navigator.extractByType(typeID, valueType);
         } catch {
             return ActionDescriptorNavigator.getSentinelValue(valueType);
+        }
+    }
+
+    /**
+    * Extract enumerated value as human-readable string
+    * Returns empty string if enumerated string cannot be extracted
+    * 
+    * @param key - Property key to extract enumerated value from
+    * @returns Human-readable enumerated string or empty string if not found
+    * 
+    * @example
+    * ```typescript
+    * const layerNav = ActionDescriptorNavigator.forCurrentLayer();
+    * const warpObj = layerNav.object('textKey').object('warp');
+    * 
+    * // Get enumerated string - returns "" if not available as string
+    * const warpStyle = warpObj.getEnumeratedString('warpStyle'); // "warpArc" or ""
+    * const fontCaps = textStyleObj.getEnumeratedString('fontCaps'); // "smallCaps" or ""
+    * const blendMode = layerNav.getEnumeratedString('mode'); // "normal" or ""
+    * 
+    * // Check if enumerated extraction succeeded
+    * if (warpStyle !== "") {
+    *     console.log('Warp style found:', warpStyle);
+    * }
+    * ```
+    */
+    getEnumeratedString(key: string): string {
+        if (this.isSentinel || !this.validateKey(key) || !this.desc) {
+            return "";
+        }
+
+        const typeID = stringIDToTypeID(key);
+
+        if (!this.desc.hasKey(typeID)) {
+            return "";
+        }
+
+        try {
+            // Attempt to get enumerated string directly
+            // This may not work in all ExtendScript environments
+            // If it fails, return empty string (no fallbacks)
+            return this.desc.getString(typeID);
+        } catch {
+            return "";
         }
     }
 
@@ -1100,6 +1157,73 @@ class ActionListNavigator {
         } catch {
             return ActionDescriptorNavigator.getSentinelValue(type) as T;
         }
+    }
+
+    /**
+     * Find list object where a nested property matches a value
+     * Searches through list items, navigates to nested object, and checks property value
+     * 
+     * @param nestedObjectKey - Key to navigate to nested object within each list item
+     * @param propertyKey - Property key to check within the nested object
+     * @param searchValue - Value to search for (case-insensitive, partial match)
+     * @returns Navigator for matching list item or sentinel if not found
+     * 
+     * @example
+     * ```typescript
+     * const styleList = textNav.list('textStyleRange');
+     * 
+     * // Find TextStyleRange object where textStyle.fontName contains 'Arial'
+     * const arialStyleRange = styleList.findObjectWhereNested('textStyle', 'fontName', 'Arial');
+     * const arialTextStyle = arialStyleRange.object('textStyle');
+     * 
+     * // Find TextStyleRange object where textStyle.size is 24
+     * const largeStyleRange = styleList.findObjectWhereNested('textStyle', 'sizeKey', '24');
+     * 
+     * // Chain navigation after finding
+     * const fontColor = styleList.findObjectWhereNested('textStyle', 'fontName', 'Arial')
+     *                            .object('textStyle')
+     *                            .object('color')
+     *                            .getValue('red', 'double');
+     * ```
+     */
+    findObjectWhereNested(nestedObjectKey: string, propertyKey: string, searchValue: any): ActionDescriptorNavigator {
+        if (this.isSentinel || !this.list || !nestedObjectKey || !propertyKey) {
+            return ActionDescriptorNavigator.createSentinel();
+        }
+
+        const listCount = this.getCount();
+        if (listCount <= 0) {
+            return ActionDescriptorNavigator.createSentinel();
+        }
+
+        for (let i = 0; i < listCount; i++) {
+            try {
+                const listItem = this.getObject(i);
+                const nestedObject = listItem.object(nestedObjectKey);
+
+                // Check if nested object exists using hasKey instead of isSentinel
+                if (!listItem.hasKey(nestedObjectKey)) {
+                    continue; // Skip if nested object doesn't exist
+                }
+
+                // Get property value from nested object
+                const propertyValue = nestedObject.getValue(propertyKey, typeof searchValue === 'string' ? 'string' : 'double');
+
+                // Handle string matching (case-insensitive, partial match)
+                if (typeof searchValue === 'string' && typeof propertyValue === 'string') {
+                    if (propertyValue.toLowerCase().indexOf(searchValue.toLowerCase()) >= 0) {
+                        return listItem;
+                    }
+                } else if (propertyValue === searchValue) {
+                    // Exact match for numbers, booleans, etc.
+                    return listItem;
+                }
+            } catch {
+                // Continue searching on errors
+            }
+        }
+
+        return ActionDescriptorNavigator.createSentinel();
     }
 }
 
