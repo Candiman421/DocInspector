@@ -494,8 +494,8 @@ class ListValueExtractor {
             return [];
         }
 
-        const parts = subPath.split('.').filter(function(part) { 
-            return part && part.trim().length > 0; 
+        const parts = subPath.split('.').filter(function (part) {
+            return part && part.trim().length > 0;
         });
         return parts;
     }

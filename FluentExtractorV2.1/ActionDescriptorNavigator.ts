@@ -990,56 +990,56 @@ class ActionDescriptorNavigator {
         }
     }
 
-/**
- * Extract enumerated value as human-readable string using proper ActionManager method
- * Converts numeric enumeration ID back to string using typeIDToStringID
- * 
- * @param key - Property key to extract enumerated value from
- * @returns Human-readable enumerated string or sentinel value if not found
- * 
- * @example
- * ```typescript
- * const textStyle = arialTextStyleObj;
- * const paragraphStyle = textNav.object('paragraphStyle');
- * 
- * // Get enumerated strings from actual XML Dump values
- * const autoKern = textStyle.getEnumeratedString('autoKern'); // "metricsKern" or ""
- * const baseline = textStyle.getEnumeratedString('baseline'); // "Normal" or ""
- * const underline = textStyle.getEnumeratedString('underline'); // "underlineOff" or ""
- * const figureStyle = textStyle.getEnumeratedString('figureStyle'); // "Normal" or ""
- * const textLanguage = textStyle.getEnumeratedString('textLanguage'); // "englishLanguage" or ""
- * const alignment = paragraphStyle.getEnumeratedString('alignment'); // "Left" or ""
- * const baselineDirection = textStyle.getEnumeratedString('baselineDirection'); // "withStream" or ""
- * 
- * // Check if enumerated extraction succeeded
- * if (autoKern !== "") {
- *     console.log('Auto kern setting:', autoKern);
- * }
- * ```
- */
-getEnumeratedString(key: string): string {
-    if (this.isSentinel || !this.validateKey(key) || !this.desc) {
-        return ActionDescriptorNavigator.getSentinelValue('enumerated');
-    }
+    /**
+     * Extract enumerated value as human-readable string using proper ActionManager method
+     * Converts numeric enumeration ID back to string using typeIDToStringID
+     * 
+     * @param key - Property key to extract enumerated value from
+     * @returns Human-readable enumerated string or sentinel value if not found
+     * 
+     * @example
+     * ```typescript
+     * const textStyle = arialTextStyleObj;
+     * const paragraphStyle = textNav.object('paragraphStyle');
+     * 
+     * // Get enumerated strings from actual XML Dump values
+     * const autoKern = textStyle.getEnumeratedString('autoKern'); // "metricsKern" or ""
+     * const baseline = textStyle.getEnumeratedString('baseline'); // "Normal" or ""
+     * const underline = textStyle.getEnumeratedString('underline'); // "underlineOff" or ""
+     * const figureStyle = textStyle.getEnumeratedString('figureStyle'); // "Normal" or ""
+     * const textLanguage = textStyle.getEnumeratedString('textLanguage'); // "englishLanguage" or ""
+     * const alignment = paragraphStyle.getEnumeratedString('alignment'); // "Left" or ""
+     * const baselineDirection = textStyle.getEnumeratedString('baselineDirection'); // "withStream" or ""
+     * 
+     * // Check if enumerated extraction succeeded
+     * if (autoKern !== "") {
+     *     console.log('Auto kern setting:', autoKern);
+     * }
+     * ```
+     */
+    getEnumeratedString(key: string): string {
+        if (this.isSentinel || !this.validateKey(key) || !this.desc) {
+            return ActionDescriptorNavigator.getSentinelValue('enumerated');
+        }
 
-    const typeID = stringIDToTypeID(key);
+        const typeID = stringIDToTypeID(key);
 
-    if (!this.desc.hasKey(typeID)) {
-        return ActionDescriptorNavigator.getSentinelValue('enumerated');
-    }
+        if (!this.desc.hasKey(typeID)) {
+            return ActionDescriptorNavigator.getSentinelValue('enumerated');
+        }
 
-    try {
-        // Get the numeric enumeration value
-        const enumValue = this.desc.getEnumerationValue(typeID);
-        
-        // Convert numeric ID back to string using ActionManager function
-        const enumString = typeIDToStringID(enumValue);
-        
-        return enumString || ActionDescriptorNavigator.getSentinelValue('enumerated');
-    } catch {
-        return ActionDescriptorNavigator.getSentinelValue('enumerated');
+        try {
+            // Get the numeric enumeration value
+            const enumValue = this.desc.getEnumerationValue(typeID);
+
+            // Convert numeric ID back to string using ActionManager function
+            const enumString = typeIDToStringID(enumValue);
+
+            return enumString || ActionDescriptorNavigator.getSentinelValue('enumerated');
+        } catch {
+            return ActionDescriptorNavigator.getSentinelValue('enumerated');
+        }
     }
-}
 
     /**
      * Validate key input

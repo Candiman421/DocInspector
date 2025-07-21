@@ -10,23 +10,23 @@
 
 // String.prototype.trim - Official MDN polyfill
 if (!String.prototype.trim) {
-    String.prototype.trim = function() {
+    String.prototype.trim = function () {
         return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
     };
 }
 
 // String case methods - simplified but working versions for ExtendScript
 if (!String.prototype.toLowerCase) {
-    String.prototype.toLowerCase = function() {
-        return this.replace(/[A-Z]/g, function(match) {
+    String.prototype.toLowerCase = function () {
+        return this.replace(/[A-Z]/g, function (match) {
             return String.fromCharCode(match.charCodeAt(0) + 32);
         });
     };
 }
 
 if (!String.prototype.toUpperCase) {
-    String.prototype.toUpperCase = function() {
-        return this.replace(/[a-z]/g, function(match) {
+    String.prototype.toUpperCase = function () {
+        return this.replace(/[a-z]/g, function (match) {
             return String.fromCharCode(match.charCodeAt(0) - 32);
         });
     };
@@ -34,7 +34,7 @@ if (!String.prototype.toUpperCase) {
 
 // String.prototype.includes - MDN polyfill
 if (!String.prototype.includes) {
-    String.prototype.includes = function(search, start) {
+    String.prototype.includes = function (search, start) {
         'use strict';
         if (typeof start !== 'number') {
             start = 0;
@@ -53,14 +53,14 @@ if (!String.prototype.includes) {
 
 // Array.isArray - Critical static method
 if (!Array.isArray) {
-    Array.isArray = function(arg) {
+    Array.isArray = function (arg) {
         return Object.prototype.toString.call(arg) === '[object Array]';
     };
 }
 
 // Array.prototype.indexOf - es5-shim compliant
 if (!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function(searchElement, fromIndex) {
+    Array.prototype.indexOf = function (searchElement, fromIndex) {
         'use strict';
         var k;
         if (this == null) {
@@ -88,7 +88,7 @@ if (!Array.prototype.indexOf) {
 
 // Array.prototype.lastIndexOf - es5-shim compliant
 if (!Array.prototype.lastIndexOf) {
-    Array.prototype.lastIndexOf = function(searchElement, fromIndex) {
+    Array.prototype.lastIndexOf = function (searchElement, fromIndex) {
         'use strict';
         if (this == null) {
             throw new TypeError('"this" is null or not defined');
@@ -119,7 +119,7 @@ if (!Array.prototype.lastIndexOf) {
 
 // Array.prototype.every - MDN polyfill
 if (!Array.prototype.every) {
-    Array.prototype.every = function(callbackfn, thisArg) {
+    Array.prototype.every = function (callbackfn, thisArg) {
         'use strict';
         var T, k;
         if (this == null) {
@@ -151,7 +151,7 @@ if (!Array.prototype.every) {
 
 // Array.prototype.some - MDN polyfill
 if (!Array.prototype.some) {
-    Array.prototype.some = function(fun, thisArg) {
+    Array.prototype.some = function (fun, thisArg) {
         'use strict';
         if (this == null) {
             throw new TypeError('Array.prototype.some called on null or undefined');
@@ -172,7 +172,7 @@ if (!Array.prototype.some) {
 
 // Array.prototype.forEach - MDN polyfill  
 if (!Array.prototype.forEach) {
-    Array.prototype.forEach = function(callback, thisArg) {
+    Array.prototype.forEach = function (callback, thisArg) {
         var T, k;
         if (this == null) {
             throw new TypeError('this is null or not defined');
@@ -199,7 +199,7 @@ if (!Array.prototype.forEach) {
 
 // Array.prototype.map - Full MDN polyfill
 if (!Array.prototype.map) {
-    Array.prototype.map = function(callback, thisArg) {
+    Array.prototype.map = function (callback, thisArg) {
         var T, A, k;
         if (this == null) {
             throw new TypeError('this is null or not defined');
@@ -229,7 +229,7 @@ if (!Array.prototype.map) {
 
 // Array.prototype.filter - MDN polyfill
 if (!Array.prototype.filter) {
-    Array.prototype.filter = function(fun, thisArg) {
+    Array.prototype.filter = function (fun, thisArg) {
         'use strict';
         if (this === void 0 || this === null) {
             throw new TypeError();
@@ -254,7 +254,7 @@ if (!Array.prototype.filter) {
 
 // Array.prototype.reduce - MDN polyfill
 if (!Array.prototype.reduce) {
-    Array.prototype.reduce = function(callback, initialValue) {
+    Array.prototype.reduce = function (callback, initialValue) {
         if (this === null) {
             throw new TypeError('Array.prototype.reduce called on null or undefined');
         }
@@ -288,7 +288,7 @@ if (!Array.prototype.reduce) {
 
 // Array.prototype.reduceRight - MDN polyfill
 if (!Array.prototype.reduceRight) {
-    Array.prototype.reduceRight = function(callback, initialValue) {
+    Array.prototype.reduceRight = function (callback, initialValue) {
         'use strict';
         if (this == null) {
             throw new TypeError('Array.prototype.reduceRight called on null or undefined');
@@ -326,7 +326,7 @@ if (!Array.prototype.reduceRight) {
 
 // Object.keys - MDN polyfill
 if (!Object.keys) {
-    Object.keys = (function() {
+    Object.keys = (function () {
         'use strict';
         var hasOwnProperty = Object.prototype.hasOwnProperty;
         var hasDontEnumBug = !({ toString: null }).propertyIsEnumerable('toString');
@@ -336,7 +336,7 @@ if (!Object.keys) {
         ];
         var dontEnumsLength = dontEnums.length;
 
-        return function(obj) {
+        return function (obj) {
             if (typeof obj !== 'function' && (typeof obj !== 'object' || obj === null)) {
                 throw new TypeError('Object.keys called on non-object');
             }
@@ -364,14 +364,14 @@ if (!Object.keys) {
 
 // Function.prototype.bind - MDN polyfill
 if (!Function.prototype.bind) {
-    Function.prototype.bind = function(oThis) {
+    Function.prototype.bind = function (oThis) {
         if (typeof this !== 'function') {
             throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
         }
         var aArgs = Array.prototype.slice.call(arguments, 1);
         var fToBind = this;
-        var fNOP = function() {};
-        var fBound = function() {
+        var fNOP = function () { };
+        var fBound = function () {
             return fToBind.apply(this instanceof fNOP ? this : oThis,
                 aArgs.concat(Array.prototype.slice.call(arguments)));
         };
@@ -401,10 +401,10 @@ if (!Date.now) {
 // Basic JSON support for ExtendScript
 if (typeof JSON === 'undefined') {
     window.JSON = {
-        parse: function(sJSON) { 
-            return eval('(' + sJSON + ')'); 
+        parse: function (sJSON) {
+            return eval('(' + sJSON + ')');
         },
-        stringify: function(vContent) {
+        stringify: function (vContent) {
             if (vContent instanceof Object) {
                 var sOutput = '';
                 if (vContent.constructor === Array) {
@@ -430,15 +430,15 @@ if (typeof JSON === 'undefined') {
 
 if (typeof console === 'undefined') {
     window.console = {
-        log: function() {
+        log: function () {
             var message = '';
             for (var i = 0; i < arguments.length; i++) {
                 message += (i > 0 ? ' ' : '') + String(arguments[i]);
             }
             $.writeln(message);
         },
-        warn: function() { this.log.apply(this, arguments); },
-        error: function() { this.log.apply(this, arguments); },
-        info: function() { this.log.apply(this, arguments); }
+        warn: function () { this.log.apply(this, arguments); },
+        error: function () { this.log.apply(this, arguments); },
+        info: function () { this.log.apply(this, arguments); }
     };
 }
