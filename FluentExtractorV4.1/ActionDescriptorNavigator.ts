@@ -32,12 +32,77 @@ declare global {
      * ExtendScript global utility object
      */
     var $: {
-        /**
-         * Write line to ExtendScript console
-         * @param message - Message to write to console
-         */
         writeln(message: string): void;
     };
+
+    /**
+     * Adobe Photoshop ActionReference class
+     */
+    class ActionReference {
+        constructor();
+        putEnumerated(classID: number, typeID: number, enumID: number): void;
+        putIndex(classID: number, index: number): void;
+        putProperty(classID: number, propertyID: number): void;
+        putName(classID: number, name: string): void;
+        putIdentifier(classID: number, identifier: number): void;
+        putOffset(classID: number, offset: number): void;
+    }
+
+    /**
+     * Adobe Photoshop ActionDescriptor class
+     */
+    class ActionDescriptor {
+        constructor();
+        count: number;
+        hasKey(key: number): boolean;
+        getObjectValue(key: number): ActionDescriptor;
+        getList(key: number): ActionList;
+        getString(key: number): string;
+        getDouble(key: number): number;
+        getInteger(key: number): number;
+        getBoolean(key: number): boolean;
+        getEnumerationValue(key: number): number;
+        getEnumerationType(key: number): number;
+        getReference(key: number): ActionReference;
+        getClass(key: number): number;
+        getPath(key: number): File;
+        getData(key: number): string;
+        hasKey(key: number): boolean;
+        getType(key: number): number;
+    }
+
+    /**
+     * Adobe Photoshop ActionList class
+     */
+    class ActionList {
+        constructor();
+        count: number;
+        getObjectValue(index: number): ActionDescriptor;
+        getString(index: number): string;
+        getDouble(index: number): number;
+        getInteger(index: number): number;
+        getBoolean(index: number): boolean;
+        getEnumerationValue(index: number): number;
+        getReference(index: number): ActionReference;
+        getClass(index: number): number;
+        getList(index: number): ActionList;
+        getType(index: number): number;
+    }
+
+    /**
+     * Adobe Photoshop utility functions
+     */
+    function executeActionGet(reference: ActionReference): ActionDescriptor;
+    function executeAction(eventID: number, descriptor?: ActionDescriptor, dialogOptions?: number): ActionDescriptor;
+    function stringIDToTypeID(stringID: string): number;
+    function typeIDToStringID(typeID: number): string;
+    function charIDToTypeID(charID: string): number;
+    function typeIDToCharID(typeID: number): string;
+
+    /**
+     * ExtendScript localization function
+     */
+    function localize(text: string, ...args: any[]): string;
 }
 
 // =============================================================================
@@ -69,7 +134,7 @@ export var SENTINELS = {
  * @returns {any} First successfully extracted value or null if all fail
  * @private
  */
-function getValueByType(obj, key) {
+function getValueByType(obj: any, key: any) {
     var stringVal = obj.getString(key);
     if (stringVal !== SENTINELS.string) return stringVal;
 
@@ -96,7 +161,7 @@ function getValueByType(obj, key) {
  * @returns {boolean} True if values match, false otherwise
  * @private
  */
-function valuesMatch(actual, expected) {
+function valuesMatch(actual: any, expected: any) {
     if (typeof expected === 'string' && typeof actual === 'string') {
         return actual.toLowerCase() === expected.toLowerCase();
     }
@@ -353,7 +418,7 @@ export class StyleRangeQuery {
      */
     executeAll(list: ActionListNavigator): any[] {
         var matches = list.asEnumerable().where(this.createPredicateFunction()).toArray();
-        var results = [];
+        var results: ActionDescriptorNavigator[] = [];
         
         for (var i = 0; i < matches.length; i++) {
             results.push(this.extractProperties(matches[i]));
@@ -391,7 +456,7 @@ export class StyleRangeQuery {
      * @private
      */
     private extractProperties(obj: ActionDescriptorNavigator): any {
-        var result = {};
+        var result: any = {};
         
         for (var i = 0; i < this.selectedProps.length; i++) {
             var prop = this.selectedProps[i];
@@ -657,13 +722,13 @@ export class ActionDescriptorNavigator {
      * // Should check isSentinel if no layer might be selected
      */
     static forCurrentLayer(): ActionDescriptorNavigator {
-        var ref = null;
+        var ref: ActionReference | null = null;
         try {
             ref = new ActionReference();
             ref.putEnumerated(charIDToTypeID("Lyr "), charIDToTypeID("Ordn"), charIDToTypeID("Trgt"));
             var desc = executeActionGet(ref);
             return new ActionDescriptorNavigator(desc);
-        } catch (e) {
+        } catch (e: any) {
             return ActionDescriptorNavigator.createSentinel();
         } finally {
             if (ref) ref = null;
@@ -701,13 +766,13 @@ export class ActionDescriptorNavigator {
      * // Should check isSentinel first if no document might be open
      */
     static forCurrentDocument(): ActionDescriptorNavigator {
-        var ref = null;
+        var ref: ActionReference | null = null;
         try {
             ref = new ActionReference();
             ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
             var desc = executeActionGet(ref);
             return new ActionDescriptorNavigator(desc);
-        } catch (e) {
+        } catch (e: any) {
             return ActionDescriptorNavigator.createSentinel();
         } finally {
             if (ref) ref = null;
@@ -793,13 +858,13 @@ export class ActionDescriptorNavigator {
             return ActionDescriptorNavigator.createSentinel();
         }
 
-        var ref = null;
+        var ref: ActionReference | null = null;
         try {
             ref = new ActionReference();
             ref.putIndex(charIDToTypeID("Lyr "), index);
             var desc = executeActionGet(ref);
             return new ActionDescriptorNavigator(desc);
-        } catch (e) {
+        } catch (e: any) {
             return ActionDescriptorNavigator.createSentinel();
         } finally {
             if (ref) ref = null;
@@ -826,14 +891,14 @@ export class ActionDescriptorNavigator {
      * Handles ActionReference cleanup properly.
      */
     private static getLayerCount(): number {
-        var ref = null;
+        var ref: ActionReference | null = null;
         try {
             ref = new ActionReference();
             ref.putProperty(stringIDToTypeID("property"), stringIDToTypeID("numberOfLayers"));
             ref.putEnumerated(charIDToTypeID('Dcmn'), charIDToTypeID('Ordn'), charIDToTypeID('Trgt'));
             var count = executeActionGet(ref).getInteger(stringIDToTypeID("numberOfLayers"));
             return (count > 0) ? count : -1;
-        } catch (e) {
+        } catch (e: any) {
             return -1;
         } finally {
             if (ref) ref = null;
@@ -898,7 +963,7 @@ export class ActionDescriptorNavigator {
         try {
             var nestedDesc = this.desc.getObjectValue(typeID);
             return new ActionDescriptorNavigator(nestedDesc);
-        } catch (e) {
+        } catch (e: any) {
             return ActionDescriptorNavigator.createSentinel();
         }
     }
@@ -962,7 +1027,7 @@ export class ActionDescriptorNavigator {
         try {
             var list = this.desc.getList(typeID);
             return new ActionListNavigator(list);
-        } catch (e) {
+        } catch (e: any) {
             return ActionListNavigator.createSentinel();
         }
     }
@@ -1014,7 +1079,7 @@ export class ActionDescriptorNavigator {
      * // ❌ BAD: Exception handling (sentinels prevent exceptions)
      * try {
      *     const name = layer.getString('name');
-     * } catch (e) {  // Never needed with sentinel pattern
+     * } catch (e: any) {  // Never needed with sentinel pattern
      *     $.writeln('Error getting name');
      * }
      */
@@ -1031,7 +1096,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return this.desc.getString(typeID);
-        } catch (e) {
+        } catch (e: any) {
             $.writeln('ERROR: getString("' + key + '") failed - wrong type or invalid key: ' + e.message);
             return SENTINELS.string;
         }
@@ -1090,7 +1155,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return this.desc.getDouble(typeID);
-        } catch (e) {
+        } catch (e: any) {
             $.writeln('ERROR: getDouble("' + key + '") failed - wrong type or invalid key: ' + e.message);
             return SENTINELS.double;
         }
@@ -1133,7 +1198,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return this.desc.getDouble(typeID);
-        } catch (e) {
+        } catch (e: any) {
             $.writeln('ERROR: getUnitDouble("' + key + '") failed - wrong type or invalid key: ' + e.message);
             return SENTINELS.double;
         }
@@ -1201,7 +1266,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return this.desc.getInteger(typeID);
-        } catch (e) {
+        } catch (e: any) {
             $.writeln('ERROR: getInteger("' + key + '") failed - wrong type or invalid key: ' + e.message);
             return SENTINELS.integer;
         }
@@ -1269,7 +1334,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return this.desc.getBoolean(typeID);
-        } catch (e) {
+        } catch (e: any) {
             $.writeln('ERROR: getBoolean("' + key + '") failed - wrong type or invalid key: ' + e.message);
             return SENTINELS.boolean;
         }
@@ -1338,7 +1403,7 @@ export class ActionDescriptorNavigator {
             var enumValue = this.desc.getEnumerationValue(typeID);
             var enumString = typeIDToStringID(enumValue);
             return enumString || SENTINELS.enumerated;
-        } catch (e) {
+        } catch (e: any) {
             $.writeln('ERROR: getEnumerated("' + key + '") failed - wrong type or invalid key: ' + e.message);
             return SENTINELS.enumerated;
         }
@@ -1393,7 +1458,7 @@ export class ActionDescriptorNavigator {
      * if (layer.hasKey('textKey')) {
      *     try {
      *         const textObj = layer.getObject('textKey');
-     *     } catch (e) {  // Never needed with sentinel pattern
+     *     } catch (e: any) {  // Never needed with sentinel pattern
      *         // ...
      *     }
      * }
@@ -1405,7 +1470,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return this.desc.hasKey(stringIDToTypeID(key));
-        } catch (e) {
+        } catch (e: any) {
             return false;
         }
     }
@@ -1509,7 +1574,7 @@ export class ActionDescriptorNavigator {
                 width: right - left,
                 height: bottom - top
             };
-        } catch (e) {
+        } catch (e: any) {
             return {
                 left: SENTINELS.double,
                 top: SENTINELS.double,
@@ -1575,7 +1640,7 @@ export class ActionDescriptorNavigator {
             return {};
         }
 
-        var result = {};
+        var result: any = {};
         var keys = Object.keys(propertyMap);
 
         for (var i = 0; i < keys.length; i++) {
@@ -1585,29 +1650,29 @@ export class ActionDescriptorNavigator {
             try {
                 switch (methodName) {
                     case 'getString':
-                        result[key] = this.getString(key);
+                        (result as any)[key] = this.getString(key);
                         break;
                     case 'getDouble':
-                        result[key] = this.getDouble(key);
+                        (result as any)[key] = this.getDouble(key);
                         break;
                     case 'getUnitDouble':
-                        result[key] = this.getUnitDouble(key);
+                        (result as any)[key] = this.getUnitDouble(key);
                         break;
                     case 'getInteger':
-                        result[key] = this.getInteger(key);
+                        (result as any)[key] = this.getInteger(key);
                         break;
                     case 'getBoolean':
-                        result[key] = this.getBoolean(key);
+                        (result as any)[key] = this.getBoolean(key);
                         break;
                     case 'getEnumerated':
-                        result[key] = this.getEnumerated(key);
+                        (result as any)[key] = this.getEnumerated(key);
                         break;
                     default:
-                        result[key] = null;
+                        (result as any)[key] = null;
                         break;
                 }
-            } catch (e) {
-                result[key] = null;
+            } catch (e: any) {
+                (result as any)[key] = null;
             }
         }
 
@@ -1694,7 +1759,7 @@ export class ActionDescriptorNavigator {
 
         try {
             return selector(this);
-        } catch (e) {
+        } catch (e: any) {
             return null;
         }
     }
@@ -1760,7 +1825,7 @@ export class ActionDescriptorNavigator {
     debug(label: string): ActionDescriptorNavigator {
         try {
             $.writeln(label + ': ' + (this.isSentinel ? 'SENTINEL (failed)' : 'OK'));
-        } catch (e) {
+        } catch (e: any) {
             // Graceful fallback if $.writeln not available
         }
         return this;
@@ -1846,7 +1911,7 @@ export class ActionListNavigator {
 
         try {
             return this.list.count;
-        } catch (e) {
+        } catch (e: any) {
             return -1;
         }
     }
@@ -1885,7 +1950,7 @@ export class ActionListNavigator {
         try {
             var obj = this.list.getObjectValue(index);
             return new ActionDescriptorNavigator(obj);
-        } catch (e) {
+        } catch (e: any) {
             return ActionDescriptorNavigator.createSentinel();
         }
     }
@@ -2288,7 +2353,7 @@ export class ActionListNavigator {
         try {
             var count = this.getCount();
             $.writeln(label + ': ' + (count === -1 ? 'SENTINEL (failed)' : 'OK (' + count + ' items)'));
-        } catch (e) {
+        } catch (e: any) {
             // Graceful fallback if $.writeln not available
         }
         return this;
@@ -2454,7 +2519,7 @@ export class Enumerable {
                         matches = false;
                         break;
                     }
-                } catch (e) {
+                } catch (e: any) {
                     matches = false;
                     break;
                 }
@@ -2535,7 +2600,7 @@ export class Enumerable {
                         matches = false;
                         break;
                     }
-                } catch (e) {
+                } catch (e: any) {
                     matches = false;
                     break;
                 }
@@ -2621,7 +2686,7 @@ export class Enumerable {
             return [];
         }
 
-        var results = [];
+        var results: T[] = [];
         var count = this.source.getCount();
 
         if (count <= 0) {
@@ -2639,7 +2704,7 @@ export class Enumerable {
                         matches = false;
                         break;
                     }
-                } catch (e) {
+                } catch (e: any) {
                     matches = false;
                     break;
                 }
@@ -2712,12 +2777,12 @@ export class Enumerable {
      */
     select<T>(selector: SelectorFunction<T>): EnumerableArray {
         var items = this.toArray();
-        var results = [];
+        var results: T[] = [];
 
         for (var i = 0; i < items.length; i++) {
             try {
                 results.push(selector(items[i]));
-            } catch (e) {
+            } catch (e: any) {
                 // Graceful failure - continue with next item
             }
         }
@@ -2745,7 +2810,7 @@ export class Enumerable {
         try {
             var count = this.count();
             $.writeln(label + ': ' + (count === 0 ? 'No matches' : 'Found ' + count + ' matches'));
-        } catch (e) {
+        } catch (e: any) {
             // Graceful fallback if $.writeln not available
         }
         return this;
@@ -2839,13 +2904,13 @@ export class EnumerableArray {
      * // Better: .where().then().select()
      */
     where(predicate: (item: any) => boolean): EnumerableArray {
-        var filtered = [];
+        var filtered: ActionDescriptorNavigator[] = [];
         for (var i = 0; i < this.array.length; i++) {
             try {
                 if (predicate(this.array[i])) {
                     filtered.push(this.array[i]);
                 }
-            } catch (e) {
+            } catch (e: any) {
                 // Skip failed matches
             }
         }
@@ -2984,11 +3049,11 @@ export class EnumerableArray {
      * // Combine transformations into single select for better performance
      */
     select<T>(selector: (item: any) => T): EnumerableArray {
-        var results = [];
+        var results: T[] = [];
         for (var i = 0; i < this.array.length; i++) {
             try {
                 results.push(selector(this.array[i]));
-            } catch (e) {
+            } catch (e: any) {
                 // Skip failed selections
             }
         }
@@ -3028,7 +3093,7 @@ export class EnumerableArray {
     debug(label: string): EnumerableArray {
         try {
             $.writeln(label + ': ' + (this.array.length === 0 ? 'No items' : 'Found ' + this.array.length + ' items'));
-        } catch (e) {
+        } catch (e: any) {
             // Graceful fallback if $.writeln not available
         }
         return this;
