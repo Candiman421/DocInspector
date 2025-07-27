@@ -93,8 +93,6 @@ export const SENTINELS: SentinelValueMap = {
 
 export type PredicateFunction = (item: any) => boolean;
 export type SelectorFunction<T> = (item: any) => T;
-export type SelectManyFunction = (item: IActionDescriptorNavigator) => IActionDescriptorNavigator | IActionDescriptorNavigator[] | IEnumerableArray;
-export type QueryBuilderFunction = (q: IStyleRangeQuery) => IStyleRangeQuery;
 
 export interface BoundsObject {
     readonly left: number;
@@ -108,29 +106,6 @@ export interface BoundsObject {
 export function hasValidBounds(bounds: BoundsObject): boolean {
     return bounds.left !== -1 && bounds.top !== -1 &&
            bounds.width > 0 && bounds.height > 0;
-}
-
-export interface PropertyExtractionMap {
-    [propertyName: string]: 'getString' | 'getDouble' | 'getUnitDouble' | 'getInteger' | 'getBoolean' | 'getEnumerationString' | 
-                           'getEnumerationId' | 'getData' | 'getClass' | 'getLargeInteger' | 'getObjectType' | 'getPath' | 'getReference' | 
-                           'getUnitDoubleType' | 'getUnitDoubleValue' | 'getEnumerationType' | 'getType';
-}
-
-export interface QueryCriterion {
-    path: string;
-    operator: string;
-    value: any;
-}
-
-export interface PropertySelection {
-    name: string;
-    path: string;
-    method: string;
-}
-
-export interface CriteriaObject {
-    [key: string]: any;
-    [excludeKey: `!${string}`]: any;
 }
 
 export interface IActionDescriptorNavigator {
@@ -161,7 +136,6 @@ export interface IActionDescriptorNavigator {
     hasKey(key: string): boolean;
     getBounds(): BoundsObject;
     select<T>(selector: SelectorFunction<T>): T | null;
-    extract(propertyMap: PropertyExtractionMap): Record<string, any>;
     debug(label: string): IActionDescriptorNavigator;
 }
 
@@ -169,35 +143,27 @@ export interface IActionListNavigator {
     readonly isSentinel: boolean;
     
     getCount(): number;
-    getObject(index: number): any;
-    getFirstObject(): any;
-    getSingleObject(): any;
+    getObject(index: number): IActionDescriptorNavigator;
     
-    firstWhere(predicate: PredicateFunction): any;
-    singleWhere(predicate: PredicateFunction): any;
-    query(builder: QueryBuilderFunction): any;
-    queryAll(builder: QueryBuilderFunction): any[];
+    getFirstWhere(predicate: PredicateFunction): IActionDescriptorNavigator;
+    getSingleWhere(predicate: PredicateFunction): IActionDescriptorNavigator;
     
-    asEnumerable(): any;
-    debug(label: string): any;
-}
-
-export interface IStyleRangeQuery {
-    where(path: string, operatorOrValue: any, value?: any): IStyleRangeQuery;
-    select(properties: PropertySelection[]): IStyleRangeQuery;
-    execute(list: any): any;
-    executeAll(list: any): any[];
+    whereMatches(predicate: PredicateFunction): IEnumerable;
+    select<T>(transformer: SelectorFunction<T>): IEnumerableArray;
+    
+    asEnumerable(): IEnumerable;
+    debug(label: string): IActionListNavigator;
 }
 
 export interface IEnumerable {
-    where(predicate: PredicateFunction): IEnumerable;
+    whereMatches(predicate: PredicateFunction): IEnumerable;
     
-    first(): any;
-    any(): boolean;
-    count(): number;
-    toArray(): any[];
+    getFirst(): IActionDescriptorNavigator;
+    hasAnyMatches(): boolean;
+    getCount(): number;
+    toResultArray(): IActionDescriptorNavigator[];
     
-    select<T>(selector: SelectorFunction<T>): IEnumerableArray;
+    select<T>(transformer: SelectorFunction<T>): IEnumerableArray;
     
     debug(label: string): IEnumerable;
 }
@@ -205,12 +171,14 @@ export interface IEnumerable {
 export interface IEnumerableArray {
     readonly array: any[];
     
-    where(predicate: (item: any) => boolean): IEnumerableArray;
+    whereMatches(predicate: (item: any) => boolean): IEnumerableArray;
     
-    first(): any;
-    toArray(): any[];
+    getFirst(): any;
+    getCount(): number;
+    hasAnyMatches(): boolean;
+    toResultArray(): any[];
     
-    select<T>(selector: (item: any) => T): IEnumerableArray;
+    select<T>(transformer: (item: any) => T): IEnumerableArray;
     
     debug(label: string): IEnumerableArray;
 }
@@ -276,66 +244,6 @@ export type TextStyleProjection = {
     color: ColorDataProjection;
 };
 
-export const COMMON_EXTRACTIONS = {
-    FONT_BASIC: {
-        fontName: 'getString',
-        fontSize: 'getDouble',
-        syntheticBold: 'getBoolean',
-        syntheticItalic: 'getBoolean'
-    } as PropertyExtractionMap,
-    
-    FONT_COMPLETE: {
-        fontName: 'getString',
-        fontPostScriptName: 'getString',
-        fontStyleName: 'getString',
-        fontSize: 'getDouble',
-        horizontalScale: 'getDouble',
-        verticalScale: 'getDouble',
-        tracking: 'getDouble',
-        leading: 'getDouble',
-        syntheticBold: 'getBoolean',
-        syntheticItalic: 'getBoolean',
-        fontCaps: 'getEnumerationString',
-        baseline: 'getEnumerationString',
-        autoLeading: 'getBoolean'
-    } as PropertyExtractionMap,
-    
-    COLOR_RGB: {
-        red: 'getDouble',
-        green: 'getDouble',
-        blue: 'getDouble'
-    } as PropertyExtractionMap,
-    
-    LAYER_BASIC: {
-        name: 'getString',
-        opacity: 'getDouble',
-        visible: 'getBoolean',
-        mode: 'getEnumerationString'
-    } as PropertyExtractionMap,
-
-    LAYER_COMPLETE: {
-        name: 'getString',
-        opacity: 'getDouble',
-        visible: 'getBoolean',
-        mode: 'getEnumerationString',
-        layerID: 'getInteger',
-        itemIndex: 'getInteger',
-        isBackground: 'getBoolean'
-    } as PropertyExtractionMap,
-
-    WARP_BASIC: {
-        warpStyle: 'getEnumerationString',
-        warpValue: 'getDouble',
-        warpPerspective: 'getDouble',
-        warpRotate: 'getEnumerationString'
-    } as PropertyExtractionMap,
-
-    TEXT_RANGE: {
-        from: 'getInteger',
-        to: 'getInteger'
-    } as PropertyExtractionMap
-} as const;
-
 export function isValidValueType(type: any): type is ValueType {
     return typeof type === 'string' &&
            ['string', 'integer', 'double', 'boolean', 'enumerated'].includes(type);
@@ -362,14 +270,4 @@ export function isActionDescriptorNavigator(obj: any): obj is IActionDescriptorN
 
 export function isActionListNavigator(obj: any): obj is IActionListNavigator {
     return obj && typeof obj.getCount === 'function' && typeof obj.asEnumerable === 'function';
-}
-
-export function isValidPropertyExtractionMap(obj: any): obj is PropertyExtractionMap {
-    if (!obj || typeof obj !== 'object') return false;
-    const validMethods = [
-        'getString', 'getDouble', 'getUnitDouble', 'getInteger', 'getBoolean', 'getEnumerationString',
-        'getEnumerationId', 'getData', 'getClass', 'getLargeInteger', 'getObjectType', 'getPath', 'getReference',
-        'getUnitDoubleType', 'getUnitDoubleValue', 'getEnumerationType', 'getType'
-    ];
-    return Object.values(obj).every(method => validMethods.includes(method as string));
 }
