@@ -1,0 +1,33 @@
+{
+  "name": "action-descriptor-navigator",
+  "version": "4.1.0",
+  "description": "LINQ-style navigation framework for Adobe Photoshop ActionDescriptor with ES3 compatibility",
+  "main": "ActionDescriptorNavigator.ts",
+  "types": "types.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": [
+    "photoshop",
+    "extendscript",
+    "actiondescriptor",
+    "navigation",
+    "linq",
+    "scoring",
+    "es3"
+  ],
+  "author": "Framework Integration",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.0.0"
+  },
+  "engines": {
+    "extendscript": ">=3.0"
+  },
+  "files": [
+    "ActionDescriptorNavigator.ts",
+    "types.ts",
+    "es5-polyfills.js"
+  ]
+}
