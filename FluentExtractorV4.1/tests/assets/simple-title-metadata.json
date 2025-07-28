@@ -1,0 +1,16 @@
+{
+  "name": "simple-title",
+  "filename": "simple-title.psd",
+  "description": "Single text layer, Arial 48pt, white text",
+  "complexity": "simple",
+  "expectedProperties": {
+    "layerCount": 1,
+    "hasText": true,
+    "textLayers": [
+      "Sample Title"
+    ],
+    "expectedFonts": [
+      "ArialMT"
+    ]
+  }
+}

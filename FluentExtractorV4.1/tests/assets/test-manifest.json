@@ -1,0 +1,55 @@
+{
+  "testCases": [
+    {
+      "name": "simple-title",
+      "filename": "simple-title.psd",
+      "description": "Single text layer, Arial 48pt, white text",
+      "complexity": "simple",
+      "expectedProperties": {
+        "layerCount": 1,
+        "hasText": true,
+        "textLayers": [
+          "Sample Title"
+        ],
+        "expectedFonts": [
+          "ArialMT"
+        ]
+      }
+    },
+    {
+      "name": "multi-layer-bounds",
+      "filename": "multi-layer-bounds.psd",
+      "description": "Multiple text layers at different positions for bounds testing",
+      "complexity": "medium",
+      "expectedProperties": {
+        "layerCount": 3,
+        "hasText": true,
+        "textLayers": [
+          "Header Text",
+          "Body Text",
+          "Footer Text"
+        ],
+        "expectedFonts": [
+          "ArialMT"
+        ]
+      }
+    },
+    {
+      "name": "complex-text",
+      "filename": "complex-text.psd",
+      "description": "Text with multiple colors and styles",
+      "complexity": "complex",
+      "expectedProperties": {
+        "layerCount": 2,
+        "hasText": true,
+        "textLayers": [
+          "Title Layer",
+          "Subtitle Layer"
+        ],
+        "expectedFonts": [
+          "ArialMT"
+        ]
+      }
+    }
+  ]
+}

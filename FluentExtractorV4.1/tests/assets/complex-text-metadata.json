@@ -1,0 +1,17 @@
+{
+  "name": "complex-text",
+  "filename": "complex-text.psd",
+  "description": "Text with multiple colors and styles",
+  "complexity": "complex",
+  "expectedProperties": {
+    "layerCount": 2,
+    "hasText": true,
+    "textLayers": [
+      "Title Layer",
+      "Subtitle Layer"
+    ],
+    "expectedFonts": [
+      "ArialMT"
+    ]
+  }
+}
