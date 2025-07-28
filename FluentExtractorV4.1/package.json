@@ -65,9 +65,7 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testMatch": [
-      "**/tests/**/*.test.ts"
-    ],
+    "testMatch": ["**/tests/**/*.test.ts"],
     "collectCoverageFrom": [
       "ActionDescriptorNavigator.ts",
       "types.ts"
